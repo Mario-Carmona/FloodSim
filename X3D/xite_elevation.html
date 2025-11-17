@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ElevationGrid con X_ITE</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/x_ite@12.1.4/dist/x_ite.min.js"></script>
+  <style>
+    body { background-color: #87CEEB; margin: 0; overflow: hidden; }
+    x3d-canvas { width: 100vw; height: 100vh; display: block; }
+  </style>
+</head>
+<body>
+  <x3d-canvas>
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 4.0//EN" "http://www.web3d.org/specifications/x3d-4.0.dtd">
+    <x3d>
+      <scene>
+        <background skyColor="0.4 0.7 1"></background>
+        <viewpoint position="0 10 20" orientation="1 0 0 -0.5" description="Vista superior"></viewpoint>
+
+        <shape>
+          <appearance>
+            <material diffuseColor="1 0 0"></material>
+          </appearance>
+          <elevationgrid
+            xDimension="10"
+            zDimension="10"
+            xSpacing="1"
+            zSpacing="1"
+            height="0 0 1 2 3 4 3 2 1 0
+                    0 1 2 3 4 5 4 3 2 1
+                    1 2 3 4 5 4 3 2 1 0
+                    2 3 4 5 4 3 2 1 0 0
+                    3 4 5 4 3 2 1 0 0 0
+                    2 3 4 3 2 1 0 0 0 0
+                    1 2 3 2 1 0 0 0 0 0
+                    0 1 2 1 0 0 0 0 0 0
+                    0 0 1 0 0 0 0 0 0 0
+                    0 0 0 0 0 0 0 0 0 0">
+          </elevationgrid>
+        </shape>
+      </scene>
+    </x3d>
+  </x3d-canvas>
+</body>
+</html>
