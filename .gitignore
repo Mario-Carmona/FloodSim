@@ -42,13 +42,13 @@
 
 # Latex
 *.out
-#*.aux
-#*.log
-#*.toc
-#*.lof
-#*.lot
-#*.fls
-#*.fdb_latexmk
-#*.synctex.gz
-#*.bbl
-#*.blg
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
