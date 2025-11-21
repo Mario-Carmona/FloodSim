@@ -1,1 +1,0 @@
-Lectura y escritura (CSV, JSON, GIS…)

@@ -1,1 +1,0 @@
-Subsistema principal: lógica, entidades, grids, física
