@@ -1,0 +1,113 @@
+DANASIM-DATAVIEW DEFINITIONS ::=
+BEGIN
+
+------------------------------------------------------------------------
+--  CONSTANTS
+------------------------------------------------------------------------
+
+    -- Maximum number of grid cells (e.g., 1024 x 1024 grid)
+    MaxGridCells ::= INTEGER (1 .. 1048576)
+
+    -- Maximum number of grid index (MaxGridCells - 1)
+    MaxGridIndex ::= INTEGER (1 .. 1048575)
+
+    -- Maximum number of time steps
+    MaxTimeStep ::= 20
+
+------------------------------------------------------------------------
+--  BASIC TYPES
+------------------------------------------------------------------------
+
+    -- Grid indices are managed as a linear vector index
+    GridIndex ::= INTEGER (0 .. MaxGridIndex)
+
+    -- Integer type for representing the simulation time step
+    TimeStep ::= INTEGER (1 .. MaxTimeStep)
+
+    -- Float type for all continuous magnitudes (elevation, water volume, etc.)
+    Real32 ::= REAL
+
+    -- Types of surfaces. Each surface type has a friction coefficient
+    SurfaceType ::= ENUMERATED {
+        soil,
+        rock,
+        asphalt,
+        forest,
+        water-surface
+    }
+
+    -- Water state in the cell
+    WaterState ::= ENUMERATED {
+        dry,
+        moving,
+        stable
+    }
+
+------------------------------------------------------------------------
+--  GRID CELL AND LAYER TYPES
+------------------------------------------------------------------------
+
+    -- A single grid cell contains the static and dynamic layer values.
+    GridCell ::= SEQUENCE {
+        elevation       Real32,      -- terrain elevation
+        water-volume    Real32,      -- water volume in meters of height or liters/m2
+        surface-type    SurfaceType, -- affects friction
+        water-state     WaterState   -- dry / moving / stable
+    }
+
+    -- The full grid is stored as a vector of cells of size MaxGridCells
+    GridVector ::= SEQUENCE (SIZE(1 .. MaxGridCells)) OF GridCell
+
+------------------------------------------------------------------------
+--  EVENTS AND ACTIVE CELLS
+------------------------------------------------------------------------
+
+    -- When a cell receives a water increment, it becomes "active".
+    WaterIncrementEvent ::= SEQUENCE {
+        target-index  GridIndex,
+        added-volume  Real32
+    }
+
+    -- The list of all active cells for a given time step
+    ActiveCellList ::= SEQUENCE (SIZE(1 .. MaxGridCells)) OF GridIndex
+
+    -- New events generated during a time step
+    WaterIncrementEventList ::= SEQUENCE (SIZE(1 .. MaxGridCells)) OF WaterIncrementEvent
+
+------------------------------------------------------------------------
+--  IO DEVICE: GIS
+--  Loads the initial static and dynamic grid layers.
+--  For example: elevation raster, surface type map, initial water volumes.
+------------------------------------------------------------------------
+
+    -- Structure representing all GIS data the simulator will need.
+    GISInputData ::= SEQUENCE {
+        grid-size       INTEGER (1 .. MaxGridCells),   -- number of cells
+        elevation-layer SEQUENCE (SIZE(1 .. MaxGridCells)) OF Real32,
+        surface-layer   SEQUENCE (SIZE(1 .. MaxGridCells)) OF SurfaceType,
+        initial-water   SEQUENCE (SIZE(1 .. MaxGridCells)) OF Real32
+    }
+
+    -- Output from GIS loader: the fully assembled grid
+    GISOutputGrid ::= GridVector
+
+------------------------------------------------------------------------
+--  IO DEVICE: MQTT (EMPTY FOR NOW)
+--  Left empty intentionally as requested.
+------------------------------------------------------------------------
+
+    -- Placeholder for future MQTT-based I/O model
+    MQTTInput  ::= NULL
+    MQTTOutput ::= NULL
+
+------------------------------------------------------------------------
+--  SIMULATION STATE FOR MODEL VALIDATION
+------------------------------------------------------------------------
+
+    SimulationState ::= SEQUENCE {
+        current-time-step   TimeStep,
+        grid                GridVector,
+        active-cells        ActiveCellList
+    }
+
+END
