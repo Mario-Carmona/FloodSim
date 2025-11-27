@@ -119,8 +119,8 @@ PROPERTIES
    -- ignored property: default_implementation = default
    -- ignored property: fixed_system_element = NO
    -- ignored property: required_system_element = NO
-   Taste::Startup_Priority => 1;
    Taste::Instances_Max => 1;
+   Taste::Startup_Priority => 1;
    Taste::Instances_Min => 1;
    TASTE_IV_Properties::Default_Codegen => C;
 
@@ -173,8 +173,8 @@ PROPERTIES
    -- ignored property: default_implementation = default
    -- ignored property: fixed_system_element = NO
    -- ignored property: required_system_element = NO
-   Taste::Startup_Priority => 1;
    Taste::Instances_Max => 1;
+   Taste::Startup_Priority => 1;
    Taste::Instances_Min => 1;
    TASTE_IV_Properties::Default_Codegen => C;
 
@@ -275,8 +275,8 @@ PROPERTIES
    -- ignored property: default_implementation = default
    -- ignored property: fixed_system_element = NO
    -- ignored property: required_system_element = NO
-   Taste::Startup_Priority => 1;
    Taste::Instances_Max => 1;
+   Taste::Startup_Priority => 1;
    Taste::Instances_Min => 1;
    TASTE_IV_Properties::Default_Codegen => C;
 
@@ -310,9 +310,9 @@ SUBCOMPONENTS
   IO_GIS : SYSTEM interfaceview::IV::IO_GIS::IO_GIS.others;
   UI : SYSTEM interfaceview::IV::UI::UI.others;
 CONNECTIONS
+   Core_RI_displaySnapshot_UI_PI_displaySnapshot : SUBPROGRAM ACCESS UI.PI_displaySnapshot -> Core.RI_displaySnapshot;
    UI_RI_startSimulationFromGIS_Core_PI_startSimulationFromGIS : SUBPROGRAM ACCESS Core.PI_startSimulationFromGIS -> UI.RI_startSimulationFromGIS;
    Core_RI_displayInitialGrid_UI_PI_displayInitialGrid : SUBPROGRAM ACCESS UI.PI_displayInitialGrid -> Core.RI_displayInitialGrid;
-   Core_RI_displaySnapshot_UI_PI_displaySnapshot : SUBPROGRAM ACCESS UI.PI_displaySnapshot -> Core.RI_displaySnapshot;
    Core_RI_loadGISData_IO_GIS_PI_loadGISData : SUBPROGRAM ACCESS IO_GIS.PI_loadGISData -> Core.RI_loadGISData;
 END interfaceview.others;
 

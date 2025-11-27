@@ -10,41 +10,30 @@ process Ui;
     dcl uiGrid Grid;
     dcl uiFinished T_Boolean;
     /* CIF ENDTEXT */
-    /* CIF procedure (177, 318), (121, 35) */
+    /* CIF procedure (195, 454), (87, 35) */
     /* CIF Keep Specific Geode Partition 'default' */
-    procedure displayInitialGrid;
+    procedure renderGrid;
         /* CIF Keep Specific Geode Partition 'default' */
-        /* CIF TEXT (94, 88), (170, 140) */
-        fpar
-          in grid Grid;
+        /* CIF TEXT (157, 111), (170, 140) */
+        fpar in grid Grid;
         /* CIF ENDTEXT */
-        /* CIF START (383, 90), (70, 35) */
+        /* CIF START (508, 96), (70, 35) */
         START;
-            /* CIF task (368, 145), (98, 35) */
-            task uiGrid := grid;
-            /* CIF PROCEDURECALL (352, 195), (131, 35) */
-            call renderGrid(uiGrid);
-            /* CIF return (400, 245), (35, 35) */
+            /* CIF return (525, 151), (35, 35) */
             return ;
     endprocedure;
-    /* CIF procedure (180, 363), (118, 35) */
+    /* CIF procedure (132, 409), (186, 35) */
     /* CIF Keep Specific Geode Partition 'default' */
-    procedure displaySnapshot;
+    procedure applyModificationsToUIGrid;
         /* CIF Keep Specific Geode Partition 'default' */
-        /* CIF TEXT (81, 118), (250, 140) */
+        /* CIF TEXT (46, 71), (250, 140) */
         fpar
           in modifications GridModificationList,
-          in finished T_Boolean;
+          in/out grid Grid;
         /* CIF ENDTEXT */
-        /* CIF START (511, 83), (70, 35) */
+        /* CIF START (496, 82), (70, 35) */
         START;
-            /* CIF task (472, 138), (146, 35) */
-            task uiFinished := finished;
-            /* CIF PROCEDURECALL (387, 193), (317, 35) */
-            call applyModificationsToUIGrid(modifications, uiGrid);
-            /* CIF PROCEDURECALL (480, 248), (131, 35) */
-            call renderGrid(uiGrid);
-            /* CIF return (528, 298), (35, 35) */
+            /* CIF return (513, 137), (35, 35) */
             return ;
     endprocedure;
     /* CIF procedure (209, 276), (70, 35) */
@@ -71,30 +60,41 @@ process Ui;
             /* CIF return (405, 344), (35, 35) */
             return ;
     endprocedure;
-    /* CIF procedure (133, 409), (186, 35) */
+    /* CIF procedure (179, 363), (118, 35) */
     /* CIF Keep Specific Geode Partition 'default' */
-    procedure applyModificationsToUIGrid;
+    procedure displaySnapshot;
         /* CIF Keep Specific Geode Partition 'default' */
-        /* CIF TEXT (46, 71), (250, 140) */
+        /* CIF TEXT (81, 118), (250, 140) */
         fpar
           in modifications GridModificationList,
-          in/out grid Grid;
+          in finished T_Boolean;
         /* CIF ENDTEXT */
-        /* CIF START (496, 82), (70, 35) */
+        /* CIF START (511, 83), (70, 35) */
         START;
-            /* CIF return (513, 137), (35, 35) */
+            /* CIF task (472, 138), (146, 35) */
+            task uiFinished := finished;
+            /* CIF PROCEDURECALL (387, 193), (317, 35) */
+            call applyModificationsToUIGrid(modifications, uiGrid);
+            /* CIF PROCEDURECALL (480, 248), (131, 35) */
+            call renderGrid(uiGrid);
+            /* CIF return (528, 298), (35, 35) */
             return ;
     endprocedure;
-    /* CIF procedure (196, 454), (87, 35) */
+    /* CIF procedure (176, 318), (121, 35) */
     /* CIF Keep Specific Geode Partition 'default' */
-    procedure renderGrid;
+    procedure displayInitialGrid;
         /* CIF Keep Specific Geode Partition 'default' */
-        /* CIF TEXT (157, 111), (170, 140) */
-        fpar in grid Grid;
+        /* CIF TEXT (94, 88), (170, 140) */
+        fpar
+          in grid Grid;
         /* CIF ENDTEXT */
-        /* CIF START (508, 96), (70, 35) */
+        /* CIF START (383, 90), (70, 35) */
         START;
-            /* CIF return (525, 151), (35, 35) */
+            /* CIF task (368, 145), (98, 35) */
+            task uiGrid := grid;
+            /* CIF PROCEDURECALL (352, 195), (131, 35) */
+            call renderGrid(uiGrid);
+            /* CIF return (400, 245), (35, 35) */
             return ;
     endprocedure;
     /* CIF START (586, 64), (70, 35) */
@@ -105,12 +105,12 @@ process Ui;
         output startSimulationFromGIS(folder, timeStepDuration, totalDuration, snapshotPeriod);
         /* CIF NEXTSTATE (558, 224), (125, 35) */
         NEXTSTATE WaitingInitialGrid;
-    /* CIF state (553, 334), (128, 35) */
+    /* CIF state (552, 334), (128, 35) */
     /* CIF Keep Specific Geode Partition 'default' */
     state WaitingSnapshots;
-        /* CIF input (557, 389), (118, 35) */
+        /* CIF input (556, 389), (118, 35) */
         input displaySnapshot;
-            /* CIF decision (575, 444), (82, 50) */
+            /* CIF decision (574, 444), (82, 50) */
             decision uiFinished;
                 /* CIF ANSWER (551, 514), (70, 23) */
                 (true):
@@ -125,9 +125,9 @@ process Ui;
     /* CIF state (558, 224), (125, 35) */
     /* CIF Keep Specific Geode Partition 'default' */
     state WaitingInitialGrid;
-        /* CIF input (556, 279), (121, 35) */
+        /* CIF input (555, 279), (121, 35) */
         input displayInitialGrid;
-            /* CIF NEXTSTATE (553, 334), (128, 35) */
+            /* CIF NEXTSTATE (552, 334), (128, 35) */
             NEXTSTATE WaitingSnapshots;
     endstate;
 endprocess Ui;

@@ -11,7 +11,7 @@ static pthread_mutex_t g_printing_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #endif
 
-void PrintASN1T_Real32(const char *paramName, const asn1SccT_Real32 *pData)
+void PrintASN1T_UInt32(const char *paramName, const asn1SccT_UInt32 *pData)
 {
     (void)paramName;
     (void)pData;
@@ -19,16 +19,20 @@ void PrintASN1T_Real32(const char *paramName, const asn1SccT_Real32 *pData)
     pthread_mutex_lock(&g_printing_mutex);
 #endif
 #ifdef __unix__
-    //printf("%s T-Real32 ::= ", paramName);
+    //printf("%s T-UInt32 ::= ", paramName);
     printf("%s ", paramName);
-    printf("%f", (*pData));
+    #if WORD_SIZE==8
+    printf("%"PRId64, (*pData));
+    #else
+    printf("%d", (*pData));
+    #endif
 #endif
 #ifdef __linux__
     pthread_mutex_unlock(&g_printing_mutex);
 #endif
 }
 
-void PrintASN1T_UReal32(const char *paramName, const asn1SccT_UReal32 *pData)
+void PrintASN1Duration(const char *paramName, const asn1SccDuration *pData)
 {
     (void)paramName;
     (void)pData;
@@ -36,9 +40,55 @@ void PrintASN1T_UReal32(const char *paramName, const asn1SccT_UReal32 *pData)
     pthread_mutex_lock(&g_printing_mutex);
 #endif
 #ifdef __unix__
-    //printf("%s T-UReal32 ::= ", paramName);
+    //printf("%s Duration ::= ", paramName);
     printf("%s ", paramName);
-    printf("%f", (*pData));
+    #if WORD_SIZE==8
+    printf("%"PRId64, (*pData));
+    #else
+    printf("%d", (*pData));
+    #endif
+#endif
+#ifdef __linux__
+    pthread_mutex_unlock(&g_printing_mutex);
+#endif
+}
+
+void PrintASN1TimeStep(const char *paramName, const asn1SccTimeStep *pData)
+{
+    (void)paramName;
+    (void)pData;
+#ifdef __linux__
+    pthread_mutex_lock(&g_printing_mutex);
+#endif
+#ifdef __unix__
+    //printf("%s TimeStep ::= ", paramName);
+    printf("%s ", paramName);
+    #if WORD_SIZE==8
+    printf("%"PRId64, (*pData));
+    #else
+    printf("%d", (*pData));
+    #endif
+#endif
+#ifdef __linux__
+    pthread_mutex_unlock(&g_printing_mutex);
+#endif
+}
+
+void PrintASN1Height(const char *paramName, const asn1SccHeight *pData)
+{
+    (void)paramName;
+    (void)pData;
+#ifdef __linux__
+    pthread_mutex_lock(&g_printing_mutex);
+#endif
+#ifdef __unix__
+    //printf("%s Height ::= ", paramName);
+    printf("%s ", paramName);
+    #if WORD_SIZE==8
+    printf("%"PRId64, (*pData));
+    #else
+    printf("%d", (*pData));
+    #endif
 #endif
 #ifdef __linux__
     pthread_mutex_unlock(&g_printing_mutex);
@@ -92,10 +142,18 @@ void PrintASN1CellState(const char *paramName, const asn1SccCellState *pData)
     printf("%s ", paramName);
     printf("{");
     printf("elevation ");
-    printf("%f", (*pData).elevation);
+    #if WORD_SIZE==8
+    printf("%"PRId64, (*pData).elevation);
+    #else
+    printf("%d", (*pData).elevation);
+    #endif
     printf(", ");
-    printf("waterVolume ");
-    printf("%f", (*pData).waterVolume);
+    printf("waterDepth ");
+    #if WORD_SIZE==8
+    printf("%"PRId64, (*pData).waterDepth);
+    #else
+    printf("%d", (*pData).waterDepth);
+    #endif
     printf(", ");
     printf("surfaceType ");
     switch((*pData).surfaceType) {
@@ -142,10 +200,18 @@ void PrintASN1GridVector(const char *paramName, const asn1SccGridVector *pData)
                 printf(",");
             printf("{");
             printf("elevation ");
-            printf("%f", (*pData).arr[i1].elevation);
+            #if WORD_SIZE==8
+            printf("%"PRId64, (*pData).arr[i1].elevation);
+            #else
+            printf("%d", (*pData).arr[i1].elevation);
+            #endif
             printf(", ");
-            printf("waterVolume ");
-            printf("%f", (*pData).arr[i1].waterVolume);
+            printf("waterDepth ");
+            #if WORD_SIZE==8
+            printf("%"PRId64, (*pData).arr[i1].waterDepth);
+            #else
+            printf("%d", (*pData).arr[i1].waterDepth);
+            #endif
             printf(", ");
             printf("surfaceType ");
             switch((*pData).arr[i1].surfaceType) {
@@ -211,10 +277,18 @@ void PrintASN1Grid(const char *paramName, const asn1SccGrid *pData)
                 printf(",");
             printf("{");
             printf("elevation ");
-            printf("%f", (*pData).cells.arr[i2].elevation);
+            #if WORD_SIZE==8
+            printf("%"PRId64, (*pData).cells.arr[i2].elevation);
+            #else
+            printf("%d", (*pData).cells.arr[i2].elevation);
+            #endif
             printf(", ");
-            printf("waterVolume ");
-            printf("%f", (*pData).cells.arr[i2].waterVolume);
+            printf("waterDepth ");
+            #if WORD_SIZE==8
+            printf("%"PRId64, (*pData).cells.arr[i2].waterDepth);
+            #else
+            printf("%d", (*pData).cells.arr[i2].waterDepth);
+            #endif
             printf(", ");
             printf("surfaceType ");
             switch((*pData).cells.arr[i2].surfaceType) {
@@ -247,7 +321,7 @@ void PrintASN1Grid(const char *paramName, const asn1SccGrid *pData)
 #endif
 }
 
-void PrintASN1Coefficient(const char *paramName, const asn1SccCoefficient *pData)
+void PrintASN1FlowCoefficient(const char *paramName, const asn1SccFlowCoefficient *pData)
 {
     (void)paramName;
     (void)pData;
@@ -255,7 +329,7 @@ void PrintASN1Coefficient(const char *paramName, const asn1SccCoefficient *pData
     pthread_mutex_lock(&g_printing_mutex);
 #endif
 #ifdef __unix__
-    //printf("%s Coefficient ::= ", paramName);
+    //printf("%s FlowCoefficient ::= ", paramName);
     printf("%s ", paramName);
     printf("%f", (*pData));
 #endif
@@ -264,7 +338,7 @@ void PrintASN1Coefficient(const char *paramName, const asn1SccCoefficient *pData
 #endif
 }
 
-void PrintASN1Duration(const char *paramName, const asn1SccDuration *pData)
+void PrintASN1ScaleFactor(const char *paramName, const asn1SccScaleFactor *pData)
 {
     (void)paramName;
     (void)pData;
@@ -272,30 +346,9 @@ void PrintASN1Duration(const char *paramName, const asn1SccDuration *pData)
     pthread_mutex_lock(&g_printing_mutex);
 #endif
 #ifdef __unix__
-    //printf("%s Duration ::= ", paramName);
+    //printf("%s ScaleFactor ::= ", paramName);
     printf("%s ", paramName);
     printf("%f", (*pData));
-#endif
-#ifdef __linux__
-    pthread_mutex_unlock(&g_printing_mutex);
-#endif
-}
-
-void PrintASN1TimeStep(const char *paramName, const asn1SccTimeStep *pData)
-{
-    (void)paramName;
-    (void)pData;
-#ifdef __linux__
-    pthread_mutex_lock(&g_printing_mutex);
-#endif
-#ifdef __unix__
-    //printf("%s TimeStep ::= ", paramName);
-    printf("%s ", paramName);
-    #if WORD_SIZE==8
-    printf("%"PRId64, (*pData));
-    #else
-    printf("%d", (*pData));
-    #endif
 #endif
 #ifdef __linux__
     pthread_mutex_unlock(&g_printing_mutex);
@@ -351,8 +404,12 @@ void PrintASN1Outflow(const char *paramName, const asn1SccOutflow *pData)
     //printf("%s Outflow ::= ", paramName);
     printf("%s ", paramName);
     printf("{");
-    printf("volume ");
-    printf("%f", (*pData).volume);
+    printf("depth ");
+    #if WORD_SIZE==8
+    printf("%"PRId64, (*pData).depth);
+    #else
+    printf("%d", (*pData).depth);
+    #endif
     printf(", ");
     printf("neighbor ");
     #if WORD_SIZE==8
@@ -384,8 +441,12 @@ void PrintASN1OutflowList(const char *paramName, const asn1SccOutflowList *pData
             if (i3) 
                 printf(",");
             printf("{");
-            printf("volume ");
-            printf("%f", (*pData).arr[i3].volume);
+            printf("depth ");
+            #if WORD_SIZE==8
+            printf("%"PRId64, (*pData).arr[i3].depth);
+            #else
+            printf("%d", (*pData).arr[i3].depth);
+            #endif
             printf(", ");
             printf("neighbor ");
             #if WORD_SIZE==8
@@ -472,7 +533,7 @@ void PrintASN1GridCellNeighborList(const char *paramName, const asn1SccGridCellN
 #endif
 }
 
-void PrintASN1WaterIncrementEvent(const char *paramName, const asn1SccWaterIncrementEvent *pData)
+void PrintASN1FlowingWaterEvent(const char *paramName, const asn1SccFlowingWaterEvent *pData)
 {
     (void)paramName;
     (void)pData;
@@ -480,7 +541,7 @@ void PrintASN1WaterIncrementEvent(const char *paramName, const asn1SccWaterIncre
     pthread_mutex_lock(&g_printing_mutex);
 #endif
 #ifdef __unix__
-    //printf("%s WaterIncrementEvent ::= ", paramName);
+    //printf("%s FlowingWaterEvent ::= ", paramName);
     printf("%s ", paramName);
     printf("{");
     printf("targetCell ");
@@ -496,7 +557,7 @@ void PrintASN1WaterIncrementEvent(const char *paramName, const asn1SccWaterIncre
 #endif
 }
 
-void PrintASN1WaterIncrementEventList(const char *paramName, const asn1SccWaterIncrementEventList *pData)
+void PrintASN1FlowingWaterEventList(const char *paramName, const asn1SccFlowingWaterEventList *pData)
 {
     (void)paramName;
     (void)pData;
@@ -504,7 +565,7 @@ void PrintASN1WaterIncrementEventList(const char *paramName, const asn1SccWaterI
     pthread_mutex_lock(&g_printing_mutex);
 #endif
 #ifdef __unix__
-    //printf("%s WaterIncrementEventList ::= ", paramName);
+    //printf("%s FlowingWaterEventList ::= ", paramName);
     printf("%s ", paramName);
     {
         int i7;
@@ -547,8 +608,15 @@ void PrintASN1GridModification(const char *paramName, const asn1SccGridModificat
     printf("%d", (*pData).targetCell);
     #endif
     printf(", ");
+    printf("increment ");
+    printf("%s", (int)(*pData).increment?"TRUE":"FALSE");
+    printf(", ");
     printf("delta ");
-    printf("%f", (*pData).delta);
+    #if WORD_SIZE==8
+    printf("%"PRId64, (*pData).delta);
+    #else
+    printf("%d", (*pData).delta);
+    #endif
     printf("}");
 #endif
 #ifdef __linux__
@@ -580,46 +648,19 @@ void PrintASN1GridModificationList(const char *paramName, const asn1SccGridModif
             printf("%d", (*pData).arr[i8].targetCell);
             #endif
             printf(", ");
+            printf("increment ");
+            printf("%s", (int)(*pData).arr[i8].increment?"TRUE":"FALSE");
+            printf(", ");
             printf("delta ");
-            printf("%f", (*pData).arr[i8].delta);
+            #if WORD_SIZE==8
+            printf("%"PRId64, (*pData).arr[i8].delta);
+            #else
+            printf("%d", (*pData).arr[i8].delta);
+            #endif
             printf("}");
         }
         printf("}");
     }
-#endif
-#ifdef __linux__
-    pthread_mutex_unlock(&g_printing_mutex);
-#endif
-}
-
-void PrintASN1WaterVolume(const char *paramName, const asn1SccWaterVolume *pData)
-{
-    (void)paramName;
-    (void)pData;
-#ifdef __linux__
-    pthread_mutex_lock(&g_printing_mutex);
-#endif
-#ifdef __unix__
-    //printf("%s WaterVolume ::= ", paramName);
-    printf("%s ", paramName);
-    printf("%f", (*pData));
-#endif
-#ifdef __linux__
-    pthread_mutex_unlock(&g_printing_mutex);
-#endif
-}
-
-void PrintASN1TotalOutflow(const char *paramName, const asn1SccTotalOutflow *pData)
-{
-    (void)paramName;
-    (void)pData;
-#ifdef __linux__
-    pthread_mutex_lock(&g_printing_mutex);
-#endif
-#ifdef __unix__
-    //printf("%s TotalOutflow ::= ", paramName);
-    printf("%s ", paramName);
-    printf("%f", (*pData));
 #endif
 #ifdef __linux__
     pthread_mutex_unlock(&g_printing_mutex);
@@ -668,7 +709,7 @@ void PrintASN1T_Int32(const char *paramName, const asn1SccT_Int32 *pData)
 #endif
 }
 
-void PrintASN1T_UInt32(const char *paramName, const asn1SccT_UInt32 *pData)
+void PrintASN1TASTE_BasicTypes_T_UInt32(const char *paramName, const asn1SccTASTE_BasicTypes_T_UInt32 *pData)
 {
     (void)paramName;
     (void)pData;
@@ -676,7 +717,7 @@ void PrintASN1T_UInt32(const char *paramName, const asn1SccT_UInt32 *pData)
     pthread_mutex_lock(&g_printing_mutex);
 #endif
 #ifdef __unix__
-    //printf("%s T-UInt32 ::= ", paramName);
+    //printf("%s TASTE-BasicTypes-T-UInt32 ::= ", paramName);
     printf("%s ", paramName);
     #if WORD_SIZE==8
     printf("%"PRId64, (*pData));

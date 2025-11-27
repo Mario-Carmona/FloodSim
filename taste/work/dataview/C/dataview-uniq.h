@@ -12,74 +12,142 @@ extern "C" {
 #endif
 
 
-typedef asn1Real asn1SccT_Real32;
+typedef asn1SccUint asn1SccT_UInt32;
 
 
-flag asn1SccT_Real32_Equal(const asn1SccT_Real32* pVal1, const asn1SccT_Real32* pVal2);
+flag asn1SccT_UInt32_Equal(const asn1SccT_UInt32* pVal1, const asn1SccT_UInt32* pVal2);
 
-#define ERR_T_REAL32		1  /*(-2147483648.0 .. 2147483647.0)*/
-flag asn1SccT_Real32_IsConstraintValid(const asn1SccT_Real32* pVal, int* pErrCode);
-
-#ifdef __cplusplus
-extern const asn1SccT_Real32 asn1SccT_Real32_constant;
-#else
-#define asn1SccT_Real32_constant 0.0000000000000000000E+000
-#endif
-
-void asn1SccT_Real32_Initialize(asn1SccT_Real32* pVal);
-
-#define ERR_UPER_ENCODE_T_REAL32		2  /**/
-#define asn1SccT_Real32_REQUIRED_BYTES_FOR_ENCODING       13
-#define asn1SccT_Real32_REQUIRED_BITS_FOR_ENCODING        104
-
-flag asn1SccT_Real32_Encode(const asn1SccT_Real32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
-
-#define ERR_UPER_DECODE_T_REAL32		3  /**/
-flag asn1SccT_Real32_Decode(asn1SccT_Real32* pVal, BitStream* pBitStrm, int* pErrCode);
-
-#define asn1SccT_Real32_REQUIRED_BYTES_FOR_ACN_ENCODING       13
-#define asn1SccT_Real32_REQUIRED_BITS_FOR_ACN_ENCODING        104
-
-#define ERR_ACN_ENCODE_T_REAL32		4  /**/
-
-flag asn1SccT_Real32_ACN_Encode(const asn1SccT_Real32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
-
-#define ERR_ACN_DECODE_T_REAL32		5  /**/
-flag asn1SccT_Real32_ACN_Decode(asn1SccT_Real32* pVal, BitStream* pBitStrm, int* pErrCode);
-typedef asn1Real asn1SccT_UReal32;
-
-
-flag asn1SccT_UReal32_Equal(const asn1SccT_UReal32* pVal1, const asn1SccT_UReal32* pVal2);
-
-#define ERR_T_UREAL32		6  /*(0.0 .. 4294967294.0)*/
-flag asn1SccT_UReal32_IsConstraintValid(const asn1SccT_UReal32* pVal, int* pErrCode);
+#define ERR_T_UINT32		1  /*(0 .. 4294967294)*/
+flag asn1SccT_UInt32_IsConstraintValid(const asn1SccT_UInt32* pVal, int* pErrCode);
 
 #ifdef __cplusplus
-extern const asn1SccT_UReal32 asn1SccT_UReal32_constant;
+extern const asn1SccT_UInt32 asn1SccT_UInt32_constant;
 #else
-#define asn1SccT_UReal32_constant 0.0000000000000000000E+000
+#define asn1SccT_UInt32_constant 0UL
 #endif
 
-void asn1SccT_UReal32_Initialize(asn1SccT_UReal32* pVal);
+void asn1SccT_UInt32_Initialize(asn1SccT_UInt32* pVal);
 
-#define ERR_UPER_ENCODE_T_UREAL32		7  /**/
-#define asn1SccT_UReal32_REQUIRED_BYTES_FOR_ENCODING       13
-#define asn1SccT_UReal32_REQUIRED_BITS_FOR_ENCODING        104
+#define ERR_UPER_ENCODE_T_UINT32		2  /**/
+#define asn1SccT_UInt32_REQUIRED_BYTES_FOR_ENCODING       4
+#define asn1SccT_UInt32_REQUIRED_BITS_FOR_ENCODING        32
 
-flag asn1SccT_UReal32_Encode(const asn1SccT_UReal32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccT_UInt32_Encode(const asn1SccT_UInt32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_T_UREAL32		8  /**/
-flag asn1SccT_UReal32_Decode(asn1SccT_UReal32* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_UPER_DECODE_T_UINT32		3  /**/
+flag asn1SccT_UInt32_Decode(asn1SccT_UInt32* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccT_UReal32_REQUIRED_BYTES_FOR_ACN_ENCODING       13
-#define asn1SccT_UReal32_REQUIRED_BITS_FOR_ACN_ENCODING        104
+#define asn1SccT_UInt32_REQUIRED_BYTES_FOR_ACN_ENCODING       4
+#define asn1SccT_UInt32_REQUIRED_BITS_FOR_ACN_ENCODING        32
 
-#define ERR_ACN_ENCODE_T_UREAL32		9  /**/
+#define ERR_ACN_ENCODE_T_UINT32		4  /**/
 
-flag asn1SccT_UReal32_ACN_Encode(const asn1SccT_UReal32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccT_UInt32_ACN_Encode(const asn1SccT_UInt32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_T_UREAL32		10  /**/
-flag asn1SccT_UReal32_ACN_Decode(asn1SccT_UReal32* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_ACN_DECODE_T_UINT32		5  /**/
+flag asn1SccT_UInt32_ACN_Decode(asn1SccT_UInt32* pVal, BitStream* pBitStrm, int* pErrCode);
+typedef asn1SccT_UInt32 asn1SccDuration;
+
+
+flag asn1SccDuration_Equal(const asn1SccDuration* pVal1, const asn1SccDuration* pVal2);
+
+#define ERR_DURATION_2		11  /**/
+flag asn1SccDuration_IsConstraintValid(const asn1SccDuration* pVal, int* pErrCode);
+
+#ifdef __cplusplus
+extern const asn1SccDuration asn1SccDuration_constant;
+#else
+#define asn1SccDuration_constant 0UL
+#endif
+
+void asn1SccDuration_Initialize(asn1SccDuration* pVal);
+
+#define ERR_UPER_ENCODE_DURATION_2		12  /**/
+#define asn1SccDuration_REQUIRED_BYTES_FOR_ENCODING       4
+#define asn1SccDuration_REQUIRED_BITS_FOR_ENCODING        32
+
+flag asn1SccDuration_Encode(const asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+
+#define ERR_UPER_DECODE_DURATION_2		13  /**/
+flag asn1SccDuration_Decode(asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode);
+
+#define asn1SccDuration_REQUIRED_BYTES_FOR_ACN_ENCODING       4
+#define asn1SccDuration_REQUIRED_BITS_FOR_ACN_ENCODING        32
+
+#define ERR_ACN_ENCODE_DURATION_2		14  /**/
+
+flag asn1SccDuration_ACN_Encode(const asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+
+#define ERR_ACN_DECODE_DURATION_2		15  /**/
+flag asn1SccDuration_ACN_Decode(asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode);
+typedef asn1SccT_UInt32 asn1SccTimeStep;
+
+
+flag asn1SccTimeStep_Equal(const asn1SccTimeStep* pVal1, const asn1SccTimeStep* pVal2);
+
+#define ERR_TIMESTEP_2		21  /**/
+flag asn1SccTimeStep_IsConstraintValid(const asn1SccTimeStep* pVal, int* pErrCode);
+
+#ifdef __cplusplus
+extern const asn1SccTimeStep asn1SccTimeStep_constant;
+#else
+#define asn1SccTimeStep_constant 0UL
+#endif
+
+void asn1SccTimeStep_Initialize(asn1SccTimeStep* pVal);
+
+#define ERR_UPER_ENCODE_TIMESTEP_2		22  /**/
+#define asn1SccTimeStep_REQUIRED_BYTES_FOR_ENCODING       4
+#define asn1SccTimeStep_REQUIRED_BITS_FOR_ENCODING        32
+
+flag asn1SccTimeStep_Encode(const asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+
+#define ERR_UPER_DECODE_TIMESTEP_2		23  /**/
+flag asn1SccTimeStep_Decode(asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode);
+
+#define asn1SccTimeStep_REQUIRED_BYTES_FOR_ACN_ENCODING       4
+#define asn1SccTimeStep_REQUIRED_BITS_FOR_ACN_ENCODING        32
+
+#define ERR_ACN_ENCODE_TIMESTEP_2		24  /**/
+
+flag asn1SccTimeStep_ACN_Encode(const asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+
+#define ERR_ACN_DECODE_TIMESTEP_2		25  /**/
+flag asn1SccTimeStep_ACN_Decode(asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode);
+typedef asn1SccT_UInt32 asn1SccHeight;
+
+
+flag asn1SccHeight_Equal(const asn1SccHeight* pVal1, const asn1SccHeight* pVal2);
+
+#define ERR_HEIGHT_2		31  /**/
+flag asn1SccHeight_IsConstraintValid(const asn1SccHeight* pVal, int* pErrCode);
+
+#ifdef __cplusplus
+extern const asn1SccHeight asn1SccHeight_constant;
+#else
+#define asn1SccHeight_constant 0UL
+#endif
+
+void asn1SccHeight_Initialize(asn1SccHeight* pVal);
+
+#define ERR_UPER_ENCODE_HEIGHT_2		32  /**/
+#define asn1SccHeight_REQUIRED_BYTES_FOR_ENCODING       4
+#define asn1SccHeight_REQUIRED_BITS_FOR_ENCODING        32
+
+flag asn1SccHeight_Encode(const asn1SccHeight* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+
+#define ERR_UPER_DECODE_HEIGHT_2		33  /**/
+flag asn1SccHeight_Decode(asn1SccHeight* pVal, BitStream* pBitStrm, int* pErrCode);
+
+#define asn1SccHeight_REQUIRED_BYTES_FOR_ACN_ENCODING       4
+#define asn1SccHeight_REQUIRED_BITS_FOR_ACN_ENCODING        32
+
+#define ERR_ACN_ENCODE_HEIGHT_2		34  /**/
+
+flag asn1SccHeight_ACN_Encode(const asn1SccHeight* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+
+#define ERR_ACN_DECODE_HEIGHT_2		35  /**/
+flag asn1SccHeight_ACN_Decode(asn1SccHeight* pVal, BitStream* pBitStrm, int* pErrCode);
 typedef enum {
     SurfaceType_soil = 0,
     SurfaceType_rock = 1,
@@ -97,7 +165,7 @@ typedef enum {
 
 flag asn1SccSurfaceType_Equal(const asn1SccSurfaceType* pVal1, const asn1SccSurfaceType* pVal2);
 
-#define ERR_SURFACETYPE		11  /*soil | rock | asphalt | forest | waterSurface*/
+#define ERR_SURFACETYPE		36  /*soil | rock | asphalt | forest | waterSurface*/
 flag asn1SccSurfaceType_IsConstraintValid(const asn1SccSurfaceType* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -108,77 +176,77 @@ extern const asn1SccSurfaceType asn1SccSurfaceType_constant;
 
 void asn1SccSurfaceType_Initialize(asn1SccSurfaceType* pVal);
 
-#define ERR_UPER_ENCODE_SURFACETYPE		12  /**/
+#define ERR_UPER_ENCODE_SURFACETYPE		37  /**/
 #define asn1SccSurfaceType_REQUIRED_BYTES_FOR_ENCODING       1
 #define asn1SccSurfaceType_REQUIRED_BITS_FOR_ENCODING        3
 
 flag asn1SccSurfaceType_Encode(const asn1SccSurfaceType* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_SURFACETYPE		13  /**/
+#define ERR_UPER_DECODE_SURFACETYPE		38  /**/
 flag asn1SccSurfaceType_Decode(asn1SccSurfaceType* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccSurfaceType_REQUIRED_BYTES_FOR_ACN_ENCODING       1
 #define asn1SccSurfaceType_REQUIRED_BITS_FOR_ACN_ENCODING        3
 
-#define ERR_ACN_ENCODE_SURFACETYPE		14  /**/
+#define ERR_ACN_ENCODE_SURFACETYPE		39  /**/
 
 flag asn1SccSurfaceType_ACN_Encode(const asn1SccSurfaceType* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_SURFACETYPE		15  /**/
+#define ERR_ACN_DECODE_SURFACETYPE		40  /**/
 flag asn1SccSurfaceType_ACN_Decode(asn1SccSurfaceType* pVal, BitStream* pBitStrm, int* pErrCode);
 /*-- asn1SccCellState --------------------------------------------*/
 typedef struct {
-    asn1Real elevation;
-    asn1Real waterVolume;
+    asn1SccT_UInt32 elevation;
+    asn1SccT_UInt32 waterDepth;
     asn1SccSurfaceType surfaceType;
 
 } asn1SccCellState;
 
 flag asn1SccCellState_Equal(const asn1SccCellState* pVal1, const asn1SccCellState* pVal2);
 
-#define ERR_CELLSTATE		36  /**/
-#define ERR_CELLSTATE_ELEVATION		16  /*(0.0 .. 1000.0)*/
-#define ERR_CELLSTATE_WATERVOLUME		21  /*(0.0 .. 1000.0)*/
-#define ERR_CELLSTATE_SURFACETYPE_2		31  /**/
+#define ERR_CELLSTATE		71  /**/
+#define ERR_CELLSTATE_ELEVATION_2		46  /**/
+#define ERR_CELLSTATE_WATERDEPTH_2		56  /**/
+#define ERR_CELLSTATE_SURFACETYPE_2		66  /**/
 flag asn1SccCellState_IsConstraintValid(const asn1SccCellState* pVal, int* pErrCode);
 
 #ifdef __cplusplus
 extern const asn1SccCellState asn1SccCellState_constant;
 #else
-#define asn1SccCellState_constant {.elevation = 0.0000000000000000000E+000, .waterVolume = 0.0000000000000000000E+000, .surfaceType = SurfaceType_soil}
+#define asn1SccCellState_constant {.elevation = 0UL, .waterDepth = 0UL, .surfaceType = SurfaceType_soil}
 #endif
 
 void asn1SccCellState_Initialize(asn1SccCellState* pVal);
 
-#define ERR_UPER_ENCODE_CELLSTATE		37  /**/
-#define ERR_UPER_ENCODE_CELLSTATE_ELEVATION		17  /**/
-#define ERR_UPER_ENCODE_CELLSTATE_WATERVOLUME		22  /**/
-#define ERR_UPER_ENCODE_CELLSTATE_SURFACETYPE_2		32  /**/
-#define asn1SccCellState_REQUIRED_BYTES_FOR_ENCODING       27
-#define asn1SccCellState_REQUIRED_BITS_FOR_ENCODING        211
+#define ERR_UPER_ENCODE_CELLSTATE		72  /**/
+#define ERR_UPER_ENCODE_CELLSTATE_ELEVATION_2		47  /**/
+#define ERR_UPER_ENCODE_CELLSTATE_WATERDEPTH_2		57  /**/
+#define ERR_UPER_ENCODE_CELLSTATE_SURFACETYPE_2		67  /**/
+#define asn1SccCellState_REQUIRED_BYTES_FOR_ENCODING       9
+#define asn1SccCellState_REQUIRED_BITS_FOR_ENCODING        67
 
 flag asn1SccCellState_Encode(const asn1SccCellState* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_CELLSTATE		38  /**/
-#define ERR_UPER_DECODE_CELLSTATE_ELEVATION		18  /**/
-#define ERR_UPER_DECODE_CELLSTATE_WATERVOLUME		23  /**/
-#define ERR_UPER_DECODE_CELLSTATE_SURFACETYPE_2		33  /**/
+#define ERR_UPER_DECODE_CELLSTATE		73  /**/
+#define ERR_UPER_DECODE_CELLSTATE_ELEVATION_2		48  /**/
+#define ERR_UPER_DECODE_CELLSTATE_WATERDEPTH_2		58  /**/
+#define ERR_UPER_DECODE_CELLSTATE_SURFACETYPE_2		68  /**/
 flag asn1SccCellState_Decode(asn1SccCellState* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccCellState_REQUIRED_BYTES_FOR_ACN_ENCODING       27
-#define asn1SccCellState_REQUIRED_BITS_FOR_ACN_ENCODING        211
+#define asn1SccCellState_REQUIRED_BYTES_FOR_ACN_ENCODING       9
+#define asn1SccCellState_REQUIRED_BITS_FOR_ACN_ENCODING        67
 
-#define ERR_ACN_ENCODE_CELLSTATE		39  /**/
-#define ERR_ACN_ENCODE_CELLSTATE_ELEVATION		19  /**/
-#define ERR_ACN_ENCODE_CELLSTATE_WATERVOLUME		24  /**/
-#define ERR_ACN_ENCODE_CELLSTATE_SURFACETYPE_2		34  /**/
+#define ERR_ACN_ENCODE_CELLSTATE		74  /**/
+#define ERR_ACN_ENCODE_CELLSTATE_ELEVATION_2		49  /**/
+#define ERR_ACN_ENCODE_CELLSTATE_WATERDEPTH_2		59  /**/
+#define ERR_ACN_ENCODE_CELLSTATE_SURFACETYPE_2		69  /**/
 
 flag asn1SccCellState_ACN_Encode(const asn1SccCellState* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_CELLSTATE		40  /**/
-#define ERR_ACN_DECODE_CELLSTATE_ELEVATION		20  /**/
-#define ERR_ACN_DECODE_CELLSTATE_WATERVOLUME		25  /**/
-#define ERR_ACN_DECODE_CELLSTATE_SURFACETYPE_2		35  /**/
+#define ERR_ACN_DECODE_CELLSTATE		75  /**/
+#define ERR_ACN_DECODE_CELLSTATE_ELEVATION_2		50  /**/
+#define ERR_ACN_DECODE_CELLSTATE_WATERDEPTH_2		60  /**/
+#define ERR_ACN_DECODE_CELLSTATE_SURFACETYPE_2		70  /**/
 flag asn1SccCellState_ACN_Decode(asn1SccCellState* pVal, BitStream* pBitStrm, int* pErrCode);
 
 
@@ -189,8 +257,8 @@ typedef struct {
 
 flag asn1SccGridVector_Equal(const asn1SccGridVector* pVal1, const asn1SccGridVector* pVal2);
 
-#define ERR_GRIDVECTOR		46  /*(SIZE(1 .. 1048576))*/
-#define ERR_GRIDVECTOR_ELM		41  /**/
+#define ERR_GRIDVECTOR		81  /*(SIZE(1 .. 1048576))*/
+#define ERR_GRIDVECTOR_ELM		76  /**/
 flag asn1SccGridVector_IsConstraintValid(const asn1SccGridVector* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -201,27 +269,27 @@ extern const asn1SccGridVector asn1SccGridVector_constant;
 
 void asn1SccGridVector_Initialize(asn1SccGridVector* pVal);
 
-#define ERR_UPER_ENCODE_GRIDVECTOR		47  /**/
-#define ERR_UPER_ENCODE_GRIDVECTOR_ELM		42  /**/
-#define asn1SccGridVector_REQUIRED_BYTES_FOR_ENCODING       27656211
-#define asn1SccGridVector_REQUIRED_BITS_FOR_ENCODING        221249688
+#define ERR_UPER_ENCODE_GRIDVECTOR		82  /**/
+#define ERR_UPER_ENCODE_GRIDVECTOR_ELM		77  /**/
+#define asn1SccGridVector_REQUIRED_BYTES_FOR_ENCODING       8781843
+#define asn1SccGridVector_REQUIRED_BITS_FOR_ENCODING        70254744
 
 flag asn1SccGridVector_Encode(const asn1SccGridVector* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_GRIDVECTOR		48  /**/
-#define ERR_UPER_DECODE_GRIDVECTOR_ELM		43  /**/
+#define ERR_UPER_DECODE_GRIDVECTOR		83  /**/
+#define ERR_UPER_DECODE_GRIDVECTOR_ELM		78  /**/
 flag asn1SccGridVector_Decode(asn1SccGridVector* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccGridVector_REQUIRED_BYTES_FOR_ACN_ENCODING       27656195
-#define asn1SccGridVector_REQUIRED_BITS_FOR_ACN_ENCODING        221249556
+#define asn1SccGridVector_REQUIRED_BYTES_FOR_ACN_ENCODING       8781827
+#define asn1SccGridVector_REQUIRED_BITS_FOR_ACN_ENCODING        70254612
 
-#define ERR_ACN_ENCODE_GRIDVECTOR		49  /**/
-#define ERR_ACN_ENCODE_GRIDVECTOR_ELM		44  /**/
+#define ERR_ACN_ENCODE_GRIDVECTOR		84  /**/
+#define ERR_ACN_ENCODE_GRIDVECTOR_ELM		79  /**/
 
 flag asn1SccGridVector_ACN_Encode(const asn1SccGridVector* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_GRIDVECTOR		50  /**/
-#define ERR_ACN_DECODE_GRIDVECTOR_ELM		45  /**/
+#define ERR_ACN_DECODE_GRIDVECTOR		85  /**/
+#define ERR_ACN_DECODE_GRIDVECTOR_ELM		80  /**/
 flag asn1SccGridVector_ACN_Decode(asn1SccGridVector* pVal, BitStream* pBitStrm, int* pErrCode);
 /*-- asn1SccGrid --------------------------------------------*/
 typedef asn1SccUint asn1SccGrid_width;
@@ -241,14 +309,14 @@ flag asn1SccGrid_height_Equal(const asn1SccGrid_height* pVal1, const asn1SccGrid
 
 flag asn1SccGrid_Equal(const asn1SccGrid* pVal1, const asn1SccGrid* pVal2);
 
-#define ERR_GRID_WIDTH		51  /*(1 .. 1024)*/
+#define ERR_GRID_WIDTH		86  /*(1 .. 1024)*/
 flag asn1SccGrid_width_IsConstraintValid(const asn1SccGrid_width* pVal, int* pErrCode);
 
-#define ERR_GRID_HEIGHT		56  /*(1 .. 1024)*/
+#define ERR_GRID_HEIGHT		91  /*(1 .. 1024)*/
 flag asn1SccGrid_height_IsConstraintValid(const asn1SccGrid_height* pVal, int* pErrCode);
 
-#define ERR_GRID		66  /**/
-#define ERR_GRID_CELLS		61  /**/
+#define ERR_GRID		101  /**/
+#define ERR_GRID_CELLS		96  /**/
 flag asn1SccGrid_IsConstraintValid(const asn1SccGrid* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -269,143 +337,109 @@ extern const asn1SccGrid asn1SccGrid_constant;
 
 void asn1SccGrid_Initialize(asn1SccGrid* pVal);
 
-#define ERR_UPER_ENCODE_GRID		67  /**/
-#define ERR_UPER_ENCODE_GRID_WIDTH		52  /**/
-#define ERR_UPER_ENCODE_GRID_HEIGHT		57  /**/
-#define ERR_UPER_ENCODE_GRID_CELLS		62  /**/
-#define asn1SccGrid_REQUIRED_BYTES_FOR_ENCODING       27656214
-#define asn1SccGrid_REQUIRED_BITS_FOR_ENCODING        221249708
+#define ERR_UPER_ENCODE_GRID		102  /**/
+#define ERR_UPER_ENCODE_GRID_WIDTH		87  /**/
+#define ERR_UPER_ENCODE_GRID_HEIGHT		92  /**/
+#define ERR_UPER_ENCODE_GRID_CELLS		97  /**/
+#define asn1SccGrid_REQUIRED_BYTES_FOR_ENCODING       8781846
+#define asn1SccGrid_REQUIRED_BITS_FOR_ENCODING        70254764
 
 flag asn1SccGrid_Encode(const asn1SccGrid* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_GRID		68  /**/
-#define ERR_UPER_DECODE_GRID_WIDTH		53  /**/
-#define ERR_UPER_DECODE_GRID_HEIGHT		58  /**/
-#define ERR_UPER_DECODE_GRID_CELLS		63  /**/
+#define ERR_UPER_DECODE_GRID		103  /**/
+#define ERR_UPER_DECODE_GRID_WIDTH		88  /**/
+#define ERR_UPER_DECODE_GRID_HEIGHT		93  /**/
+#define ERR_UPER_DECODE_GRID_CELLS		98  /**/
 flag asn1SccGrid_Decode(asn1SccGrid* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccGrid_REQUIRED_BYTES_FOR_ACN_ENCODING       27656197
-#define asn1SccGrid_REQUIRED_BITS_FOR_ACN_ENCODING        221249576
+#define asn1SccGrid_REQUIRED_BYTES_FOR_ACN_ENCODING       8781829
+#define asn1SccGrid_REQUIRED_BITS_FOR_ACN_ENCODING        70254632
 
-#define ERR_ACN_ENCODE_GRID		69  /**/
-#define ERR_ACN_ENCODE_GRID_WIDTH		54  /**/
-#define ERR_ACN_ENCODE_GRID_HEIGHT		59  /**/
-#define ERR_ACN_ENCODE_GRID_CELLS		64  /**/
+#define ERR_ACN_ENCODE_GRID		104  /**/
+#define ERR_ACN_ENCODE_GRID_WIDTH		89  /**/
+#define ERR_ACN_ENCODE_GRID_HEIGHT		94  /**/
+#define ERR_ACN_ENCODE_GRID_CELLS		99  /**/
 
 flag asn1SccGrid_ACN_Encode(const asn1SccGrid* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_GRID		70  /**/
-#define ERR_ACN_DECODE_GRID_WIDTH		55  /**/
-#define ERR_ACN_DECODE_GRID_HEIGHT		60  /**/
-#define ERR_ACN_DECODE_GRID_CELLS		65  /**/
+#define ERR_ACN_DECODE_GRID		105  /**/
+#define ERR_ACN_DECODE_GRID_WIDTH		90  /**/
+#define ERR_ACN_DECODE_GRID_HEIGHT		95  /**/
+#define ERR_ACN_DECODE_GRID_CELLS		100  /**/
 flag asn1SccGrid_ACN_Decode(asn1SccGrid* pVal, BitStream* pBitStrm, int* pErrCode);
-typedef asn1Real asn1SccCoefficient;
+typedef asn1Real asn1SccFlowCoefficient;
 
 
-flag asn1SccCoefficient_Equal(const asn1SccCoefficient* pVal1, const asn1SccCoefficient* pVal2);
+flag asn1SccFlowCoefficient_Equal(const asn1SccFlowCoefficient* pVal1, const asn1SccFlowCoefficient* pVal2);
 
-#define ERR_COEFFICIENT		71  /*(0.0 .. 1.0)*/
-flag asn1SccCoefficient_IsConstraintValid(const asn1SccCoefficient* pVal, int* pErrCode);
-
-#ifdef __cplusplus
-extern const asn1SccCoefficient asn1SccCoefficient_constant;
-#else
-#define asn1SccCoefficient_constant 0.0000000000000000000E+000
-#endif
-
-void asn1SccCoefficient_Initialize(asn1SccCoefficient* pVal);
-
-#define ERR_UPER_ENCODE_COEFFICIENT		72  /**/
-#define asn1SccCoefficient_REQUIRED_BYTES_FOR_ENCODING       13
-#define asn1SccCoefficient_REQUIRED_BITS_FOR_ENCODING        104
-
-flag asn1SccCoefficient_Encode(const asn1SccCoefficient* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
-
-#define ERR_UPER_DECODE_COEFFICIENT		73  /**/
-flag asn1SccCoefficient_Decode(asn1SccCoefficient* pVal, BitStream* pBitStrm, int* pErrCode);
-
-#define asn1SccCoefficient_REQUIRED_BYTES_FOR_ACN_ENCODING       13
-#define asn1SccCoefficient_REQUIRED_BITS_FOR_ACN_ENCODING        104
-
-#define ERR_ACN_ENCODE_COEFFICIENT		74  /**/
-
-flag asn1SccCoefficient_ACN_Encode(const asn1SccCoefficient* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
-
-#define ERR_ACN_DECODE_COEFFICIENT		75  /**/
-flag asn1SccCoefficient_ACN_Decode(asn1SccCoefficient* pVal, BitStream* pBitStrm, int* pErrCode);
-typedef asn1Real asn1SccDuration;
-
-
-flag asn1SccDuration_Equal(const asn1SccDuration* pVal1, const asn1SccDuration* pVal2);
-
-#define ERR_DURATION		76  /*(0.0000001 .. 1000000.0)*/
-flag asn1SccDuration_IsConstraintValid(const asn1SccDuration* pVal, int* pErrCode);
+#define ERR_FLOWCOEFFICIENT		106  /*(0.0 .. 1.0)*/
+flag asn1SccFlowCoefficient_IsConstraintValid(const asn1SccFlowCoefficient* pVal, int* pErrCode);
 
 #ifdef __cplusplus
-extern const asn1SccDuration asn1SccDuration_constant;
+extern const asn1SccFlowCoefficient asn1SccFlowCoefficient_constant;
 #else
-#define asn1SccDuration_constant 9.9999999999999995475E-008
+#define asn1SccFlowCoefficient_constant 0.0000000000000000000E+000
 #endif
 
-void asn1SccDuration_Initialize(asn1SccDuration* pVal);
+void asn1SccFlowCoefficient_Initialize(asn1SccFlowCoefficient* pVal);
 
-#define ERR_UPER_ENCODE_DURATION		77  /**/
-#define asn1SccDuration_REQUIRED_BYTES_FOR_ENCODING       13
-#define asn1SccDuration_REQUIRED_BITS_FOR_ENCODING        104
+#define ERR_UPER_ENCODE_FLOWCOEFFICIENT		107  /**/
+#define asn1SccFlowCoefficient_REQUIRED_BYTES_FOR_ENCODING       13
+#define asn1SccFlowCoefficient_REQUIRED_BITS_FOR_ENCODING        104
 
-flag asn1SccDuration_Encode(const asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccFlowCoefficient_Encode(const asn1SccFlowCoefficient* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_DURATION		78  /**/
-flag asn1SccDuration_Decode(asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_UPER_DECODE_FLOWCOEFFICIENT		108  /**/
+flag asn1SccFlowCoefficient_Decode(asn1SccFlowCoefficient* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccDuration_REQUIRED_BYTES_FOR_ACN_ENCODING       13
-#define asn1SccDuration_REQUIRED_BITS_FOR_ACN_ENCODING        104
+#define asn1SccFlowCoefficient_REQUIRED_BYTES_FOR_ACN_ENCODING       13
+#define asn1SccFlowCoefficient_REQUIRED_BITS_FOR_ACN_ENCODING        104
 
-#define ERR_ACN_ENCODE_DURATION		79  /**/
+#define ERR_ACN_ENCODE_FLOWCOEFFICIENT		109  /**/
 
-flag asn1SccDuration_ACN_Encode(const asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccFlowCoefficient_ACN_Encode(const asn1SccFlowCoefficient* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_DURATION		80  /**/
-flag asn1SccDuration_ACN_Decode(asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode);
-typedef asn1SccUint asn1SccTimeStep;
+#define ERR_ACN_DECODE_FLOWCOEFFICIENT		110  /**/
+flag asn1SccFlowCoefficient_ACN_Decode(asn1SccFlowCoefficient* pVal, BitStream* pBitStrm, int* pErrCode);
+typedef asn1Real asn1SccScaleFactor;
 
 
-flag asn1SccTimeStep_Equal(const asn1SccTimeStep* pVal1, const asn1SccTimeStep* pVal2);
+flag asn1SccScaleFactor_Equal(const asn1SccScaleFactor* pVal1, const asn1SccScaleFactor* pVal2);
 
-#define ERR_TIMESTEP		81  /*(0 .. 10000)*/
-flag asn1SccTimeStep_IsConstraintValid(const asn1SccTimeStep* pVal, int* pErrCode);
+#define ERR_SCALEFACTOR		111  /*(0.0 .. 8.0)*/
+flag asn1SccScaleFactor_IsConstraintValid(const asn1SccScaleFactor* pVal, int* pErrCode);
 
 #ifdef __cplusplus
-extern const asn1SccTimeStep asn1SccTimeStep_constant;
+extern const asn1SccScaleFactor asn1SccScaleFactor_constant;
 #else
-#define asn1SccTimeStep_constant 0UL
+#define asn1SccScaleFactor_constant 0.0000000000000000000E+000
 #endif
 
-void asn1SccTimeStep_Initialize(asn1SccTimeStep* pVal);
+void asn1SccScaleFactor_Initialize(asn1SccScaleFactor* pVal);
 
-#define ERR_UPER_ENCODE_TIMESTEP		82  /**/
-#define asn1SccTimeStep_REQUIRED_BYTES_FOR_ENCODING       2
-#define asn1SccTimeStep_REQUIRED_BITS_FOR_ENCODING        14
+#define ERR_UPER_ENCODE_SCALEFACTOR		112  /**/
+#define asn1SccScaleFactor_REQUIRED_BYTES_FOR_ENCODING       13
+#define asn1SccScaleFactor_REQUIRED_BITS_FOR_ENCODING        104
 
-flag asn1SccTimeStep_Encode(const asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccScaleFactor_Encode(const asn1SccScaleFactor* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_TIMESTEP		83  /**/
-flag asn1SccTimeStep_Decode(asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_UPER_DECODE_SCALEFACTOR		113  /**/
+flag asn1SccScaleFactor_Decode(asn1SccScaleFactor* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccTimeStep_REQUIRED_BYTES_FOR_ACN_ENCODING       2
-#define asn1SccTimeStep_REQUIRED_BITS_FOR_ACN_ENCODING        14
+#define asn1SccScaleFactor_REQUIRED_BYTES_FOR_ACN_ENCODING       13
+#define asn1SccScaleFactor_REQUIRED_BITS_FOR_ACN_ENCODING        104
 
-#define ERR_ACN_ENCODE_TIMESTEP		84  /**/
+#define ERR_ACN_ENCODE_SCALEFACTOR		114  /**/
 
-flag asn1SccTimeStep_ACN_Encode(const asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccScaleFactor_ACN_Encode(const asn1SccScaleFactor* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_TIMESTEP		85  /**/
-flag asn1SccTimeStep_ACN_Decode(asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_ACN_DECODE_SCALEFACTOR		115  /**/
+flag asn1SccScaleFactor_ACN_Decode(asn1SccScaleFactor* pVal, BitStream* pBitStrm, int* pErrCode);
 typedef char asn1SccFilePath[256];
 
 flag asn1SccFilePath_Equal(const asn1SccFilePath pVal1, const asn1SccFilePath pVal2);
 
-#define ERR_FILEPATH		86  /*(SIZE(1..255))*/
+#define ERR_FILEPATH		116  /*(SIZE(1..255))*/
 flag asn1SccFilePath_IsConstraintValid(const asn1SccFilePath pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -416,30 +450,30 @@ extern const asn1SccFilePath asn1SccFilePath_constant;
 
 void asn1SccFilePath_Initialize(asn1SccFilePath pVal);
 
-#define ERR_UPER_ENCODE_FILEPATH		87  /**/
+#define ERR_UPER_ENCODE_FILEPATH		117  /**/
 #define asn1SccFilePath_REQUIRED_BYTES_FOR_ENCODING       225
 #define asn1SccFilePath_REQUIRED_BITS_FOR_ENCODING        1793
 
 flag asn1SccFilePath_Encode(const asn1SccFilePath pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_FILEPATH		88  /**/
+#define ERR_UPER_DECODE_FILEPATH		118  /**/
 flag asn1SccFilePath_Decode(asn1SccFilePath pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccFilePath_REQUIRED_BYTES_FOR_ACN_ENCODING       225
 #define asn1SccFilePath_REQUIRED_BITS_FOR_ACN_ENCODING        1793
 
-#define ERR_ACN_ENCODE_FILEPATH		89  /**/
+#define ERR_ACN_ENCODE_FILEPATH		119  /**/
 
 flag asn1SccFilePath_ACN_Encode(const asn1SccFilePath pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_FILEPATH		90  /**/
+#define ERR_ACN_DECODE_FILEPATH		120  /**/
 flag asn1SccFilePath_ACN_Decode(asn1SccFilePath pVal, BitStream* pBitStrm, int* pErrCode);
 typedef asn1SccUint asn1SccCellIndex;
 
 
 flag asn1SccCellIndex_Equal(const asn1SccCellIndex* pVal1, const asn1SccCellIndex* pVal2);
 
-#define ERR_CELLINDEX		91  /*(0 .. 1048575)*/
+#define ERR_CELLINDEX		121  /*(0 .. 1048575)*/
 flag asn1SccCellIndex_IsConstraintValid(const asn1SccCellIndex* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -450,71 +484,71 @@ extern const asn1SccCellIndex asn1SccCellIndex_constant;
 
 void asn1SccCellIndex_Initialize(asn1SccCellIndex* pVal);
 
-#define ERR_UPER_ENCODE_CELLINDEX		92  /**/
+#define ERR_UPER_ENCODE_CELLINDEX		122  /**/
 #define asn1SccCellIndex_REQUIRED_BYTES_FOR_ENCODING       3
 #define asn1SccCellIndex_REQUIRED_BITS_FOR_ENCODING        20
 
 flag asn1SccCellIndex_Encode(const asn1SccCellIndex* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_CELLINDEX		93  /**/
+#define ERR_UPER_DECODE_CELLINDEX		123  /**/
 flag asn1SccCellIndex_Decode(asn1SccCellIndex* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccCellIndex_REQUIRED_BYTES_FOR_ACN_ENCODING       3
 #define asn1SccCellIndex_REQUIRED_BITS_FOR_ACN_ENCODING        20
 
-#define ERR_ACN_ENCODE_CELLINDEX		94  /**/
+#define ERR_ACN_ENCODE_CELLINDEX		124  /**/
 
 flag asn1SccCellIndex_ACN_Encode(const asn1SccCellIndex* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_CELLINDEX		95  /**/
+#define ERR_ACN_DECODE_CELLINDEX		125  /**/
 flag asn1SccCellIndex_ACN_Decode(asn1SccCellIndex* pVal, BitStream* pBitStrm, int* pErrCode);
 /*-- asn1SccOutflow --------------------------------------------*/
 typedef struct {
-    asn1Real volume;
+    asn1SccT_UInt32 depth;
     asn1SccCellIndex neighbor;
 
 } asn1SccOutflow;
 
 flag asn1SccOutflow_Equal(const asn1SccOutflow* pVal1, const asn1SccOutflow* pVal2);
 
-#define ERR_OUTFLOW		111  /**/
-#define ERR_OUTFLOW_VOLUME		96  /*(0.0 .. 1000.0)*/
-#define ERR_OUTFLOW_NEIGHBOR_2		106  /**/
+#define ERR_OUTFLOW		146  /**/
+#define ERR_OUTFLOW_DEPTH_2		131  /**/
+#define ERR_OUTFLOW_NEIGHBOR_2		141  /**/
 flag asn1SccOutflow_IsConstraintValid(const asn1SccOutflow* pVal, int* pErrCode);
 
 #ifdef __cplusplus
 extern const asn1SccOutflow asn1SccOutflow_constant;
 #else
-#define asn1SccOutflow_constant {.volume = 0.0000000000000000000E+000, .neighbor = 0UL}
+#define asn1SccOutflow_constant {.depth = 0UL, .neighbor = 0UL}
 #endif
 
 void asn1SccOutflow_Initialize(asn1SccOutflow* pVal);
 
-#define ERR_UPER_ENCODE_OUTFLOW		112  /**/
-#define ERR_UPER_ENCODE_OUTFLOW_VOLUME		97  /**/
-#define ERR_UPER_ENCODE_OUTFLOW_NEIGHBOR_2		107  /**/
-#define asn1SccOutflow_REQUIRED_BYTES_FOR_ENCODING       16
-#define asn1SccOutflow_REQUIRED_BITS_FOR_ENCODING        124
+#define ERR_UPER_ENCODE_OUTFLOW		147  /**/
+#define ERR_UPER_ENCODE_OUTFLOW_DEPTH_2		132  /**/
+#define ERR_UPER_ENCODE_OUTFLOW_NEIGHBOR_2		142  /**/
+#define asn1SccOutflow_REQUIRED_BYTES_FOR_ENCODING       7
+#define asn1SccOutflow_REQUIRED_BITS_FOR_ENCODING        52
 
 flag asn1SccOutflow_Encode(const asn1SccOutflow* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_OUTFLOW		113  /**/
-#define ERR_UPER_DECODE_OUTFLOW_VOLUME		98  /**/
-#define ERR_UPER_DECODE_OUTFLOW_NEIGHBOR_2		108  /**/
+#define ERR_UPER_DECODE_OUTFLOW		148  /**/
+#define ERR_UPER_DECODE_OUTFLOW_DEPTH_2		133  /**/
+#define ERR_UPER_DECODE_OUTFLOW_NEIGHBOR_2		143  /**/
 flag asn1SccOutflow_Decode(asn1SccOutflow* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccOutflow_REQUIRED_BYTES_FOR_ACN_ENCODING       16
-#define asn1SccOutflow_REQUIRED_BITS_FOR_ACN_ENCODING        124
+#define asn1SccOutflow_REQUIRED_BYTES_FOR_ACN_ENCODING       7
+#define asn1SccOutflow_REQUIRED_BITS_FOR_ACN_ENCODING        52
 
-#define ERR_ACN_ENCODE_OUTFLOW		114  /**/
-#define ERR_ACN_ENCODE_OUTFLOW_VOLUME		99  /**/
-#define ERR_ACN_ENCODE_OUTFLOW_NEIGHBOR_2		109  /**/
+#define ERR_ACN_ENCODE_OUTFLOW		149  /**/
+#define ERR_ACN_ENCODE_OUTFLOW_DEPTH_2		134  /**/
+#define ERR_ACN_ENCODE_OUTFLOW_NEIGHBOR_2		144  /**/
 
 flag asn1SccOutflow_ACN_Encode(const asn1SccOutflow* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_OUTFLOW		115  /**/
-#define ERR_ACN_DECODE_OUTFLOW_VOLUME		100  /**/
-#define ERR_ACN_DECODE_OUTFLOW_NEIGHBOR_2		110  /**/
+#define ERR_ACN_DECODE_OUTFLOW		150  /**/
+#define ERR_ACN_DECODE_OUTFLOW_DEPTH_2		135  /**/
+#define ERR_ACN_DECODE_OUTFLOW_NEIGHBOR_2		145  /**/
 flag asn1SccOutflow_ACN_Decode(asn1SccOutflow* pVal, BitStream* pBitStrm, int* pErrCode);
 
 
@@ -525,8 +559,8 @@ typedef struct {
 
 flag asn1SccOutflowList_Equal(const asn1SccOutflowList* pVal1, const asn1SccOutflowList* pVal2);
 
-#define ERR_OUTFLOWLIST		121  /*(SIZE(0 .. 9))*/
-#define ERR_OUTFLOWLIST_ELM		116  /**/
+#define ERR_OUTFLOWLIST		156  /*(SIZE(0 .. 9))*/
+#define ERR_OUTFLOWLIST_ELM		151  /**/
 flag asn1SccOutflowList_IsConstraintValid(const asn1SccOutflowList* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -537,27 +571,27 @@ extern const asn1SccOutflowList asn1SccOutflowList_constant;
 
 void asn1SccOutflowList_Initialize(asn1SccOutflowList* pVal);
 
-#define ERR_UPER_ENCODE_OUTFLOWLIST		122  /**/
-#define ERR_UPER_ENCODE_OUTFLOWLIST_ELM		117  /**/
-#define asn1SccOutflowList_REQUIRED_BYTES_FOR_ENCODING       140
-#define asn1SccOutflowList_REQUIRED_BITS_FOR_ENCODING        1120
+#define ERR_UPER_ENCODE_OUTFLOWLIST		157  /**/
+#define ERR_UPER_ENCODE_OUTFLOWLIST_ELM		152  /**/
+#define asn1SccOutflowList_REQUIRED_BYTES_FOR_ENCODING       59
+#define asn1SccOutflowList_REQUIRED_BITS_FOR_ENCODING        472
 
 flag asn1SccOutflowList_Encode(const asn1SccOutflowList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_OUTFLOWLIST		123  /**/
-#define ERR_UPER_DECODE_OUTFLOWLIST_ELM		118  /**/
+#define ERR_UPER_DECODE_OUTFLOWLIST		158  /**/
+#define ERR_UPER_DECODE_OUTFLOWLIST_ELM		153  /**/
 flag asn1SccOutflowList_Decode(asn1SccOutflowList* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccOutflowList_REQUIRED_BYTES_FOR_ACN_ENCODING       140
-#define asn1SccOutflowList_REQUIRED_BITS_FOR_ACN_ENCODING        1120
+#define asn1SccOutflowList_REQUIRED_BYTES_FOR_ACN_ENCODING       59
+#define asn1SccOutflowList_REQUIRED_BITS_FOR_ACN_ENCODING        472
 
-#define ERR_ACN_ENCODE_OUTFLOWLIST		124  /**/
-#define ERR_ACN_ENCODE_OUTFLOWLIST_ELM		119  /**/
+#define ERR_ACN_ENCODE_OUTFLOWLIST		159  /**/
+#define ERR_ACN_ENCODE_OUTFLOWLIST_ELM		154  /**/
 
 flag asn1SccOutflowList_ACN_Encode(const asn1SccOutflowList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_OUTFLOWLIST		125  /**/
-#define ERR_ACN_DECODE_OUTFLOWLIST_ELM		120  /**/
+#define ERR_ACN_DECODE_OUTFLOWLIST		160  /**/
+#define ERR_ACN_DECODE_OUTFLOWLIST_ELM		155  /**/
 flag asn1SccOutflowList_ACN_Decode(asn1SccOutflowList* pVal, BitStream* pBitStrm, int* pErrCode);
 
 
@@ -568,8 +602,8 @@ typedef struct {
 
 flag asn1SccMooreNeighborList_Equal(const asn1SccMooreNeighborList* pVal1, const asn1SccMooreNeighborList* pVal2);
 
-#define ERR_MOORENEIGHBORLIST		136  /*(SIZE(0 .. 9))*/
-#define ERR_MOORENEIGHBORLIST_ELM_2		131  /**/
+#define ERR_MOORENEIGHBORLIST		171  /*(SIZE(0 .. 9))*/
+#define ERR_MOORENEIGHBORLIST_ELM_2		166  /**/
 flag asn1SccMooreNeighborList_IsConstraintValid(const asn1SccMooreNeighborList* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -580,27 +614,27 @@ extern const asn1SccMooreNeighborList asn1SccMooreNeighborList_constant;
 
 void asn1SccMooreNeighborList_Initialize(asn1SccMooreNeighborList* pVal);
 
-#define ERR_UPER_ENCODE_MOORENEIGHBORLIST		137  /**/
-#define ERR_UPER_ENCODE_MOORENEIGHBORLIST_ELM_2		132  /**/
+#define ERR_UPER_ENCODE_MOORENEIGHBORLIST		172  /**/
+#define ERR_UPER_ENCODE_MOORENEIGHBORLIST_ELM_2		167  /**/
 #define asn1SccMooreNeighborList_REQUIRED_BYTES_FOR_ENCODING       23
 #define asn1SccMooreNeighborList_REQUIRED_BITS_FOR_ENCODING        184
 
 flag asn1SccMooreNeighborList_Encode(const asn1SccMooreNeighborList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_MOORENEIGHBORLIST		138  /**/
-#define ERR_UPER_DECODE_MOORENEIGHBORLIST_ELM_2		133  /**/
+#define ERR_UPER_DECODE_MOORENEIGHBORLIST		173  /**/
+#define ERR_UPER_DECODE_MOORENEIGHBORLIST_ELM_2		168  /**/
 flag asn1SccMooreNeighborList_Decode(asn1SccMooreNeighborList* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccMooreNeighborList_REQUIRED_BYTES_FOR_ACN_ENCODING       23
 #define asn1SccMooreNeighborList_REQUIRED_BITS_FOR_ACN_ENCODING        184
 
-#define ERR_ACN_ENCODE_MOORENEIGHBORLIST		139  /**/
-#define ERR_ACN_ENCODE_MOORENEIGHBORLIST_ELM_2		134  /**/
+#define ERR_ACN_ENCODE_MOORENEIGHBORLIST		174  /**/
+#define ERR_ACN_ENCODE_MOORENEIGHBORLIST_ELM_2		169  /**/
 
 flag asn1SccMooreNeighborList_ACN_Encode(const asn1SccMooreNeighborList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_MOORENEIGHBORLIST		140  /**/
-#define ERR_ACN_DECODE_MOORENEIGHBORLIST_ELM_2		135  /**/
+#define ERR_ACN_DECODE_MOORENEIGHBORLIST		175  /**/
+#define ERR_ACN_DECODE_MOORENEIGHBORLIST_ELM_2		170  /**/
 flag asn1SccMooreNeighborList_ACN_Decode(asn1SccMooreNeighborList* pVal, BitStream* pBitStrm, int* pErrCode);
 
 
@@ -611,8 +645,8 @@ typedef struct {
 
 flag asn1SccGridCellNeighborList_Equal(const asn1SccGridCellNeighborList* pVal1, const asn1SccGridCellNeighborList* pVal2);
 
-#define ERR_GRIDCELLNEIGHBORLIST		146  /*(SIZE(0 .. 1048576))*/
-#define ERR_GRIDCELLNEIGHBORLIST_ELM		141  /**/
+#define ERR_GRIDCELLNEIGHBORLIST		181  /*(SIZE(0 .. 1048576))*/
+#define ERR_GRIDCELLNEIGHBORLIST_ELM		176  /**/
 flag asn1SccGridCellNeighborList_IsConstraintValid(const asn1SccGridCellNeighborList* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -623,160 +657,166 @@ extern const asn1SccGridCellNeighborList asn1SccGridCellNeighborList_constant;
 
 void asn1SccGridCellNeighborList_Initialize(asn1SccGridCellNeighborList* pVal);
 
-#define ERR_UPER_ENCODE_GRIDCELLNEIGHBORLIST		147  /**/
-#define ERR_UPER_ENCODE_GRIDCELLNEIGHBORLIST_ELM		142  /**/
+#define ERR_UPER_ENCODE_GRIDCELLNEIGHBORLIST		182  /**/
+#define ERR_UPER_ENCODE_GRIDCELLNEIGHBORLIST_ELM		177  /**/
 #define asn1SccGridCellNeighborList_REQUIRED_BYTES_FOR_ENCODING       24117267
 #define asn1SccGridCellNeighborList_REQUIRED_BITS_FOR_ENCODING        192938136
 
 flag asn1SccGridCellNeighborList_Encode(const asn1SccGridCellNeighborList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST		148  /**/
-#define ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST_ELM		143  /**/
+#define ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST		183  /**/
+#define ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST_ELM		178  /**/
 flag asn1SccGridCellNeighborList_Decode(asn1SccGridCellNeighborList* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccGridCellNeighborList_REQUIRED_BYTES_FOR_ACN_ENCODING       24117251
 #define asn1SccGridCellNeighborList_REQUIRED_BITS_FOR_ACN_ENCODING        192938005
 
-#define ERR_ACN_ENCODE_GRIDCELLNEIGHBORLIST		149  /**/
-#define ERR_ACN_ENCODE_GRIDCELLNEIGHBORLIST_ELM		144  /**/
+#define ERR_ACN_ENCODE_GRIDCELLNEIGHBORLIST		184  /**/
+#define ERR_ACN_ENCODE_GRIDCELLNEIGHBORLIST_ELM		179  /**/
 
 flag asn1SccGridCellNeighborList_ACN_Encode(const asn1SccGridCellNeighborList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_GRIDCELLNEIGHBORLIST		150  /**/
-#define ERR_ACN_DECODE_GRIDCELLNEIGHBORLIST_ELM		145  /**/
+#define ERR_ACN_DECODE_GRIDCELLNEIGHBORLIST		185  /**/
+#define ERR_ACN_DECODE_GRIDCELLNEIGHBORLIST_ELM		180  /**/
 flag asn1SccGridCellNeighborList_ACN_Decode(asn1SccGridCellNeighborList* pVal, BitStream* pBitStrm, int* pErrCode);
-/*-- asn1SccWaterIncrementEvent --------------------------------------------*/
+/*-- asn1SccFlowingWaterEvent --------------------------------------------*/
 typedef struct {
     asn1SccCellIndex targetCell;
 
-} asn1SccWaterIncrementEvent;
+} asn1SccFlowingWaterEvent;
 
-flag asn1SccWaterIncrementEvent_Equal(const asn1SccWaterIncrementEvent* pVal1, const asn1SccWaterIncrementEvent* pVal2);
+flag asn1SccFlowingWaterEvent_Equal(const asn1SccFlowingWaterEvent* pVal1, const asn1SccFlowingWaterEvent* pVal2);
 
-#define ERR_WATERINCREMENTEVENT		161  /**/
-#define ERR_WATERINCREMENTEVENT_TARGETCELL_2		156  /**/
-flag asn1SccWaterIncrementEvent_IsConstraintValid(const asn1SccWaterIncrementEvent* pVal, int* pErrCode);
+#define ERR_FLOWINGWATEREVENT		196  /**/
+#define ERR_FLOWINGWATEREVENT_TARGETCELL_2		191  /**/
+flag asn1SccFlowingWaterEvent_IsConstraintValid(const asn1SccFlowingWaterEvent* pVal, int* pErrCode);
 
 #ifdef __cplusplus
-extern const asn1SccWaterIncrementEvent asn1SccWaterIncrementEvent_constant;
+extern const asn1SccFlowingWaterEvent asn1SccFlowingWaterEvent_constant;
 #else
-#define asn1SccWaterIncrementEvent_constant {.targetCell = 0UL}
+#define asn1SccFlowingWaterEvent_constant {.targetCell = 0UL}
 #endif
 
-void asn1SccWaterIncrementEvent_Initialize(asn1SccWaterIncrementEvent* pVal);
+void asn1SccFlowingWaterEvent_Initialize(asn1SccFlowingWaterEvent* pVal);
 
-#define ERR_UPER_ENCODE_WATERINCREMENTEVENT		162  /**/
-#define ERR_UPER_ENCODE_WATERINCREMENTEVENT_TARGETCELL_2		157  /**/
-#define asn1SccWaterIncrementEvent_REQUIRED_BYTES_FOR_ENCODING       3
-#define asn1SccWaterIncrementEvent_REQUIRED_BITS_FOR_ENCODING        20
+#define ERR_UPER_ENCODE_FLOWINGWATEREVENT		197  /**/
+#define ERR_UPER_ENCODE_FLOWINGWATEREVENT_TARGETCELL_2		192  /**/
+#define asn1SccFlowingWaterEvent_REQUIRED_BYTES_FOR_ENCODING       3
+#define asn1SccFlowingWaterEvent_REQUIRED_BITS_FOR_ENCODING        20
 
-flag asn1SccWaterIncrementEvent_Encode(const asn1SccWaterIncrementEvent* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccFlowingWaterEvent_Encode(const asn1SccFlowingWaterEvent* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_WATERINCREMENTEVENT		163  /**/
-#define ERR_UPER_DECODE_WATERINCREMENTEVENT_TARGETCELL_2		158  /**/
-flag asn1SccWaterIncrementEvent_Decode(asn1SccWaterIncrementEvent* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_UPER_DECODE_FLOWINGWATEREVENT		198  /**/
+#define ERR_UPER_DECODE_FLOWINGWATEREVENT_TARGETCELL_2		193  /**/
+flag asn1SccFlowingWaterEvent_Decode(asn1SccFlowingWaterEvent* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccWaterIncrementEvent_REQUIRED_BYTES_FOR_ACN_ENCODING       3
-#define asn1SccWaterIncrementEvent_REQUIRED_BITS_FOR_ACN_ENCODING        20
+#define asn1SccFlowingWaterEvent_REQUIRED_BYTES_FOR_ACN_ENCODING       3
+#define asn1SccFlowingWaterEvent_REQUIRED_BITS_FOR_ACN_ENCODING        20
 
-#define ERR_ACN_ENCODE_WATERINCREMENTEVENT		164  /**/
-#define ERR_ACN_ENCODE_WATERINCREMENTEVENT_TARGETCELL_2		159  /**/
+#define ERR_ACN_ENCODE_FLOWINGWATEREVENT		199  /**/
+#define ERR_ACN_ENCODE_FLOWINGWATEREVENT_TARGETCELL_2		194  /**/
 
-flag asn1SccWaterIncrementEvent_ACN_Encode(const asn1SccWaterIncrementEvent* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccFlowingWaterEvent_ACN_Encode(const asn1SccFlowingWaterEvent* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_WATERINCREMENTEVENT		165  /**/
-#define ERR_ACN_DECODE_WATERINCREMENTEVENT_TARGETCELL_2		160  /**/
-flag asn1SccWaterIncrementEvent_ACN_Decode(asn1SccWaterIncrementEvent* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_ACN_DECODE_FLOWINGWATEREVENT		200  /**/
+#define ERR_ACN_DECODE_FLOWINGWATEREVENT_TARGETCELL_2		195  /**/
+flag asn1SccFlowingWaterEvent_ACN_Decode(asn1SccFlowingWaterEvent* pVal, BitStream* pBitStrm, int* pErrCode);
 
 
 typedef struct {
     int nCount;
-    asn1SccWaterIncrementEvent arr[1048576];
-} asn1SccWaterIncrementEventList;
+    asn1SccFlowingWaterEvent arr[1048576];
+} asn1SccFlowingWaterEventList;
 
-flag asn1SccWaterIncrementEventList_Equal(const asn1SccWaterIncrementEventList* pVal1, const asn1SccWaterIncrementEventList* pVal2);
+flag asn1SccFlowingWaterEventList_Equal(const asn1SccFlowingWaterEventList* pVal1, const asn1SccFlowingWaterEventList* pVal2);
 
-#define ERR_WATERINCREMENTEVENTLIST		171  /*(SIZE(0 .. 1048576))*/
-#define ERR_WATERINCREMENTEVENTLIST_ELM		166  /**/
-flag asn1SccWaterIncrementEventList_IsConstraintValid(const asn1SccWaterIncrementEventList* pVal, int* pErrCode);
+#define ERR_FLOWINGWATEREVENTLIST		206  /*(SIZE(0 .. 1048576))*/
+#define ERR_FLOWINGWATEREVENTLIST_ELM		201  /**/
+flag asn1SccFlowingWaterEventList_IsConstraintValid(const asn1SccFlowingWaterEventList* pVal, int* pErrCode);
 
 #ifdef __cplusplus
-extern const asn1SccWaterIncrementEventList asn1SccWaterIncrementEventList_constant;
+extern const asn1SccFlowingWaterEventList asn1SccFlowingWaterEventList_constant;
 #else
-#define asn1SccWaterIncrementEventList_constant {.nCount = 0, .arr  = {[0 ... 1048576-1] = asn1SccWaterIncrementEvent_constant }}
+#define asn1SccFlowingWaterEventList_constant {.nCount = 0, .arr  = {[0 ... 1048576-1] = asn1SccFlowingWaterEvent_constant }}
 #endif
 
-void asn1SccWaterIncrementEventList_Initialize(asn1SccWaterIncrementEventList* pVal);
+void asn1SccFlowingWaterEventList_Initialize(asn1SccFlowingWaterEventList* pVal);
 
-#define ERR_UPER_ENCODE_WATERINCREMENTEVENTLIST		172  /**/
-#define ERR_UPER_ENCODE_WATERINCREMENTEVENTLIST_ELM		167  /**/
-#define asn1SccWaterIncrementEventList_REQUIRED_BYTES_FOR_ENCODING       2621459
-#define asn1SccWaterIncrementEventList_REQUIRED_BITS_FOR_ENCODING        20971672
+#define ERR_UPER_ENCODE_FLOWINGWATEREVENTLIST		207  /**/
+#define ERR_UPER_ENCODE_FLOWINGWATEREVENTLIST_ELM		202  /**/
+#define asn1SccFlowingWaterEventList_REQUIRED_BYTES_FOR_ENCODING       2621459
+#define asn1SccFlowingWaterEventList_REQUIRED_BITS_FOR_ENCODING        20971672
 
-flag asn1SccWaterIncrementEventList_Encode(const asn1SccWaterIncrementEventList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccFlowingWaterEventList_Encode(const asn1SccFlowingWaterEventList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_WATERINCREMENTEVENTLIST		173  /**/
-#define ERR_UPER_DECODE_WATERINCREMENTEVENTLIST_ELM		168  /**/
-flag asn1SccWaterIncrementEventList_Decode(asn1SccWaterIncrementEventList* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_UPER_DECODE_FLOWINGWATEREVENTLIST		208  /**/
+#define ERR_UPER_DECODE_FLOWINGWATEREVENTLIST_ELM		203  /**/
+flag asn1SccFlowingWaterEventList_Decode(asn1SccFlowingWaterEventList* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccWaterIncrementEventList_REQUIRED_BYTES_FOR_ACN_ENCODING       2621443
-#define asn1SccWaterIncrementEventList_REQUIRED_BITS_FOR_ACN_ENCODING        20971541
+#define asn1SccFlowingWaterEventList_REQUIRED_BYTES_FOR_ACN_ENCODING       2621443
+#define asn1SccFlowingWaterEventList_REQUIRED_BITS_FOR_ACN_ENCODING        20971541
 
-#define ERR_ACN_ENCODE_WATERINCREMENTEVENTLIST		174  /**/
-#define ERR_ACN_ENCODE_WATERINCREMENTEVENTLIST_ELM		169  /**/
+#define ERR_ACN_ENCODE_FLOWINGWATEREVENTLIST		209  /**/
+#define ERR_ACN_ENCODE_FLOWINGWATEREVENTLIST_ELM		204  /**/
 
-flag asn1SccWaterIncrementEventList_ACN_Encode(const asn1SccWaterIncrementEventList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccFlowingWaterEventList_ACN_Encode(const asn1SccFlowingWaterEventList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_WATERINCREMENTEVENTLIST		175  /**/
-#define ERR_ACN_DECODE_WATERINCREMENTEVENTLIST_ELM		170  /**/
-flag asn1SccWaterIncrementEventList_ACN_Decode(asn1SccWaterIncrementEventList* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_ACN_DECODE_FLOWINGWATEREVENTLIST		210  /**/
+#define ERR_ACN_DECODE_FLOWINGWATEREVENTLIST_ELM		205  /**/
+flag asn1SccFlowingWaterEventList_ACN_Decode(asn1SccFlowingWaterEventList* pVal, BitStream* pBitStrm, int* pErrCode);
 /*-- asn1SccGridModification --------------------------------------------*/
 typedef struct {
     asn1SccCellIndex targetCell;
-    asn1Real delta;
+    flag increment;
+    asn1SccT_UInt32 delta;
 
 } asn1SccGridModification;
 
 flag asn1SccGridModification_Equal(const asn1SccGridModification* pVal1, const asn1SccGridModification* pVal2);
 
-#define ERR_GRIDMODIFICATION		191  /**/
-#define ERR_GRIDMODIFICATION_TARGETCELL_2		181  /**/
-#define ERR_GRIDMODIFICATION_DELTA		186  /*(-1000.0 .. 1000.0)*/
+#define ERR_GRIDMODIFICATION		236  /**/
+#define ERR_GRIDMODIFICATION_TARGETCELL_2		216  /**/
+#define ERR_GRIDMODIFICATION_INCREMENT		221  /**/
+#define ERR_GRIDMODIFICATION_DELTA_2		231  /**/
 flag asn1SccGridModification_IsConstraintValid(const asn1SccGridModification* pVal, int* pErrCode);
 
 #ifdef __cplusplus
 extern const asn1SccGridModification asn1SccGridModification_constant;
 #else
-#define asn1SccGridModification_constant {.targetCell = 0UL, .delta = 0.0000000000000000000E+000}
+#define asn1SccGridModification_constant {.targetCell = 0UL, .increment = FALSE, .delta = 0UL}
 #endif
 
 void asn1SccGridModification_Initialize(asn1SccGridModification* pVal);
 
-#define ERR_UPER_ENCODE_GRIDMODIFICATION		192  /**/
-#define ERR_UPER_ENCODE_GRIDMODIFICATION_TARGETCELL_2		182  /**/
-#define ERR_UPER_ENCODE_GRIDMODIFICATION_DELTA		187  /**/
-#define asn1SccGridModification_REQUIRED_BYTES_FOR_ENCODING       16
-#define asn1SccGridModification_REQUIRED_BITS_FOR_ENCODING        124
+#define ERR_UPER_ENCODE_GRIDMODIFICATION		237  /**/
+#define ERR_UPER_ENCODE_GRIDMODIFICATION_TARGETCELL_2		217  /**/
+#define ERR_UPER_ENCODE_GRIDMODIFICATION_INCREMENT		222  /**/
+#define ERR_UPER_ENCODE_GRIDMODIFICATION_DELTA_2		232  /**/
+#define asn1SccGridModification_REQUIRED_BYTES_FOR_ENCODING       7
+#define asn1SccGridModification_REQUIRED_BITS_FOR_ENCODING        53
 
 flag asn1SccGridModification_Encode(const asn1SccGridModification* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_GRIDMODIFICATION		193  /**/
-#define ERR_UPER_DECODE_GRIDMODIFICATION_TARGETCELL_2		183  /**/
-#define ERR_UPER_DECODE_GRIDMODIFICATION_DELTA		188  /**/
+#define ERR_UPER_DECODE_GRIDMODIFICATION		238  /**/
+#define ERR_UPER_DECODE_GRIDMODIFICATION_TARGETCELL_2		218  /**/
+#define ERR_UPER_DECODE_GRIDMODIFICATION_INCREMENT		223  /**/
+#define ERR_UPER_DECODE_GRIDMODIFICATION_DELTA_2		233  /**/
 flag asn1SccGridModification_Decode(asn1SccGridModification* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccGridModification_REQUIRED_BYTES_FOR_ACN_ENCODING       16
-#define asn1SccGridModification_REQUIRED_BITS_FOR_ACN_ENCODING        124
+#define asn1SccGridModification_REQUIRED_BYTES_FOR_ACN_ENCODING       7
+#define asn1SccGridModification_REQUIRED_BITS_FOR_ACN_ENCODING        53
 
-#define ERR_ACN_ENCODE_GRIDMODIFICATION		194  /**/
-#define ERR_ACN_ENCODE_GRIDMODIFICATION_TARGETCELL_2		184  /**/
-#define ERR_ACN_ENCODE_GRIDMODIFICATION_DELTA		189  /**/
+#define ERR_ACN_ENCODE_GRIDMODIFICATION		239  /**/
+#define ERR_ACN_ENCODE_GRIDMODIFICATION_TARGETCELL_2		219  /**/
+#define ERR_ACN_ENCODE_GRIDMODIFICATION_INCREMENT		224  /**/
+#define ERR_ACN_ENCODE_GRIDMODIFICATION_DELTA_2		234  /**/
 
 flag asn1SccGridModification_ACN_Encode(const asn1SccGridModification* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_GRIDMODIFICATION		195  /**/
-#define ERR_ACN_DECODE_GRIDMODIFICATION_TARGETCELL_2		185  /**/
-#define ERR_ACN_DECODE_GRIDMODIFICATION_DELTA		190  /**/
+#define ERR_ACN_DECODE_GRIDMODIFICATION		240  /**/
+#define ERR_ACN_DECODE_GRIDMODIFICATION_TARGETCELL_2		220  /**/
+#define ERR_ACN_DECODE_GRIDMODIFICATION_INCREMENT		225  /**/
+#define ERR_ACN_DECODE_GRIDMODIFICATION_DELTA_2		235  /**/
 flag asn1SccGridModification_ACN_Decode(asn1SccGridModification* pVal, BitStream* pBitStrm, int* pErrCode);
 
 
@@ -787,8 +827,8 @@ typedef struct {
 
 flag asn1SccGridModificationList_Equal(const asn1SccGridModificationList* pVal1, const asn1SccGridModificationList* pVal2);
 
-#define ERR_GRIDMODIFICATIONLIST		201  /*(SIZE(0 .. 4294967295))*/
-#define ERR_GRIDMODIFICATIONLIST_ELM		196  /**/
+#define ERR_GRIDMODIFICATIONLIST		246  /*(SIZE(0 .. 4294967295))*/
+#define ERR_GRIDMODIFICATIONLIST_ELM		241  /**/
 flag asn1SccGridModificationList_IsConstraintValid(const asn1SccGridModificationList* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -799,102 +839,34 @@ extern const asn1SccGridModificationList asn1SccGridModificationList_constant;
 
 void asn1SccGridModificationList_Initialize(asn1SccGridModificationList* pVal);
 
-#define ERR_UPER_ENCODE_GRIDMODIFICATIONLIST		202  /**/
-#define ERR_UPER_ENCODE_GRIDMODIFICATIONLIST_ELM		197  /**/
-#define asn1SccGridModificationList_REQUIRED_BYTES_FOR_ENCODING       66572058611LL
-#define asn1SccGridModificationList_REQUIRED_BITS_FOR_ENCODING        532576468884LL
+#define ERR_UPER_ENCODE_GRIDMODIFICATIONLIST		247  /**/
+#define ERR_UPER_ENCODE_GRIDMODIFICATIONLIST_ELM		242  /**/
+#define asn1SccGridModificationList_REQUIRED_BYTES_FOR_ENCODING       28454223868LL
+#define asn1SccGridModificationList_REQUIRED_BITS_FOR_ENCODING        227633790939LL
 
 flag asn1SccGridModificationList_Encode(const asn1SccGridModificationList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_GRIDMODIFICATIONLIST		203  /**/
-#define ERR_UPER_DECODE_GRIDMODIFICATIONLIST_ELM		198  /**/
+#define ERR_UPER_DECODE_GRIDMODIFICATIONLIST		248  /**/
+#define ERR_UPER_DECODE_GRIDMODIFICATIONLIST_ELM		243  /**/
 flag asn1SccGridModificationList_Decode(asn1SccGridModificationList* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccGridModificationList_REQUIRED_BYTES_FOR_ACN_ENCODING       66571993077LL
-#define asn1SccGridModificationList_REQUIRED_BITS_FOR_ACN_ENCODING        532575944612LL
+#define asn1SccGridModificationList_REQUIRED_BYTES_FOR_ACN_ENCODING       28454158334LL
+#define asn1SccGridModificationList_REQUIRED_BITS_FOR_ACN_ENCODING        227633266667LL
 
-#define ERR_ACN_ENCODE_GRIDMODIFICATIONLIST		204  /**/
-#define ERR_ACN_ENCODE_GRIDMODIFICATIONLIST_ELM		199  /**/
+#define ERR_ACN_ENCODE_GRIDMODIFICATIONLIST		249  /**/
+#define ERR_ACN_ENCODE_GRIDMODIFICATIONLIST_ELM		244  /**/
 
 flag asn1SccGridModificationList_ACN_Encode(const asn1SccGridModificationList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_GRIDMODIFICATIONLIST		205  /**/
-#define ERR_ACN_DECODE_GRIDMODIFICATIONLIST_ELM		200  /**/
+#define ERR_ACN_DECODE_GRIDMODIFICATIONLIST		250  /**/
+#define ERR_ACN_DECODE_GRIDMODIFICATIONLIST_ELM		245  /**/
 flag asn1SccGridModificationList_ACN_Decode(asn1SccGridModificationList* pVal, BitStream* pBitStrm, int* pErrCode);
-typedef asn1Real asn1SccWaterVolume;
-
-
-flag asn1SccWaterVolume_Equal(const asn1SccWaterVolume* pVal1, const asn1SccWaterVolume* pVal2);
-
-#define ERR_WATERVOLUME		206  /*(0.0 .. 1000.0)*/
-flag asn1SccWaterVolume_IsConstraintValid(const asn1SccWaterVolume* pVal, int* pErrCode);
-
-#ifdef __cplusplus
-extern const asn1SccWaterVolume asn1SccWaterVolume_constant;
-#else
-#define asn1SccWaterVolume_constant 0.0000000000000000000E+000
-#endif
-
-void asn1SccWaterVolume_Initialize(asn1SccWaterVolume* pVal);
-
-#define ERR_UPER_ENCODE_WATERVOLUME		207  /**/
-#define asn1SccWaterVolume_REQUIRED_BYTES_FOR_ENCODING       13
-#define asn1SccWaterVolume_REQUIRED_BITS_FOR_ENCODING        104
-
-flag asn1SccWaterVolume_Encode(const asn1SccWaterVolume* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
-
-#define ERR_UPER_DECODE_WATERVOLUME		208  /**/
-flag asn1SccWaterVolume_Decode(asn1SccWaterVolume* pVal, BitStream* pBitStrm, int* pErrCode);
-
-#define asn1SccWaterVolume_REQUIRED_BYTES_FOR_ACN_ENCODING       13
-#define asn1SccWaterVolume_REQUIRED_BITS_FOR_ACN_ENCODING        104
-
-#define ERR_ACN_ENCODE_WATERVOLUME		209  /**/
-
-flag asn1SccWaterVolume_ACN_Encode(const asn1SccWaterVolume* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
-
-#define ERR_ACN_DECODE_WATERVOLUME		210  /**/
-flag asn1SccWaterVolume_ACN_Decode(asn1SccWaterVolume* pVal, BitStream* pBitStrm, int* pErrCode);
-typedef asn1Real asn1SccTotalOutflow;
-
-
-flag asn1SccTotalOutflow_Equal(const asn1SccTotalOutflow* pVal1, const asn1SccTotalOutflow* pVal2);
-
-#define ERR_TOTALOUTFLOW		211  /*(0.0 .. 8000.0)*/
-flag asn1SccTotalOutflow_IsConstraintValid(const asn1SccTotalOutflow* pVal, int* pErrCode);
-
-#ifdef __cplusplus
-extern const asn1SccTotalOutflow asn1SccTotalOutflow_constant;
-#else
-#define asn1SccTotalOutflow_constant 0.0000000000000000000E+000
-#endif
-
-void asn1SccTotalOutflow_Initialize(asn1SccTotalOutflow* pVal);
-
-#define ERR_UPER_ENCODE_TOTALOUTFLOW		212  /**/
-#define asn1SccTotalOutflow_REQUIRED_BYTES_FOR_ENCODING       13
-#define asn1SccTotalOutflow_REQUIRED_BITS_FOR_ENCODING        104
-
-flag asn1SccTotalOutflow_Encode(const asn1SccTotalOutflow* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
-
-#define ERR_UPER_DECODE_TOTALOUTFLOW		213  /**/
-flag asn1SccTotalOutflow_Decode(asn1SccTotalOutflow* pVal, BitStream* pBitStrm, int* pErrCode);
-
-#define asn1SccTotalOutflow_REQUIRED_BYTES_FOR_ACN_ENCODING       13
-#define asn1SccTotalOutflow_REQUIRED_BITS_FOR_ACN_ENCODING        104
-
-#define ERR_ACN_ENCODE_TOTALOUTFLOW		214  /**/
-
-flag asn1SccTotalOutflow_ACN_Encode(const asn1SccTotalOutflow* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
-
-#define ERR_ACN_DECODE_TOTALOUTFLOW		215  /**/
-flag asn1SccTotalOutflow_ACN_Decode(asn1SccTotalOutflow* pVal, BitStream* pBitStrm, int* pErrCode);
 typedef asn1SccUint asn1SccMooreNeighborIndex;
 
 
 flag asn1SccMooreNeighborIndex_Equal(const asn1SccMooreNeighborIndex* pVal1, const asn1SccMooreNeighborIndex* pVal2);
 
-#define ERR_MOORENEIGHBORINDEX		216  /*(0 .. 8)*/
+#define ERR_MOORENEIGHBORINDEX		251  /*(0 .. 8)*/
 flag asn1SccMooreNeighborIndex_IsConstraintValid(const asn1SccMooreNeighborIndex* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -905,30 +877,30 @@ extern const asn1SccMooreNeighborIndex asn1SccMooreNeighborIndex_constant;
 
 void asn1SccMooreNeighborIndex_Initialize(asn1SccMooreNeighborIndex* pVal);
 
-#define ERR_UPER_ENCODE_MOORENEIGHBORINDEX		217  /**/
+#define ERR_UPER_ENCODE_MOORENEIGHBORINDEX		252  /**/
 #define asn1SccMooreNeighborIndex_REQUIRED_BYTES_FOR_ENCODING       1
 #define asn1SccMooreNeighborIndex_REQUIRED_BITS_FOR_ENCODING        4
 
 flag asn1SccMooreNeighborIndex_Encode(const asn1SccMooreNeighborIndex* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_MOORENEIGHBORINDEX		218  /**/
+#define ERR_UPER_DECODE_MOORENEIGHBORINDEX		253  /**/
 flag asn1SccMooreNeighborIndex_Decode(asn1SccMooreNeighborIndex* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccMooreNeighborIndex_REQUIRED_BYTES_FOR_ACN_ENCODING       1
 #define asn1SccMooreNeighborIndex_REQUIRED_BITS_FOR_ACN_ENCODING        4
 
-#define ERR_ACN_ENCODE_MOORENEIGHBORINDEX		219  /**/
+#define ERR_ACN_ENCODE_MOORENEIGHBORINDEX		254  /**/
 
 flag asn1SccMooreNeighborIndex_ACN_Encode(const asn1SccMooreNeighborIndex* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_MOORENEIGHBORINDEX		220  /**/
+#define ERR_ACN_DECODE_MOORENEIGHBORINDEX		255  /**/
 flag asn1SccMooreNeighborIndex_ACN_Decode(asn1SccMooreNeighborIndex* pVal, BitStream* pBitStrm, int* pErrCode);
 typedef asn1SccSint asn1SccT_Int32;
 
 
 flag asn1SccT_Int32_Equal(const asn1SccT_Int32* pVal1, const asn1SccT_Int32* pVal2);
 
-#define ERR_T_INT32		221  /*(-2147483648 .. 2147483647)*/
+#define ERR_T_INT32		256  /*(-2147483648 .. 2147483647)*/
 flag asn1SccT_Int32_IsConstraintValid(const asn1SccT_Int32* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -939,58 +911,58 @@ extern const asn1SccT_Int32 asn1SccT_Int32_constant;
 
 void asn1SccT_Int32_Initialize(asn1SccT_Int32* pVal);
 
-#define ERR_UPER_ENCODE_T_INT32		222  /**/
+#define ERR_UPER_ENCODE_T_INT32		257  /**/
 #define asn1SccT_Int32_REQUIRED_BYTES_FOR_ENCODING       4
 #define asn1SccT_Int32_REQUIRED_BITS_FOR_ENCODING        32
 
 flag asn1SccT_Int32_Encode(const asn1SccT_Int32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_T_INT32		223  /**/
+#define ERR_UPER_DECODE_T_INT32		258  /**/
 flag asn1SccT_Int32_Decode(asn1SccT_Int32* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccT_Int32_REQUIRED_BYTES_FOR_ACN_ENCODING       4
 #define asn1SccT_Int32_REQUIRED_BITS_FOR_ACN_ENCODING        32
 
-#define ERR_ACN_ENCODE_T_INT32		224  /**/
+#define ERR_ACN_ENCODE_T_INT32		259  /**/
 
 flag asn1SccT_Int32_ACN_Encode(const asn1SccT_Int32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_T_INT32		225  /**/
+#define ERR_ACN_DECODE_T_INT32		260  /**/
 flag asn1SccT_Int32_ACN_Decode(asn1SccT_Int32* pVal, BitStream* pBitStrm, int* pErrCode);
-typedef asn1SccUint asn1SccT_UInt32;
+typedef asn1SccUint asn1SccTASTE_BasicTypes_T_UInt32;
 
 
-flag asn1SccT_UInt32_Equal(const asn1SccT_UInt32* pVal1, const asn1SccT_UInt32* pVal2);
+flag asn1SccTASTE_BasicTypes_T_UInt32_Equal(const asn1SccTASTE_BasicTypes_T_UInt32* pVal1, const asn1SccTASTE_BasicTypes_T_UInt32* pVal2);
 
-#define ERR_T_UINT32		226  /*(0 .. 4294967294)*/
-flag asn1SccT_UInt32_IsConstraintValid(const asn1SccT_UInt32* pVal, int* pErrCode);
+#define ERR_T_UINT32_2		261  /*(0 .. 4294967294)*/
+flag asn1SccTASTE_BasicTypes_T_UInt32_IsConstraintValid(const asn1SccTASTE_BasicTypes_T_UInt32* pVal, int* pErrCode);
 
 #ifdef __cplusplus
-extern const asn1SccT_UInt32 asn1SccT_UInt32_constant;
+extern const asn1SccTASTE_BasicTypes_T_UInt32 asn1SccTASTE_BasicTypes_T_UInt32_constant;
 #else
-#define asn1SccT_UInt32_constant 0UL
+#define asn1SccTASTE_BasicTypes_T_UInt32_constant 0UL
 #endif
 
-void asn1SccT_UInt32_Initialize(asn1SccT_UInt32* pVal);
+void asn1SccTASTE_BasicTypes_T_UInt32_Initialize(asn1SccTASTE_BasicTypes_T_UInt32* pVal);
 
-#define ERR_UPER_ENCODE_T_UINT32		227  /**/
-#define asn1SccT_UInt32_REQUIRED_BYTES_FOR_ENCODING       4
-#define asn1SccT_UInt32_REQUIRED_BITS_FOR_ENCODING        32
+#define ERR_UPER_ENCODE_T_UINT32_2		262  /**/
+#define asn1SccTASTE_BasicTypes_T_UInt32_REQUIRED_BYTES_FOR_ENCODING       4
+#define asn1SccTASTE_BasicTypes_T_UInt32_REQUIRED_BITS_FOR_ENCODING        32
 
-flag asn1SccT_UInt32_Encode(const asn1SccT_UInt32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccTASTE_BasicTypes_T_UInt32_Encode(const asn1SccTASTE_BasicTypes_T_UInt32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_T_UINT32		228  /**/
-flag asn1SccT_UInt32_Decode(asn1SccT_UInt32* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_UPER_DECODE_T_UINT32_2		263  /**/
+flag asn1SccTASTE_BasicTypes_T_UInt32_Decode(asn1SccTASTE_BasicTypes_T_UInt32* pVal, BitStream* pBitStrm, int* pErrCode);
 
-#define asn1SccT_UInt32_REQUIRED_BYTES_FOR_ACN_ENCODING       4
-#define asn1SccT_UInt32_REQUIRED_BITS_FOR_ACN_ENCODING        32
+#define asn1SccTASTE_BasicTypes_T_UInt32_REQUIRED_BYTES_FOR_ACN_ENCODING       4
+#define asn1SccTASTE_BasicTypes_T_UInt32_REQUIRED_BITS_FOR_ACN_ENCODING        32
 
-#define ERR_ACN_ENCODE_T_UINT32		229  /**/
+#define ERR_ACN_ENCODE_T_UINT32_2		264  /**/
 
-flag asn1SccT_UInt32_ACN_Encode(const asn1SccT_UInt32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
+flag asn1SccTASTE_BasicTypes_T_UInt32_ACN_Encode(const asn1SccTASTE_BasicTypes_T_UInt32* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_T_UINT32		230  /**/
-flag asn1SccT_UInt32_ACN_Decode(asn1SccT_UInt32* pVal, BitStream* pBitStrm, int* pErrCode);
+#define ERR_ACN_DECODE_T_UINT32_2		265  /**/
+flag asn1SccTASTE_BasicTypes_T_UInt32_ACN_Decode(asn1SccTASTE_BasicTypes_T_UInt32* pVal, BitStream* pBitStrm, int* pErrCode);
 /*-- asn1SccT_Runtime_Error --------------------------------------------*/
 
 typedef enum {
@@ -1001,7 +973,7 @@ typedef enum {
 } asn1SccT_Runtime_Error_selection;
 
 typedef union {
-    asn1SccT_UInt32 noerror;
+    asn1SccTASTE_BasicTypes_T_UInt32 noerror;
     asn1SccT_Int32 encodeerror;
     asn1SccT_Int32 decodeerror;
 } asn1SccT_Runtime_Error_unchecked_union;
@@ -1014,10 +986,10 @@ typedef struct {
 
 flag asn1SccT_Runtime_Error_Equal(const asn1SccT_Runtime_Error* pVal1, const asn1SccT_Runtime_Error* pVal2);
 
-#define ERR_T_RUNTIME_ERROR		261  /**/
-#define ERR_T_RUNTIME_ERROR_NOERROR_2		236  /**/
-#define ERR_T_RUNTIME_ERROR_ENCODEERROR_2		246  /**/
-#define ERR_T_RUNTIME_ERROR_DECODEERROR_2		256  /**/
+#define ERR_T_RUNTIME_ERROR		296  /**/
+#define ERR_T_RUNTIME_ERROR_NOERROR_2		271  /**/
+#define ERR_T_RUNTIME_ERROR_ENCODEERROR_2		281  /**/
+#define ERR_T_RUNTIME_ERROR_DECODEERROR_2		291  /**/
 flag asn1SccT_Runtime_Error_IsConstraintValid(const asn1SccT_Runtime_Error* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -1028,42 +1000,42 @@ extern const asn1SccT_Runtime_Error asn1SccT_Runtime_Error_constant;
 
 void asn1SccT_Runtime_Error_Initialize(asn1SccT_Runtime_Error* pVal);
 
-#define ERR_UPER_ENCODE_T_RUNTIME_ERROR		262  /**/
-#define ERR_UPER_ENCODE_T_RUNTIME_ERROR_NOERROR_2		237  /**/
-#define ERR_UPER_ENCODE_T_RUNTIME_ERROR_ENCODEERROR_2		247  /**/
-#define ERR_UPER_ENCODE_T_RUNTIME_ERROR_DECODEERROR_2		257  /**/
+#define ERR_UPER_ENCODE_T_RUNTIME_ERROR		297  /**/
+#define ERR_UPER_ENCODE_T_RUNTIME_ERROR_NOERROR_2		272  /**/
+#define ERR_UPER_ENCODE_T_RUNTIME_ERROR_ENCODEERROR_2		282  /**/
+#define ERR_UPER_ENCODE_T_RUNTIME_ERROR_DECODEERROR_2		292  /**/
 #define asn1SccT_Runtime_Error_REQUIRED_BYTES_FOR_ENCODING       5
 #define asn1SccT_Runtime_Error_REQUIRED_BITS_FOR_ENCODING        34
 
 flag asn1SccT_Runtime_Error_Encode(const asn1SccT_Runtime_Error* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_T_RUNTIME_ERROR		263  /**/
-#define ERR_UPER_DECODE_T_RUNTIME_ERROR_NOERROR_2		238  /**/
-#define ERR_UPER_DECODE_T_RUNTIME_ERROR_ENCODEERROR_2		248  /**/
-#define ERR_UPER_DECODE_T_RUNTIME_ERROR_DECODEERROR_2		258  /**/
+#define ERR_UPER_DECODE_T_RUNTIME_ERROR		298  /**/
+#define ERR_UPER_DECODE_T_RUNTIME_ERROR_NOERROR_2		273  /**/
+#define ERR_UPER_DECODE_T_RUNTIME_ERROR_ENCODEERROR_2		283  /**/
+#define ERR_UPER_DECODE_T_RUNTIME_ERROR_DECODEERROR_2		293  /**/
 flag asn1SccT_Runtime_Error_Decode(asn1SccT_Runtime_Error* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccT_Runtime_Error_REQUIRED_BYTES_FOR_ACN_ENCODING       5
 #define asn1SccT_Runtime_Error_REQUIRED_BITS_FOR_ACN_ENCODING        34
 
-#define ERR_ACN_ENCODE_T_RUNTIME_ERROR		264  /**/
-#define ERR_ACN_ENCODE_T_RUNTIME_ERROR_NOERROR_2		239  /**/
-#define ERR_ACN_ENCODE_T_RUNTIME_ERROR_ENCODEERROR_2		249  /**/
-#define ERR_ACN_ENCODE_T_RUNTIME_ERROR_DECODEERROR_2		259  /**/
+#define ERR_ACN_ENCODE_T_RUNTIME_ERROR		299  /**/
+#define ERR_ACN_ENCODE_T_RUNTIME_ERROR_NOERROR_2		274  /**/
+#define ERR_ACN_ENCODE_T_RUNTIME_ERROR_ENCODEERROR_2		284  /**/
+#define ERR_ACN_ENCODE_T_RUNTIME_ERROR_DECODEERROR_2		294  /**/
 
 flag asn1SccT_Runtime_Error_ACN_Encode(const asn1SccT_Runtime_Error* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_T_RUNTIME_ERROR		265  /**/
-#define ERR_ACN_DECODE_T_RUNTIME_ERROR_NOERROR_2		240  /**/
-#define ERR_ACN_DECODE_T_RUNTIME_ERROR_ENCODEERROR_2		250  /**/
-#define ERR_ACN_DECODE_T_RUNTIME_ERROR_DECODEERROR_2		260  /**/
+#define ERR_ACN_DECODE_T_RUNTIME_ERROR		300  /**/
+#define ERR_ACN_DECODE_T_RUNTIME_ERROR_NOERROR_2		275  /**/
+#define ERR_ACN_DECODE_T_RUNTIME_ERROR_ENCODEERROR_2		285  /**/
+#define ERR_ACN_DECODE_T_RUNTIME_ERROR_DECODEERROR_2		295  /**/
 flag asn1SccT_Runtime_Error_ACN_Decode(asn1SccT_Runtime_Error* pVal, BitStream* pBitStrm, int* pErrCode);
 typedef asn1SccSint asn1SccT_Int8;
 
 
 flag asn1SccT_Int8_Equal(const asn1SccT_Int8* pVal1, const asn1SccT_Int8* pVal2);
 
-#define ERR_T_INT8		266  /*(-128 .. 127)*/
+#define ERR_T_INT8		301  /*(-128 .. 127)*/
 flag asn1SccT_Int8_IsConstraintValid(const asn1SccT_Int8* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -1074,30 +1046,30 @@ extern const asn1SccT_Int8 asn1SccT_Int8_constant;
 
 void asn1SccT_Int8_Initialize(asn1SccT_Int8* pVal);
 
-#define ERR_UPER_ENCODE_T_INT8		267  /**/
+#define ERR_UPER_ENCODE_T_INT8		302  /**/
 #define asn1SccT_Int8_REQUIRED_BYTES_FOR_ENCODING       1
 #define asn1SccT_Int8_REQUIRED_BITS_FOR_ENCODING        8
 
 flag asn1SccT_Int8_Encode(const asn1SccT_Int8* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_T_INT8		268  /**/
+#define ERR_UPER_DECODE_T_INT8		303  /**/
 flag asn1SccT_Int8_Decode(asn1SccT_Int8* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccT_Int8_REQUIRED_BYTES_FOR_ACN_ENCODING       1
 #define asn1SccT_Int8_REQUIRED_BITS_FOR_ACN_ENCODING        8
 
-#define ERR_ACN_ENCODE_T_INT8		269  /**/
+#define ERR_ACN_ENCODE_T_INT8		304  /**/
 
 flag asn1SccT_Int8_ACN_Encode(const asn1SccT_Int8* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_T_INT8		270  /**/
+#define ERR_ACN_DECODE_T_INT8		305  /**/
 flag asn1SccT_Int8_ACN_Decode(asn1SccT_Int8* pVal, BitStream* pBitStrm, int* pErrCode);
 typedef asn1SccUint asn1SccT_UInt8;
 
 
 flag asn1SccT_UInt8_Equal(const asn1SccT_UInt8* pVal1, const asn1SccT_UInt8* pVal2);
 
-#define ERR_T_UINT8		271  /*(0 .. 255)*/
+#define ERR_T_UINT8		306  /*(0 .. 255)*/
 flag asn1SccT_UInt8_IsConstraintValid(const asn1SccT_UInt8* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -1108,30 +1080,30 @@ extern const asn1SccT_UInt8 asn1SccT_UInt8_constant;
 
 void asn1SccT_UInt8_Initialize(asn1SccT_UInt8* pVal);
 
-#define ERR_UPER_ENCODE_T_UINT8		272  /**/
+#define ERR_UPER_ENCODE_T_UINT8		307  /**/
 #define asn1SccT_UInt8_REQUIRED_BYTES_FOR_ENCODING       1
 #define asn1SccT_UInt8_REQUIRED_BITS_FOR_ENCODING        8
 
 flag asn1SccT_UInt8_Encode(const asn1SccT_UInt8* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_T_UINT8		273  /**/
+#define ERR_UPER_DECODE_T_UINT8		308  /**/
 flag asn1SccT_UInt8_Decode(asn1SccT_UInt8* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccT_UInt8_REQUIRED_BYTES_FOR_ACN_ENCODING       1
 #define asn1SccT_UInt8_REQUIRED_BITS_FOR_ACN_ENCODING        8
 
-#define ERR_ACN_ENCODE_T_UINT8		274  /**/
+#define ERR_ACN_ENCODE_T_UINT8		309  /**/
 
 flag asn1SccT_UInt8_ACN_Encode(const asn1SccT_UInt8* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_T_UINT8		275  /**/
+#define ERR_ACN_DECODE_T_UINT8		310  /**/
 flag asn1SccT_UInt8_ACN_Decode(asn1SccT_UInt8* pVal, BitStream* pBitStrm, int* pErrCode);
 typedef flag asn1SccT_Boolean;
 
 
 flag asn1SccT_Boolean_Equal(const asn1SccT_Boolean* pVal1, const asn1SccT_Boolean* pVal2);
 
-#define ERR_T_BOOLEAN		276  /**/
+#define ERR_T_BOOLEAN		311  /**/
 flag asn1SccT_Boolean_IsConstraintValid(const asn1SccT_Boolean* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -1142,23 +1114,23 @@ extern const asn1SccT_Boolean asn1SccT_Boolean_constant;
 
 void asn1SccT_Boolean_Initialize(asn1SccT_Boolean* pVal);
 
-#define ERR_UPER_ENCODE_T_BOOLEAN		277  /**/
+#define ERR_UPER_ENCODE_T_BOOLEAN		312  /**/
 #define asn1SccT_Boolean_REQUIRED_BYTES_FOR_ENCODING       1
 #define asn1SccT_Boolean_REQUIRED_BITS_FOR_ENCODING        1
 
 flag asn1SccT_Boolean_Encode(const asn1SccT_Boolean* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_T_BOOLEAN		278  /**/
+#define ERR_UPER_DECODE_T_BOOLEAN		313  /**/
 flag asn1SccT_Boolean_Decode(asn1SccT_Boolean* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccT_Boolean_REQUIRED_BYTES_FOR_ACN_ENCODING       1
 #define asn1SccT_Boolean_REQUIRED_BITS_FOR_ACN_ENCODING        1
 
-#define ERR_ACN_ENCODE_T_BOOLEAN		279  /**/
+#define ERR_ACN_ENCODE_T_BOOLEAN		314  /**/
 
 flag asn1SccT_Boolean_ACN_Encode(const asn1SccT_Boolean* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_T_BOOLEAN		280  /**/
+#define ERR_ACN_DECODE_T_BOOLEAN		315  /**/
 flag asn1SccT_Boolean_ACN_Decode(asn1SccT_Boolean* pVal, BitStream* pBitStrm, int* pErrCode);
 /*-- asn1SccT_Null_Record --------------------------------------------*/
 typedef struct {
@@ -1167,7 +1139,7 @@ typedef struct {
 
 flag asn1SccT_Null_Record_Equal(const asn1SccT_Null_Record* pVal1, const asn1SccT_Null_Record* pVal2);
 
-#define ERR_T_NULL_RECORD		281  /**/
+#define ERR_T_NULL_RECORD		316  /**/
 flag asn1SccT_Null_Record_IsConstraintValid(const asn1SccT_Null_Record* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -1197,7 +1169,7 @@ typedef asn1SccUint asn1SccPID_Range;
 
 flag asn1SccPID_Range_Equal(const asn1SccPID_Range* pVal1, const asn1SccPID_Range* pVal2);
 
-#define ERR_PID_RANGE		286  /*(0..3)*/
+#define ERR_PID_RANGE		321  /*(0..3)*/
 flag asn1SccPID_Range_IsConstraintValid(const asn1SccPID_Range* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -1208,23 +1180,23 @@ extern const asn1SccPID_Range asn1SccPID_Range_constant;
 
 void asn1SccPID_Range_Initialize(asn1SccPID_Range* pVal);
 
-#define ERR_UPER_ENCODE_PID_RANGE		287  /**/
+#define ERR_UPER_ENCODE_PID_RANGE		322  /**/
 #define asn1SccPID_Range_REQUIRED_BYTES_FOR_ENCODING       1
 #define asn1SccPID_Range_REQUIRED_BITS_FOR_ENCODING        2
 
 flag asn1SccPID_Range_Encode(const asn1SccPID_Range* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_PID_RANGE		288  /**/
+#define ERR_UPER_DECODE_PID_RANGE		323  /**/
 flag asn1SccPID_Range_Decode(asn1SccPID_Range* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccPID_Range_REQUIRED_BYTES_FOR_ACN_ENCODING       1
 #define asn1SccPID_Range_REQUIRED_BITS_FOR_ACN_ENCODING        2
 
-#define ERR_ACN_ENCODE_PID_RANGE		289  /**/
+#define ERR_ACN_ENCODE_PID_RANGE		324  /**/
 
 flag asn1SccPID_Range_ACN_Encode(const asn1SccPID_Range* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_PID_RANGE		290  /**/
+#define ERR_ACN_DECODE_PID_RANGE		325  /**/
 flag asn1SccPID_Range_ACN_Decode(asn1SccPID_Range* pVal, BitStream* pBitStrm, int* pErrCode);
 typedef enum {
     PID_core = 0,
@@ -1241,7 +1213,7 @@ typedef enum {
 
 flag asn1SccPID_Equal(const asn1SccPID* pVal1, const asn1SccPID* pVal2);
 
-#define ERR_PID		291  /*core | io-gis | ui | env*/
+#define ERR_PID		326  /*core | io-gis | ui | env*/
 flag asn1SccPID_IsConstraintValid(const asn1SccPID* pVal, int* pErrCode);
 
 #ifdef __cplusplus
@@ -1252,23 +1224,23 @@ extern const asn1SccPID asn1SccPID_constant;
 
 void asn1SccPID_Initialize(asn1SccPID* pVal);
 
-#define ERR_UPER_ENCODE_PID		292  /**/
+#define ERR_UPER_ENCODE_PID		327  /**/
 #define asn1SccPID_REQUIRED_BYTES_FOR_ENCODING       1
 #define asn1SccPID_REQUIRED_BITS_FOR_ENCODING        2
 
 flag asn1SccPID_Encode(const asn1SccPID* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_UPER_DECODE_PID		293  /**/
+#define ERR_UPER_DECODE_PID		328  /**/
 flag asn1SccPID_Decode(asn1SccPID* pVal, BitStream* pBitStrm, int* pErrCode);
 
 #define asn1SccPID_REQUIRED_BYTES_FOR_ACN_ENCODING       1
 #define asn1SccPID_REQUIRED_BITS_FOR_ACN_ENCODING        2
 
-#define ERR_ACN_ENCODE_PID		294  /**/
+#define ERR_ACN_ENCODE_PID		329  /**/
 
 flag asn1SccPID_ACN_Encode(const asn1SccPID* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
 
-#define ERR_ACN_DECODE_PID		295  /**/
+#define ERR_ACN_DECODE_PID		330  /**/
 flag asn1SccPID_ACN_Decode(asn1SccPID* pVal, BitStream* pBitStrm, int* pErrCode);
 
 

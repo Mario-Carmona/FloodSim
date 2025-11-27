@@ -19,9 +19,9 @@ END deploymentview::DV::Node_Linux;
 PACKAGE deploymentview::DV
 PUBLIC
 
-WITH interfaceview::IV::Core;
-
 WITH interfaceview::IV::IO_GIS;
+
+WITH interfaceview::IV::Core;
 
 WITH interfaceview::IV::UI;
 
@@ -38,12 +38,12 @@ END Node_Linux;
 
 SYSTEM IMPLEMENTATION Node_Linux.others
 SUBCOMPONENTS
-   IV_Core : SYSTEM interfaceview::IV::Core::Core.others {
-      Taste::FunctionName => "Core";
-   };
-
    IV_IO_GIS : SYSTEM interfaceview::IV::IO_GIS::IO_GIS.others {
       Taste::FunctionName => "IO_GIS";
+   };
+
+   IV_Core : SYSTEM interfaceview::IV::Core::Core.others {
+      Taste::FunctionName => "Core";
    };
 
    IV_UI : SYSTEM interfaceview::IV::UI::UI.others {
@@ -59,7 +59,7 @@ SUBCOMPONENTS
    x86_linux : PROCESSOR ocarina_processors_x86::x86.generic_linux;
 PROPERTIES
    
-   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_Core;
+   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_IO_GIS;
    
    
    
@@ -69,7 +69,7 @@ PROPERTIES
    
 
    
-   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_IO_GIS;
+   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_Core;
    
    
    

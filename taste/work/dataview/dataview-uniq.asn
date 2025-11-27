@@ -2,9 +2,7 @@
 DANASIM-DATAVIEW DEFINITIONS ::=
 BEGIN
 
-    T-Real32 ::=  REAL (-2147483648.0 .. 2147483647.0)
-
-    T-UReal32 ::= REAL (0.0 .. 4294967294.0)
+    T-UInt32 ::= INTEGER (0 .. 4294967294)
 
     SurfaceType ::= ENUMERATED {
         soil,
@@ -14,40 +12,40 @@ BEGIN
         waterSurface
     }
 
-    Coefficient ::= REAL (0.0 .. 1.0)
+    FlowCoefficient ::= REAL (0.0 .. 1.0)
 
-    Duration ::=  REAL (0.0000001 .. 1000000.0)
+    ScaleFactor ::= REAL (0.0 .. 8.0)
 
-    TimeStep ::= INTEGER (0 .. 10000)
+    Duration ::= T-UInt32  -- unit: seconds
+
+    TimeStep ::= T-UInt32
 
     FilePath ::= IA5String (SIZE(1..255))
 
     CellState ::= SEQUENCE {
-        elevation   REAL (0.0 .. 1000.0),
-        waterVolume REAL (0.0 .. 1000.0),
+        elevation   T-UInt32,  -- unit: mm - range: [sea level, mount everest]
+        waterDepth  T-UInt32,    -- unit: mm - range: [0 m, 10 m]
         surfaceType SurfaceType
     }
+
+    Height ::= T-UInt32
 
     GridVector ::= SEQUENCE (SIZE(1 .. 1048576)) OF CellState
 
     Grid ::= SEQUENCE {
-        width    INTEGER (1 .. 1024),
-        height   INTEGER (1 .. 1024),
-        cells    GridVector
+        width  INTEGER (1 .. 1024),
+        height INTEGER (1 .. 1024),
+        cells  GridVector
     }
 
     CellIndex ::= INTEGER (0 .. 1048575)
 
     Outflow ::= SEQUENCE {
-        volume REAL (0.0 .. 1000.0),
+        depth    T-UInt32,
         neighbor CellIndex
     }
 
     OutflowList ::= SEQUENCE (SIZE(0 .. 9)) OF Outflow
-
-    WaterVolume ::= REAL (0.0 .. 1000.0)
-
-    TotalOutflow ::= REAL (0.0 .. 8000.0)
 
     MooreNeighborIndex ::= INTEGER (0 .. 8)
 
@@ -55,15 +53,16 @@ BEGIN
 
     GridCellNeighborList ::= SEQUENCE (SIZE(0 .. 1048576)) OF MooreNeighborList
 
-    WaterIncrementEvent ::= SEQUENCE {
+    FlowingWaterEvent ::= SEQUENCE {
         targetCell CellIndex
     }
 
-    WaterIncrementEventList ::= SEQUENCE (SIZE(0 .. 1048576)) OF WaterIncrementEvent
+    FlowingWaterEventList ::= SEQUENCE (SIZE(0 .. 1048576)) OF FlowingWaterEvent
 
     GridModification ::= SEQUENCE {
         targetCell CellIndex,
-        delta REAL (-1000.0 .. 1000.0)
+        increment  BOOLEAN,
+        delta      T-UInt32
     }
 
     GridModificationList ::= SEQUENCE (SIZE(0 .. 4294967295)) OF GridModification
