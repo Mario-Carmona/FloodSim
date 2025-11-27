@@ -1,0 +1,138 @@
+DANASIM-DATAVIEW DEFINITIONS ::=
+BEGIN
+
+------------------------------------------------------------------------
+--  BASIC TYPES
+------------------------------------------------------------------------
+
+    -- Types of surfaces. Each surface type has a friction coefficient
+    SurfaceType ::= ENUMERATED {
+        soil,
+        rock,
+        asphalt,
+        forest,
+        waterSurface
+    }
+
+    -- Water state in the cell
+    WaterState ::= ENUMERATED {
+        dry,
+        moving,
+        stable
+    }
+
+------------------------------------------------------------------------
+--  GRID CELL AND LAYER TYPES
+------------------------------------------------------------------------
+
+    -- A single grid cell contains the static and dynamic layer values.
+    GridCell ::= SEQUENCE {
+        elevation   REAL (0.0 .. 20.0),      -- terrain elevation
+        waterVolume REAL (0.0 .. 100.0),      -- water volume in meters of height or liters/m2
+        surfaceType SurfaceType, -- affects friction
+        waterState  WaterState   -- dry / moving / stable
+    }
+
+    -- The full grid is stored as a vector of cells of size (32 x 32)
+    GridVector ::= SEQUENCE (SIZE(1 .. 1024)) OF GridCell
+
+------------------------------------------------------------------------
+--  EVENTS AND ACTIVE CELLS
+------------------------------------------------------------------------
+
+    -- When a cell receives a water increment, it becomes "active".
+    WaterIncrementEvent ::= SEQUENCE {
+        targetIndex INTEGER (0 .. 1023),
+        addedVolume REAL (0.0 .. 100.0)
+    }
+
+    -- New events generated during a time step
+    WaterIncrementEventList ::= SEQUENCE (SIZE(1 .. 1024)) OF WaterIncrementEvent
+
+------------------------------------------------------------------------
+--  IO DEVICE: GIS
+--  Loads the initial static and dynamic grid layers.
+--  For example: elevation raster, surface type map, initial water volumes.
+------------------------------------------------------------------------
+
+    -- Structure representing all GIS data the simulator will need.
+    GISInputData ::= SEQUENCE {
+        gridSize       INTEGER (1 .. 1024),   -- number of cells
+        elevationLayer SEQUENCE (SIZE(1 .. 1024)) OF REAL (0.0 .. 20.0),
+        surfaceLayer   SEQUENCE (SIZE(1 .. 1024)) OF SurfaceType,
+        initialWater   SEQUENCE (SIZE(1 .. 1024)) OF REAL (0.0 .. 50.0)
+    }
+
+    -- Output from GIS loader: the fully assembled grid
+    GISOutputGrid ::= GridVector
+
+------------------------------------------------------------------------
+--  IO DEVICE: MQTT (EMPTY FOR NOW)
+--  Left empty intentionally as requested.
+------------------------------------------------------------------------
+
+    -- Placeholder for future MQTT-based I/O model
+    MQTTInput  ::= NULL
+    MQTTOutput ::= NULL
+
+------------------------------------------------------------------------
+--  SIMULATION STATE FOR MODEL VALIDATION
+------------------------------------------------------------------------
+
+    SimulationState ::= SEQUENCE {
+        currentTimeStep INTEGER (1 .. 20),
+        grid            GridVector,
+        eventList       WaterIncrementEventList
+    }
+
+END
+
+TASTE-BasicTypes DEFINITIONS ::=
+BEGIN
+
+-- Set of TASTE predefined basic types
+
+T-Int32 ::=  INTEGER (-2147483648 .. 2147483647)
+
+T-UInt32 ::= INTEGER (0 .. 4294967295)
+
+T-Int8 ::= INTEGER (-128 .. 127)
+
+T-UInt8 ::= INTEGER (0 .. 255)
+
+T-Boolean ::= BOOLEAN
+
+T-Null-Record ::= SEQUENCE {}
+
+T-Runtime-Error ::= CHOICE {
+   noerror T-UInt32, -- this shall be NULL, but DMT does not support NULL and SEDS does not support empty sequences
+   encodeerror T-Int32, -- the names shall be changed after fix in seds converter (space creator) will be merged
+   decodeerror T-Int32
+}
+
+END
+
+-- Dataview generated on-the-fly providing information on the system
+-- and made available to the user code.
+System-Dataview DEFINITIONS ::=
+BEGIN
+
+   -- Range of PID - type can be used to size arrays of PID type
+   PID-Range ::= INTEGER(0..4)
+
+   -- List of functions (instances) present in the system
+   PID ::= ENUMERATED {
+       core,
+       
+       io-gis,
+       
+       io-mqtt,
+       
+       view,
+       
+       
+       env
+   }
+
+END
+

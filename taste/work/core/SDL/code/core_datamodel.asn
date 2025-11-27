@@ -1,0 +1,28 @@
+Core-Datamodel DEFINITIONS ::=
+BEGIN
+--  This file was generated automatically by OpenGEODE
+IMPORTS
+   T-Real32, T-UReal32, SurfaceType, Coefficient, Duration, TimeStep, FilePath, CellState, GridVector, Grid, CellIndex, Outflow, OutflowList, WaterVolume, TotalOutflow, MooreNeighborIndex, MooreNeighborList, GridCellNeighborList, WaterIncrementEvent, WaterIncrementEventList, GridModification, GridModificationList FROM DANASIM-DATAVIEW
+   T-Int32, T-UInt32, T-Int8, T-UInt8, T-Boolean, T-Null-Record, T-Runtime-Error FROM TASTE-BasicTypes
+   PID-Range, PID FROM System-Dataview;
+
+Core-States ::= ENUMERATED {running, idle}
+
+Core-Context ::= SEQUENCE {
+   state Core-States,
+   init-done BOOLEAN,
+   sender PID,
+   offspring PID,
+   currenttimestep TimeStep,
+   totaltimesteps TimeStep,
+   coregrid Grid,
+   eventlist WaterIncrementEventList,
+   coresnapshotperiod TimeStep,
+   nextsnapshottimestep TimeStep,
+   finished T-Boolean,
+   accummodlist GridModificationList,
+   gridneighbors GridCellNeighborList
+}
+
+Core-T-Runtime-Error-Selection ::= ENUMERATED {noerror-present(1), encodeerror-present(2), decodeerror-present(3)}
+END

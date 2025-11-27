@@ -1,0 +1,6 @@
+system taste;
+/* CIF TEXT (189, 395), (372, 140) */
+use dataview comment 'dataview-uniq.asn';
+/* CIF ENDTEXT */
+endsystem;
+

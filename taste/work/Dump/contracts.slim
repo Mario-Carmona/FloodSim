@@ -1,0 +1,78 @@
+-- ==============
+-- CONTRACTS.SLIM
+-- ==============
+-- ------
+-- SYNTAX
+-- ------
+-- system <SLIM FUNCTION NAME>
+-- properties
+--   Contracts => (
+--     [
+--       Name => "<NAME>";
+--       Assumption => "<ASSUMPTION>";
+--       Guarantee => "<GUARANTEE>";
+--     ],
+--     ...
+--   );
+-- end <SLIM FUNCTION NAME>;
+-- -------
+-- EXAMPLE
+-- -------
+-- system Battery
+-- properties
+--   Contracts => (
+--     [
+--       Name => "power";
+--       Assumption => "always(get_voltage >= 10)";
+--       Guarantee => "always(voltage_out >= 10)";
+--     ]
+--   );
+-- end Battery;
+-- ----------------------
+-- DUMP OF INTERFACE VIEW
+-- ----------------------
+-- Function (SDL): Core
+---- PI (ANY_OPERATION): startSimulationFromGIS
+------ PARAM_IN (FilePath): startSimulationFromGIS.folder
+------ PARAM_IN (Duration): startSimulationFromGIS.timeStepDuration
+------ PARAM_IN (Duration): startSimulationFromGIS.totalDuration
+------ PARAM_IN (TimeStep): startSimulationFromGIS.snapshotPeriod
+
+
+---- RI (ANY_OPERATION): displayInitialGrid
+------ PARAM_IN (Grid): displayInitialGrid.grid
+
+---- RI (ANY_OPERATION): displaySnapshot
+------ PARAM_IN (GridModificationList): displaySnapshot.modifications
+------ PARAM_IN (T-Boolean): displaySnapshot.finished
+
+---- RI (ANY_OPERATION): loadGISData
+------ PARAM_IN (FilePath): loadGISData.folder
+------ PARAM_OUT (Grid): loadGISData.grid
+
+
+-- Function (SDL): IO_GIS
+---- PI (ANY_OPERATION): loadGISData
+------ PARAM_IN (FilePath): loadGISData.folder
+------ PARAM_OUT (Grid): loadGISData.grid
+
+
+
+-- Function (SDL): UI
+---- PI (ANY_OPERATION): displayInitialGrid
+------ PARAM_IN (Grid): displayInitialGrid.grid
+
+---- PI (ANY_OPERATION): displaySnapshot
+------ PARAM_IN (GridModificationList): displaySnapshot.modifications
+------ PARAM_IN (T-Boolean): displaySnapshot.finished
+
+
+---- RI (ANY_OPERATION): startSimulationFromGIS
+------ PARAM_IN (FilePath): startSimulationFromGIS.folder
+------ PARAM_IN (Duration): startSimulationFromGIS.timeStepDuration
+------ PARAM_IN (Duration): startSimulationFromGIS.totalDuration
+------ PARAM_IN (TimeStep): startSimulationFromGIS.snapshotPeriod
+
+
+
+--

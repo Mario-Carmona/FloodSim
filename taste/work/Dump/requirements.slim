@@ -1,0 +1,84 @@
+-- =================
+-- REQUIREMENTS.SLIM
+-- =================
+-- ------
+-- SYNTAX
+-- ------
+-- system implementation <SLIM FUNCTION NAME>.others
+-- properties
+--   Requirements => (
+--     [
+--       PropertyId => "<NAME OF PROPERTY>";
+--       Description => "<REQUIREMENT DESCRIPTION>";
+--     ],
+--     ...
+--   );
+-- end <SLIM FUNCTION NAME>.others;
+-- -------
+-- EXAMPLE
+-- -------
+-- system implementation SystemBlock.others
+-- properties
+--   Requirements => (
+--     [
+--       PropertyId => "At least one sensor not working";
+--       Description => "[SystemBlock.others] At least one sensor not working";
+--     ],
+--     [
+--       PropertyId => "Both sensors not working";
+--       Description => "[SystemBlock.others] Both sensors not working";
+--     ],
+--     [
+--       PropertyId => "Generator 1 LOW";
+--       Description => "[SystemBlock.others] Generator 1 LOW";
+--     ]
+--   );
+-- end SystemBlock.others;
+-- ----------------------
+-- DUMP OF INTERFACE VIEW
+-- ----------------------
+-- Function (SDL): Core
+---- PI (ANY_OPERATION): startSimulationFromGIS
+------ PARAM_IN (FilePath): startSimulationFromGIS.folder
+------ PARAM_IN (Duration): startSimulationFromGIS.timeStepDuration
+------ PARAM_IN (Duration): startSimulationFromGIS.totalDuration
+------ PARAM_IN (TimeStep): startSimulationFromGIS.snapshotPeriod
+
+
+---- RI (ANY_OPERATION): displayInitialGrid
+------ PARAM_IN (Grid): displayInitialGrid.grid
+
+---- RI (ANY_OPERATION): displaySnapshot
+------ PARAM_IN (GridModificationList): displaySnapshot.modifications
+------ PARAM_IN (T-Boolean): displaySnapshot.finished
+
+---- RI (ANY_OPERATION): loadGISData
+------ PARAM_IN (FilePath): loadGISData.folder
+------ PARAM_OUT (Grid): loadGISData.grid
+
+
+-- Function (SDL): IO_GIS
+---- PI (ANY_OPERATION): loadGISData
+------ PARAM_IN (FilePath): loadGISData.folder
+------ PARAM_OUT (Grid): loadGISData.grid
+
+
+
+-- Function (SDL): UI
+---- PI (ANY_OPERATION): displayInitialGrid
+------ PARAM_IN (Grid): displayInitialGrid.grid
+
+---- PI (ANY_OPERATION): displaySnapshot
+------ PARAM_IN (GridModificationList): displaySnapshot.modifications
+------ PARAM_IN (T-Boolean): displaySnapshot.finished
+
+
+---- RI (ANY_OPERATION): startSimulationFromGIS
+------ PARAM_IN (FilePath): startSimulationFromGIS.folder
+------ PARAM_IN (Duration): startSimulationFromGIS.timeStepDuration
+------ PARAM_IN (Duration): startSimulationFromGIS.totalDuration
+------ PARAM_IN (TimeStep): startSimulationFromGIS.snapshotPeriod
+
+
+
+--

@@ -1,0 +1,8 @@
+                            system View;
+                            block View;
+                                /* CIF PROCESS (250, 150), (150, 75) */
+                                
+                                process View;
+                                endprocess View;
+                            endblock;
+                        endsystem;

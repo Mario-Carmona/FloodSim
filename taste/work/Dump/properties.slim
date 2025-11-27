@@ -1,0 +1,83 @@
+-- ===============
+-- PROPERTIES.SLIM
+-- ===============
+-- ------
+-- SYNTAX
+-- ------
+-- system <SUBSYSTEM NAME>
+-- properties
+--   Patterns => (
+--     [
+--       Name => "<NAME>";
+--       Pattern => "<PATTERN>";
+--     ],
+--     ...
+--   );
+--   GenericProperties => (
+--     [
+--       Name => "<NAME>";
+--       Formula => "<FORMULA>";
+--     ],
+--     ...
+--   );
+-- end <SUBSYSTEM NAME>;
+-- -------
+-- EXAMPLE
+-- -------
+-- system HW_Block
+-- properties
+--   Patterns => (
+--     [
+--       Name => "All sensors working";
+--       Pattern => "Globally, it is always the case that {PI_is_valid_s1 and PI_is_valid_s2} holds";
+--     ]
+--   );
+-- end HW_Block;
+-- ----------------------
+-- DUMP OF INTERFACE VIEW
+-- ----------------------
+-- Function (SDL): Core
+---- PI (ANY_OPERATION): startSimulationFromGIS
+------ PARAM_IN (FilePath): startSimulationFromGIS.folder
+------ PARAM_IN (Duration): startSimulationFromGIS.timeStepDuration
+------ PARAM_IN (Duration): startSimulationFromGIS.totalDuration
+------ PARAM_IN (TimeStep): startSimulationFromGIS.snapshotPeriod
+
+
+---- RI (ANY_OPERATION): displayInitialGrid
+------ PARAM_IN (Grid): displayInitialGrid.grid
+
+---- RI (ANY_OPERATION): displaySnapshot
+------ PARAM_IN (GridModificationList): displaySnapshot.modifications
+------ PARAM_IN (T-Boolean): displaySnapshot.finished
+
+---- RI (ANY_OPERATION): loadGISData
+------ PARAM_IN (FilePath): loadGISData.folder
+------ PARAM_OUT (Grid): loadGISData.grid
+
+
+-- Function (SDL): IO_GIS
+---- PI (ANY_OPERATION): loadGISData
+------ PARAM_IN (FilePath): loadGISData.folder
+------ PARAM_OUT (Grid): loadGISData.grid
+
+
+
+-- Function (SDL): UI
+---- PI (ANY_OPERATION): displayInitialGrid
+------ PARAM_IN (Grid): displayInitialGrid.grid
+
+---- PI (ANY_OPERATION): displaySnapshot
+------ PARAM_IN (GridModificationList): displaySnapshot.modifications
+------ PARAM_IN (T-Boolean): displaySnapshot.finished
+
+
+---- RI (ANY_OPERATION): startSimulationFromGIS
+------ PARAM_IN (FilePath): startSimulationFromGIS.folder
+------ PARAM_IN (Duration): startSimulationFromGIS.timeStepDuration
+------ PARAM_IN (Duration): startSimulationFromGIS.totalDuration
+------ PARAM_IN (TimeStep): startSimulationFromGIS.snapshotPeriod
+
+
+
+--

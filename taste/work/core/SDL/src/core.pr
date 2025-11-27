@@ -1,0 +1,519 @@
+/* CIF PROCESS (612, 150), (150, 75) */
+
+process Core;
+    /* CIF Keep Specific Geode Partition 'default' */
+    /* CIF TEXT (356, 0), (257, 233) */
+    dcl currentTimeStep TimeStep;
+    dcl totalTimeSteps TimeStep;
+    
+    dcl coreGrid Grid;
+    
+    dcl eventList WaterIncrementEventList;
+    
+    dcl coreSnapshotPeriod TimeStep;
+    dcl nextSnapshotTimeStep TimeStep;
+    
+    dcl finished T_Boolean;
+    
+    dcl accumModList GridModificationList;
+    
+    dcl gridNeighbors GridCellNeighborList;
+    /* CIF ENDTEXT */
+    /* CIF procedure (439, 727), (136, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure getFlowCoefficient;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (0, 90), (232, 140) */
+        fpar
+          in surfaceType SurfaceType,
+          in/out flowCoefficient Coefficient;
+        /* CIF ENDTEXT */
+        /* CIF START (602, 84), (70, 35) */
+        START;
+            /* CIF decision (589, 139), (94, 50) */
+            decision surfaceType;
+                /* CIF ANSWER (442, 209), (70, 23) */
+                (rock):
+                    /* CIF task (402, 252), (149, 35) */
+                    task flowCoefficient := 0.2;
+                /* CIF ANSWER (602, 209), (70, 23) */
+                (asphalt):
+                    /* CIF task (562, 252), (149, 35) */
+                    task flowCoefficient := 0.2;
+                /* CIF ANSWER (762, 209), (70, 23) */
+                (forest):
+                    /* CIF task (722, 252), (149, 35) */
+                    task flowCoefficient := 0.2;
+                /* CIF ANSWER (901, 209), (101, 23) */
+                (waterSurface):
+                    /* CIF task (878, 252), (149, 35) */
+                    task flowCoefficient := 0.2;
+                /* CIF ANSWER (282, 209), (70, 23) */
+                (soil):
+                    /* CIF task (242, 252), (149, 35) */
+                    task flowCoefficient := 0.2;
+            enddecision;
+            /* CIF return (619, 303), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (429, 600), (87, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure updateCell;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (139, 145), (313, 383) */
+        fpar
+          in cellIndex CellIndex, 
+          in/out modList GridModificationList, 
+          in/out nextEventList WaterIncrementEventList;
+        
+        dcl neighbors MooreNeighborList; 
+        
+        dcl cell CellState;
+        dcl neighbor CellIndex;
+        
+        dcl neighborIndex MooreNeighborIndex;
+        
+        dcl outflow Outflow;
+        
+        dcl cellOutflowList OutflowList;
+        
+        dcl totalOutflowVolume TotalOutflow;
+        
+        dcl newEvent WaterIncrementEvent;
+        
+        dcl outflowIndex MooreNeighborIndex;
+        
+        dcl modification GridModification;
+        
+        dcl normalizeTotalOutflowVolume WaterVolume;
+        /* CIF ENDTEXT */
+        /* CIF START (809, 163), (70, 35) */
+        START;
+            /* CIF task (721, 218), (244, 35) */
+            task neighbors := gridNeighbors(cellIndex);
+            /* CIF task (777, 273), (132, 35) */
+            task neighborIndex := 0;
+            /* CIF task (773, 328), (141, 35) */
+            task cellOutFlowList := {};
+            /* CIF task (754, 383), (179, 35) */
+            task totalOutflowVolume := 0.0;
+            /* CIF label (760, 433), (167, 35) */
+            loopComputeWaterFlow:
+            /* CIF PROCEDURECALL (637, 488), (412, 35) */
+            call computeWaterFlow(cellIndex, neighbors(neighborIndex), outflow);
+            /* CIF decision (786, 543), (115, 50) */
+            decision outflow.volume;
+                /* CIF ANSWER (740, 613), (70, 23) */
+                (>0.0):
+                    /* CIF task (629, 656), (291, 35) */
+                    task cellOutflowList := cellOutflowList // {outflow};
+                    /* CIF task (579, 711), (390, 35) */
+                    task totalOutflowVolume := totalOutflowVolume + outflow.volume;
+                /* CIF ANSWER (983, 613), (70, 23) */
+                ELSE:
+            enddecision;
+            /* CIF task (728, 762), (231, 35) */
+            task neighborIndex := neighborIndex + 1;
+            /* CIF decision (727, 817), (232, 50) */
+            decision neighborIndex < length (neighbors);
+                /* CIF ANSWER (403, 887), (70, 23) */
+                (true):
+                    /* CIF join (421, 930), (35, 35) */
+                    join loopComputeWaterFlow;
+                /* CIF ANSWER (1007, 887), (70, 23) */
+                (false):
+                    /* CIF decision (959, 930), (164, 50) */
+                    decision length (cellOutflowList);
+                        /* CIF ANSWER (881, 1000), (70, 23) */
+                        (>0):
+                            /* CIF PROCEDURECALL (525, 1043), (781, 35) */
+                            call normalizeOutflows(coreGrid.cells(cellIndex).waterVolume, totalOutflowVolume, cellOutflowList, normalizeTotalOutflowVolume);
+                            /* CIF task (805, 1098), (221, 35) */
+                            task newEvent := {targetCell cellIndex};
+                            /* CIF task (773, 1148), (284, 35) */
+                            task nextEventList := nextEventList // {newEvent};
+                            /* CIF task (791, 1203), (248, 68) */
+                            task modification := {
+  targetCell cellIndex, 
+  delta -normalizeTotalOutflowVolume
+};
+                            /* CIF task (799, 1291), (233, 35) */
+                            task modList := modList // {modification};
+                            /* CIF task (853, 1341), (125, 35) */
+                            task outflowIndex := 0;
+                            /* CIF label (826, 1391), (178, 35) */
+                            loopAddGridModifications:
+                            /* CIF task (714, 1446), (402, 35) */
+                            task newEvent := {targetCell cellOutflowList(outflowIndex).neighbor};
+                            /* CIF task (773, 1501), (284, 35) */
+                            task nextEventList := nextEventList // {newEvent};
+                            /* CIF task (750, 1551), (330, 68) */
+                            task modification := {
+  targetCell cellOutflowList(outflowIndex).neighbor, 
+  delta cellOutflowList(outflowIndex).volume
+};
+                            /* CIF task (799, 1639), (233, 35) */
+                            task modList := modList // {modification};
+                            /* CIF task (806, 1694), (218, 35) */
+                            task outflowIndex := outflowIndex + 1;
+                            /* CIF decision (787, 1749), (257, 50) */
+                            decision outflowIndex < length (cellOutflowList);
+                                /* CIF ANSWER (963, 1819), (70, 23) */
+                                (false):
+                                    /* CIF return (980, 1862), (35, 35) */
+                                    return ;
+                                /* CIF ANSWER (836, 1819), (70, 23) */
+                                (true):
+                                    /* CIF join (853, 1862), (35, 35) */
+                                    join loopAddGridModifications;
+                            enddecision;
+                        /* CIF ANSWER (1317, 1000), (70, 23) */
+                        ELSE:
+                            /* CIF return (1335, 1043), (35, 35) */
+                            return ;
+                    enddecision;
+            enddecision;
+    endprocedure;
+    /* CIF procedure (381, 517), (197, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure calculateCellMooreNeighbors;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (120, 127), (249, 140) */
+        fpar
+          in index CellIndex, 
+          in/out neighbors MooreNeighborList;
+        /* CIF ENDTEXT */
+        /* CIF START (478, 133), (70, 35) */
+        START;
+            /* CIF return (495, 188), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (376, 237), (163, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure startSimulationFromGIS;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (0, 61), (207, 140) */
+        fpar
+          in folder FilePath,
+          in timeStepDuration Duration,
+          in totalDuration Duration,
+          in snapshotPeriod TimeStep;
+        /* CIF ENDTEXT */
+        /* CIF START (412, 56), (70, 35) */
+        START;
+            /* CIF task (373, 111), (146, 35) */
+            task currentTimeStep := 0;
+            /* CIF task (247, 166), (399, 35) */
+            task totalTimeSteps := fix (round (totalDuration / timeStepDuration));
+            /* CIF task (321, 220), (250, 35) */
+            task coreSnapshotPeriod := snapshotPeriod;
+            /* CIF task (298, 275), (296, 35) */
+            task nextSnapshotTimeStep := coreSnapshotPeriod;
+            /* CIF task (395, 325), (103, 35) */
+            task eventList := {};
+            /* CIF task (379, 380), (134, 35) */
+            task accumModList := {};
+            /* CIF PROCEDURECALL (348, 433), (196, 35) */
+            call loadGISData(folder, coreGrid);
+            /* CIF output (356, 488), (180, 35) */
+            output displayInitialGrid(coreGrid);
+            /* CIF PROCEDURECALL (388, 543), (117, 35) */
+            call addInitialEvents;
+            /* CIF PROCEDURECALL (355, 598), (183, 35) */
+            call calculateGridCellNeighbors;
+            /* CIF return (429, 648), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (399, 284), (132, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure runSimulationStep;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (623, 86), (281, 140) */
+        dcl nextEventList WaterIncrementEventList;
+        
+        dcl modList GridModificationList;
+        dcl index CellIndex;
+        dcl event WaterIncrementEvent;
+        /* CIF ENDTEXT */
+        /* CIF START (1010, 63), (70, 35) */
+        START;
+            /* CIF task (996, 118), (96, 35) */
+            task modList := {};
+            /* CIF task (979, 168), (130, 35) */
+            task nextEventList := {};
+            /* CIF task (1005, 218), (79, 35) */
+            task index := 0;
+            /* CIF label (1010, 273), (70, 35) */
+            loop:
+            /* CIF task (960, 328), (168, 35) */
+            task event := eventList(index);
+            /* CIF PROCEDURECALL (878, 383), (332, 35) */
+            call updateCell(event.targetCell, modList, nextEventList);
+            /* CIF task (982, 438), (124, 35) */
+            task index := index + 1;
+            /* CIF decision (957, 488), (174, 50) */
+            decision index < length (eventList);
+                /* CIF ANSWER (1066, 558), (70, 23) */
+                (false):
+                    /* CIF task (964, 601), (273, 35) */
+                    task accumModList := accumModList // modList;
+                    /* CIF task (1013, 656), (175, 35) */
+                    task eventList := nextEventList;
+                    /* CIF PROCEDURECALL (1005, 711), (191, 35) */
+                    call applyModifications(modList);
+                    /* CIF task (971, 766), (259, 35) */
+                    task currentTimeStep := currentTimeStep + 1
+                    /* CIF comment (1252, 766), (144, 35) */
+                    comment 'Advance the counter';
+                    /* CIF return (1083, 821), (35, 35) */
+                    return ;
+                /* CIF ANSWER (884, 558), (70, 23) */
+                (true):
+                    /* CIF join (901, 601), (35, 35) */
+                    join loop;
+            enddecision;
+    endprocedure;
+    /* CIF procedure (401, 340), (135, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure applyModifications;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (46, 99), (250, 140) */
+        fpar 
+          in modifications GridModificationList;
+        
+        dcl index T_UINt32;
+        dcl cell CellState;
+        /* CIF ENDTEXT */
+        /* CIF START (485, 92), (70, 35) */
+        START;
+            /* CIF task (480, 147), (79, 35) */
+            task index := 0;
+            /* CIF label (485, 202), (70, 35) */
+            loop:
+            /* CIF task (354, 257), (331, 35) */
+            task cell := coreGrid.cells(modifications(index).targetCell);
+            /* CIF task (313, 312), (413, 35) */
+            task cell.waterVolume := cell.waterVolume + modifications(index).delta;
+            /* CIF task (457, 362), (124, 35) */
+            task index := index + 1;
+            /* CIF decision (419, 417), (200, 50) */
+            decision index < length (modifications);
+                /* CIF ANSWER (530, 487), (70, 23) */
+                (false):
+                    /* CIF return (547, 530), (35, 35) */
+                    return ;
+                /* CIF ANSWER (440, 487), (70, 23) */
+                (true):
+                    /* CIF join (457, 530), (35, 35) */
+                    join loop;
+            enddecision;
+    endprocedure;
+    /* CIF procedure (418, 387), (117, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure addInitialEvents;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (57, 35), (238, 140) */
+        dcl index CellIndex;
+        dcl newEvent WaterIncrementEvent;
+        /* CIF ENDTEXT */
+        /* CIF START (344, 47), (70, 35) */
+        START;
+            /* CIF task (339, 102), (79, 35) */
+            task index := 0;
+            /* CIF label (344, 157), (70, 35) */
+            loop:
+            /* CIF decision (265, 212), (226, 50) */
+            decision coreGrid.cells(index).waterVolume;
+                /* CIF ANSWER (299, 282), (70, 23) */
+                (>0.0):
+                    /* CIF task (233, 325), (200, 35) */
+                    task newEvent := {targetCell index};
+                    /* CIF task (218, 375), (231, 35) */
+                    task eventList := eventList // {newEvent};
+                /* CIF ANSWER (460, 282), (70, 23) */
+                ELSE:
+            enddecision;
+            /* CIF task (318, 426), (121, 35) */
+            task index := index +1;
+            /* CIF decision (279, 481), (199, 50) */
+            decision index < length (coreGrid.cells);
+                /* CIF ANSWER (389, 551), (70, 23) */
+                (false):
+                    /* CIF return (406, 594), (35, 35) */
+                    return ;
+                /* CIF ANSWER (299, 551), (70, 23) */
+                (true):
+                    /* CIF join (316, 594), (35, 35) */
+                    join loop;
+            enddecision;
+    endprocedure;
+    /* CIF procedure (386, 452), (183, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure calculateGridCellNeighbors;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (118, 77), (224, 140) */
+        dcl index CellIndex;
+        dcl neighbors MooreNeighborList;
+        /* CIF ENDTEXT */
+        /* CIF START (426, 88), (70, 35) */
+        START;
+            /* CIF task (394, 143), (133, 35) */
+            task gridNeighbors := {};
+            /* CIF task (421, 198), (79, 35) */
+            task index := 0;
+            /* CIF label (426, 253), (70, 35) */
+            loop:
+            /* CIF task (406, 308), (108, 35) */
+            task neighbors := {};
+            /* CIF PROCEDURECALL (309, 358), (303, 35) */
+            call calculateCellMooreNeighbors(index, neighbors);
+            /* CIF task (314, 413), (292, 35) */
+            task gridNeighbors := gridNeighbors // {neighbors};
+            /* CIF task (398, 463), (124, 35) */
+            task index := index + 1;
+            /* CIF decision (361, 518), (199, 50) */
+            decision index < length (coreGrid.cells);
+                /* CIF ANSWER (471, 588), (70, 23) */
+                (false):
+                    /* CIF return (488, 631), (35, 35) */
+                    return ;
+                /* CIF ANSWER (381, 588), (70, 23) */
+                (true):
+                    /* CIF join (398, 631), (35, 35) */
+                    join loop;
+            enddecision;
+    endprocedure;
+    /* CIF procedure (431, 658), (139, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure computeWaterFlow;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (0, 118), (228, 143) */
+        fpar
+          in selfCell CellIndex,
+          in neighborCell CellIndex,
+          in/out outflow Outflow;
+        
+        dcl flowCoefficient Coefficient;
+        
+        dcl selfCellHeight T_UReal32;
+        dcl neighborCellHeight T_UReal32;
+        /* CIF ENDTEXT */
+        /* CIF START (600, 116), (70, 35) */
+        START;
+            /* CIF PROCEDURECALL (410, 171), (449, 35) */
+            call getFlowCoefficient(coreGrid.cells(selfCell).surfaceType, flowCoefficient);
+            /* CIF task (364, 226), (541, 35) */
+            task selfCellHeight := coreGrid.cells(selfCell).elevation + coreGrid.cells(selfCell).waterVolume;
+            /* CIF task (316, 281), (636, 35) */
+            task neighborCellHeight := coreGrid.cells(neighborCell).elevation + coreGrid.cells(neighborCell).waterVolume;
+            /* CIF decision (517, 336), (235, 50) */
+            decision selfCellHeight > neighborCellHeight;
+                /* CIF ANSWER (469, 406), (70, 23) */
+                (true):
+                    /* CIF task (278, 449), (451, 35) */
+                    task outflow.volume := flowcoefficient * (selfCellHeight - neighborCellHeight);
+                /* CIF ANSWER (781, 406), (70, 23) */
+                (false):
+                    /* CIF task (740, 449), (150, 35) */
+                    task outflow.volume := 0.0;
+            enddecision;
+            /* CIF task (526, 500), (217, 35) */
+            task outflow.neighbor := neighborCell;
+            /* CIF return (617, 550), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (455, 785), (135, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure normalizeOutflows;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (127, 141), (338, 143) */
+        fpar
+          in cellWaterVolume T_UReal32,
+          in totalOutflowVolume T_UReal32, 
+          in/out cellOutflowList OutflowList,
+          in/out normalizeTotalOutflowVolume WaterVolume;
+        
+        dcl index MooreNeighborIndex;
+        
+        dcl scaleFactor T_UReal32;
+        /* CIF ENDTEXT */
+        /* CIF START (768, 172), (70, 35) */
+        START;
+            /* CIF decision (673, 227), (259, 50) */
+            decision totalOutflowVolume > cellWaterVolume;
+                /* CIF ANSWER (958, 297), (70, 23) */
+                (false):
+                    /* CIF return (976, 340), (35, 35) */
+                    return ;
+                /* CIF ANSWER (677, 297), (70, 23) */
+                (true):
+                    /* CIF task (542, 340), (340, 35) */
+                    task scaleFactor := cellWaterVolume / totalOutflowVolume;
+                    /* CIF task (501, 395), (422, 35) */
+                    task normalizeTotalOutflowVolume := totalOutflowVolume * scaleFactor;
+                    /* CIF task (673, 445), (79, 35) */
+                    task index := 0;
+                    /* CIF label (677, 500), (70, 35) */
+                    loop:
+                    /* CIF task (476, 555), (473, 35) */
+                    task cellOutflowList(index).volume := cellOutflowList(index).volume * scaleFactor;
+                    /* CIF task (650, 610), (124, 35) */
+                    task index := index + 1;
+                    /* CIF decision (607, 665), (210, 50) */
+                    decision index < length (cellOutflowList);
+                        /* CIF ANSWER (723, 735), (70, 23) */
+                        (false):
+                            /* CIF return (741, 778), (35, 35) */
+                            return ;
+                        /* CIF ANSWER (633, 735), (70, 23) */
+                        (true):
+                            /* CIF join (651, 778), (35, 35) */
+                            join loop;
+                    enddecision;
+            enddecision;
+    endprocedure;
+    /* CIF START (961, 49), (70, 35) */
+    START;
+        /* CIF NEXTSTATE (961, 99), (70, 35) */
+        NEXTSTATE Idle;
+    /* CIF state (937, 209), (71, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state Running;
+        /* CIF provided (959, 264), (70, 35) */
+        provided true;
+            /* CIF PROCEDURECALL (927, 319), (132, 35) */
+            call runSimulationStep;
+            /* CIF task (845, 374), (296, 35) */
+            task finished := currentTimeStep >= totalTimeSteps;
+            /* CIF decision (853, 424), (280, 50) */
+            decision currentTimeStep >= nextSnapshotTimeStep;
+                /* CIF ANSWER (1094, 494), (70, 23) */
+                (false):
+                /* CIF ANSWER (825, 494), (70, 23) */
+                (true):
+                    /* CIF output (726, 537), (267, 35) */
+                    output displaySnapShot(accumModList, finished);
+                    /* CIF task (636, 592), (446, 35) */
+                    task nextSnapshotTimeStep := nextSnapshotTimeStep + coreSnapshotPeriod;
+            enddecision;
+            /* CIF decision (958, 643), (70, 50) */
+            decision finished;
+                /* CIF ANSWER (1089, 713), (70, 23) */
+                (false):
+                    /* CIF NEXTSTATE (1088, 756), (71, 35) */
+                    NEXTSTATE Running;
+                /* CIF ANSWER (830, 713), (70, 23) */
+                (true):
+                    /* CIF NEXTSTATE (830, 756), (70, 35) */
+                    NEXTSTATE Idle;
+            enddecision;
+    endstate;
+    /* CIF state (961, 99), (70, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state Idle;
+        /* CIF input (891, 154), (163, 35) */
+        input startSimulationFromGIS;
+            /* CIF NEXTSTATE (937, 209), (71, 35) */
+            NEXTSTATE Running;
+    endstate;
+endprocess Core;

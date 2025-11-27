@@ -1,0 +1,78 @@
+/* CIF PROCESS (250, 150), (150, 75) */
+
+process Userinterface;
+    /* CIF Keep Specific Geode Partition 'default' */
+    /* CIF TEXT (0, 42), (208, 140) */
+    dcl folder FilePath;
+    dcl timeStepDuration Duration;
+    dcl totalDuration Duration;
+    dcl grid GridVector;
+    dcl finishSimulation T_Boolean;
+    /* CIF ENDTEXT */
+    /* CIF procedure (189, 289), (107, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure displayUpdate;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (81, 118), (170, 140) */
+        fpar
+          in grid GridVector,
+          in finished T_Boolean;
+        /* CIF ENDTEXT */
+        /* CIF START (511, 83), (70, 35) */
+        START;
+            /* CIF task (455, 138), (181, 35) */
+            task finishSimulation := finished;
+            /* CIF return (528, 193), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (208, 233), (70, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure askUser;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (32, 57), (233, 140) */
+        fpar
+          in/out folder FilePath,
+          in/out timeStepDuration Duration,
+          in/out totalDuration Duration;
+        /* CIF ENDTEXT */
+        /* CIF START (388, 74), (70, 35) */
+        START;
+            /* CIF task (340, 129), (164, 35) */
+            task 'folder = askForFolder()';
+            /* CIF task (296, 184), (252, 35) */
+            task 'timeStepDuration = askForTimeStep()';
+            /* CIF task (296, 239), (253, 35) */
+            task 'totalDuration = askForTotalDuration()';
+            /* CIF return (405, 289), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF START (497, 64), (70, 35) */
+    START;
+        /* CIF PROCEDURECALL (376, 119), (311, 35) */
+        call askUser(folder, timeStepDuration, totalDuration);
+        /* CIF PROCEDURECALL (329, 174), (405, 35) */
+        call startSimulationFromGIS(folder, timeStepDuration, totalDuration);
+        /* CIF NEXTSTATE (496, 224), (71, 35) */
+        NEXTSTATE Running;
+    /* CIF state (496, 224), (71, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state Running;
+        /* CIF input (477, 279), (107, 35) */
+        input displayUpdate;
+            /* CIF decision (472, 334), (118, 50) */
+            decision finishSimulation;
+                /* CIF ANSWER (458, 404), (70, 23) */
+                (true):
+                    /* CIF stop (475, 447), (35, 35) */
+                    stop;
+                /* CIF ANSWER (592, 404), (70, 23) */
+                (false):
+                    /* CIF task (538, 447), (176, 35) */
+                    task 'showGridOnDisplay(grid)';
+                    /* CIF PROCEDURECALL (560, 502), (132, 35) */
+                    call runSimulationStep;
+                    /* CIF NEXTSTATE (591, 552), (71, 35) */
+                    NEXTSTATE Running;
+            enddecision;
+    endstate;
+endprocess Userinterface;
