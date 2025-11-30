@@ -3,8 +3,8 @@
 --------------------------------------------------------
 --! MadeInFastMode:True:
 --! InputASN1FileChecksum:558e098cfa4f16498abfb3b6fca04df3:DanaSim.acn:
---! InputASN1FileChecksum:a5e04492b3b05885f08819f50fb712c2:DanaSim.asn:
---! InputASN1FileChecksum:5c6c9da6a54c416a8e932ee28d119d1b:work/system.asn:
+--! InputASN1FileChecksum:788ad11155c6c3e4ce69e68c95fb0c36:DanaSim.asn:
+--! InputASN1FileChecksum:936367f340f2765ec0e7f42481df144c:work/system.asn:
 --! InputASN1FileChecksum:99f633f6affa648721826e4d6f727342:/home/macarse/tool-inst/share/taste-types/taste-types.asn:
 --------------------------------------------------------
 
@@ -54,7 +54,7 @@ data Stream_Element_Buffer
 properties
     Data_Model::Data_Representation => Character;
 end Stream_Element_Buffer;
-DATA CellIndex
+DATA CellType
 PROPERTIES
     -- name of the ASN.1 source file:
     Source_Text => ("DanaSim.asn");
@@ -63,38 +63,38 @@ PROPERTIES
     Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
     Source_Language => (ASN1);
     -- name of the corresponding data type in the source file:
-    Type_Source_Name => "CellIndex";
-    TASTE::Position_In_File => [ line => 41 ; column => 1 ; ];
+    Type_Source_Name => "CellType";
+    TASTE::Position_In_File => [ line => 60 ; column => 1 ; ];
     -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aINTEGER;
-END CellIndex;
+    TASTE::ASN1_Basic_Type =>aENUMERATED;
+END CellType;
 
-DATA IMPLEMENTATION CellIndex.impl
-END CellIndex.impl;
+DATA IMPLEMENTATION CellType.impl
+END CellType.impl;
 
-DATA CellIndex_Buffer_Max
-END CellIndex_Buffer_Max;
+DATA CellType_Buffer_Max
+END CellType_Buffer_Max;
 
-DATA IMPLEMENTATION CellIndex_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type CellIndex
+DATA IMPLEMENTATION CellType_Buffer_Max.impl
+    -- Buffer to hold a marshalled data of type CellType
 PROPERTIES
     Data_Model::Data_Representation => array;
     Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END CellIndex_Buffer_Max.impl;
+END CellType_Buffer_Max.impl;
 
-DATA CellIndex_Buffer
-END CellIndex_Buffer;
+DATA CellType_Buffer
+END CellType_Buffer;
 
-DATA IMPLEMENTATION CellIndex_Buffer.impl
-    -- Buffer to hold a marshalled data of type CellIndex
+DATA IMPLEMENTATION CellType_Buffer.impl
+    -- Buffer to hold a marshalled data of type CellType
 SUBCOMPONENTS
-    Buffer : data CellIndex_Buffer_Max.impl;
+    Buffer : data CellType_Buffer_Max.impl;
     Length : data Base_Types::Unsigned_32;
 PROPERTIES
     Data_Model::Data_Representation => Struct;
-END CellIndex_Buffer.impl;
+END CellType_Buffer.impl;
 
-DATA CellState
+DATA CellularAutomatonState
 PROPERTIES
     -- name of the ASN.1 source file:
     Source_Text => ("DanaSim.asn");
@@ -103,38 +103,38 @@ PROPERTIES
     Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
     Source_Language => (ASN1);
     -- name of the corresponding data type in the source file:
-    Type_Source_Name => "CellState";
-    TASTE::Position_In_File => [ line => 25 ; column => 1 ; ];
+    Type_Source_Name => "CellularAutomatonState";
+    TASTE::Position_In_File => [ line => 34 ; column => 1 ; ];
     -- what kind of type is this?
     TASTE::ASN1_Basic_Type =>aSEQUENCE;
-END CellState;
+END CellularAutomatonState;
 
-DATA IMPLEMENTATION CellState.impl
-END CellState.impl;
+DATA IMPLEMENTATION CellularAutomatonState.impl
+END CellularAutomatonState.impl;
 
-DATA CellState_Buffer_Max
-END CellState_Buffer_Max;
+DATA CellularAutomatonState_Buffer_Max
+END CellularAutomatonState_Buffer_Max;
 
-DATA IMPLEMENTATION CellState_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type CellState
+DATA IMPLEMENTATION CellularAutomatonState_Buffer_Max.impl
+    -- Buffer to hold a marshalled data of type CellularAutomatonState
 PROPERTIES
     Data_Model::Data_Representation => array;
     Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END CellState_Buffer_Max.impl;
+END CellularAutomatonState_Buffer_Max.impl;
 
-DATA CellState_Buffer
-END CellState_Buffer;
+DATA CellularAutomatonState_Buffer
+END CellularAutomatonState_Buffer;
 
-DATA IMPLEMENTATION CellState_Buffer.impl
-    -- Buffer to hold a marshalled data of type CellState
+DATA IMPLEMENTATION CellularAutomatonState_Buffer.impl
+    -- Buffer to hold a marshalled data of type CellularAutomatonState
 SUBCOMPONENTS
-    Buffer : data CellState_Buffer_Max.impl;
+    Buffer : data CellularAutomatonState_Buffer_Max.impl;
     Length : data Base_Types::Unsigned_32;
 PROPERTIES
     Data_Model::Data_Representation => Struct;
-END CellState_Buffer.impl;
+END CellularAutomatonState_Buffer.impl;
 
-DATA Duration
+DATA FolderPath
 PROPERTIES
     -- name of the ASN.1 source file:
     Source_Text => ("DanaSim.asn");
@@ -143,79 +143,39 @@ PROPERTIES
     Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
     Source_Language => (ASN1);
     -- name of the corresponding data type in the source file:
-    Type_Source_Name => "Duration";
-    TASTE::Position_In_File => [ line => 5 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aINTEGER;
-END Duration;
-
-DATA IMPLEMENTATION Duration.impl
-END Duration.impl;
-
-DATA Duration_Buffer_Max
-END Duration_Buffer_Max;
-
-DATA IMPLEMENTATION Duration_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type Duration
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END Duration_Buffer_Max.impl;
-
-DATA Duration_Buffer
-END Duration_Buffer;
-
-DATA IMPLEMENTATION Duration_Buffer.impl
-    -- Buffer to hold a marshalled data of type Duration
-SUBCOMPONENTS
-    Buffer : data Duration_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END Duration_Buffer.impl;
-
-DATA FilePath
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "FilePath";
-    TASTE::Position_In_File => [ line => 23 ; column => 1 ; ];
+    Type_Source_Name => "FolderPath";
+    TASTE::Position_In_File => [ line => 13 ; column => 1 ; ];
     -- what kind of type is this?
     TASTE::ASN1_Basic_Type =>aSTRING;
     TASTE::Forbid_in_PI => true;
-END FilePath;
+END FolderPath;
 
-DATA IMPLEMENTATION FilePath.impl
-END FilePath.impl;
+DATA IMPLEMENTATION FolderPath.impl
+END FolderPath.impl;
 
-DATA FilePath_Buffer_Max
-END FilePath_Buffer_Max;
+DATA FolderPath_Buffer_Max
+END FolderPath_Buffer_Max;
 
-DATA IMPLEMENTATION FilePath_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type FilePath
+DATA IMPLEMENTATION FolderPath_Buffer_Max.impl
+    -- Buffer to hold a marshalled data of type FolderPath
 PROPERTIES
     Data_Model::Data_Representation => array;
     Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END FilePath_Buffer_Max.impl;
+END FolderPath_Buffer_Max.impl;
 
-DATA FilePath_Buffer
-END FilePath_Buffer;
+DATA FolderPath_Buffer
+END FolderPath_Buffer;
 
-DATA IMPLEMENTATION FilePath_Buffer.impl
-    -- Buffer to hold a marshalled data of type FilePath
+DATA IMPLEMENTATION FolderPath_Buffer.impl
+    -- Buffer to hold a marshalled data of type FolderPath
 SUBCOMPONENTS
-    Buffer : data FilePath_Buffer_Max.impl;
+    Buffer : data FolderPath_Buffer_Max.impl;
     Length : data Base_Types::Unsigned_32;
 PROPERTIES
     Data_Model::Data_Representation => Struct;
-END FilePath_Buffer.impl;
+END FolderPath_Buffer.impl;
 
-DATA FlowCoefficient
+DATA Layer
 PROPERTIES
     -- name of the ASN.1 source file:
     Source_Text => ("DanaSim.asn");
@@ -224,516 +184,36 @@ PROPERTIES
     Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
     Source_Language => (ASN1);
     -- name of the corresponding data type in the source file:
-    Type_Source_Name => "FlowCoefficient";
-    TASTE::Position_In_File => [ line => 15 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aREAL;
-END FlowCoefficient;
-
-DATA IMPLEMENTATION FlowCoefficient.impl
-END FlowCoefficient.impl;
-
-DATA FlowCoefficient_Buffer_Max
-END FlowCoefficient_Buffer_Max;
-
-DATA IMPLEMENTATION FlowCoefficient_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type FlowCoefficient
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END FlowCoefficient_Buffer_Max.impl;
-
-DATA FlowCoefficient_Buffer
-END FlowCoefficient_Buffer;
-
-DATA IMPLEMENTATION FlowCoefficient_Buffer.impl
-    -- Buffer to hold a marshalled data of type FlowCoefficient
-SUBCOMPONENTS
-    Buffer : data FlowCoefficient_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END FlowCoefficient_Buffer.impl;
-
-DATA FlowingWaterEvent
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "FlowingWaterEvent";
-    TASTE::Position_In_File => [ line => 56 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCE;
-END FlowingWaterEvent;
-
-DATA IMPLEMENTATION FlowingWaterEvent.impl
-END FlowingWaterEvent.impl;
-
-DATA FlowingWaterEvent_Buffer_Max
-END FlowingWaterEvent_Buffer_Max;
-
-DATA IMPLEMENTATION FlowingWaterEvent_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type FlowingWaterEvent
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END FlowingWaterEvent_Buffer_Max.impl;
-
-DATA FlowingWaterEvent_Buffer
-END FlowingWaterEvent_Buffer;
-
-DATA IMPLEMENTATION FlowingWaterEvent_Buffer.impl
-    -- Buffer to hold a marshalled data of type FlowingWaterEvent
-SUBCOMPONENTS
-    Buffer : data FlowingWaterEvent_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END FlowingWaterEvent_Buffer.impl;
-
-DATA FlowingWaterEventList
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "FlowingWaterEventList";
-    TASTE::Position_In_File => [ line => 60 ; column => 1 ; ];
+    Type_Source_Name => "Layer";
+    TASTE::Position_In_File => [ line => 31 ; column => 1 ; ];
     -- what kind of type is this?
     TASTE::ASN1_Basic_Type =>aSEQUENCEOF;
-END FlowingWaterEventList;
+END Layer;
 
-DATA IMPLEMENTATION FlowingWaterEventList.impl
-END FlowingWaterEventList.impl;
+DATA IMPLEMENTATION Layer.impl
+END Layer.impl;
 
-DATA FlowingWaterEventList_Buffer_Max
-END FlowingWaterEventList_Buffer_Max;
+DATA Layer_Buffer_Max
+END Layer_Buffer_Max;
 
-DATA IMPLEMENTATION FlowingWaterEventList_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type FlowingWaterEventList
+DATA IMPLEMENTATION Layer_Buffer_Max.impl
+    -- Buffer to hold a marshalled data of type Layer
 PROPERTIES
     Data_Model::Data_Representation => array;
     Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END FlowingWaterEventList_Buffer_Max.impl;
+END Layer_Buffer_Max.impl;
 
-DATA FlowingWaterEventList_Buffer
-END FlowingWaterEventList_Buffer;
+DATA Layer_Buffer
+END Layer_Buffer;
 
-DATA IMPLEMENTATION FlowingWaterEventList_Buffer.impl
-    -- Buffer to hold a marshalled data of type FlowingWaterEventList
+DATA IMPLEMENTATION Layer_Buffer.impl
+    -- Buffer to hold a marshalled data of type Layer
 SUBCOMPONENTS
-    Buffer : data FlowingWaterEventList_Buffer_Max.impl;
+    Buffer : data Layer_Buffer_Max.impl;
     Length : data Base_Types::Unsigned_32;
 PROPERTIES
     Data_Model::Data_Representation => Struct;
-END FlowingWaterEventList_Buffer.impl;
-
-DATA Grid
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "Grid";
-    TASTE::Position_In_File => [ line => 35 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCE;
-END Grid;
-
-DATA IMPLEMENTATION Grid.impl
-END Grid.impl;
-
-DATA Grid_Buffer_Max
-END Grid_Buffer_Max;
-
-DATA IMPLEMENTATION Grid_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type Grid
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END Grid_Buffer_Max.impl;
-
-DATA Grid_Buffer
-END Grid_Buffer;
-
-DATA IMPLEMENTATION Grid_Buffer.impl
-    -- Buffer to hold a marshalled data of type Grid
-SUBCOMPONENTS
-    Buffer : data Grid_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END Grid_Buffer.impl;
-
-DATA GridCellNeighborList
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "GridCellNeighborList";
-    TASTE::Position_In_File => [ line => 54 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCEOF;
-END GridCellNeighborList;
-
-DATA IMPLEMENTATION GridCellNeighborList.impl
-END GridCellNeighborList.impl;
-
-DATA GridCellNeighborList_Buffer_Max
-END GridCellNeighborList_Buffer_Max;
-
-DATA IMPLEMENTATION GridCellNeighborList_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type GridCellNeighborList
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END GridCellNeighborList_Buffer_Max.impl;
-
-DATA GridCellNeighborList_Buffer
-END GridCellNeighborList_Buffer;
-
-DATA IMPLEMENTATION GridCellNeighborList_Buffer.impl
-    -- Buffer to hold a marshalled data of type GridCellNeighborList
-SUBCOMPONENTS
-    Buffer : data GridCellNeighborList_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END GridCellNeighborList_Buffer.impl;
-
-DATA GridModification
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "GridModification";
-    TASTE::Position_In_File => [ line => 62 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCE;
-END GridModification;
-
-DATA IMPLEMENTATION GridModification.impl
-END GridModification.impl;
-
-DATA GridModification_Buffer_Max
-END GridModification_Buffer_Max;
-
-DATA IMPLEMENTATION GridModification_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type GridModification
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END GridModification_Buffer_Max.impl;
-
-DATA GridModification_Buffer
-END GridModification_Buffer;
-
-DATA IMPLEMENTATION GridModification_Buffer.impl
-    -- Buffer to hold a marshalled data of type GridModification
-SUBCOMPONENTS
-    Buffer : data GridModification_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END GridModification_Buffer.impl;
-
-DATA GridModificationList
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "GridModificationList";
-    TASTE::Position_In_File => [ line => 68 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCEOF;
-END GridModificationList;
-
-DATA IMPLEMENTATION GridModificationList.impl
-END GridModificationList.impl;
-
-DATA GridModificationList_Buffer_Max
-END GridModificationList_Buffer_Max;
-
-DATA IMPLEMENTATION GridModificationList_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type GridModificationList
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END GridModificationList_Buffer_Max.impl;
-
-DATA GridModificationList_Buffer
-END GridModificationList_Buffer;
-
-DATA IMPLEMENTATION GridModificationList_Buffer.impl
-    -- Buffer to hold a marshalled data of type GridModificationList
-SUBCOMPONENTS
-    Buffer : data GridModificationList_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END GridModificationList_Buffer.impl;
-
-DATA GridVector
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "GridVector";
-    TASTE::Position_In_File => [ line => 33 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCEOF;
-END GridVector;
-
-DATA IMPLEMENTATION GridVector.impl
-END GridVector.impl;
-
-DATA GridVector_Buffer_Max
-END GridVector_Buffer_Max;
-
-DATA IMPLEMENTATION GridVector_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type GridVector
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END GridVector_Buffer_Max.impl;
-
-DATA GridVector_Buffer
-END GridVector_Buffer;
-
-DATA IMPLEMENTATION GridVector_Buffer.impl
-    -- Buffer to hold a marshalled data of type GridVector
-SUBCOMPONENTS
-    Buffer : data GridVector_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END GridVector_Buffer.impl;
-
-DATA Height
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "Height";
-    TASTE::Position_In_File => [ line => 5 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aINTEGER;
-END Height;
-
-DATA IMPLEMENTATION Height.impl
-END Height.impl;
-
-DATA Height_Buffer_Max
-END Height_Buffer_Max;
-
-DATA IMPLEMENTATION Height_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type Height
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END Height_Buffer_Max.impl;
-
-DATA Height_Buffer
-END Height_Buffer;
-
-DATA IMPLEMENTATION Height_Buffer.impl
-    -- Buffer to hold a marshalled data of type Height
-SUBCOMPONENTS
-    Buffer : data Height_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END Height_Buffer.impl;
-
-DATA MooreNeighborIndex
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "MooreNeighborIndex";
-    TASTE::Position_In_File => [ line => 50 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aINTEGER;
-END MooreNeighborIndex;
-
-DATA IMPLEMENTATION MooreNeighborIndex.impl
-END MooreNeighborIndex.impl;
-
-DATA MooreNeighborIndex_Buffer_Max
-END MooreNeighborIndex_Buffer_Max;
-
-DATA IMPLEMENTATION MooreNeighborIndex_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type MooreNeighborIndex
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END MooreNeighborIndex_Buffer_Max.impl;
-
-DATA MooreNeighborIndex_Buffer
-END MooreNeighborIndex_Buffer;
-
-DATA IMPLEMENTATION MooreNeighborIndex_Buffer.impl
-    -- Buffer to hold a marshalled data of type MooreNeighborIndex
-SUBCOMPONENTS
-    Buffer : data MooreNeighborIndex_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END MooreNeighborIndex_Buffer.impl;
-
-DATA MooreNeighborList
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "MooreNeighborList";
-    TASTE::Position_In_File => [ line => 52 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCEOF;
-END MooreNeighborList;
-
-DATA IMPLEMENTATION MooreNeighborList.impl
-END MooreNeighborList.impl;
-
-DATA MooreNeighborList_Buffer_Max
-END MooreNeighborList_Buffer_Max;
-
-DATA IMPLEMENTATION MooreNeighborList_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type MooreNeighborList
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END MooreNeighborList_Buffer_Max.impl;
-
-DATA MooreNeighborList_Buffer
-END MooreNeighborList_Buffer;
-
-DATA IMPLEMENTATION MooreNeighborList_Buffer.impl
-    -- Buffer to hold a marshalled data of type MooreNeighborList
-SUBCOMPONENTS
-    Buffer : data MooreNeighborList_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END MooreNeighborList_Buffer.impl;
-
-DATA Outflow
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "Outflow";
-    TASTE::Position_In_File => [ line => 43 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCE;
-END Outflow;
-
-DATA IMPLEMENTATION Outflow.impl
-END Outflow.impl;
-
-DATA Outflow_Buffer_Max
-END Outflow_Buffer_Max;
-
-DATA IMPLEMENTATION Outflow_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type Outflow
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END Outflow_Buffer_Max.impl;
-
-DATA Outflow_Buffer
-END Outflow_Buffer;
-
-DATA IMPLEMENTATION Outflow_Buffer.impl
-    -- Buffer to hold a marshalled data of type Outflow
-SUBCOMPONENTS
-    Buffer : data Outflow_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END Outflow_Buffer.impl;
-
-DATA OutflowList
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "OutflowList";
-    TASTE::Position_In_File => [ line => 48 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aSEQUENCEOF;
-END OutflowList;
-
-DATA IMPLEMENTATION OutflowList.impl
-END OutflowList.impl;
-
-DATA OutflowList_Buffer_Max
-END OutflowList_Buffer_Max;
-
-DATA IMPLEMENTATION OutflowList_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type OutflowList
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END OutflowList_Buffer_Max.impl;
-
-DATA OutflowList_Buffer
-END OutflowList_Buffer;
-
-DATA IMPLEMENTATION OutflowList_Buffer.impl
-    -- Buffer to hold a marshalled data of type OutflowList
-SUBCOMPONENTS
-    Buffer : data OutflowList_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END OutflowList_Buffer.impl;
+END Layer_Buffer.impl;
 
 DATA PID
 PROPERTIES
@@ -813,7 +293,7 @@ PROPERTIES
     Data_Model::Data_Representation => Struct;
 END PID_Range_Buffer.impl;
 
-DATA ScaleFactor
+DATA SimConfig
 PROPERTIES
     -- name of the ASN.1 source file:
     Source_Text => ("DanaSim.asn");
@@ -822,36 +302,37 @@ PROPERTIES
     Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
     Source_Language => (ASN1);
     -- name of the corresponding data type in the source file:
-    Type_Source_Name => "ScaleFactor";
-    TASTE::Position_In_File => [ line => 17 ; column => 1 ; ];
+    Type_Source_Name => "SimConfig";
+    TASTE::Position_In_File => [ line => 22 ; column => 1 ; ];
     -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aREAL;
-END ScaleFactor;
+    TASTE::ASN1_Basic_Type =>aSEQUENCE;
+    TASTE::Forbid_in_PI => true;
+END SimConfig;
 
-DATA IMPLEMENTATION ScaleFactor.impl
-END ScaleFactor.impl;
+DATA IMPLEMENTATION SimConfig.impl
+END SimConfig.impl;
 
-DATA ScaleFactor_Buffer_Max
-END ScaleFactor_Buffer_Max;
+DATA SimConfig_Buffer_Max
+END SimConfig_Buffer_Max;
 
-DATA IMPLEMENTATION ScaleFactor_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type ScaleFactor
+DATA IMPLEMENTATION SimConfig_Buffer_Max.impl
+    -- Buffer to hold a marshalled data of type SimConfig
 PROPERTIES
     Data_Model::Data_Representation => array;
     Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END ScaleFactor_Buffer_Max.impl;
+END SimConfig_Buffer_Max.impl;
 
-DATA ScaleFactor_Buffer
-END ScaleFactor_Buffer;
+DATA SimConfig_Buffer
+END SimConfig_Buffer;
 
-DATA IMPLEMENTATION ScaleFactor_Buffer.impl
-    -- Buffer to hold a marshalled data of type ScaleFactor
+DATA IMPLEMENTATION SimConfig_Buffer.impl
+    -- Buffer to hold a marshalled data of type SimConfig
 SUBCOMPONENTS
-    Buffer : data ScaleFactor_Buffer_Max.impl;
+    Buffer : data SimConfig_Buffer_Max.impl;
     Length : data Base_Types::Unsigned_32;
 PROPERTIES
     Data_Model::Data_Representation => Struct;
-END ScaleFactor_Buffer.impl;
+END SimConfig_Buffer.impl;
 
 DATA SurfaceType
 PROPERTIES
@@ -863,7 +344,7 @@ PROPERTIES
     Source_Language => (ASN1);
     -- name of the corresponding data type in the source file:
     Type_Source_Name => "SurfaceType";
-    TASTE::Position_In_File => [ line => 7 ; column => 1 ; ];
+    TASTE::Position_In_File => [ line => 52 ; column => 1 ; ];
     -- what kind of type is this?
     TASTE::ASN1_Basic_Type =>aENUMERATED;
 END SurfaceType;
@@ -892,6 +373,46 @@ SUBCOMPONENTS
 PROPERTIES
     Data_Model::Data_Representation => Struct;
 END SurfaceType_Buffer.impl;
+
+DATA SyncMode
+PROPERTIES
+    -- name of the ASN.1 source file:
+    Source_Text => ("DanaSim.asn");
+    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
+    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
+    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
+    Source_Language => (ASN1);
+    -- name of the corresponding data type in the source file:
+    Type_Source_Name => "SyncMode";
+    TASTE::Position_In_File => [ line => 16 ; column => 1 ; ];
+    -- what kind of type is this?
+    TASTE::ASN1_Basic_Type =>aENUMERATED;
+END SyncMode;
+
+DATA IMPLEMENTATION SyncMode.impl
+END SyncMode.impl;
+
+DATA SyncMode_Buffer_Max
+END SyncMode_Buffer_Max;
+
+DATA IMPLEMENTATION SyncMode_Buffer_Max.impl
+    -- Buffer to hold a marshalled data of type SyncMode
+PROPERTIES
+    Data_Model::Data_Representation => array;
+    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
+END SyncMode_Buffer_Max.impl;
+
+DATA SyncMode_Buffer
+END SyncMode_Buffer;
+
+DATA IMPLEMENTATION SyncMode_Buffer.impl
+    -- Buffer to hold a marshalled data of type SyncMode
+SUBCOMPONENTS
+    Buffer : data SyncMode_Buffer_Max.impl;
+    Length : data Base_Types::Unsigned_32;
+PROPERTIES
+    Data_Model::Data_Representation => Struct;
+END SyncMode_Buffer.impl;
 
 DATA T_Boolean
 PROPERTIES
@@ -931,6 +452,46 @@ SUBCOMPONENTS
 PROPERTIES
     Data_Model::Data_Representation => Struct;
 END T_Boolean_Buffer.impl;
+
+DATA T_Float
+PROPERTIES
+    -- name of the ASN.1 source file:
+    Source_Text => ("DanaSim.asn");
+    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
+    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
+    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
+    Source_Language => (ASN1);
+    -- name of the corresponding data type in the source file:
+    Type_Source_Name => "T-Float";
+    TASTE::Position_In_File => [ line => 11 ; column => 1 ; ];
+    -- what kind of type is this?
+    TASTE::ASN1_Basic_Type =>aREAL;
+END T_Float;
+
+DATA IMPLEMENTATION T_Float.impl
+END T_Float.impl;
+
+DATA T_Float_Buffer_Max
+END T_Float_Buffer_Max;
+
+DATA IMPLEMENTATION T_Float_Buffer_Max.impl
+    -- Buffer to hold a marshalled data of type T_Float
+PROPERTIES
+    Data_Model::Data_Representation => array;
+    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
+END T_Float_Buffer_Max.impl;
+
+DATA T_Float_Buffer
+END T_Float_Buffer;
+
+DATA IMPLEMENTATION T_Float_Buffer.impl
+    -- Buffer to hold a marshalled data of type T_Float
+SUBCOMPONENTS
+    Buffer : data T_Float_Buffer_Max.impl;
+    Length : data Base_Types::Unsigned_32;
+PROPERTIES
+    Data_Model::Data_Representation => Struct;
+END T_Float_Buffer.impl;
 
 DATA T_Int32
 PROPERTIES
@@ -1098,7 +659,7 @@ PROPERTIES
     Source_Language => (ASN1);
     -- name of the corresponding data type in the source file:
     Type_Source_Name => "T-UInt32";
-    TASTE::Position_In_File => [ line => 5 ; column => 1 ; ];
+    TASTE::Position_In_File => [ line => 9 ; column => 1 ; ];
     -- what kind of type is this?
     TASTE::ASN1_Basic_Type =>aINTEGER;
 END T_UInt32;
@@ -1206,73 +767,22 @@ PROPERTIES
     Data_Model::Data_Representation => Struct;
 END TASTE_BasicTypes_T_UInt32_Buffer.impl;
 
-DATA TimeStep
-PROPERTIES
-    -- name of the ASN.1 source file:
-    Source_Text => ("DanaSim.asn");
-    TASTE::EncodingDefinitionFile => classifier(DataView::ACN_DANASIM_DATAVIEW);
-    TASTE::Ada_Package_Name => "DANASIM_DATAVIEW";
-    Deployment::ASN1_Module_Name => "DANASIM-DATAVIEW";
-    Source_Language => (ASN1);
-    -- name of the corresponding data type in the source file:
-    Type_Source_Name => "TimeStep";
-    TASTE::Position_In_File => [ line => 5 ; column => 1 ; ];
-    -- what kind of type is this?
-    TASTE::ASN1_Basic_Type =>aINTEGER;
-END TimeStep;
-
-DATA IMPLEMENTATION TimeStep.impl
-END TimeStep.impl;
-
-DATA TimeStep_Buffer_Max
-END TimeStep_Buffer_Max;
-
-DATA IMPLEMENTATION TimeStep_Buffer_Max.impl
-    -- Buffer to hold a marshalled data of type TimeStep
-PROPERTIES
-    Data_Model::Data_Representation => array;
-    Data_Model::Base_Type => (classifier (DataView::Stream_Element_Buffer));
-END TimeStep_Buffer_Max.impl;
-
-DATA TimeStep_Buffer
-END TimeStep_Buffer;
-
-DATA IMPLEMENTATION TimeStep_Buffer.impl
-    -- Buffer to hold a marshalled data of type TimeStep
-SUBCOMPONENTS
-    Buffer : data TimeStep_Buffer_Max.impl;
-    Length : data Base_Types::Unsigned_32;
-PROPERTIES
-    Data_Model::Data_Representation => Struct;
-END TimeStep_Buffer.impl;
-
 SYSTEM Taste_DataView
 END    Taste_DataView;
 
 SYSTEM IMPLEMENTATION Taste_DataView.others
 SUBCOMPONENTS
-   CellIndex : DATA CellIndex.impl;
-   CellState : DATA CellState.impl;
-   Duration : DATA Duration.impl;
-   FilePath : DATA FilePath.impl;
-   FlowCoefficient : DATA FlowCoefficient.impl;
-   FlowingWaterEvent : DATA FlowingWaterEvent.impl;
-   FlowingWaterEventList : DATA FlowingWaterEventList.impl;
-   Grid : DATA Grid.impl;
-   GridCellNeighborList : DATA GridCellNeighborList.impl;
-   GridModification : DATA GridModification.impl;
-   GridModificationList : DATA GridModificationList.impl;
-   GridVector : DATA GridVector.impl;
-   Height : DATA Height.impl;
-   MooreNeighborIndex : DATA MooreNeighborIndex.impl;
-   MooreNeighborList : DATA MooreNeighborList.impl;
-   Outflow : DATA Outflow.impl;
-   OutflowList : DATA OutflowList.impl;
+   CellType : DATA CellType.impl;
+   CellularAutomatonState : DATA CellularAutomatonState.impl;
+   FolderPath : DATA FolderPath.impl;
+   Layer : DATA Layer.impl;
    PID : DATA PID.impl;
    PID_Range : DATA PID_Range.impl;
-   ScaleFactor : DATA ScaleFactor.impl;
+   SimConfig : DATA SimConfig.impl;
    SurfaceType : DATA SurfaceType.impl;
+   SyncMode : DATA SyncMode.impl;
    T_Boolean : DATA T_Boolean.impl;
+   T_Float : DATA T_Float.impl;
    T_Int32 : DATA T_Int32.impl;
    T_Int8 : DATA T_Int8.impl;
    T_Null_Record : DATA T_Null_Record.impl;
@@ -1280,7 +790,6 @@ SUBCOMPONENTS
    T_UInt32 : DATA T_UInt32.impl;
    T_UInt8 : DATA T_UInt8.impl;
    TASTE_BasicTypes_T_UInt32 : DATA TASTE_BasicTypes_T_UInt32.impl;
-   TimeStep : DATA TimeStep.impl;
 END Taste_DataView.others;
 DATA ACN_DANASIM_DATAVIEW
 PROPERTIES

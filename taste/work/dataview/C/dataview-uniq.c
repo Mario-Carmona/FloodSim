@@ -94,237 +94,1005 @@ flag asn1SccT_UInt32_ACN_Decode(asn1SccT_UInt32* pVal, BitStream* pBitStrm, int*
 }
 
 
-flag asn1SccDuration_Equal(const asn1SccDuration* pVal1, const asn1SccDuration* pVal2)
+flag asn1SccT_Float_Equal(const asn1SccT_Float* pVal1, const asn1SccT_Float* pVal2)
 {
-	return (*(pVal1)) == (*(pVal2));
+	return Asn1Real_Equal((*(pVal1)),(*(pVal2)));
 
 }
 
-flag asn1SccDuration_IsConstraintValid(const asn1SccDuration* pVal, int* pErrCode)
+flag asn1SccT_Float_IsConstraintValid(const asn1SccT_Float* pVal, int* pErrCode)
 {
     flag ret = TRUE;
-    ret = asn1SccT_UInt32_IsConstraintValid(pVal, pErrCode);
+    ret = ((-2.1474836480000000000E+009 <= (*(pVal))) && ((*(pVal)) <= 2.1474836470000000000E+009));
+    *pErrCode = ret ? 0 :  ERR_T_FLOAT;
 
 	return ret;
 }
 
 #ifdef __cplusplus
-const asn1SccDuration asn1SccDuration_constant = 0UL;
+const asn1SccT_Float asn1SccT_Float_constant = 0.0000000000000000000E+000;
 #endif
 
-void asn1SccDuration_Initialize(asn1SccDuration* pVal)
+void asn1SccT_Float_Initialize(asn1SccT_Float* pVal)
 {
 	(void)pVal;
 
 
-	(*(pVal)) = (asn1SccDuration)asn1SccDuration_constant;
+	(*(pVal)) = (asn1SccT_Float)asn1SccT_Float_constant;
 }
 
-flag asn1SccDuration_Encode(const asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+flag asn1SccT_Float_Encode(const asn1SccT_Float* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
 
 
 	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccDuration_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	ret = bCheckConstraints ? asn1SccT_Float_IsConstraintValid(pVal, pErrCode) : TRUE ;
 	if (ret && *pErrCode == 0) {
-	    ret = asn1SccT_UInt32_Encode(pVal, pBitStrm, pErrCode, FALSE);
+	    BitStream_EncodeReal(pBitStrm, (*(pVal)));
     } /*COVERAGE_IGNORE*/
 
 
     return ret;
 }
 
-flag asn1SccDuration_Decode(asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode)
+flag asn1SccT_Float_Decode(asn1SccT_Float* pVal, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
 	*pErrCode = 0;
 
 
-	ret = asn1SccT_UInt32_Decode(pVal, pBitStrm, pErrCode);
+	ret = BitStream_DecodeReal(pBitStrm, pVal);
+	*pErrCode = ret ? 0 : ERR_UPER_DECODE_T_FLOAT;
 
-	return ret  && asn1SccDuration_IsConstraintValid(pVal, pErrCode);
+	return ret  && asn1SccT_Float_IsConstraintValid(pVal, pErrCode);
 }
 
-flag asn1SccDuration_ACN_Encode(const asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+flag asn1SccT_Float_ACN_Encode(const asn1SccT_Float* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
 
     *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccDuration_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	ret = bCheckConstraints ? asn1SccT_Float_IsConstraintValid(pVal, pErrCode) : TRUE ;
 	if (ret && *pErrCode == 0) {
-	    ret = asn1SccT_UInt32_ACN_Encode(pVal, pBitStrm, pErrCode, FALSE);
+	    BitStream_EncodeReal(pBitStrm, (*(pVal)));
     } /*COVERAGE_IGNORE*/
 
 
     return ret;
 }
 
-flag asn1SccDuration_ACN_Decode(asn1SccDuration* pVal, BitStream* pBitStrm, int* pErrCode)
+flag asn1SccT_Float_ACN_Decode(asn1SccT_Float* pVal, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
 	*pErrCode = 0;
 
 
-	ret = asn1SccT_UInt32_ACN_Decode(pVal, pBitStrm, pErrCode);
+	ret = BitStream_DecodeReal(pBitStrm, pVal);
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_T_FLOAT;
 
-    return ret && asn1SccDuration_IsConstraintValid(pVal, pErrCode);
+    return ret && asn1SccT_Float_IsConstraintValid(pVal, pErrCode);
 }
 
 
-flag asn1SccTimeStep_Equal(const asn1SccTimeStep* pVal1, const asn1SccTimeStep* pVal2)
+flag asn1SccLayer_Equal(const asn1SccLayer* pVal1, const asn1SccLayer* pVal2)
 {
-	return (*(pVal1)) == (*(pVal2));
+	flag ret=TRUE;
+    int i1;
+
+    ret = (pVal1->nCount == pVal2->nCount);
+    for(i1 = 0; ret && i1 < pVal1->nCount; i1++)
+    {
+    	ret = (Asn1Real_Equal(pVal1->arr[i1],pVal2->arr[i1]));
+    }
+
+	return ret;
 
 }
 
-flag asn1SccTimeStep_IsConstraintValid(const asn1SccTimeStep* pVal, int* pErrCode)
+flag asn1SccLayer_IsConstraintValid(const asn1SccLayer* pVal, int* pErrCode)
 {
     flag ret = TRUE;
-    ret = asn1SccT_UInt32_IsConstraintValid(pVal, pErrCode);
+    int i1;
+    ret = ((1 <= pVal->nCount) && (pVal->nCount <= 1048576));
+    *pErrCode = ret ? 0 :  ERR_LAYER;
+    if (ret) {
+        for(i1 = 0; ret && i1 < pVal->nCount; i1++)
+        {
+        	ret = asn1SccT_Float_IsConstraintValid((&(pVal->arr[i1])), pErrCode);
+        }
+    }   /*COVERAGE_IGNORE*/
 
 	return ret;
 }
 
 #ifdef __cplusplus
-const asn1SccTimeStep asn1SccTimeStep_constant = 0UL;
+const asn1SccLayer asn1SccLayer_constant = {.nCount = 1, .arr  = {[0 ... 1048576-1] = 0.0000000000000000000E+000 }};
 #endif
 
-void asn1SccTimeStep_Initialize(asn1SccTimeStep* pVal)
+void asn1SccLayer_Initialize(asn1SccLayer* pVal)
 {
 	(void)pVal;
 
 
-	(*(pVal)) = (asn1SccTimeStep)asn1SccTimeStep_constant;
+	(*(pVal)) = (asn1SccLayer)asn1SccLayer_constant;
 }
 
-flag asn1SccTimeStep_Encode(const asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+flag asn1SccLayer_Encode(const asn1SccLayer* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
 
 
+	int i1;
+	asn1SccSint nBlockIndex1;
+	asn1SccSint nRemainingItemsVar1;
+	asn1SccSint nCurBlockSize1;
+	asn1SccSint nCurOffset1;
 	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccTimeStep_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	ret = bCheckConstraints ? asn1SccLayer_IsConstraintValid(pVal, pErrCode) : TRUE ;
 	if (ret && *pErrCode == 0) {
-	    ret = asn1SccT_UInt32_Encode(pVal, pBitStrm, pErrCode, FALSE);
+	    nRemainingItemsVar1 = pVal->nCount;
+	    nCurBlockSize1 = 0;
+	    nCurOffset1 = 0;
+	    nBlockIndex1 = 0;
+	    while (nRemainingItemsVar1 >= 0x4000 && nBlockIndex1 < pVal->nCount)
+	    {
+	    	if (nRemainingItemsVar1 >= 0x10000)
+	    	{
+	    		nCurBlockSize1 = 0x10000;
+	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF);
+	    	}
+	    	else if (nRemainingItemsVar1 >= 0xC000)
+	    	{
+	    		nCurBlockSize1 = 0xC000;
+	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF);
+	    	}
+	    	else if (nRemainingItemsVar1 >= 0x8000)
+	    	{
+	    		nCurBlockSize1 = 0x8000;
+	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF);
+	    	}
+	    	else
+	    	{
+	    		nCurBlockSize1 = 0x4000;
+	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF);
+	    	}
+
+	    	for(i1=(int)nCurOffset1; i1 < (int)(nCurBlockSize1 + nCurOffset1); i1++)
+	    	{
+	    		ret = asn1SccT_Float_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
+	    	}
+	    	nCurOffset1 += nCurBlockSize1;
+	    	nRemainingItemsVar1 -= nCurBlockSize1;
+	        nBlockIndex1 = nBlockIndex1+1;
+	    }
+
+	    if (nRemainingItemsVar1 <= 0x7F)
+	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF);
+	    else
+	    {
+	    	BitStream_AppendBit(pBitStrm, 1);
+	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0x7FFF);
+	    }
+
+	    for(i1=(int)nCurOffset1; i1 < (int)(nCurOffset1 + nRemainingItemsVar1); i1++)
+	    {
+	    	ret = asn1SccT_Float_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
+	    }
     } /*COVERAGE_IGNORE*/
 
 
     return ret;
 }
 
-flag asn1SccTimeStep_Decode(asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode)
+flag asn1SccLayer_Decode(asn1SccLayer* pVal, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
 	*pErrCode = 0;
 
+	int i1;
+	asn1SccSint nLengthTmp1;
+	asn1SccSint nRemainingItemsVar1;
+	asn1SccSint nCurBlockSize1;
+	asn1SccSint nCurOffset1;
 
-	ret = asn1SccT_UInt32_Decode(pVal, pBitStrm, pErrCode);
+	nRemainingItemsVar1 = 0;
+	nCurBlockSize1 = 0;
+	nCurOffset1 = 0;
+	nLengthTmp1 = 0;
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
+	*pErrCode = ret ? 0 : ERR_UPER_DECODE_LAYER;
+	if (ret) {
+		while(ret && (nRemainingItemsVar1 & 0xC0)==0xC0)
+		{
+			if (nRemainingItemsVar1 == 0xC4)
+				nCurBlockSize1 = 0x10000;
+			else if (nRemainingItemsVar1 == 0xC3)
+				nCurBlockSize1 = 0xC000;
+			else if (nRemainingItemsVar1 == 0xC2)
+				nCurBlockSize1 = 0x8000;
+			else if (nRemainingItemsVar1 == 0xC1)
+				nCurBlockSize1 = 0x4000;
+			else {
+				*pErrCode = ERR_UPER_DECODE_LAYER; /*COVERAGE_IGNORE*/
+				return FALSE; /*COVERAGE_IGNORE*/
+			}
+			if (nCurOffset1 + nCurBlockSize1 > 1048576)
+			{
+				*pErrCode = ERR_UPER_DECODE_LAYER; /*COVERAGE_IGNORE*/
+				return FALSE; /*COVERAGE_IGNORE*/
+			}
 
-	return ret  && asn1SccTimeStep_IsConstraintValid(pVal, pErrCode);
+			for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nCurBlockSize1)) ; i1++)
+			{
+				ret = asn1SccT_Float_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
+			}
+
+	        if (ret) {
+			    nLengthTmp1 += (long)nCurBlockSize1;
+			    nCurOffset1 += nCurBlockSize1;
+			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
+	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_LAYER;
+	        }
+		}
+	    if (ret) {
+		    if ( (nRemainingItemsVar1 & 0x80)>0)
+		    {
+			    asn1SccSint len2;
+			    nRemainingItemsVar1 <<= 8;
+			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF);
+	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_LAYER;
+	            if (ret) {
+			        nRemainingItemsVar1 |= len2;
+			        nRemainingItemsVar1 &= 0x7FFF;
+	            }
+		    }
+	        ret = ret && (nCurOffset1 + nRemainingItemsVar1 <= 1048576);
+	        *pErrCode = ret ? 0 : ERR_UPER_DECODE_LAYER;
+	        if (ret) {
+		        for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nRemainingItemsVar1)) ; i1++)
+		        {
+			        ret = asn1SccT_Float_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
+		        }
+	            if (ret) {
+		            nLengthTmp1 += (long)nRemainingItemsVar1;
+
+	                if ((nLengthTmp1 >= 1) && (nLengthTmp1 <= 1048576)) {
+		                pVal->nCount = (int)nLengthTmp1;
+
+	                } else {
+	                    ret = FALSE;  /*COVERAGE_IGNORE*/
+	                    *pErrCode = ERR_UPER_DECODE_LAYER; /*COVERAGE_IGNORE*/
+	                }
+
+	            }
+	        }
+	    }
+	}
+
+	return ret  && asn1SccLayer_IsConstraintValid(pVal, pErrCode);
 }
 
-flag asn1SccTimeStep_ACN_Encode(const asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+flag asn1SccLayer_ACN_Encode(const asn1SccLayer* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
 
+	int i1;
     *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccTimeStep_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	ret = bCheckConstraints ? asn1SccLayer_IsConstraintValid(pVal, pErrCode) : TRUE ;
 	if (ret && *pErrCode == 0) {
-	    ret = asn1SccT_UInt32_ACN_Encode(pVal, pBitStrm, pErrCode, FALSE);
+	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 1, 1048576);
+	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
+	    {
+	    	ret = asn1SccT_Float_ACN_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
+	    }
     } /*COVERAGE_IGNORE*/
 
 
     return ret;
 }
 
-flag asn1SccTimeStep_ACN_Decode(asn1SccTimeStep* pVal, BitStream* pBitStrm, int* pErrCode)
+flag asn1SccLayer_ACN_Decode(asn1SccLayer* pVal, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
 	*pErrCode = 0;
 
+	int i1;
+	asn1SccSint nCount;
 
-	ret = asn1SccT_UInt32_ACN_Decode(pVal, pBitStrm, pErrCode);
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 1, 1048576);
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_LAYER;
+	pVal->nCount = (long)nCount;
+	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
+	{
+		ret = asn1SccT_Float_ACN_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
+	}
 
-    return ret && asn1SccTimeStep_IsConstraintValid(pVal, pErrCode);
+    return ret && asn1SccLayer_IsConstraintValid(pVal, pErrCode);
 }
 
 
-flag asn1SccHeight_Equal(const asn1SccHeight* pVal1, const asn1SccHeight* pVal2)
+flag asn1SccCellularAutomatonState_rows_Equal(const asn1SccCellularAutomatonState_rows* pVal1, const asn1SccCellularAutomatonState_rows* pVal2)
 {
 	return (*(pVal1)) == (*(pVal2));
 
 }
 
-flag asn1SccHeight_IsConstraintValid(const asn1SccHeight* pVal, int* pErrCode)
+flag asn1SccCellularAutomatonState_cols_Equal(const asn1SccCellularAutomatonState_cols* pVal1, const asn1SccCellularAutomatonState_cols* pVal2)
+{
+	return (*(pVal1)) == (*(pVal2));
+
+}
+
+flag asn1SccCellularAutomatonState_Equal(const asn1SccCellularAutomatonState* pVal1, const asn1SccCellularAutomatonState* pVal2)
+{
+	flag ret=TRUE;
+
+    ret = asn1SccCellularAutomatonState_rows_Equal((&(pVal1->rows)), (&(pVal2->rows)));
+
+    if (ret) {
+        ret = asn1SccCellularAutomatonState_cols_Equal((&(pVal1->cols)), (&(pVal2->cols)));
+
+        if (ret) {
+            ret = (Asn1Real_Equal(pVal1->timestamp,pVal2->timestamp));
+
+            if (ret) {
+                ret = (pVal1->stepIndex == pVal2->stepIndex);
+
+                if (ret) {
+                    ret = asn1SccLayer_Equal((&(pVal1->elevation)), (&(pVal2->elevation)));
+
+                    if (ret) {
+                        ret = asn1SccLayer_Equal((&(pVal1->waterDepth)), (&(pVal2->waterDepth)));
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+	return ret;
+
+}
+
+flag asn1SccCellularAutomatonState_rows_IsConstraintValid(const asn1SccCellularAutomatonState_rows* pVal, int* pErrCode)
 {
     flag ret = TRUE;
-    ret = asn1SccT_UInt32_IsConstraintValid(pVal, pErrCode);
+    ret = ((1UL <= (*(pVal))) && ((*(pVal)) <= 1024UL));
+    *pErrCode = ret ? 0 :  ERR_CELLULARAUTOMATONSTATE_ROWS;
+
+	return ret;
+}
+
+flag asn1SccCellularAutomatonState_cols_IsConstraintValid(const asn1SccCellularAutomatonState_cols* pVal, int* pErrCode)
+{
+    flag ret = TRUE;
+    ret = ((1UL <= (*(pVal))) && ((*(pVal)) <= 1024UL));
+    *pErrCode = ret ? 0 :  ERR_CELLULARAUTOMATONSTATE_COLS;
+
+	return ret;
+}
+
+flag asn1SccCellularAutomatonState_IsConstraintValid(const asn1SccCellularAutomatonState* pVal, int* pErrCode)
+{
+    flag ret = TRUE;
+    ret = asn1SccCellularAutomatonState_rows_IsConstraintValid((&(pVal->rows)), pErrCode);
+    if (ret) {
+        ret = asn1SccCellularAutomatonState_cols_IsConstraintValid((&(pVal->cols)), pErrCode);
+        if (ret) {
+            ret = asn1SccT_Float_IsConstraintValid((&(pVal->timestamp)), pErrCode);
+            if (ret) {
+                ret = asn1SccT_UInt32_IsConstraintValid((&(pVal->stepIndex)), pErrCode);
+                if (ret) {
+                    ret = asn1SccLayer_IsConstraintValid((&(pVal->elevation)), pErrCode);
+                    if (ret) {
+                        ret = asn1SccLayer_IsConstraintValid((&(pVal->waterDepth)), pErrCode);
+                    }   /*COVERAGE_IGNORE*/
+                }   /*COVERAGE_IGNORE*/
+            }   /*COVERAGE_IGNORE*/
+        }   /*COVERAGE_IGNORE*/
+    }   /*COVERAGE_IGNORE*/
 
 	return ret;
 }
 
 #ifdef __cplusplus
-const asn1SccHeight asn1SccHeight_constant = 0UL;
+const asn1SccCellularAutomatonState_rows asn1SccCellularAutomatonState_rows_constant = 1UL;
+#endif
+#ifdef __cplusplus
+const asn1SccCellularAutomatonState_cols asn1SccCellularAutomatonState_cols_constant = 1UL;
+#endif
+#ifdef __cplusplus
+const asn1SccCellularAutomatonState asn1SccCellularAutomatonState_constant = {.rows = 1UL, .cols = 1UL, .timestamp = 0.0000000000000000000E+000, .stepIndex = 0UL, .elevation = asn1SccLayer_constant, .waterDepth = asn1SccLayer_constant};
 #endif
 
-void asn1SccHeight_Initialize(asn1SccHeight* pVal)
+void asn1SccCellularAutomatonState_Initialize(asn1SccCellularAutomatonState* pVal)
 {
 	(void)pVal;
 
 
-	(*(pVal)) = (asn1SccHeight)asn1SccHeight_constant;
+	(*(pVal)) = (asn1SccCellularAutomatonState)asn1SccCellularAutomatonState_constant;
 }
 
-flag asn1SccHeight_Encode(const asn1SccHeight* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+flag asn1SccCellularAutomatonState_Encode(const asn1SccCellularAutomatonState* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
 
 
 	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccHeight_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	ret = bCheckConstraints ? asn1SccCellularAutomatonState_IsConstraintValid(pVal, pErrCode) : TRUE ;
 	if (ret && *pErrCode == 0) {
-	    ret = asn1SccT_UInt32_Encode(pVal, pBitStrm, pErrCode, FALSE);
+	    /*Encode rows */
+	    BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->rows, 1, 1024);
+	    if (ret) {
+	        /*Encode cols */
+	        BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->cols, 1, 1024);
+	        if (ret) {
+	            /*Encode timestamp */
+	            ret = asn1SccT_Float_Encode((&(pVal->timestamp)), pBitStrm, pErrCode, FALSE);
+	            if (ret) {
+	                /*Encode stepIndex */
+	                ret = asn1SccT_UInt32_Encode((&(pVal->stepIndex)), pBitStrm, pErrCode, FALSE);
+	                if (ret) {
+	                    /*Encode elevation */
+	                    ret = asn1SccLayer_Encode((&(pVal->elevation)), pBitStrm, pErrCode, FALSE);
+	                    if (ret) {
+	                        /*Encode waterDepth */
+	                        ret = asn1SccLayer_Encode((&(pVal->waterDepth)), pBitStrm, pErrCode, FALSE);
+	                    }   /*COVERAGE_IGNORE*/
+	                }   /*COVERAGE_IGNORE*/
+	            }   /*COVERAGE_IGNORE*/
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
     } /*COVERAGE_IGNORE*/
 
 
     return ret;
 }
 
-flag asn1SccHeight_Decode(asn1SccHeight* pVal, BitStream* pBitStrm, int* pErrCode)
+flag asn1SccCellularAutomatonState_Decode(asn1SccCellularAutomatonState* pVal, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
 	*pErrCode = 0;
 
 
-	ret = asn1SccT_UInt32_Decode(pVal, pBitStrm, pErrCode);
+	/*Decode rows */
+	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->rows)), 1, 1024);
+	*pErrCode = ret ? 0 : ERR_UPER_DECODE_CELLULARAUTOMATONSTATE_ROWS;
+	if (ret) {
+	    /*Decode cols */
+	    ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->cols)), 1, 1024);
+	    *pErrCode = ret ? 0 : ERR_UPER_DECODE_CELLULARAUTOMATONSTATE_COLS;
+	    if (ret) {
+	        /*Decode timestamp */
+	        ret = asn1SccT_Float_Decode((&(pVal->timestamp)), pBitStrm, pErrCode);
+	        if (ret) {
+	            /*Decode stepIndex */
+	            ret = asn1SccT_UInt32_Decode((&(pVal->stepIndex)), pBitStrm, pErrCode);
+	            if (ret) {
+	                /*Decode elevation */
+	                ret = asn1SccLayer_Decode((&(pVal->elevation)), pBitStrm, pErrCode);
+	                if (ret) {
+	                    /*Decode waterDepth */
+	                    ret = asn1SccLayer_Decode((&(pVal->waterDepth)), pBitStrm, pErrCode);
+	                }   /*COVERAGE_IGNORE*/
+	            }   /*COVERAGE_IGNORE*/
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
+	}   /*COVERAGE_IGNORE*/
 
-	return ret  && asn1SccHeight_IsConstraintValid(pVal, pErrCode);
+	return ret  && asn1SccCellularAutomatonState_IsConstraintValid(pVal, pErrCode);
 }
 
-flag asn1SccHeight_ACN_Encode(const asn1SccHeight* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+flag asn1SccCellularAutomatonState_ACN_Encode(const asn1SccCellularAutomatonState* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
 
     *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccHeight_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	ret = bCheckConstraints ? asn1SccCellularAutomatonState_IsConstraintValid(pVal, pErrCode) : TRUE ;
 	if (ret && *pErrCode == 0) {
-	    ret = asn1SccT_UInt32_ACN_Encode(pVal, pBitStrm, pErrCode, FALSE);
+	    /*Encode rows */
+	    BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->rows, 1, 1024);
+	    if (ret) {
+	        /*Encode cols */
+	        BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->cols, 1, 1024);
+	        if (ret) {
+	            /*Encode timestamp */
+	            ret = asn1SccT_Float_ACN_Encode((&(pVal->timestamp)), pBitStrm, pErrCode, FALSE);
+	            if (ret) {
+	                /*Encode stepIndex */
+	                ret = asn1SccT_UInt32_ACN_Encode((&(pVal->stepIndex)), pBitStrm, pErrCode, FALSE);
+	                if (ret) {
+	                    /*Encode elevation */
+	                    ret = asn1SccLayer_ACN_Encode((&(pVal->elevation)), pBitStrm, pErrCode, FALSE);
+	                    if (ret) {
+	                        /*Encode waterDepth */
+	                        ret = asn1SccLayer_ACN_Encode((&(pVal->waterDepth)), pBitStrm, pErrCode, FALSE);
+	                    }   /*COVERAGE_IGNORE*/
+	                }   /*COVERAGE_IGNORE*/
+	            }   /*COVERAGE_IGNORE*/
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
     } /*COVERAGE_IGNORE*/
 
 
     return ret;
 }
 
-flag asn1SccHeight_ACN_Decode(asn1SccHeight* pVal, BitStream* pBitStrm, int* pErrCode)
+flag asn1SccCellularAutomatonState_ACN_Decode(asn1SccCellularAutomatonState* pVal, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
 	*pErrCode = 0;
 
 
-	ret = asn1SccT_UInt32_ACN_Decode(pVal, pBitStrm, pErrCode);
+	/*Decode rows */
+	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->rows)), 1, 1024);
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_CELLULARAUTOMATONSTATE_ROWS;
+	if (ret) {
+	    /*Decode cols */
+	    ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->cols)), 1, 1024);
+	    *pErrCode = ret ? 0 : ERR_ACN_DECODE_CELLULARAUTOMATONSTATE_COLS;
+	    if (ret) {
+	        /*Decode timestamp */
+	        ret = asn1SccT_Float_ACN_Decode((&(pVal->timestamp)), pBitStrm, pErrCode);
+	        if (ret) {
+	            /*Decode stepIndex */
+	            ret = asn1SccT_UInt32_ACN_Decode((&(pVal->stepIndex)), pBitStrm, pErrCode);
+	            if (ret) {
+	                /*Decode elevation */
+	                ret = asn1SccLayer_ACN_Decode((&(pVal->elevation)), pBitStrm, pErrCode);
+	                if (ret) {
+	                    /*Decode waterDepth */
+	                    ret = asn1SccLayer_ACN_Decode((&(pVal->waterDepth)), pBitStrm, pErrCode);
+	                }   /*COVERAGE_IGNORE*/
+	            }   /*COVERAGE_IGNORE*/
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
+	}   /*COVERAGE_IGNORE*/
 
-    return ret && asn1SccHeight_IsConstraintValid(pVal, pErrCode);
+    return ret && asn1SccCellularAutomatonState_IsConstraintValid(pVal, pErrCode);
+}
+
+
+flag asn1SccFolderPath_Equal(const asn1SccFolderPath pVal1, const asn1SccFolderPath pVal2)
+{
+	return strcmp(pVal1, pVal2) == 0;
+
+}
+
+flag asn1SccFolderPath_IsConstraintValid(const asn1SccFolderPath pVal, int* pErrCode)
+{
+    flag ret = TRUE;
+    ret = ((1 <= strlen(pVal)) && (strlen(pVal) <= 255));
+    *pErrCode = ret ? 0 :  ERR_FOLDERPATH;
+
+	return ret;
+}
+
+#ifdef __cplusplus
+const asn1SccFolderPath asn1SccFolderPath_constant = { [0 ... 255] = 0x0 };
+#endif
+
+void asn1SccFolderPath_Initialize(asn1SccFolderPath pVal)
+{
+	(void)pVal;
+
+
+	pVal = (asn1SccFolderPath)asn1SccFolderPath_constant;
+}
+
+flag asn1SccFolderPath_Encode(const asn1SccFolderPath pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+
+	int i1;
+	asn1SccSint nStringLength;
+	*pErrCode = 0;
+	ret = bCheckConstraints ? asn1SccFolderPath_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret && *pErrCode == 0) {
+	    nStringLength = strlen(pVal);
+	    /*ret = nStringLength >= 1 && nStringLength <= 255;*/
+	    BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, 1, 255);
+	    for(i1=0; (i1 < (int)nStringLength) && ret; i1++)
+	    {
+	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal[i1], 0, 127);
+	    }
+
+    } /*COVERAGE_IGNORE*/
+
+
+    return ret;
+}
+
+flag asn1SccFolderPath_Decode(asn1SccFolderPath pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	int i1;
+	asn1SccSint nStringLength;
+
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nStringLength, 1, 255);
+	for(i1=0; (i1 < (int)nStringLength) && ret; i1++)
+	{
+		asn1SccSint charValue=0;
+		ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
+		*pErrCode = ret ? 0 : ERR_UPER_DECODE_FOLDERPATH;
+		pVal[i1] = (char)charValue;
+	}
+	pVal[nStringLength] = 0x0;
+
+	return ret  && asn1SccFolderPath_IsConstraintValid(pVal, pErrCode);
+}
+
+flag asn1SccFolderPath_ACN_Encode(const asn1SccFolderPath pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+	int i1;
+	asn1SccSint nStringLength;
+    *pErrCode = 0;
+	ret = bCheckConstraints ? asn1SccFolderPath_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret && *pErrCode == 0) {
+	    nStringLength = strlen(pVal);
+	    /*ret = nStringLength >= 1 && nStringLength <= 255;*/
+	    BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, 1, 255);
+	    for(i1=0; (i1 < (int)nStringLength) && ret; i1++)
+	    {
+	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal[i1], 0, 127);
+	    }
+
+    } /*COVERAGE_IGNORE*/
+
+
+    return ret;
+}
+
+flag asn1SccFolderPath_ACN_Decode(asn1SccFolderPath pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	int i1;
+	asn1SccSint nStringLength;
+
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nStringLength, 1, 255);
+	for(i1=0; (i1 < (int)nStringLength) && ret; i1++)
+	{
+		asn1SccSint charValue=0;
+		ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
+		*pErrCode = ret ? 0 : ERR_ACN_DECODE_FOLDERPATH;
+		pVal[i1] = (char)charValue;
+	}
+	pVal[nStringLength] = 0x0;
+
+    return ret && asn1SccFolderPath_IsConstraintValid(pVal, pErrCode);
+}
+
+
+flag asn1SccSyncMode_Equal(const asn1SccSyncMode* pVal1, const asn1SccSyncMode* pVal2)
+{
+	return (*(pVal1)) == (*(pVal2));
+
+}
+
+flag asn1SccSyncMode_IsConstraintValid(const asn1SccSyncMode* pVal, int* pErrCode)
+{
+    flag ret = TRUE;
+    ret = ((((*(pVal)) == SyncMode_realTimeSkipFrames)) || (((*(pVal)) == SyncMode_losslessAllFrames)));
+    *pErrCode = ret ? 0 :  ERR_SYNCMODE;
+
+	return ret;
+}
+
+#ifdef __cplusplus
+const asn1SccSyncMode asn1SccSyncMode_constant = SyncMode_realTimeSkipFrames;
+#endif
+
+void asn1SccSyncMode_Initialize(asn1SccSyncMode* pVal)
+{
+	(void)pVal;
+
+
+	(*(pVal)) = (asn1SccSyncMode)asn1SccSyncMode_constant;
+}
+
+flag asn1SccSyncMode_Encode(const asn1SccSyncMode* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+
+	*pErrCode = 0;
+	ret = bCheckConstraints ? asn1SccSyncMode_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret && *pErrCode == 0) {
+	    switch((*(pVal)))
+	    {
+	        case SyncMode_realTimeSkipFrames:
+	            BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 1);
+	        	break;
+	        case SyncMode_losslessAllFrames:
+	            BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 1);
+	        	break;
+	        default:                    /*COVERAGE_IGNORE*/
+	    	    *pErrCode = ERR_UPER_ENCODE_SYNCMODE; /*COVERAGE_IGNORE*/
+	    	    ret = FALSE;            /*COVERAGE_IGNORE*/
+	    }
+    } /*COVERAGE_IGNORE*/
+
+
+    return ret;
+}
+
+flag asn1SccSyncMode_Decode(asn1SccSyncMode* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+
+	{
+	    asn1SccSint enumIndex;
+	    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &enumIndex, 0, 1);
+	    *pErrCode = ret ? 0 : ERR_UPER_DECODE_SYNCMODE;
+	    if (ret) {
+	        switch(enumIndex)
+	        {
+	            case 0:
+	                (*(pVal)) = SyncMode_realTimeSkipFrames;
+	                break;
+	            case 1:
+	                (*(pVal)) = SyncMode_losslessAllFrames;
+	                break;
+	            default:                        /*COVERAGE_IGNORE*/
+		            *pErrCode = ERR_UPER_DECODE_SYNCMODE;     /*COVERAGE_IGNORE*/
+		            ret = FALSE;                /*COVERAGE_IGNORE*/
+	        }
+	    } else {
+	        (*(pVal)) = SyncMode_realTimeSkipFrames;             /*COVERAGE_IGNORE*/
+	    }
+	}
+
+	return ret  && asn1SccSyncMode_IsConstraintValid(pVal, pErrCode);
+}
+
+flag asn1SccSyncMode_ACN_Encode(const asn1SccSyncMode* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+	asn1SccUint intVal_pVal;
+    *pErrCode = 0;
+	ret = bCheckConstraints ? asn1SccSyncMode_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret && *pErrCode == 0) {
+	    switch((*(pVal))) {
+	        case SyncMode_realTimeSkipFrames:
+	            intVal_pVal = 0UL;
+	            break;
+	        case SyncMode_losslessAllFrames:
+	            intVal_pVal = 1UL;
+	            break;
+	        default:                                    /*COVERAGE_IGNORE*/
+	            ret = FALSE;                            /*COVERAGE_IGNORE*/
+	            *pErrCode = ERR_ACN_ENCODE_SYNCMODE;                 /*COVERAGE_IGNORE*/
+	    }
+	    if (ret) {
+	    	BitStream_EncodeConstraintPosWholeNumber(pBitStrm, intVal_pVal, 0, 1);
+	    }
+    } /*COVERAGE_IGNORE*/
+
+
+    return ret;
+}
+
+flag asn1SccSyncMode_ACN_Decode(asn1SccSyncMode* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	asn1SccUint intVal_pVal;
+
+	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(intVal_pVal)), 0, 1);
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_SYNCMODE;
+	if (ret) {
+	    switch (intVal_pVal) {
+	        case 0:
+	            (*(pVal)) = SyncMode_realTimeSkipFrames;
+	            break;
+	        case 1:
+	            (*(pVal)) = SyncMode_losslessAllFrames;
+	            break;
+	    default:                                    /*COVERAGE_IGNORE*/
+	        ret = FALSE;                            /*COVERAGE_IGNORE*/
+	        *pErrCode = ERR_ACN_DECODE_SYNCMODE;                 /*COVERAGE_IGNORE*/
+	    }
+	} /*COVERAGE_IGNORE*/
+
+    return ret && asn1SccSyncMode_IsConstraintValid(pVal, pErrCode);
+}
+
+
+flag asn1SccSimConfig_Equal(const asn1SccSimConfig* pVal1, const asn1SccSimConfig* pVal2)
+{
+	flag ret=TRUE;
+
+    ret = (strcmp(pVal1->gisDataPath, pVal2->gisDataPath) == 0);
+
+    if (ret) {
+        ret = (Asn1Real_Equal(pVal1->totalDuration,pVal2->totalDuration));
+
+        if (ret) {
+            ret = (Asn1Real_Equal(pVal1->timeStep,pVal2->timeStep));
+
+            if (ret) {
+                ret = (pVal1->snapshotFreq == pVal2->snapshotFreq);
+
+                if (ret) {
+                    ret = (pVal1->mode == pVal2->mode);
+
+                }
+
+            }
+
+        }
+
+    }
+
+	return ret;
+
+}
+
+flag asn1SccSimConfig_IsConstraintValid(const asn1SccSimConfig* pVal, int* pErrCode)
+{
+    flag ret = TRUE;
+    ret = asn1SccFolderPath_IsConstraintValid(pVal->gisDataPath, pErrCode);
+    if (ret) {
+        ret = asn1SccT_Float_IsConstraintValid((&(pVal->totalDuration)), pErrCode);
+        if (ret) {
+            ret = asn1SccT_Float_IsConstraintValid((&(pVal->timeStep)), pErrCode);
+            if (ret) {
+                ret = asn1SccT_UInt32_IsConstraintValid((&(pVal->snapshotFreq)), pErrCode);
+                if (ret) {
+                    ret = asn1SccSyncMode_IsConstraintValid((&(pVal->mode)), pErrCode);
+                }   /*COVERAGE_IGNORE*/
+            }   /*COVERAGE_IGNORE*/
+        }   /*COVERAGE_IGNORE*/
+    }   /*COVERAGE_IGNORE*/
+
+	return ret;
+}
+
+#ifdef __cplusplus
+const asn1SccSimConfig asn1SccSimConfig_constant = {.gisDataPath = { [0 ... 255] = 0x0 }, .totalDuration = 0.0000000000000000000E+000, .timeStep = 0.0000000000000000000E+000, .snapshotFreq = 0UL, .mode = SyncMode_realTimeSkipFrames};
+#endif
+
+void asn1SccSimConfig_Initialize(asn1SccSimConfig* pVal)
+{
+	(void)pVal;
+
+
+	(*(pVal)) = (asn1SccSimConfig)asn1SccSimConfig_constant;
+}
+
+flag asn1SccSimConfig_Encode(const asn1SccSimConfig* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+
+	*pErrCode = 0;
+	ret = bCheckConstraints ? asn1SccSimConfig_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret && *pErrCode == 0) {
+	    /*Encode gisDataPath */
+	    ret = asn1SccFolderPath_Encode(pVal->gisDataPath, pBitStrm, pErrCode, FALSE);
+	    if (ret) {
+	        /*Encode totalDuration */
+	        ret = asn1SccT_Float_Encode((&(pVal->totalDuration)), pBitStrm, pErrCode, FALSE);
+	        if (ret) {
+	            /*Encode timeStep */
+	            ret = asn1SccT_Float_Encode((&(pVal->timeStep)), pBitStrm, pErrCode, FALSE);
+	            if (ret) {
+	                /*Encode snapshotFreq */
+	                ret = asn1SccT_UInt32_Encode((&(pVal->snapshotFreq)), pBitStrm, pErrCode, FALSE);
+	                if (ret) {
+	                    /*Encode mode */
+	                    ret = asn1SccSyncMode_Encode((&(pVal->mode)), pBitStrm, pErrCode, FALSE);
+	                }   /*COVERAGE_IGNORE*/
+	            }   /*COVERAGE_IGNORE*/
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
+    } /*COVERAGE_IGNORE*/
+
+
+    return ret;
+}
+
+flag asn1SccSimConfig_Decode(asn1SccSimConfig* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+
+	/*Decode gisDataPath */
+	ret = asn1SccFolderPath_Decode(pVal->gisDataPath, pBitStrm, pErrCode);
+	if (ret) {
+	    /*Decode totalDuration */
+	    ret = asn1SccT_Float_Decode((&(pVal->totalDuration)), pBitStrm, pErrCode);
+	    if (ret) {
+	        /*Decode timeStep */
+	        ret = asn1SccT_Float_Decode((&(pVal->timeStep)), pBitStrm, pErrCode);
+	        if (ret) {
+	            /*Decode snapshotFreq */
+	            ret = asn1SccT_UInt32_Decode((&(pVal->snapshotFreq)), pBitStrm, pErrCode);
+	            if (ret) {
+	                /*Decode mode */
+	                ret = asn1SccSyncMode_Decode((&(pVal->mode)), pBitStrm, pErrCode);
+	            }   /*COVERAGE_IGNORE*/
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
+	}   /*COVERAGE_IGNORE*/
+
+	return ret  && asn1SccSimConfig_IsConstraintValid(pVal, pErrCode);
+}
+
+flag asn1SccSimConfig_ACN_Encode(const asn1SccSimConfig* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+    *pErrCode = 0;
+	ret = bCheckConstraints ? asn1SccSimConfig_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret && *pErrCode == 0) {
+	    /*Encode gisDataPath */
+	    ret = asn1SccFolderPath_ACN_Encode(pVal->gisDataPath, pBitStrm, pErrCode, FALSE);
+	    if (ret) {
+	        /*Encode totalDuration */
+	        ret = asn1SccT_Float_ACN_Encode((&(pVal->totalDuration)), pBitStrm, pErrCode, FALSE);
+	        if (ret) {
+	            /*Encode timeStep */
+	            ret = asn1SccT_Float_ACN_Encode((&(pVal->timeStep)), pBitStrm, pErrCode, FALSE);
+	            if (ret) {
+	                /*Encode snapshotFreq */
+	                ret = asn1SccT_UInt32_ACN_Encode((&(pVal->snapshotFreq)), pBitStrm, pErrCode, FALSE);
+	                if (ret) {
+	                    /*Encode mode */
+	                    ret = asn1SccSyncMode_ACN_Encode((&(pVal->mode)), pBitStrm, pErrCode, FALSE);
+	                }   /*COVERAGE_IGNORE*/
+	            }   /*COVERAGE_IGNORE*/
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
+    } /*COVERAGE_IGNORE*/
+
+
+    return ret;
+}
+
+flag asn1SccSimConfig_ACN_Decode(asn1SccSimConfig* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+
+	/*Decode gisDataPath */
+	ret = asn1SccFolderPath_ACN_Decode(pVal->gisDataPath, pBitStrm, pErrCode);
+	if (ret) {
+	    /*Decode totalDuration */
+	    ret = asn1SccT_Float_ACN_Decode((&(pVal->totalDuration)), pBitStrm, pErrCode);
+	    if (ret) {
+	        /*Decode timeStep */
+	        ret = asn1SccT_Float_ACN_Decode((&(pVal->timeStep)), pBitStrm, pErrCode);
+	        if (ret) {
+	            /*Decode snapshotFreq */
+	            ret = asn1SccT_UInt32_ACN_Decode((&(pVal->snapshotFreq)), pBitStrm, pErrCode);
+	            if (ret) {
+	                /*Decode mode */
+	                ret = asn1SccSyncMode_ACN_Decode((&(pVal->mode)), pBitStrm, pErrCode);
+	            }   /*COVERAGE_IGNORE*/
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
+	}   /*COVERAGE_IGNORE*/
+
+    return ret && asn1SccSimConfig_IsConstraintValid(pVal, pErrCode);
 }
 
 
@@ -503,1473 +1271,120 @@ flag asn1SccSurfaceType_ACN_Decode(asn1SccSurfaceType* pVal, BitStream* pBitStrm
 }
 
 
-flag asn1SccCellState_Equal(const asn1SccCellState* pVal1, const asn1SccCellState* pVal2)
-{
-	flag ret=TRUE;
-
-    ret = (pVal1->elevation == pVal2->elevation);
-
-    if (ret) {
-        ret = (pVal1->waterDepth == pVal2->waterDepth);
-
-        if (ret) {
-            ret = (pVal1->surfaceType == pVal2->surfaceType);
-
-        }
-
-    }
-
-	return ret;
-
-}
-
-flag asn1SccCellState_IsConstraintValid(const asn1SccCellState* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = asn1SccT_UInt32_IsConstraintValid((&(pVal->elevation)), pErrCode);
-    if (ret) {
-        ret = asn1SccT_UInt32_IsConstraintValid((&(pVal->waterDepth)), pErrCode);
-        if (ret) {
-            ret = asn1SccSurfaceType_IsConstraintValid((&(pVal->surfaceType)), pErrCode);
-        }   /*COVERAGE_IGNORE*/
-    }   /*COVERAGE_IGNORE*/
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccCellState asn1SccCellState_constant = {.elevation = 0UL, .waterDepth = 0UL, .surfaceType = SurfaceType_soil};
-#endif
-
-void asn1SccCellState_Initialize(asn1SccCellState* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccCellState)asn1SccCellState_constant;
-}
-
-flag asn1SccCellState_Encode(const asn1SccCellState* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccCellState_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode elevation */
-	    ret = asn1SccT_UInt32_Encode((&(pVal->elevation)), pBitStrm, pErrCode, FALSE);
-	    if (ret) {
-	        /*Encode waterDepth */
-	        ret = asn1SccT_UInt32_Encode((&(pVal->waterDepth)), pBitStrm, pErrCode, FALSE);
-	        if (ret) {
-	            /*Encode surfaceType */
-	            ret = asn1SccSurfaceType_Encode((&(pVal->surfaceType)), pBitStrm, pErrCode, FALSE);
-	        }   /*COVERAGE_IGNORE*/
-	    }   /*COVERAGE_IGNORE*/
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccCellState_Decode(asn1SccCellState* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode elevation */
-	ret = asn1SccT_UInt32_Decode((&(pVal->elevation)), pBitStrm, pErrCode);
-	if (ret) {
-	    /*Decode waterDepth */
-	    ret = asn1SccT_UInt32_Decode((&(pVal->waterDepth)), pBitStrm, pErrCode);
-	    if (ret) {
-	        /*Decode surfaceType */
-	        ret = asn1SccSurfaceType_Decode((&(pVal->surfaceType)), pBitStrm, pErrCode);
-	    }   /*COVERAGE_IGNORE*/
-	}   /*COVERAGE_IGNORE*/
-
-	return ret  && asn1SccCellState_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccCellState_ACN_Encode(const asn1SccCellState* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccCellState_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode elevation */
-	    ret = asn1SccT_UInt32_ACN_Encode((&(pVal->elevation)), pBitStrm, pErrCode, FALSE);
-	    if (ret) {
-	        /*Encode waterDepth */
-	        ret = asn1SccT_UInt32_ACN_Encode((&(pVal->waterDepth)), pBitStrm, pErrCode, FALSE);
-	        if (ret) {
-	            /*Encode surfaceType */
-	            ret = asn1SccSurfaceType_ACN_Encode((&(pVal->surfaceType)), pBitStrm, pErrCode, FALSE);
-	        }   /*COVERAGE_IGNORE*/
-	    }   /*COVERAGE_IGNORE*/
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccCellState_ACN_Decode(asn1SccCellState* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode elevation */
-	ret = asn1SccT_UInt32_ACN_Decode((&(pVal->elevation)), pBitStrm, pErrCode);
-	if (ret) {
-	    /*Decode waterDepth */
-	    ret = asn1SccT_UInt32_ACN_Decode((&(pVal->waterDepth)), pBitStrm, pErrCode);
-	    if (ret) {
-	        /*Decode surfaceType */
-	        ret = asn1SccSurfaceType_ACN_Decode((&(pVal->surfaceType)), pBitStrm, pErrCode);
-	    }   /*COVERAGE_IGNORE*/
-	}   /*COVERAGE_IGNORE*/
-
-    return ret && asn1SccCellState_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccGridVector_Equal(const asn1SccGridVector* pVal1, const asn1SccGridVector* pVal2)
-{
-	flag ret=TRUE;
-    int i1;
-
-    ret = (pVal1->nCount == pVal2->nCount);
-    for(i1 = 0; ret && i1 < pVal1->nCount; i1++)
-    {
-    	ret = asn1SccCellState_Equal((&(pVal1->arr[i1])), (&(pVal2->arr[i1])));
-    }
-
-	return ret;
-
-}
-
-flag asn1SccGridVector_IsConstraintValid(const asn1SccGridVector* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    int i1;
-    ret = ((1 <= pVal->nCount) && (pVal->nCount <= 1048576));
-    *pErrCode = ret ? 0 :  ERR_GRIDVECTOR;
-    if (ret) {
-        for(i1 = 0; ret && i1 < pVal->nCount; i1++)
-        {
-        	ret = asn1SccCellState_IsConstraintValid((&(pVal->arr[i1])), pErrCode);
-        }
-    }   /*COVERAGE_IGNORE*/
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccGridVector asn1SccGridVector_constant = {.nCount = 1, .arr  = {[0 ... 1048576-1] = asn1SccCellState_constant }};
-#endif
-
-void asn1SccGridVector_Initialize(asn1SccGridVector* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccGridVector)asn1SccGridVector_constant;
-}
-
-flag asn1SccGridVector_Encode(const asn1SccGridVector* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	int i1;
-	asn1SccSint nBlockIndex1;
-	asn1SccSint nRemainingItemsVar1;
-	asn1SccSint nCurBlockSize1;
-	asn1SccSint nCurOffset1;
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGridVector_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    nRemainingItemsVar1 = pVal->nCount;
-	    nCurBlockSize1 = 0;
-	    nCurOffset1 = 0;
-	    nBlockIndex1 = 0;
-	    while (nRemainingItemsVar1 >= 0x4000 && nBlockIndex1 < pVal->nCount)
-	    {
-	    	if (nRemainingItemsVar1 >= 0x10000)
-	    	{
-	    		nCurBlockSize1 = 0x10000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF);
-	    	}
-	    	else if (nRemainingItemsVar1 >= 0xC000)
-	    	{
-	    		nCurBlockSize1 = 0xC000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF);
-	    	}
-	    	else if (nRemainingItemsVar1 >= 0x8000)
-	    	{
-	    		nCurBlockSize1 = 0x8000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF);
-	    	}
-	    	else
-	    	{
-	    		nCurBlockSize1 = 0x4000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF);
-	    	}
-
-	    	for(i1=(int)nCurOffset1; i1 < (int)(nCurBlockSize1 + nCurOffset1); i1++)
-	    	{
-	    		ret = asn1SccCellState_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    	}
-	    	nCurOffset1 += nCurBlockSize1;
-	    	nRemainingItemsVar1 -= nCurBlockSize1;
-	        nBlockIndex1 = nBlockIndex1+1;
-	    }
-
-	    if (nRemainingItemsVar1 <= 0x7F)
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF);
-	    else
-	    {
-	    	BitStream_AppendBit(pBitStrm, 1);
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0x7FFF);
-	    }
-
-	    for(i1=(int)nCurOffset1; i1 < (int)(nCurOffset1 + nRemainingItemsVar1); i1++)
-	    {
-	    	ret = asn1SccCellState_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGridVector_Decode(asn1SccGridVector* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nLengthTmp1;
-	asn1SccSint nRemainingItemsVar1;
-	asn1SccSint nCurBlockSize1;
-	asn1SccSint nCurOffset1;
-
-	nRemainingItemsVar1 = 0;
-	nCurBlockSize1 = 0;
-	nCurOffset1 = 0;
-	nLengthTmp1 = 0;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDVECTOR;
-	if (ret) {
-		while(ret && (nRemainingItemsVar1 & 0xC0)==0xC0)
-		{
-			if (nRemainingItemsVar1 == 0xC4)
-				nCurBlockSize1 = 0x10000;
-			else if (nRemainingItemsVar1 == 0xC3)
-				nCurBlockSize1 = 0xC000;
-			else if (nRemainingItemsVar1 == 0xC2)
-				nCurBlockSize1 = 0x8000;
-			else if (nRemainingItemsVar1 == 0xC1)
-				nCurBlockSize1 = 0x4000;
-			else {
-				*pErrCode = ERR_UPER_DECODE_GRIDVECTOR; /*COVERAGE_IGNORE*/
-				return FALSE; /*COVERAGE_IGNORE*/
-			}
-			if (nCurOffset1 + nCurBlockSize1 > 1048576)
-			{
-				*pErrCode = ERR_UPER_DECODE_GRIDVECTOR; /*COVERAGE_IGNORE*/
-				return FALSE; /*COVERAGE_IGNORE*/
-			}
-
-			for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nCurBlockSize1)) ; i1++)
-			{
-				ret = asn1SccCellState_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-			}
-
-	        if (ret) {
-			    nLengthTmp1 += (long)nCurBlockSize1;
-			    nCurOffset1 += nCurBlockSize1;
-			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
-	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDVECTOR;
-	        }
-		}
-	    if (ret) {
-		    if ( (nRemainingItemsVar1 & 0x80)>0)
-		    {
-			    asn1SccSint len2;
-			    nRemainingItemsVar1 <<= 8;
-			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF);
-	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDVECTOR;
-	            if (ret) {
-			        nRemainingItemsVar1 |= len2;
-			        nRemainingItemsVar1 &= 0x7FFF;
-	            }
-		    }
-	        ret = ret && (nCurOffset1 + nRemainingItemsVar1 <= 1048576);
-	        *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDVECTOR;
-	        if (ret) {
-		        for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nRemainingItemsVar1)) ; i1++)
-		        {
-			        ret = asn1SccCellState_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-		        }
-	            if (ret) {
-		            nLengthTmp1 += (long)nRemainingItemsVar1;
-
-	                if ((nLengthTmp1 >= 1) && (nLengthTmp1 <= 1048576)) {
-		                pVal->nCount = (int)nLengthTmp1;
-
-	                } else {
-	                    ret = FALSE;  /*COVERAGE_IGNORE*/
-	                    *pErrCode = ERR_UPER_DECODE_GRIDVECTOR; /*COVERAGE_IGNORE*/
-	                }
-
-	            }
-	        }
-	    }
-	}
-
-	return ret  && asn1SccGridVector_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccGridVector_ACN_Encode(const asn1SccGridVector* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-	int i1;
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGridVector_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 1, 1048576);
-	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	    {
-	    	ret = asn1SccCellState_ACN_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGridVector_ACN_Decode(asn1SccGridVector* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nCount;
-
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 1, 1048576);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_GRIDVECTOR;
-	pVal->nCount = (long)nCount;
-	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	{
-		ret = asn1SccCellState_ACN_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-	}
-
-    return ret && asn1SccGridVector_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccGrid_width_Equal(const asn1SccGrid_width* pVal1, const asn1SccGrid_width* pVal2)
+flag asn1SccCellType_Equal(const asn1SccCellType* pVal1, const asn1SccCellType* pVal2)
 {
 	return (*(pVal1)) == (*(pVal2));
 
 }
 
-flag asn1SccGrid_height_Equal(const asn1SccGrid_height* pVal1, const asn1SccGrid_height* pVal2)
-{
-	return (*(pVal1)) == (*(pVal2));
-
-}
-
-flag asn1SccGrid_Equal(const asn1SccGrid* pVal1, const asn1SccGrid* pVal2)
-{
-	flag ret=TRUE;
-
-    ret = asn1SccGrid_width_Equal((&(pVal1->width)), (&(pVal2->width)));
-
-    if (ret) {
-        ret = asn1SccGrid_height_Equal((&(pVal1->height)), (&(pVal2->height)));
-
-        if (ret) {
-            ret = asn1SccGridVector_Equal((&(pVal1->cells)), (&(pVal2->cells)));
-
-        }
-
-    }
-
-	return ret;
-
-}
-
-flag asn1SccGrid_width_IsConstraintValid(const asn1SccGrid_width* pVal, int* pErrCode)
+flag asn1SccCellType_IsConstraintValid(const asn1SccCellType* pVal, int* pErrCode)
 {
     flag ret = TRUE;
-    ret = ((1UL <= (*(pVal))) && ((*(pVal)) <= 1024UL));
-    *pErrCode = ret ? 0 :  ERR_GRID_WIDTH;
-
-	return ret;
-}
-
-flag asn1SccGrid_height_IsConstraintValid(const asn1SccGrid_height* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = ((1UL <= (*(pVal))) && ((*(pVal)) <= 1024UL));
-    *pErrCode = ret ? 0 :  ERR_GRID_HEIGHT;
-
-	return ret;
-}
-
-flag asn1SccGrid_IsConstraintValid(const asn1SccGrid* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = asn1SccGrid_width_IsConstraintValid((&(pVal->width)), pErrCode);
-    if (ret) {
-        ret = asn1SccGrid_height_IsConstraintValid((&(pVal->height)), pErrCode);
-        if (ret) {
-            ret = asn1SccGridVector_IsConstraintValid((&(pVal->cells)), pErrCode);
-        }   /*COVERAGE_IGNORE*/
-    }   /*COVERAGE_IGNORE*/
+    ret = ((((((*(pVal)) == CellType_normal)) || (((*(pVal)) == CellType_source)))) || (((*(pVal)) == CellType_sink)));
+    *pErrCode = ret ? 0 :  ERR_CELLTYPE;
 
 	return ret;
 }
 
 #ifdef __cplusplus
-const asn1SccGrid_width asn1SccGrid_width_constant = 1UL;
-#endif
-#ifdef __cplusplus
-const asn1SccGrid_height asn1SccGrid_height_constant = 1UL;
-#endif
-#ifdef __cplusplus
-const asn1SccGrid asn1SccGrid_constant = {.width = 1UL, .height = 1UL, .cells = asn1SccGridVector_constant};
+const asn1SccCellType asn1SccCellType_constant = CellType_normal;
 #endif
 
-void asn1SccGrid_Initialize(asn1SccGrid* pVal)
+void asn1SccCellType_Initialize(asn1SccCellType* pVal)
 {
 	(void)pVal;
 
 
-	(*(pVal)) = (asn1SccGrid)asn1SccGrid_constant;
+	(*(pVal)) = (asn1SccCellType)asn1SccCellType_constant;
 }
 
-flag asn1SccGrid_Encode(const asn1SccGrid* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+flag asn1SccCellType_Encode(const asn1SccCellType* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
 {
     flag ret = TRUE;
 
 
 	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGrid_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	ret = bCheckConstraints ? asn1SccCellType_IsConstraintValid(pVal, pErrCode) : TRUE ;
 	if (ret && *pErrCode == 0) {
-	    /*Encode width */
-	    BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->width, 1, 1024);
-	    if (ret) {
-	        /*Encode height */
-	        BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->height, 1, 1024);
-	        if (ret) {
-	            /*Encode cells */
-	            ret = asn1SccGridVector_Encode((&(pVal->cells)), pBitStrm, pErrCode, FALSE);
-	        }   /*COVERAGE_IGNORE*/
-	    }   /*COVERAGE_IGNORE*/
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGrid_Decode(asn1SccGrid* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode width */
-	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->width)), 1, 1024);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_GRID_WIDTH;
-	if (ret) {
-	    /*Decode height */
-	    ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->height)), 1, 1024);
-	    *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRID_HEIGHT;
-	    if (ret) {
-	        /*Decode cells */
-	        ret = asn1SccGridVector_Decode((&(pVal->cells)), pBitStrm, pErrCode);
-	    }   /*COVERAGE_IGNORE*/
-	}   /*COVERAGE_IGNORE*/
-
-	return ret  && asn1SccGrid_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccGrid_ACN_Encode(const asn1SccGrid* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGrid_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode width */
-	    BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->width, 1, 1024);
-	    if (ret) {
-	        /*Encode height */
-	        BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->height, 1, 1024);
-	        if (ret) {
-	            /*Encode cells */
-	            ret = asn1SccGridVector_ACN_Encode((&(pVal->cells)), pBitStrm, pErrCode, FALSE);
-	        }   /*COVERAGE_IGNORE*/
-	    }   /*COVERAGE_IGNORE*/
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGrid_ACN_Decode(asn1SccGrid* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode width */
-	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->width)), 1, 1024);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_GRID_WIDTH;
-	if (ret) {
-	    /*Decode height */
-	    ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->height)), 1, 1024);
-	    *pErrCode = ret ? 0 : ERR_ACN_DECODE_GRID_HEIGHT;
-	    if (ret) {
-	        /*Decode cells */
-	        ret = asn1SccGridVector_ACN_Decode((&(pVal->cells)), pBitStrm, pErrCode);
-	    }   /*COVERAGE_IGNORE*/
-	}   /*COVERAGE_IGNORE*/
-
-    return ret && asn1SccGrid_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccFlowCoefficient_Equal(const asn1SccFlowCoefficient* pVal1, const asn1SccFlowCoefficient* pVal2)
-{
-	return Asn1Real_Equal((*(pVal1)),(*(pVal2)));
-
-}
-
-flag asn1SccFlowCoefficient_IsConstraintValid(const asn1SccFlowCoefficient* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = ((0.0000000000000000000E+000 <= (*(pVal))) && ((*(pVal)) <= 1.0000000000000000000E+000));
-    *pErrCode = ret ? 0 :  ERR_FLOWCOEFFICIENT;
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccFlowCoefficient asn1SccFlowCoefficient_constant = 0.0000000000000000000E+000;
-#endif
-
-void asn1SccFlowCoefficient_Initialize(asn1SccFlowCoefficient* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccFlowCoefficient)asn1SccFlowCoefficient_constant;
-}
-
-flag asn1SccFlowCoefficient_Encode(const asn1SccFlowCoefficient* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccFlowCoefficient_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeReal(pBitStrm, (*(pVal)));
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccFlowCoefficient_Decode(asn1SccFlowCoefficient* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	ret = BitStream_DecodeReal(pBitStrm, pVal);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_FLOWCOEFFICIENT;
-
-	return ret  && asn1SccFlowCoefficient_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccFlowCoefficient_ACN_Encode(const asn1SccFlowCoefficient* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccFlowCoefficient_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeReal(pBitStrm, (*(pVal)));
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccFlowCoefficient_ACN_Decode(asn1SccFlowCoefficient* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	ret = BitStream_DecodeReal(pBitStrm, pVal);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_FLOWCOEFFICIENT;
-
-    return ret && asn1SccFlowCoefficient_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccScaleFactor_Equal(const asn1SccScaleFactor* pVal1, const asn1SccScaleFactor* pVal2)
-{
-	return Asn1Real_Equal((*(pVal1)),(*(pVal2)));
-
-}
-
-flag asn1SccScaleFactor_IsConstraintValid(const asn1SccScaleFactor* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = ((0.0000000000000000000E+000 <= (*(pVal))) && ((*(pVal)) <= 8.0000000000000000000E+000));
-    *pErrCode = ret ? 0 :  ERR_SCALEFACTOR;
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccScaleFactor asn1SccScaleFactor_constant = 0.0000000000000000000E+000;
-#endif
-
-void asn1SccScaleFactor_Initialize(asn1SccScaleFactor* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccScaleFactor)asn1SccScaleFactor_constant;
-}
-
-flag asn1SccScaleFactor_Encode(const asn1SccScaleFactor* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccScaleFactor_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeReal(pBitStrm, (*(pVal)));
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccScaleFactor_Decode(asn1SccScaleFactor* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	ret = BitStream_DecodeReal(pBitStrm, pVal);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_SCALEFACTOR;
-
-	return ret  && asn1SccScaleFactor_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccScaleFactor_ACN_Encode(const asn1SccScaleFactor* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccScaleFactor_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeReal(pBitStrm, (*(pVal)));
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccScaleFactor_ACN_Decode(asn1SccScaleFactor* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	ret = BitStream_DecodeReal(pBitStrm, pVal);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_SCALEFACTOR;
-
-    return ret && asn1SccScaleFactor_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccFilePath_Equal(const asn1SccFilePath pVal1, const asn1SccFilePath pVal2)
-{
-	return strcmp(pVal1, pVal2) == 0;
-
-}
-
-flag asn1SccFilePath_IsConstraintValid(const asn1SccFilePath pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = ((1 <= strlen(pVal)) && (strlen(pVal) <= 255));
-    *pErrCode = ret ? 0 :  ERR_FILEPATH;
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccFilePath asn1SccFilePath_constant = { [0 ... 255] = 0x0 };
-#endif
-
-void asn1SccFilePath_Initialize(asn1SccFilePath pVal)
-{
-	(void)pVal;
-
-
-	pVal = (asn1SccFilePath)asn1SccFilePath_constant;
-}
-
-flag asn1SccFilePath_Encode(const asn1SccFilePath pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	int i1;
-	asn1SccSint nStringLength;
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccFilePath_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    nStringLength = strlen(pVal);
-	    /*ret = nStringLength >= 1 && nStringLength <= 255;*/
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, 1, 255);
-	    for(i1=0; (i1 < (int)nStringLength) && ret; i1++)
+	    switch((*(pVal)))
 	    {
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal[i1], 0, 127);
+	        case CellType_normal:
+	            BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 2);
+	        	break;
+	        case CellType_source:
+	            BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 2);
+	        	break;
+	        case CellType_sink:
+	            BitStream_EncodeConstraintWholeNumber(pBitStrm, 2, 0, 2);
+	        	break;
+	        default:                    /*COVERAGE_IGNORE*/
+	    	    *pErrCode = ERR_UPER_ENCODE_CELLTYPE; /*COVERAGE_IGNORE*/
+	    	    ret = FALSE;            /*COVERAGE_IGNORE*/
 	    }
-
     } /*COVERAGE_IGNORE*/
 
 
     return ret;
 }
 
-flag asn1SccFilePath_Decode(asn1SccFilePath pVal, BitStream* pBitStrm, int* pErrCode)
+flag asn1SccCellType_Decode(asn1SccCellType* pVal, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
 	*pErrCode = 0;
 
-	int i1;
-	asn1SccSint nStringLength;
 
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nStringLength, 1, 255);
-	for(i1=0; (i1 < (int)nStringLength) && ret; i1++)
 	{
-		asn1SccSint charValue=0;
-		ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
-		*pErrCode = ret ? 0 : ERR_UPER_DECODE_FILEPATH;
-		pVal[i1] = (char)charValue;
-	}
-	pVal[nStringLength] = 0x0;
-
-	return ret  && asn1SccFilePath_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccFilePath_ACN_Encode(const asn1SccFilePath pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-	int i1;
-	asn1SccSint nStringLength;
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccFilePath_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    nStringLength = strlen(pVal);
-	    /*ret = nStringLength >= 1 && nStringLength <= 255;*/
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, nStringLength, 1, 255);
-	    for(i1=0; (i1 < (int)nStringLength) && ret; i1++)
-	    {
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal[i1], 0, 127);
-	    }
-
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccFilePath_ACN_Decode(asn1SccFilePath pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nStringLength;
-
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nStringLength, 1, 255);
-	for(i1=0; (i1 < (int)nStringLength) && ret; i1++)
-	{
-		asn1SccSint charValue=0;
-		ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &charValue, 0, 127);
-		*pErrCode = ret ? 0 : ERR_ACN_DECODE_FILEPATH;
-		pVal[i1] = (char)charValue;
-	}
-	pVal[nStringLength] = 0x0;
-
-    return ret && asn1SccFilePath_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccCellIndex_Equal(const asn1SccCellIndex* pVal1, const asn1SccCellIndex* pVal2)
-{
-	return (*(pVal1)) == (*(pVal2));
-
-}
-
-flag asn1SccCellIndex_IsConstraintValid(const asn1SccCellIndex* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = ((*(pVal)) <= 1048575UL);
-    *pErrCode = ret ? 0 :  ERR_CELLINDEX;
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccCellIndex asn1SccCellIndex_constant = 0UL;
-#endif
-
-void asn1SccCellIndex_Initialize(asn1SccCellIndex* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccCellIndex)asn1SccCellIndex_constant;
-}
-
-flag asn1SccCellIndex_Encode(const asn1SccCellIndex* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccCellIndex_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintPosWholeNumber(pBitStrm, (*(pVal)), 0, 1048575);
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccCellIndex_Decode(asn1SccCellIndex* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, pVal, 0, 1048575);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_CELLINDEX;
-
-	return ret  && asn1SccCellIndex_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccCellIndex_ACN_Encode(const asn1SccCellIndex* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccCellIndex_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintPosWholeNumber(pBitStrm, (*(pVal)), 0, 1048575);
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccCellIndex_ACN_Decode(asn1SccCellIndex* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, pVal, 0, 1048575);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_CELLINDEX;
-
-    return ret && asn1SccCellIndex_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccOutflow_Equal(const asn1SccOutflow* pVal1, const asn1SccOutflow* pVal2)
-{
-	flag ret=TRUE;
-
-    ret = (pVal1->depth == pVal2->depth);
-
-    if (ret) {
-        ret = (pVal1->neighbor == pVal2->neighbor);
-
-    }
-
-	return ret;
-
-}
-
-flag asn1SccOutflow_IsConstraintValid(const asn1SccOutflow* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = asn1SccT_UInt32_IsConstraintValid((&(pVal->depth)), pErrCode);
-    if (ret) {
-        ret = asn1SccCellIndex_IsConstraintValid((&(pVal->neighbor)), pErrCode);
-    }   /*COVERAGE_IGNORE*/
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccOutflow asn1SccOutflow_constant = {.depth = 0UL, .neighbor = 0UL};
-#endif
-
-void asn1SccOutflow_Initialize(asn1SccOutflow* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccOutflow)asn1SccOutflow_constant;
-}
-
-flag asn1SccOutflow_Encode(const asn1SccOutflow* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccOutflow_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode depth */
-	    ret = asn1SccT_UInt32_Encode((&(pVal->depth)), pBitStrm, pErrCode, FALSE);
+	    asn1SccSint enumIndex;
+	    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &enumIndex, 0, 2);
+	    *pErrCode = ret ? 0 : ERR_UPER_DECODE_CELLTYPE;
 	    if (ret) {
-	        /*Encode neighbor */
-	        ret = asn1SccCellIndex_Encode((&(pVal->neighbor)), pBitStrm, pErrCode, FALSE);
-	    }   /*COVERAGE_IGNORE*/
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccOutflow_Decode(asn1SccOutflow* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode depth */
-	ret = asn1SccT_UInt32_Decode((&(pVal->depth)), pBitStrm, pErrCode);
-	if (ret) {
-	    /*Decode neighbor */
-	    ret = asn1SccCellIndex_Decode((&(pVal->neighbor)), pBitStrm, pErrCode);
-	}   /*COVERAGE_IGNORE*/
-
-	return ret  && asn1SccOutflow_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccOutflow_ACN_Encode(const asn1SccOutflow* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccOutflow_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode depth */
-	    ret = asn1SccT_UInt32_ACN_Encode((&(pVal->depth)), pBitStrm, pErrCode, FALSE);
-	    if (ret) {
-	        /*Encode neighbor */
-	        ret = asn1SccCellIndex_ACN_Encode((&(pVal->neighbor)), pBitStrm, pErrCode, FALSE);
-	    }   /*COVERAGE_IGNORE*/
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccOutflow_ACN_Decode(asn1SccOutflow* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode depth */
-	ret = asn1SccT_UInt32_ACN_Decode((&(pVal->depth)), pBitStrm, pErrCode);
-	if (ret) {
-	    /*Decode neighbor */
-	    ret = asn1SccCellIndex_ACN_Decode((&(pVal->neighbor)), pBitStrm, pErrCode);
-	}   /*COVERAGE_IGNORE*/
-
-    return ret && asn1SccOutflow_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccOutflowList_Equal(const asn1SccOutflowList* pVal1, const asn1SccOutflowList* pVal2)
-{
-	flag ret=TRUE;
-    int i1;
-
-    ret = (pVal1->nCount == pVal2->nCount);
-    for(i1 = 0; ret && i1 < pVal1->nCount; i1++)
-    {
-    	ret = asn1SccOutflow_Equal((&(pVal1->arr[i1])), (&(pVal2->arr[i1])));
-    }
-
-	return ret;
-
-}
-
-flag asn1SccOutflowList_IsConstraintValid(const asn1SccOutflowList* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    int i1;
-    ret = (pVal->nCount <= 9);
-    *pErrCode = ret ? 0 :  ERR_OUTFLOWLIST;
-    if (ret) {
-        for(i1 = 0; ret && i1 < pVal->nCount; i1++)
-        {
-        	ret = asn1SccOutflow_IsConstraintValid((&(pVal->arr[i1])), pErrCode);
-        }
-    }   /*COVERAGE_IGNORE*/
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccOutflowList asn1SccOutflowList_constant = {.nCount = 0, .arr  = {[0 ... 9-1] = asn1SccOutflow_constant }};
-#endif
-
-void asn1SccOutflowList_Initialize(asn1SccOutflowList* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccOutflowList)asn1SccOutflowList_constant;
-}
-
-flag asn1SccOutflowList_Encode(const asn1SccOutflowList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	int i1;
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccOutflowList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 0, 9);
-	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	    {
-	    	ret = asn1SccOutflow_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccOutflowList_Decode(asn1SccOutflowList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nCount;
-
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 0, 9);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_OUTFLOWLIST;
-	pVal->nCount = (long)nCount;
-	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	{
-		ret = asn1SccOutflow_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-	}
-
-	return ret  && asn1SccOutflowList_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccOutflowList_ACN_Encode(const asn1SccOutflowList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-	int i1;
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccOutflowList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 0, 9);
-	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	    {
-	    	ret = asn1SccOutflow_ACN_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccOutflowList_ACN_Decode(asn1SccOutflowList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nCount;
-
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 0, 9);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_OUTFLOWLIST;
-	pVal->nCount = (long)nCount;
-	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	{
-		ret = asn1SccOutflow_ACN_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-	}
-
-    return ret && asn1SccOutflowList_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccMooreNeighborList_Equal(const asn1SccMooreNeighborList* pVal1, const asn1SccMooreNeighborList* pVal2)
-{
-	flag ret=TRUE;
-    int i1;
-
-    ret = (pVal1->nCount == pVal2->nCount);
-    for(i1 = 0; ret && i1 < pVal1->nCount; i1++)
-    {
-    	ret = (pVal1->arr[i1] == pVal2->arr[i1]);
-    }
-
-	return ret;
-
-}
-
-flag asn1SccMooreNeighborList_IsConstraintValid(const asn1SccMooreNeighborList* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    int i1;
-    ret = (pVal->nCount <= 9);
-    *pErrCode = ret ? 0 :  ERR_MOORENEIGHBORLIST;
-    if (ret) {
-        for(i1 = 0; ret && i1 < pVal->nCount; i1++)
-        {
-        	ret = asn1SccCellIndex_IsConstraintValid((&(pVal->arr[i1])), pErrCode);
-        }
-    }   /*COVERAGE_IGNORE*/
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccMooreNeighborList asn1SccMooreNeighborList_constant = {.nCount = 0, .arr  = {[0 ... 9-1] = 0UL }};
-#endif
-
-void asn1SccMooreNeighborList_Initialize(asn1SccMooreNeighborList* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccMooreNeighborList)asn1SccMooreNeighborList_constant;
-}
-
-flag asn1SccMooreNeighborList_Encode(const asn1SccMooreNeighborList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	int i1;
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccMooreNeighborList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 0, 9);
-	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	    {
-	    	ret = asn1SccCellIndex_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccMooreNeighborList_Decode(asn1SccMooreNeighborList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nCount;
-
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 0, 9);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_MOORENEIGHBORLIST;
-	pVal->nCount = (long)nCount;
-	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	{
-		ret = asn1SccCellIndex_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-	}
-
-	return ret  && asn1SccMooreNeighborList_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccMooreNeighborList_ACN_Encode(const asn1SccMooreNeighborList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-	int i1;
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccMooreNeighborList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 0, 9);
-	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	    {
-	    	ret = asn1SccCellIndex_ACN_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccMooreNeighborList_ACN_Decode(asn1SccMooreNeighborList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nCount;
-
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 0, 9);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_MOORENEIGHBORLIST;
-	pVal->nCount = (long)nCount;
-	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	{
-		ret = asn1SccCellIndex_ACN_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-	}
-
-    return ret && asn1SccMooreNeighborList_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccGridCellNeighborList_Equal(const asn1SccGridCellNeighborList* pVal1, const asn1SccGridCellNeighborList* pVal2)
-{
-	flag ret=TRUE;
-    int i1;
-
-    ret = (pVal1->nCount == pVal2->nCount);
-    for(i1 = 0; ret && i1 < pVal1->nCount; i1++)
-    {
-    	ret = asn1SccMooreNeighborList_Equal((&(pVal1->arr[i1])), (&(pVal2->arr[i1])));
-    }
-
-	return ret;
-
-}
-
-flag asn1SccGridCellNeighborList_IsConstraintValid(const asn1SccGridCellNeighborList* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    int i1;
-    ret = (pVal->nCount <= 1048576);
-    *pErrCode = ret ? 0 :  ERR_GRIDCELLNEIGHBORLIST;
-    if (ret) {
-        for(i1 = 0; ret && i1 < pVal->nCount; i1++)
-        {
-        	ret = asn1SccMooreNeighborList_IsConstraintValid((&(pVal->arr[i1])), pErrCode);
-        }
-    }   /*COVERAGE_IGNORE*/
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccGridCellNeighborList asn1SccGridCellNeighborList_constant = {.nCount = 0, .arr  = {[0 ... 1048576-1] = asn1SccMooreNeighborList_constant }};
-#endif
-
-void asn1SccGridCellNeighborList_Initialize(asn1SccGridCellNeighborList* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccGridCellNeighborList)asn1SccGridCellNeighborList_constant;
-}
-
-flag asn1SccGridCellNeighborList_Encode(const asn1SccGridCellNeighborList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	int i1;
-	asn1SccSint nBlockIndex1;
-	asn1SccSint nRemainingItemsVar1;
-	asn1SccSint nCurBlockSize1;
-	asn1SccSint nCurOffset1;
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGridCellNeighborList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    nRemainingItemsVar1 = pVal->nCount;
-	    nCurBlockSize1 = 0;
-	    nCurOffset1 = 0;
-	    nBlockIndex1 = 0;
-	    while (nRemainingItemsVar1 >= 0x4000 && nBlockIndex1 < pVal->nCount)
-	    {
-	    	if (nRemainingItemsVar1 >= 0x10000)
-	    	{
-	    		nCurBlockSize1 = 0x10000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF);
-	    	}
-	    	else if (nRemainingItemsVar1 >= 0xC000)
-	    	{
-	    		nCurBlockSize1 = 0xC000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF);
-	    	}
-	    	else if (nRemainingItemsVar1 >= 0x8000)
-	    	{
-	    		nCurBlockSize1 = 0x8000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF);
-	    	}
-	    	else
-	    	{
-	    		nCurBlockSize1 = 0x4000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF);
-	    	}
-
-	    	for(i1=(int)nCurOffset1; i1 < (int)(nCurBlockSize1 + nCurOffset1); i1++)
-	    	{
-	    		ret = asn1SccMooreNeighborList_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    	}
-	    	nCurOffset1 += nCurBlockSize1;
-	    	nRemainingItemsVar1 -= nCurBlockSize1;
-	        nBlockIndex1 = nBlockIndex1+1;
-	    }
-
-	    if (nRemainingItemsVar1 <= 0x7F)
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF);
-	    else
-	    {
-	    	BitStream_AppendBit(pBitStrm, 1);
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0x7FFF);
-	    }
-
-	    for(i1=(int)nCurOffset1; i1 < (int)(nCurOffset1 + nRemainingItemsVar1); i1++)
-	    {
-	    	ret = asn1SccMooreNeighborList_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGridCellNeighborList_Decode(asn1SccGridCellNeighborList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nLengthTmp1;
-	asn1SccSint nRemainingItemsVar1;
-	asn1SccSint nCurBlockSize1;
-	asn1SccSint nCurOffset1;
-
-	nRemainingItemsVar1 = 0;
-	nCurBlockSize1 = 0;
-	nCurOffset1 = 0;
-	nLengthTmp1 = 0;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST;
-	if (ret) {
-		while(ret && (nRemainingItemsVar1 & 0xC0)==0xC0)
-		{
-			if (nRemainingItemsVar1 == 0xC4)
-				nCurBlockSize1 = 0x10000;
-			else if (nRemainingItemsVar1 == 0xC3)
-				nCurBlockSize1 = 0xC000;
-			else if (nRemainingItemsVar1 == 0xC2)
-				nCurBlockSize1 = 0x8000;
-			else if (nRemainingItemsVar1 == 0xC1)
-				nCurBlockSize1 = 0x4000;
-			else {
-				*pErrCode = ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST; /*COVERAGE_IGNORE*/
-				return FALSE; /*COVERAGE_IGNORE*/
-			}
-			if (nCurOffset1 + nCurBlockSize1 > 1048576)
-			{
-				*pErrCode = ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST; /*COVERAGE_IGNORE*/
-				return FALSE; /*COVERAGE_IGNORE*/
-			}
-
-			for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nCurBlockSize1)) ; i1++)
-			{
-				ret = asn1SccMooreNeighborList_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-			}
-
-	        if (ret) {
-			    nLengthTmp1 += (long)nCurBlockSize1;
-			    nCurOffset1 += nCurBlockSize1;
-			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
-	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST;
+	        switch(enumIndex)
+	        {
+	            case 0:
+	                (*(pVal)) = CellType_normal;
+	                break;
+	            case 1:
+	                (*(pVal)) = CellType_source;
+	                break;
+	            case 2:
+	                (*(pVal)) = CellType_sink;
+	                break;
+	            default:                        /*COVERAGE_IGNORE*/
+		            *pErrCode = ERR_UPER_DECODE_CELLTYPE;     /*COVERAGE_IGNORE*/
+		            ret = FALSE;                /*COVERAGE_IGNORE*/
 	        }
-		}
+	    } else {
+	        (*(pVal)) = CellType_normal;             /*COVERAGE_IGNORE*/
+	    }
+	}
+
+	return ret  && asn1SccCellType_IsConstraintValid(pVal, pErrCode);
+}
+
+flag asn1SccCellType_ACN_Encode(const asn1SccCellType* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+	asn1SccUint intVal_pVal;
+    *pErrCode = 0;
+	ret = bCheckConstraints ? asn1SccCellType_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret && *pErrCode == 0) {
+	    switch((*(pVal))) {
+	        case CellType_normal:
+	            intVal_pVal = 0UL;
+	            break;
+	        case CellType_source:
+	            intVal_pVal = 1UL;
+	            break;
+	        case CellType_sink:
+	            intVal_pVal = 2UL;
+	            break;
+	        default:                                    /*COVERAGE_IGNORE*/
+	            ret = FALSE;                            /*COVERAGE_IGNORE*/
+	            *pErrCode = ERR_ACN_ENCODE_CELLTYPE;                 /*COVERAGE_IGNORE*/
+	    }
 	    if (ret) {
-		    if ( (nRemainingItemsVar1 & 0x80)>0)
-		    {
-			    asn1SccSint len2;
-			    nRemainingItemsVar1 <<= 8;
-			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF);
-	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST;
-	            if (ret) {
-			        nRemainingItemsVar1 |= len2;
-			        nRemainingItemsVar1 &= 0x7FFF;
-	            }
-		    }
-	        ret = ret && (nCurOffset1 + nRemainingItemsVar1 <= 1048576);
-	        *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST;
-	        if (ret) {
-		        for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nRemainingItemsVar1)) ; i1++)
-		        {
-			        ret = asn1SccMooreNeighborList_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-		        }
-	            if (ret) {
-		            nLengthTmp1 += (long)nRemainingItemsVar1;
-
-	                if ((nLengthTmp1 >= 0) && (nLengthTmp1 <= 1048576)) {
-		                pVal->nCount = (int)nLengthTmp1;
-
-	                } else {
-	                    ret = FALSE;  /*COVERAGE_IGNORE*/
-	                    *pErrCode = ERR_UPER_DECODE_GRIDCELLNEIGHBORLIST; /*COVERAGE_IGNORE*/
-	                }
-
-	            }
-	        }
-	    }
-	}
-
-	return ret  && asn1SccGridCellNeighborList_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccGridCellNeighborList_ACN_Encode(const asn1SccGridCellNeighborList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-	int i1;
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGridCellNeighborList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 0, 1048576);
-	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	    {
-	    	ret = asn1SccMooreNeighborList_ACN_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
+	    	BitStream_EncodeConstraintPosWholeNumber(pBitStrm, intVal_pVal, 0, 2);
 	    }
     } /*COVERAGE_IGNORE*/
 
@@ -1977,793 +1392,33 @@ flag asn1SccGridCellNeighborList_ACN_Encode(const asn1SccGridCellNeighborList* p
     return ret;
 }
 
-flag asn1SccGridCellNeighborList_ACN_Decode(asn1SccGridCellNeighborList* pVal, BitStream* pBitStrm, int* pErrCode)
+flag asn1SccCellType_ACN_Decode(asn1SccCellType* pVal, BitStream* pBitStrm, int* pErrCode)
 {
     flag ret = TRUE;
 	*pErrCode = 0;
 
-	int i1;
-	asn1SccSint nCount;
+	asn1SccUint intVal_pVal;
 
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 0, 1048576);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_GRIDCELLNEIGHBORLIST;
-	pVal->nCount = (long)nCount;
-	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	{
-		ret = asn1SccMooreNeighborList_ACN_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-	}
-
-    return ret && asn1SccGridCellNeighborList_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccFlowingWaterEvent_Equal(const asn1SccFlowingWaterEvent* pVal1, const asn1SccFlowingWaterEvent* pVal2)
-{
-	flag ret=TRUE;
-
-    ret = (pVal1->targetCell == pVal2->targetCell);
-
-	return ret;
-
-}
-
-flag asn1SccFlowingWaterEvent_IsConstraintValid(const asn1SccFlowingWaterEvent* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = asn1SccCellIndex_IsConstraintValid((&(pVal->targetCell)), pErrCode);
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccFlowingWaterEvent asn1SccFlowingWaterEvent_constant = {.targetCell = 0UL};
-#endif
-
-void asn1SccFlowingWaterEvent_Initialize(asn1SccFlowingWaterEvent* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccFlowingWaterEvent)asn1SccFlowingWaterEvent_constant;
-}
-
-flag asn1SccFlowingWaterEvent_Encode(const asn1SccFlowingWaterEvent* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccFlowingWaterEvent_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode targetCell */
-	    ret = asn1SccCellIndex_Encode((&(pVal->targetCell)), pBitStrm, pErrCode, FALSE);
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccFlowingWaterEvent_Decode(asn1SccFlowingWaterEvent* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode targetCell */
-	ret = asn1SccCellIndex_Decode((&(pVal->targetCell)), pBitStrm, pErrCode);
-
-	return ret  && asn1SccFlowingWaterEvent_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccFlowingWaterEvent_ACN_Encode(const asn1SccFlowingWaterEvent* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccFlowingWaterEvent_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode targetCell */
-	    ret = asn1SccCellIndex_ACN_Encode((&(pVal->targetCell)), pBitStrm, pErrCode, FALSE);
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccFlowingWaterEvent_ACN_Decode(asn1SccFlowingWaterEvent* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode targetCell */
-	ret = asn1SccCellIndex_ACN_Decode((&(pVal->targetCell)), pBitStrm, pErrCode);
-
-    return ret && asn1SccFlowingWaterEvent_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccFlowingWaterEventList_Equal(const asn1SccFlowingWaterEventList* pVal1, const asn1SccFlowingWaterEventList* pVal2)
-{
-	flag ret=TRUE;
-    int i1;
-
-    ret = (pVal1->nCount == pVal2->nCount);
-    for(i1 = 0; ret && i1 < pVal1->nCount; i1++)
-    {
-    	ret = asn1SccFlowingWaterEvent_Equal((&(pVal1->arr[i1])), (&(pVal2->arr[i1])));
-    }
-
-	return ret;
-
-}
-
-flag asn1SccFlowingWaterEventList_IsConstraintValid(const asn1SccFlowingWaterEventList* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    int i1;
-    ret = (pVal->nCount <= 1048576);
-    *pErrCode = ret ? 0 :  ERR_FLOWINGWATEREVENTLIST;
-    if (ret) {
-        for(i1 = 0; ret && i1 < pVal->nCount; i1++)
-        {
-        	ret = asn1SccFlowingWaterEvent_IsConstraintValid((&(pVal->arr[i1])), pErrCode);
-        }
-    }   /*COVERAGE_IGNORE*/
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccFlowingWaterEventList asn1SccFlowingWaterEventList_constant = {.nCount = 0, .arr  = {[0 ... 1048576-1] = asn1SccFlowingWaterEvent_constant }};
-#endif
-
-void asn1SccFlowingWaterEventList_Initialize(asn1SccFlowingWaterEventList* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccFlowingWaterEventList)asn1SccFlowingWaterEventList_constant;
-}
-
-flag asn1SccFlowingWaterEventList_Encode(const asn1SccFlowingWaterEventList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	int i1;
-	asn1SccSint nBlockIndex1;
-	asn1SccSint nRemainingItemsVar1;
-	asn1SccSint nCurBlockSize1;
-	asn1SccSint nCurOffset1;
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccFlowingWaterEventList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    nRemainingItemsVar1 = pVal->nCount;
-	    nCurBlockSize1 = 0;
-	    nCurOffset1 = 0;
-	    nBlockIndex1 = 0;
-	    while (nRemainingItemsVar1 >= 0x4000 && nBlockIndex1 < pVal->nCount)
-	    {
-	    	if (nRemainingItemsVar1 >= 0x10000)
-	    	{
-	    		nCurBlockSize1 = 0x10000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF);
-	    	}
-	    	else if (nRemainingItemsVar1 >= 0xC000)
-	    	{
-	    		nCurBlockSize1 = 0xC000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF);
-	    	}
-	    	else if (nRemainingItemsVar1 >= 0x8000)
-	    	{
-	    		nCurBlockSize1 = 0x8000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF);
-	    	}
-	    	else
-	    	{
-	    		nCurBlockSize1 = 0x4000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF);
-	    	}
-
-	    	for(i1=(int)nCurOffset1; i1 < (int)(nCurBlockSize1 + nCurOffset1); i1++)
-	    	{
-	    		ret = asn1SccFlowingWaterEvent_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    	}
-	    	nCurOffset1 += nCurBlockSize1;
-	    	nRemainingItemsVar1 -= nCurBlockSize1;
-	        nBlockIndex1 = nBlockIndex1+1;
-	    }
-
-	    if (nRemainingItemsVar1 <= 0x7F)
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF);
-	    else
-	    {
-	    	BitStream_AppendBit(pBitStrm, 1);
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0x7FFF);
-	    }
-
-	    for(i1=(int)nCurOffset1; i1 < (int)(nCurOffset1 + nRemainingItemsVar1); i1++)
-	    {
-	    	ret = asn1SccFlowingWaterEvent_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccFlowingWaterEventList_Decode(asn1SccFlowingWaterEventList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nLengthTmp1;
-	asn1SccSint nRemainingItemsVar1;
-	asn1SccSint nCurBlockSize1;
-	asn1SccSint nCurOffset1;
-
-	nRemainingItemsVar1 = 0;
-	nCurBlockSize1 = 0;
-	nCurOffset1 = 0;
-	nLengthTmp1 = 0;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_FLOWINGWATEREVENTLIST;
+	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(intVal_pVal)), 0, 2);
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_CELLTYPE;
 	if (ret) {
-		while(ret && (nRemainingItemsVar1 & 0xC0)==0xC0)
-		{
-			if (nRemainingItemsVar1 == 0xC4)
-				nCurBlockSize1 = 0x10000;
-			else if (nRemainingItemsVar1 == 0xC3)
-				nCurBlockSize1 = 0xC000;
-			else if (nRemainingItemsVar1 == 0xC2)
-				nCurBlockSize1 = 0x8000;
-			else if (nRemainingItemsVar1 == 0xC1)
-				nCurBlockSize1 = 0x4000;
-			else {
-				*pErrCode = ERR_UPER_DECODE_FLOWINGWATEREVENTLIST; /*COVERAGE_IGNORE*/
-				return FALSE; /*COVERAGE_IGNORE*/
-			}
-			if (nCurOffset1 + nCurBlockSize1 > 1048576)
-			{
-				*pErrCode = ERR_UPER_DECODE_FLOWINGWATEREVENTLIST; /*COVERAGE_IGNORE*/
-				return FALSE; /*COVERAGE_IGNORE*/
-			}
-
-			for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nCurBlockSize1)) ; i1++)
-			{
-				ret = asn1SccFlowingWaterEvent_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-			}
-
-	        if (ret) {
-			    nLengthTmp1 += (long)nCurBlockSize1;
-			    nCurOffset1 += nCurBlockSize1;
-			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
-	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_FLOWINGWATEREVENTLIST;
-	        }
-		}
-	    if (ret) {
-		    if ( (nRemainingItemsVar1 & 0x80)>0)
-		    {
-			    asn1SccSint len2;
-			    nRemainingItemsVar1 <<= 8;
-			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF);
-	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_FLOWINGWATEREVENTLIST;
-	            if (ret) {
-			        nRemainingItemsVar1 |= len2;
-			        nRemainingItemsVar1 &= 0x7FFF;
-	            }
-		    }
-	        ret = ret && (nCurOffset1 + nRemainingItemsVar1 <= 1048576);
-	        *pErrCode = ret ? 0 : ERR_UPER_DECODE_FLOWINGWATEREVENTLIST;
-	        if (ret) {
-		        for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nRemainingItemsVar1)) ; i1++)
-		        {
-			        ret = asn1SccFlowingWaterEvent_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-		        }
-	            if (ret) {
-		            nLengthTmp1 += (long)nRemainingItemsVar1;
-
-	                if ((nLengthTmp1 >= 0) && (nLengthTmp1 <= 1048576)) {
-		                pVal->nCount = (int)nLengthTmp1;
-
-	                } else {
-	                    ret = FALSE;  /*COVERAGE_IGNORE*/
-	                    *pErrCode = ERR_UPER_DECODE_FLOWINGWATEREVENTLIST; /*COVERAGE_IGNORE*/
-	                }
-
-	            }
-	        }
+	    switch (intVal_pVal) {
+	        case 0:
+	            (*(pVal)) = CellType_normal;
+	            break;
+	        case 1:
+	            (*(pVal)) = CellType_source;
+	            break;
+	        case 2:
+	            (*(pVal)) = CellType_sink;
+	            break;
+	    default:                                    /*COVERAGE_IGNORE*/
+	        ret = FALSE;                            /*COVERAGE_IGNORE*/
+	        *pErrCode = ERR_ACN_DECODE_CELLTYPE;                 /*COVERAGE_IGNORE*/
 	    }
-	}
+	} /*COVERAGE_IGNORE*/
 
-	return ret  && asn1SccFlowingWaterEventList_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccFlowingWaterEventList_ACN_Encode(const asn1SccFlowingWaterEventList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-	int i1;
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccFlowingWaterEventList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 0, 1048576);
-	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	    {
-	    	ret = asn1SccFlowingWaterEvent_ACN_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccFlowingWaterEventList_ACN_Decode(asn1SccFlowingWaterEventList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nCount;
-
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 0, 1048576);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_FLOWINGWATEREVENTLIST;
-	pVal->nCount = (long)nCount;
-	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	{
-		ret = asn1SccFlowingWaterEvent_ACN_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-	}
-
-    return ret && asn1SccFlowingWaterEventList_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccGridModification_Equal(const asn1SccGridModification* pVal1, const asn1SccGridModification* pVal2)
-{
-	flag ret=TRUE;
-
-    ret = (pVal1->targetCell == pVal2->targetCell);
-
-    if (ret) {
-        ret = (pVal1->increment == pVal2->increment);
-
-        if (ret) {
-            ret = (pVal1->delta == pVal2->delta);
-
-        }
-
-    }
-
-	return ret;
-
-}
-
-flag asn1SccGridModification_IsConstraintValid(const asn1SccGridModification* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = asn1SccCellIndex_IsConstraintValid((&(pVal->targetCell)), pErrCode);
-    if (ret) {
-        ret = asn1SccT_UInt32_IsConstraintValid((&(pVal->delta)), pErrCode);
-    }   /*COVERAGE_IGNORE*/
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccGridModification asn1SccGridModification_constant = {.targetCell = 0UL, .increment = FALSE, .delta = 0UL};
-#endif
-
-void asn1SccGridModification_Initialize(asn1SccGridModification* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccGridModification)asn1SccGridModification_constant;
-}
-
-flag asn1SccGridModification_Encode(const asn1SccGridModification* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGridModification_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode targetCell */
-	    ret = asn1SccCellIndex_Encode((&(pVal->targetCell)), pBitStrm, pErrCode, FALSE);
-	    if (ret) {
-	        /*Encode increment */
-	        BitStream_AppendBit(pBitStrm,pVal->increment);
-	        if (ret) {
-	            /*Encode delta */
-	            ret = asn1SccT_UInt32_Encode((&(pVal->delta)), pBitStrm, pErrCode, FALSE);
-	        }   /*COVERAGE_IGNORE*/
-	    }   /*COVERAGE_IGNORE*/
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGridModification_Decode(asn1SccGridModification* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode targetCell */
-	ret = asn1SccCellIndex_Decode((&(pVal->targetCell)), pBitStrm, pErrCode);
-	if (ret) {
-	    /*Decode increment */
-	    ret = BitStream_ReadBit(pBitStrm, (&(pVal->increment)));
-	    *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDMODIFICATION_INCREMENT;
-	    if (ret) {
-	        /*Decode delta */
-	        ret = asn1SccT_UInt32_Decode((&(pVal->delta)), pBitStrm, pErrCode);
-	    }   /*COVERAGE_IGNORE*/
-	}   /*COVERAGE_IGNORE*/
-
-	return ret  && asn1SccGridModification_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccGridModification_ACN_Encode(const asn1SccGridModification* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGridModification_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    /*Encode targetCell */
-	    ret = asn1SccCellIndex_ACN_Encode((&(pVal->targetCell)), pBitStrm, pErrCode, FALSE);
-	    if (ret) {
-	        /*Encode increment */
-	        BitStream_AppendBit(pBitStrm,pVal->increment);
-	        if (ret) {
-	            /*Encode delta */
-	            ret = asn1SccT_UInt32_ACN_Encode((&(pVal->delta)), pBitStrm, pErrCode, FALSE);
-	        }   /*COVERAGE_IGNORE*/
-	    }   /*COVERAGE_IGNORE*/
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGridModification_ACN_Decode(asn1SccGridModification* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	/*Decode targetCell */
-	ret = asn1SccCellIndex_ACN_Decode((&(pVal->targetCell)), pBitStrm, pErrCode);
-	if (ret) {
-	    /*Decode increment */
-	    ret = BitStream_ReadBit(pBitStrm, (&(pVal->increment)));
-	    *pErrCode = ret ? 0 : ERR_ACN_DECODE_GRIDMODIFICATION_INCREMENT;
-	    if (ret) {
-	        /*Decode delta */
-	        ret = asn1SccT_UInt32_ACN_Decode((&(pVal->delta)), pBitStrm, pErrCode);
-	    }   /*COVERAGE_IGNORE*/
-	}   /*COVERAGE_IGNORE*/
-
-    return ret && asn1SccGridModification_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccGridModificationList_Equal(const asn1SccGridModificationList* pVal1, const asn1SccGridModificationList* pVal2)
-{
-	flag ret=TRUE;
-    int i1;
-
-    ret = (pVal1->nCount == pVal2->nCount);
-    for(i1 = 0; ret && i1 < pVal1->nCount; i1++)
-    {
-    	ret = asn1SccGridModification_Equal((&(pVal1->arr[i1])), (&(pVal2->arr[i1])));
-    }
-
-	return ret;
-
-}
-
-flag asn1SccGridModificationList_IsConstraintValid(const asn1SccGridModificationList* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    int i1;
-    for(i1 = 0; ret && i1 < pVal->nCount; i1++)
-    {
-    	ret = asn1SccGridModification_IsConstraintValid((&(pVal->arr[i1])), pErrCode);
-    }
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccGridModificationList asn1SccGridModificationList_constant = {.nCount = 0, .arr  = {[0 ... 4294967295LL-1] = asn1SccGridModification_constant }};
-#endif
-
-void asn1SccGridModificationList_Initialize(asn1SccGridModificationList* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccGridModificationList)asn1SccGridModificationList_constant;
-}
-
-flag asn1SccGridModificationList_Encode(const asn1SccGridModificationList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	int i1;
-	asn1SccSint nBlockIndex1;
-	asn1SccSint nRemainingItemsVar1;
-	asn1SccSint nCurBlockSize1;
-	asn1SccSint nCurOffset1;
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGridModificationList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    nRemainingItemsVar1 = pVal->nCount;
-	    nCurBlockSize1 = 0;
-	    nCurOffset1 = 0;
-	    nBlockIndex1 = 0;
-	    while (nRemainingItemsVar1 >= 0x4000 && nBlockIndex1 < pVal->nCount)
-	    {
-	    	if (nRemainingItemsVar1 >= 0x10000)
-	    	{
-	    		nCurBlockSize1 = 0x10000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC4, 0, 0xFF);
-	    	}
-	    	else if (nRemainingItemsVar1 >= 0xC000)
-	    	{
-	    		nCurBlockSize1 = 0xC000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC3, 0, 0xFF);
-	    	}
-	    	else if (nRemainingItemsVar1 >= 0x8000)
-	    	{
-	    		nCurBlockSize1 = 0x8000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC2, 0, 0xFF);
-	    	}
-	    	else
-	    	{
-	    		nCurBlockSize1 = 0x4000;
-	    		BitStream_EncodeConstraintWholeNumber(pBitStrm, 0xC1, 0, 0xFF);
-	    	}
-
-	    	for(i1=(int)nCurOffset1; i1 < (int)(nCurBlockSize1 + nCurOffset1); i1++)
-	    	{
-	    		ret = asn1SccGridModification_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    	}
-	    	nCurOffset1 += nCurBlockSize1;
-	    	nRemainingItemsVar1 -= nCurBlockSize1;
-	        nBlockIndex1 = nBlockIndex1+1;
-	    }
-
-	    if (nRemainingItemsVar1 <= 0x7F)
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0xFF);
-	    else
-	    {
-	    	BitStream_AppendBit(pBitStrm, 1);
-	    	BitStream_EncodeConstraintWholeNumber(pBitStrm, nRemainingItemsVar1, 0, 0x7FFF);
-	    }
-
-	    for(i1=(int)nCurOffset1; i1 < (int)(nCurOffset1 + nRemainingItemsVar1); i1++)
-	    {
-	    	ret = asn1SccGridModification_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGridModificationList_Decode(asn1SccGridModificationList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nLengthTmp1;
-	asn1SccSint nRemainingItemsVar1;
-	asn1SccSint nCurBlockSize1;
-	asn1SccSint nCurOffset1;
-
-	nRemainingItemsVar1 = 0;
-	nCurBlockSize1 = 0;
-	nCurOffset1 = 0;
-	nLengthTmp1 = 0;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDMODIFICATIONLIST;
-	if (ret) {
-		while(ret && (nRemainingItemsVar1 & 0xC0)==0xC0)
-		{
-			if (nRemainingItemsVar1 == 0xC4)
-				nCurBlockSize1 = 0x10000;
-			else if (nRemainingItemsVar1 == 0xC3)
-				nCurBlockSize1 = 0xC000;
-			else if (nRemainingItemsVar1 == 0xC2)
-				nCurBlockSize1 = 0x8000;
-			else if (nRemainingItemsVar1 == 0xC1)
-				nCurBlockSize1 = 0x4000;
-			else {
-				*pErrCode = ERR_UPER_DECODE_GRIDMODIFICATIONLIST; /*COVERAGE_IGNORE*/
-				return FALSE; /*COVERAGE_IGNORE*/
-			}
-			if (nCurOffset1 + nCurBlockSize1 > 4294967295LL)
-			{
-				*pErrCode = ERR_UPER_DECODE_GRIDMODIFICATIONLIST; /*COVERAGE_IGNORE*/
-				return FALSE; /*COVERAGE_IGNORE*/
-			}
-
-			for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nCurBlockSize1)) ; i1++)
-			{
-				ret = asn1SccGridModification_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-			}
-
-	        if (ret) {
-			    nLengthTmp1 += (long)nCurBlockSize1;
-			    nCurOffset1 += nCurBlockSize1;
-			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRemainingItemsVar1, 0, 0xFF);
-	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDMODIFICATIONLIST;
-	        }
-		}
-	    if (ret) {
-		    if ( (nRemainingItemsVar1 & 0x80)>0)
-		    {
-			    asn1SccSint len2;
-			    nRemainingItemsVar1 <<= 8;
-			    ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &len2, 0, 0xFF);
-	            *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDMODIFICATIONLIST;
-	            if (ret) {
-			        nRemainingItemsVar1 |= len2;
-			        nRemainingItemsVar1 &= 0x7FFF;
-	            }
-		    }
-	        ret = ret && (nCurOffset1 + nRemainingItemsVar1 <= 4294967295LL);
-	        *pErrCode = ret ? 0 : ERR_UPER_DECODE_GRIDMODIFICATIONLIST;
-	        if (ret) {
-		        for(i1=(int)nCurOffset1; ret && (i1 < (int)(nCurOffset1 + nRemainingItemsVar1)) ; i1++)
-		        {
-			        ret = asn1SccGridModification_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-		        }
-	            if (ret) {
-		            nLengthTmp1 += (long)nRemainingItemsVar1;
-
-	                if ((nLengthTmp1 >= 0) && (nLengthTmp1 <= 4294967295LL)) {
-		                pVal->nCount = (int)nLengthTmp1;
-
-	                } else {
-	                    ret = FALSE;  /*COVERAGE_IGNORE*/
-	                    *pErrCode = ERR_UPER_DECODE_GRIDMODIFICATIONLIST; /*COVERAGE_IGNORE*/
-	                }
-
-	            }
-	        }
-	    }
-	}
-
-	return ret  && asn1SccGridModificationList_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccGridModificationList_ACN_Encode(const asn1SccGridModificationList* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-	int i1;
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccGridModificationList_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintWholeNumber(pBitStrm, pVal->nCount, 0, 4294967295LL);
-	    for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	    {
-	    	ret = asn1SccGridModification_ACN_Encode((&(pVal->arr[i1])), pBitStrm, pErrCode, FALSE);
-	    }
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccGridModificationList_ACN_Decode(asn1SccGridModificationList* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-	int i1;
-	asn1SccSint nCount;
-
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, 0, 4294967295LL);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_GRIDMODIFICATIONLIST;
-	pVal->nCount = (long)nCount;
-	for(i1=0; (i1 < (int)pVal->nCount) && ret; i1++)
-	{
-		ret = asn1SccGridModification_ACN_Decode((&(pVal->arr[i1])), pBitStrm, pErrCode);
-	}
-
-    return ret && asn1SccGridModificationList_IsConstraintValid(pVal, pErrCode);
-}
-
-
-flag asn1SccMooreNeighborIndex_Equal(const asn1SccMooreNeighborIndex* pVal1, const asn1SccMooreNeighborIndex* pVal2)
-{
-	return (*(pVal1)) == (*(pVal2));
-
-}
-
-flag asn1SccMooreNeighborIndex_IsConstraintValid(const asn1SccMooreNeighborIndex* pVal, int* pErrCode)
-{
-    flag ret = TRUE;
-    ret = ((*(pVal)) <= 8UL);
-    *pErrCode = ret ? 0 :  ERR_MOORENEIGHBORINDEX;
-
-	return ret;
-}
-
-#ifdef __cplusplus
-const asn1SccMooreNeighborIndex asn1SccMooreNeighborIndex_constant = 0UL;
-#endif
-
-void asn1SccMooreNeighborIndex_Initialize(asn1SccMooreNeighborIndex* pVal)
-{
-	(void)pVal;
-
-
-	(*(pVal)) = (asn1SccMooreNeighborIndex)asn1SccMooreNeighborIndex_constant;
-}
-
-flag asn1SccMooreNeighborIndex_Encode(const asn1SccMooreNeighborIndex* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-
-	*pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccMooreNeighborIndex_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintPosWholeNumber(pBitStrm, (*(pVal)), 0, 8);
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccMooreNeighborIndex_Decode(asn1SccMooreNeighborIndex* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, pVal, 0, 8);
-	*pErrCode = ret ? 0 : ERR_UPER_DECODE_MOORENEIGHBORINDEX;
-
-	return ret  && asn1SccMooreNeighborIndex_IsConstraintValid(pVal, pErrCode);
-}
-
-flag asn1SccMooreNeighborIndex_ACN_Encode(const asn1SccMooreNeighborIndex* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
-{
-    flag ret = TRUE;
-
-    *pErrCode = 0;
-	ret = bCheckConstraints ? asn1SccMooreNeighborIndex_IsConstraintValid(pVal, pErrCode) : TRUE ;
-	if (ret && *pErrCode == 0) {
-	    BitStream_EncodeConstraintPosWholeNumber(pBitStrm, (*(pVal)), 0, 8);
-    } /*COVERAGE_IGNORE*/
-
-
-    return ret;
-}
-
-flag asn1SccMooreNeighborIndex_ACN_Decode(asn1SccMooreNeighborIndex* pVal, BitStream* pBitStrm, int* pErrCode)
-{
-    flag ret = TRUE;
-	*pErrCode = 0;
-
-
-	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, pVal, 0, 8);
-	*pErrCode = ret ? 0 : ERR_ACN_DECODE_MOORENEIGHBORINDEX;
-
-    return ret && asn1SccMooreNeighborIndex_IsConstraintValid(pVal, pErrCode);
+    return ret && asn1SccCellType_IsConstraintValid(pVal, pErrCode);
 }
 
 
@@ -3533,14 +2188,14 @@ flag asn1SccPID_Equal(const asn1SccPID* pVal1, const asn1SccPID* pVal2)
 flag asn1SccPID_IsConstraintValid(const asn1SccPID* pVal, int* pErrCode)
 {
     flag ret = TRUE;
-    ret = ((((((((*(pVal)) == PID_core)) || (((*(pVal)) == PID_io_gis)))) || (((*(pVal)) == PID_ui)))) || (((*(pVal)) == PID_env)));
+    ret = ((((((((*(pVal)) == PID_coreengineca)) || (((*(pVal)) == PID_gisdatahandler)))) || (((*(pVal)) == PID_userinterface)))) || (((*(pVal)) == PID_env)));
     *pErrCode = ret ? 0 :  ERR_PID;
 
 	return ret;
 }
 
 #ifdef __cplusplus
-const asn1SccPID asn1SccPID_constant = PID_core;
+const asn1SccPID asn1SccPID_constant = PID_coreengineca;
 #endif
 
 void asn1SccPID_Initialize(asn1SccPID* pVal)
@@ -3561,13 +2216,13 @@ flag asn1SccPID_Encode(const asn1SccPID* pVal, BitStream* pBitStrm, int* pErrCod
 	if (ret && *pErrCode == 0) {
 	    switch((*(pVal)))
 	    {
-	        case PID_core:
+	        case PID_coreengineca:
 	            BitStream_EncodeConstraintWholeNumber(pBitStrm, 0, 0, 3);
 	        	break;
-	        case PID_io_gis:
+	        case PID_gisdatahandler:
 	            BitStream_EncodeConstraintWholeNumber(pBitStrm, 1, 0, 3);
 	        	break;
-	        case PID_ui:
+	        case PID_userinterface:
 	            BitStream_EncodeConstraintWholeNumber(pBitStrm, 2, 0, 3);
 	        	break;
 	        case PID_env:
@@ -3597,13 +2252,13 @@ flag asn1SccPID_Decode(asn1SccPID* pVal, BitStream* pBitStrm, int* pErrCode)
 	        switch(enumIndex)
 	        {
 	            case 0:
-	                (*(pVal)) = PID_core;
+	                (*(pVal)) = PID_coreengineca;
 	                break;
 	            case 1:
-	                (*(pVal)) = PID_io_gis;
+	                (*(pVal)) = PID_gisdatahandler;
 	                break;
 	            case 2:
-	                (*(pVal)) = PID_ui;
+	                (*(pVal)) = PID_userinterface;
 	                break;
 	            case 3:
 	                (*(pVal)) = PID_env;
@@ -3613,7 +2268,7 @@ flag asn1SccPID_Decode(asn1SccPID* pVal, BitStream* pBitStrm, int* pErrCode)
 		            ret = FALSE;                /*COVERAGE_IGNORE*/
 	        }
 	    } else {
-	        (*(pVal)) = PID_core;             /*COVERAGE_IGNORE*/
+	        (*(pVal)) = PID_coreengineca;             /*COVERAGE_IGNORE*/
 	    }
 	}
 
@@ -3629,13 +2284,13 @@ flag asn1SccPID_ACN_Encode(const asn1SccPID* pVal, BitStream* pBitStrm, int* pEr
 	ret = bCheckConstraints ? asn1SccPID_IsConstraintValid(pVal, pErrCode) : TRUE ;
 	if (ret && *pErrCode == 0) {
 	    switch((*(pVal))) {
-	        case PID_core:
+	        case PID_coreengineca:
 	            intVal_pVal = 0UL;
 	            break;
-	        case PID_io_gis:
+	        case PID_gisdatahandler:
 	            intVal_pVal = 1UL;
 	            break;
-	        case PID_ui:
+	        case PID_userinterface:
 	            intVal_pVal = 2UL;
 	            break;
 	        case PID_env:
@@ -3666,13 +2321,13 @@ flag asn1SccPID_ACN_Decode(asn1SccPID* pVal, BitStream* pBitStrm, int* pErrCode)
 	if (ret) {
 	    switch (intVal_pVal) {
 	        case 0:
-	            (*(pVal)) = PID_core;
+	            (*(pVal)) = PID_coreengineca;
 	            break;
 	        case 1:
-	            (*(pVal)) = PID_io_gis;
+	            (*(pVal)) = PID_gisdatahandler;
 	            break;
 	        case 2:
-	            (*(pVal)) = PID_ui;
+	            (*(pVal)) = PID_userinterface;
 	            break;
 	        case 3:
 	            (*(pVal)) = PID_env;

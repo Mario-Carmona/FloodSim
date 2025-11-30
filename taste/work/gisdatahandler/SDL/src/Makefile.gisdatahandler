@@ -1,0 +1,12 @@
+all:
+	mkdir -p code
+	cd code && opengeode --toAda ../*.pr
+	asn1scc -fp AUTO -typePrefix asn1Scc -o code -equal -Ada dataview-uniq.asn code/gisdatahandler_datamodel.asn
+	cd code && gnat make gisdatahandler
+c:
+	mkdir -p code_c
+	cd code_c && opengeode --toC ../*.pr
+	asn1scc -fp AUTO -ig -renamePolicy 3 -typePrefix asn1Scc -o code_c -equal -c dataview-uniq.asn code/gisdatahandler_datamodel.asn
+	cd code_c && gcc -c *.c
+clean:
+	rm -rf code code_c

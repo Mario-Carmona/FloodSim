@@ -36,47 +36,52 @@
 -- ----------------------
 -- DUMP OF INTERFACE VIEW
 -- ----------------------
--- Function (SDL): Core
----- PI (ANY_OPERATION): startSimulationFromGIS
------- PARAM_IN (FilePath): startSimulationFromGIS.folder
------- PARAM_IN (Duration): startSimulationFromGIS.timeStepDuration
------- PARAM_IN (Duration): startSimulationFromGIS.totalDuration
------- PARAM_IN (TimeStep): startSimulationFromGIS.snapshotPeriod
+-- Function (SDL): CoreEngineCA
+---- PI (ANY_OPERATION): BufferFreed
+
+---- PI (ANY_OPERATION): GISDataLoaded
+------ PARAM_IN (CellularAutomatonState): GISDataLoaded.loadedState
+
+---- PI (ANY_OPERATION): StartSimulation
+------ PARAM_IN (SimConfig): StartSimulation.cfg
 
 
----- RI (ANY_OPERATION): displayInitialGrid
------- PARAM_IN (Grid): displayInitialGrid.grid
+---- RI (ANY_OPERATION): LoadGISData
+------ PARAM_IN (FolderPath): LoadGISData.gisDataPath
 
----- RI (ANY_OPERATION): displaySnapshot
------- PARAM_IN (GridModificationList): displaySnapshot.modifications
------- PARAM_IN (T-Boolean): displaySnapshot.finished
+---- RI (ANY_OPERATION): SimulationFinished
 
----- RI (ANY_OPERATION): loadGISData
------- PARAM_IN (FilePath): loadGISData.folder
------- PARAM_OUT (Grid): loadGISData.grid
+---- RI (ANY_OPERATION): SnapshotAvailable
+------ PARAM_IN (CellularAutomatonState): SnapshotAvailable.receivedState
 
 
--- Function (SDL): IO_GIS
----- PI (ANY_OPERATION): loadGISData
------- PARAM_IN (FilePath): loadGISData.folder
------- PARAM_OUT (Grid): loadGISData.grid
+-- Function (SDL): GISDataHandler
+---- PI (ANY_OPERATION): LoadGISData
+------ PARAM_IN (FolderPath): LoadGISData.gisDataPath
 
 
-
--- Function (SDL): UI
----- PI (ANY_OPERATION): displayInitialGrid
------- PARAM_IN (Grid): displayInitialGrid.grid
-
----- PI (ANY_OPERATION): displaySnapshot
------- PARAM_IN (GridModificationList): displaySnapshot.modifications
------- PARAM_IN (T-Boolean): displaySnapshot.finished
+---- RI (ANY_OPERATION): GISDataLoaded
+------ PARAM_IN (CellularAutomatonState): GISDataLoaded.loadedState
 
 
----- RI (ANY_OPERATION): startSimulationFromGIS
------- PARAM_IN (FilePath): startSimulationFromGIS.folder
------- PARAM_IN (Duration): startSimulationFromGIS.timeStepDuration
------- PARAM_IN (Duration): startSimulationFromGIS.totalDuration
------- PARAM_IN (TimeStep): startSimulationFromGIS.snapshotPeriod
+-- Function (SDL): UserInterface
+---- PI (ANY_OPERATION): SimulationFinished
+
+---- PI (ANY_OPERATION): SnapshotAvailable
+------ PARAM_IN (CellularAutomatonState): SnapshotAvailable.receivedState
+
+---- PI (ANY_OPERATION): UserPressStart
+------ PARAM_IN (FolderPath): UserPressStart.dataPath
+------ PARAM_IN (T-Float): UserPressStart.dur
+------ PARAM_IN (T-Float): UserPressStart.dt
+------ PARAM_IN (T-UInt32): UserPressStart.freq
+------ PARAM_IN (SyncMode): UserPressStart.syncMode
+
+
+---- RI (ANY_OPERATION): BufferFreed
+
+---- RI (ANY_OPERATION): StartSimulation
+------ PARAM_IN (SimConfig): StartSimulation.cfg
 
 
 

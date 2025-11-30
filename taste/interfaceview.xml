@@ -1,20 +1,30 @@
 <InterfaceView version="1.3" asn1file="DanaSim.acn" UiFile="interfaceview.ui.xml" modifierHash="8f9a913">
-<Function id="{3f52772a-280d-4d9d-9367-f659edca9a45}" name="UI" is_type="NO" language="SDL" default_implementation="default" fixed_system_element="NO" required_system_element="NO" instances_min="1" instances_max="1" startup_priority="1">
+<Function id="{d235ecd8-19f1-4fab-ad85-e81b8706cf62}" name="CoreEngineCA" is_type="NO" language="SDL" default_implementation="default" fixed_system_element="NO" required_system_element="NO" startup_priority="1" instances_min="1" instances_max="1">
     <Property name="TASTE_IV_Properties::Default_Codegen" value="C"/>
-<Provided_Interface id="{05323cb7-1a10-4eb0-8bdf-75bd5a4af650}" name="displaySnapshot" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
-    <Input_Parameter name="modifications" type="GridModificationList" encoding="NATIVE"/>
-    <Input_Parameter name="finished" type="T-Boolean" encoding="NATIVE"/>
+<Provided_Interface id="{6d3f100f-cc49-4c64-b655-dc0ca6349011}" name="StartSimulation" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="cfg" type="SimConfig" encoding="NATIVE"/>
 </Provided_Interface>
 
-<Provided_Interface id="{744f2150-9b0f-4d7f-93f1-f53f1f0b6e91}" name="displayInitialGrid" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
-    <Input_Parameter name="grid" type="Grid" encoding="NATIVE"/>
+<Provided_Interface id="{9f7dd99d-cf0f-4802-9deb-68590054091f}" name="GISDataLoaded" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="loadedState" type="CellularAutomatonState" encoding="NATIVE"/>
 </Provided_Interface>
 
-<Required_Interface id="{df2b313b-5e16-47d7-9c6d-0c14256b75b7}" name="startSimulationFromGIS" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
-    <Input_Parameter name="folder" type="FilePath" encoding="NATIVE"/>
-    <Input_Parameter name="timeStepDuration" type="Duration" encoding="NATIVE"/>
-    <Input_Parameter name="totalDuration" type="Duration" encoding="NATIVE"/>
-    <Input_Parameter name="snapshotPeriod" type="TimeStep" encoding="NATIVE"/>
+<Provided_Interface id="{1b6e8f12-03e0-409d-8e14-0aacf3914b8d}" name="BufferFreed" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+</Provided_Interface>
+
+<Required_Interface id="{41f7d8da-6ec9-491a-97a8-48a911ba77be}" name="SimulationFinished" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Property name="Taste::InheritPI" value="true"/>
+    <Property name="Taste::Autonamed" value="true"/>
+</Required_Interface>
+
+<Required_Interface id="{ffa31e04-9c0d-4f73-9ee4-60074b555819}" name="LoadGISData" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="gisDataPath" type="FolderPath" encoding="NATIVE"/>
+    <Property name="Taste::InheritPI" value="true"/>
+    <Property name="Taste::Autonamed" value="true"/>
+</Required_Interface>
+
+<Required_Interface id="{d4d41edb-569e-4ef9-9991-d1e67576f91c}" name="SnapshotAvailable" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="receivedState" type="CellularAutomatonState" encoding="NATIVE"/>
     <Property name="Taste::InheritPI" value="true"/>
     <Property name="Taste::Autonamed" value="true"/>
 </Required_Interface>
@@ -24,43 +34,30 @@
     </Implementations>
 </Function>
 
-<Function id="{a0ea3e56-2629-455d-bf94-c0fdbcd31749}" name="IO_GIS" is_type="NO" language="SDL" default_implementation="default" fixed_system_element="NO" required_system_element="NO" instances_min="1" instances_max="1" startup_priority="1">
+<Function id="{398b1c33-04c6-43f8-8182-6b0e6d9b15b7}" name="UserInterface" is_type="NO" language="SDL" default_implementation="default" fixed_system_element="NO" required_system_element="NO" startup_priority="1" instances_min="1" instances_max="1">
     <Property name="TASTE_IV_Properties::Default_Codegen" value="C"/>
-<Provided_Interface id="{5bd218fa-2459-4c3a-b47f-a7e7145584e3}" name="loadGISData" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
-    <Input_Parameter name="folder" type="FilePath" encoding="NATIVE"/>
-    <Output_Parameter name="grid" type="Grid" encoding="NATIVE"/>
+<Provided_Interface id="{ba092878-393d-4a31-9707-dc042e09f43a}" name="SimulationFinished" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
 </Provided_Interface>
 
-    <Implementations>
-        <Implementation name="default" language="SDL"/>
-    </Implementations>
-</Function>
-
-<Function id="{027629d5-a33f-4fdb-946d-9089afa24a39}" name="Core" is_type="NO" language="SDL" default_implementation="default" fixed_system_element="NO" required_system_element="NO" instances_min="1" instances_max="1" startup_priority="1">
-    <Property name="TASTE_IV_Properties::Default_Codegen" value="C"/>
-<Provided_Interface id="{37bbb37a-0772-4258-a5be-6e2651159451}" name="startSimulationFromGIS" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
-    <Input_Parameter name="folder" type="FilePath" encoding="NATIVE"/>
-    <Input_Parameter name="timeStepDuration" type="Duration" encoding="NATIVE"/>
-    <Input_Parameter name="totalDuration" type="Duration" encoding="NATIVE"/>
-    <Input_Parameter name="snapshotPeriod" type="TimeStep" encoding="NATIVE"/>
+<Provided_Interface id="{e0d0bc96-2d1b-43cc-a02b-df88f19a6e7c}" name="UserPressStart" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="dataPath" type="FolderPath" encoding="NATIVE"/>
+    <Input_Parameter name="dur" type="T-Float" encoding="NATIVE"/>
+    <Input_Parameter name="dt" type="T-Float" encoding="NATIVE"/>
+    <Input_Parameter name="freq" type="T-UInt32" encoding="NATIVE"/>
+    <Input_Parameter name="syncMode" type="SyncMode" encoding="NATIVE"/>
 </Provided_Interface>
 
-<Required_Interface id="{a5d29427-18e1-406c-a72b-f08c8467e8f5}" name="loadGISData" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
-    <Input_Parameter name="folder" type="FilePath" encoding="NATIVE"/>
-    <Output_Parameter name="grid" type="Grid" encoding="NATIVE"/>
+<Provided_Interface id="{1abde0ae-cb62-46a1-9ac0-0d10c7605f5f}" name="SnapshotAvailable" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="receivedState" type="CellularAutomatonState" encoding="NATIVE"/>
+</Provided_Interface>
+
+<Required_Interface id="{674a562b-fdaf-4412-aad5-f3027012f747}" name="StartSimulation" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="cfg" type="SimConfig" encoding="NATIVE"/>
     <Property name="Taste::InheritPI" value="true"/>
     <Property name="Taste::Autonamed" value="true"/>
 </Required_Interface>
 
-<Required_Interface id="{16a0fc59-f8ea-4891-8977-8b10c585632d}" name="displaySnapshot" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
-    <Input_Parameter name="modifications" type="GridModificationList" encoding="NATIVE"/>
-    <Input_Parameter name="finished" type="T-Boolean" encoding="NATIVE"/>
-    <Property name="Taste::InheritPI" value="true"/>
-    <Property name="Taste::Autonamed" value="false"/>
-</Required_Interface>
-
-<Required_Interface id="{d4b8d767-2bf6-457a-8fbb-28ababec4795}" name="displayInitialGrid" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
-    <Input_Parameter name="grid" type="Grid" encoding="NATIVE"/>
+<Required_Interface id="{c1ab7f7b-7882-43cf-94c3-1f8f69a10184}" name="BufferFreed" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
     <Property name="Taste::InheritPI" value="true"/>
     <Property name="Taste::Autonamed" value="true"/>
 </Required_Interface>
@@ -70,24 +67,51 @@
     </Implementations>
 </Function>
 
-<Connection id="{969c5621-271e-4e3d-8a31-7dc54c22d262}" required_system_element="NO">
-    <Source iface_id="{a5d29427-18e1-406c-a72b-f08c8467e8f5}" func_name="Core" ri_name="loadGISData" />
-    <Target iface_id="{5bd218fa-2459-4c3a-b47f-a7e7145584e3}" func_name="IO_GIS" pi_name="loadGISData" />
+<Function id="{f06b53ce-46f5-49ef-b2c0-b03aaf5c8325}" name="GISDataHandler" is_type="NO" language="SDL" default_implementation="default" fixed_system_element="NO" required_system_element="NO" startup_priority="1" instances_min="1" instances_max="1">
+    <Property name="TASTE_IV_Properties::Default_Codegen" value="C"/>
+<Provided_Interface id="{ad4a47ac-e545-45cd-85ba-b1df1c658c71}" name="LoadGISData" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="gisDataPath" type="FolderPath" encoding="NATIVE"/>
+</Provided_Interface>
+
+<Required_Interface id="{26e1a474-1288-456c-9be8-c84ec54f935f}" name="GISDataLoaded" kind="Any" enable_multicast="true" layer="default" required_system_element="NO" is_simulink_interface="false">
+    <Input_Parameter name="loadedState" type="CellularAutomatonState" encoding="NATIVE"/>
+    <Property name="Taste::InheritPI" value="true"/>
+    <Property name="Taste::Autonamed" value="true"/>
+</Required_Interface>
+
+    <Implementations>
+        <Implementation name="default" language="SDL"/>
+    </Implementations>
+</Function>
+
+<Connection id="{1e79aac0-1fb8-4e02-8dac-1f97679a7f1e}" name="CoreEngineCA_SimulationFinished____UserInterface_SimulationFinished" required_system_element="NO">
+    <Source iface_id="{41f7d8da-6ec9-491a-97a8-48a911ba77be}" func_name="CoreEngineCA" ri_name="SimulationFinished" />
+    <Target iface_id="{ba092878-393d-4a31-9707-dc042e09f43a}" func_name="UserInterface" pi_name="SimulationFinished" />
 </Connection>
 
-<Connection id="{fa2fe686-b44f-4882-ad67-7e780c7dc17a}" required_system_element="NO">
-    <Source iface_id="{d4b8d767-2bf6-457a-8fbb-28ababec4795}" func_name="Core" ri_name="displayInitialGrid" />
-    <Target iface_id="{744f2150-9b0f-4d7f-93f1-f53f1f0b6e91}" func_name="UI" pi_name="displayInitialGrid" />
+<Connection id="{bde81555-923c-4a18-8fe2-9ca86bfea5b1}" name="CoreEngineCA_LoadGISData____GISDataHandler_LoadGISData" required_system_element="NO">
+    <Source iface_id="{ffa31e04-9c0d-4f73-9ee4-60074b555819}" func_name="CoreEngineCA" ri_name="LoadGISData" />
+    <Target iface_id="{ad4a47ac-e545-45cd-85ba-b1df1c658c71}" func_name="GISDataHandler" pi_name="LoadGISData" />
 </Connection>
 
-<Connection id="{1133886f-99af-4664-b31f-ac54b082a643}" name="UI_startSimulationFromGIS____Core_startSimulationFromGIS" required_system_element="NO">
-    <Source iface_id="{df2b313b-5e16-47d7-9c6d-0c14256b75b7}" func_name="UI" ri_name="startSimulationFromGIS" />
-    <Target iface_id="{37bbb37a-0772-4258-a5be-6e2651159451}" func_name="Core" pi_name="startSimulationFromGIS" />
+<Connection id="{47d4dcb7-9d2f-4bfc-acec-1f675b35003a}" name="UserInterface_BufferFreed____CoreEngineCA_BufferFreed" required_system_element="NO">
+    <Source iface_id="{c1ab7f7b-7882-43cf-94c3-1f8f69a10184}" func_name="UserInterface" ri_name="BufferFreed" />
+    <Target iface_id="{1b6e8f12-03e0-409d-8e14-0aacf3914b8d}" func_name="CoreEngineCA" pi_name="BufferFreed" />
 </Connection>
 
-<Connection id="{4c88b690-79eb-440c-ac27-214516bae7db}" name="Core_displaySnapshot____UI_displaySnapshot" required_system_element="NO">
-    <Source iface_id="{16a0fc59-f8ea-4891-8977-8b10c585632d}" func_name="Core" ri_name="displaySnapshot" />
-    <Target iface_id="{05323cb7-1a10-4eb0-8bdf-75bd5a4af650}" func_name="UI" pi_name="displaySnapshot" />
+<Connection id="{c825b1ef-3607-4ef5-a517-52841cea8a4b}" name="GISDataHandler_GISDataLoaded____CoreEngineCA_GISDataLoaded" required_system_element="NO">
+    <Source iface_id="{26e1a474-1288-456c-9be8-c84ec54f935f}" func_name="GISDataHandler" ri_name="GISDataLoaded" />
+    <Target iface_id="{9f7dd99d-cf0f-4802-9deb-68590054091f}" func_name="CoreEngineCA" pi_name="GISDataLoaded" />
+</Connection>
+
+<Connection id="{d348b3ca-b69c-4e34-b60f-594c246c8b1b}" name="UserInterface_StartSimulation____CoreEngineCA_StartSimulation" required_system_element="NO">
+    <Source iface_id="{674a562b-fdaf-4412-aad5-f3027012f747}" func_name="UserInterface" ri_name="StartSimulation" />
+    <Target iface_id="{6d3f100f-cc49-4c64-b655-dc0ca6349011}" func_name="CoreEngineCA" pi_name="StartSimulation" />
+</Connection>
+
+<Connection id="{8fd347c5-d9d0-4fc8-99ff-41c57284f3d0}" name="CoreEngineCA_SnapshotAvailable____UserInterface_SnapshotAvailable" required_system_element="NO">
+    <Source iface_id="{d4d41edb-569e-4ef9-9991-d1e67576f91c}" func_name="CoreEngineCA" ri_name="SnapshotAvailable" />
+    <Target iface_id="{1abde0ae-cb62-46a1-9ac0-0d10c7605f5f}" func_name="UserInterface" pi_name="SnapshotAvailable" />
 </Connection>
 
 <Layer name="default" is_visible="true"/>

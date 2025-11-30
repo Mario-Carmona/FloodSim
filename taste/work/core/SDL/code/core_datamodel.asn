@@ -2,11 +2,11 @@ Core-Datamodel DEFINITIONS ::=
 BEGIN
 --  This file was generated automatically by OpenGEODE
 IMPORTS
-   T-UInt32, SurfaceType, FlowCoefficient, ScaleFactor, Duration, TimeStep, FilePath, CellState, Height, GridVector, Grid, CellIndex, Outflow, OutflowList, MooreNeighborIndex, MooreNeighborList, GridCellNeighborList, FlowingWaterEvent, FlowingWaterEventList, GridModification, GridModificationList FROM DANASIM-DATAVIEW
+   T-UInt32, T-UInt64, Double, SurfaceType, CellType, FrictionCoefficient, ScaleFactor, Duration, TimeStep, FilePath, CellState, GridVector, Grid, CellIndex, Outflow, OutflowList, MooreNeighborIndex, MooreNeighborList, GridCellNeighborList, FlowingWaterEvent, FlowingWaterEventList, GridModification, GridModificationList FROM DANASIM-DATAVIEW
    T-Int32, TASTE-BasicTypes-T-UInt32, T-Int8, T-UInt8, T-Boolean, T-Null-Record, T-Runtime-Error FROM TASTE-BasicTypes
    PID-Range, PID FROM System-Dataview;
 
-Core-States ::= ENUMERATED {running, idle}
+Core-States ::= ENUMERATED {idle, running}
 
 Core-Context ::= SEQUENCE {
    state Core-States,
@@ -16,7 +16,7 @@ Core-Context ::= SEQUENCE {
    currenttimestep TimeStep,
    totaltimesteps TimeStep,
    coregrid Grid,
-   eventlist FlowingWaterEventList,
+   flowingwatereventlist FlowingWaterEventList,
    coresnapshotperiod TimeStep,
    nextsnapshottimestep TimeStep,
    finished T-Boolean,

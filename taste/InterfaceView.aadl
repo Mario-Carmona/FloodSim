@@ -6,106 +6,121 @@
 ---------------------------------------------------
 
 
-PACKAGE interfaceview::IV::Core
+PACKAGE interfaceview::IV::CoreEngineCA
 PUBLIC
 
 WITH Taste;
 WITH DataView;
 WITH TASTE_IV_Properties;
-WITH interfaceview::IV::IO_GIS;
-WITH interfaceview::IV::UI;
+WITH interfaceview::IV::GISDataHandler;
+WITH interfaceview::IV::UserInterface;
 
-SUBPROGRAM PI_startSimulationFromGIS
+SUBPROGRAM PI_StartSimulation
 FEATURES
-    folder : IN PARAMETER DataView::FilePath {
+    cfg : IN PARAMETER DataView::SimConfig {
        Taste::encoding => NATIVE;
     };
-    timeStepDuration : IN PARAMETER DataView::Duration {
-       Taste::encoding => NATIVE;
-    };
-    totalDuration : IN PARAMETER DataView::Duration {
-       Taste::encoding => NATIVE;
-    };
-    snapshotPeriod : IN PARAMETER DataView::TimeStep {
-       Taste::encoding => NATIVE;
-    };
-END PI_startSimulationFromGIS;
+END PI_StartSimulation;
 
-SUBPROGRAM IMPLEMENTATION PI_startSimulationFromGIS.others
-END PI_startSimulationFromGIS.others;
+SUBPROGRAM IMPLEMENTATION PI_StartSimulation.others
+END PI_StartSimulation.others;
 
 
-SUBPROGRAM RI_loadGISData
+SUBPROGRAM PI_GISDataLoaded
 FEATURES
-    folder : IN PARAMETER DataView::FilePath {
+    loadedState : IN PARAMETER DataView::CellularAutomatonState {
        Taste::encoding => NATIVE;
     };
-    grid : OUT PARAMETER DataView::Grid {
-       Taste::encoding => NATIVE;
-    };
-END RI_loadGISData;
+END PI_GISDataLoaded;
 
-SUBPROGRAM IMPLEMENTATION RI_loadGISData.others
-END RI_loadGISData.others;
+SUBPROGRAM IMPLEMENTATION PI_GISDataLoaded.others
+END PI_GISDataLoaded.others;
 
 
-SUBPROGRAM RI_displaySnapshot
+SUBPROGRAM PI_BufferFreed
+END PI_BufferFreed;
+
+SUBPROGRAM IMPLEMENTATION PI_BufferFreed.others
+END PI_BufferFreed.others;
+
+
+SUBPROGRAM RI_SimulationFinished
+END RI_SimulationFinished;
+
+SUBPROGRAM IMPLEMENTATION RI_SimulationFinished.others
+END RI_SimulationFinished.others;
+
+
+SUBPROGRAM RI_LoadGISData
 FEATURES
-    modifications : IN PARAMETER DataView::GridModificationList {
+    gisDataPath : IN PARAMETER DataView::FolderPath {
        Taste::encoding => NATIVE;
     };
-    finished : IN PARAMETER DataView::T_Boolean {
-       Taste::encoding => NATIVE;
-    };
-END RI_displaySnapshot;
+END RI_LoadGISData;
 
-SUBPROGRAM IMPLEMENTATION RI_displaySnapshot.others
-END RI_displaySnapshot.others;
+SUBPROGRAM IMPLEMENTATION RI_LoadGISData.others
+END RI_LoadGISData.others;
 
 
-SUBPROGRAM RI_displayInitialGrid
+SUBPROGRAM RI_SnapshotAvailable
 FEATURES
-    grid : IN PARAMETER DataView::Grid {
+    receivedState : IN PARAMETER DataView::CellularAutomatonState {
        Taste::encoding => NATIVE;
     };
-END RI_displayInitialGrid;
+END RI_SnapshotAvailable;
 
-SUBPROGRAM IMPLEMENTATION RI_displayInitialGrid.others
-END RI_displayInitialGrid.others;
+SUBPROGRAM IMPLEMENTATION RI_SnapshotAvailable.others
+END RI_SnapshotAvailable.others;
 
 
 
-SYSTEM Core
+SYSTEM CoreEngineCA
 FEATURES
-   PI_startSimulationFromGIS : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: Core:: PI_startSimulationFromGIS.others {
-      Taste::InterfaceName           => "startSimulationFromGIS";            
+   PI_StartSimulation : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: CoreEngineCA:: PI_StartSimulation.others {
+      Taste::InterfaceName           => "StartSimulation";            
       Taste::RCMoperationKind        => any;      
       -- Unrecognized property: enable_multicast => true      
       Taste::Communication_Layer     => "default";      
       -- Unrecognized property: required_system_element => NO      
       -- Unrecognized property: is_simulink_interface => false      
    };
-   RI_loadGISData : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: IO_GIS:: PI_loadGISData.others {
-      Taste::labelInheritance        => "true";
-      Taste::InterfaceName           => "loadGISData";            
+   PI_GISDataLoaded : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: CoreEngineCA:: PI_GISDataLoaded.others {
+      Taste::InterfaceName           => "GISDataLoaded";            
       Taste::RCMoperationKind        => any;      
       -- Unrecognized property: enable_multicast => true      
       Taste::Communication_Layer     => "default";      
       -- Unrecognized property: required_system_element => NO      
       -- Unrecognized property: is_simulink_interface => false      
    };
-   RI_displaySnapshot : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: UI:: PI_displaySnapshot.others {
-      Taste::labelInheritance        => "true";
-      Taste::InterfaceName           => "displaySnapshot";            
+   PI_BufferFreed : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: CoreEngineCA:: PI_BufferFreed.others {
+      Taste::InterfaceName           => "BufferFreed";            
       Taste::RCMoperationKind        => any;      
       -- Unrecognized property: enable_multicast => true      
       Taste::Communication_Layer     => "default";      
       -- Unrecognized property: required_system_element => NO      
       -- Unrecognized property: is_simulink_interface => false      
    };
-   RI_displayInitialGrid : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: UI:: PI_displayInitialGrid.others {
+   RI_SimulationFinished : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: UserInterface:: PI_SimulationFinished.others {
       Taste::labelInheritance        => "true";
-      Taste::InterfaceName           => "displayInitialGrid";            
+      Taste::InterfaceName           => "SimulationFinished";            
+      Taste::RCMoperationKind        => any;      
+      -- Unrecognized property: enable_multicast => true      
+      Taste::Communication_Layer     => "default";      
+      -- Unrecognized property: required_system_element => NO      
+      -- Unrecognized property: is_simulink_interface => false      
+   };
+   RI_LoadGISData : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: GISDataHandler:: PI_LoadGISData.others {
+      Taste::labelInheritance        => "true";
+      Taste::InterfaceName           => "LoadGISData";            
+      Taste::RCMoperationKind        => any;      
+      -- Unrecognized property: enable_multicast => true      
+      Taste::Communication_Layer     => "default";      
+      -- Unrecognized property: required_system_element => NO      
+      -- Unrecognized property: is_simulink_interface => false      
+   };
+   RI_SnapshotAvailable : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: UserInterface:: PI_SnapshotAvailable.others {
+      Taste::labelInheritance        => "true";
+      Taste::InterfaceName           => "SnapshotAvailable";            
       Taste::RCMoperationKind        => any;      
       -- Unrecognized property: enable_multicast => true      
       Taste::Communication_Layer     => "default";      
@@ -113,7 +128,7 @@ FEATURES
       -- Unrecognized property: is_simulink_interface => false      
    };
 PROPERTIES
-   -- ignored property: name = Core
+   -- ignored property: name = CoreEngineCA
    -- ignored property: is_type = NO
    Source_Language => (SDL);
    -- ignored property: default_implementation = default
@@ -124,144 +139,121 @@ PROPERTIES
    Taste::Instances_Min => 1;
    TASTE_IV_Properties::Default_Codegen => C;
 
-END Core;
+END CoreEngineCA;
 
-SYSTEM IMPLEMENTATION Core.others
-END Core.others;
+SYSTEM IMPLEMENTATION CoreEngineCA.others
+END CoreEngineCA.others;
 
-END interfaceview::IV::Core;
+END interfaceview::IV::CoreEngineCA;
 
 
 
-PACKAGE interfaceview::IV::IO_GIS
+PACKAGE interfaceview::IV::UserInterface
 PUBLIC
 
 WITH Taste;
 WITH DataView;
 WITH TASTE_IV_Properties;
-WITH interfaceview::IV::Core;
+WITH interfaceview::IV::CoreEngineCA;
 
-SUBPROGRAM PI_loadGISData
+SUBPROGRAM PI_SimulationFinished
+END PI_SimulationFinished;
+
+SUBPROGRAM IMPLEMENTATION PI_SimulationFinished.others
+END PI_SimulationFinished.others;
+
+
+SUBPROGRAM PI_UserPressStart
 FEATURES
-    folder : IN PARAMETER DataView::FilePath {
+    dataPath : IN PARAMETER DataView::FolderPath {
        Taste::encoding => NATIVE;
     };
-    grid : OUT PARAMETER DataView::Grid {
+    dur : IN PARAMETER DataView::T_Float {
        Taste::encoding => NATIVE;
     };
-END PI_loadGISData;
+    dt : IN PARAMETER DataView::T_Float {
+       Taste::encoding => NATIVE;
+    };
+    freq : IN PARAMETER DataView::T_UInt32 {
+       Taste::encoding => NATIVE;
+    };
+    syncMode : IN PARAMETER DataView::SyncMode {
+       Taste::encoding => NATIVE;
+    };
+END PI_UserPressStart;
 
-SUBPROGRAM IMPLEMENTATION PI_loadGISData.others
-END PI_loadGISData.others;
+SUBPROGRAM IMPLEMENTATION PI_UserPressStart.others
+END PI_UserPressStart.others;
 
 
-
-SYSTEM IO_GIS
+SUBPROGRAM PI_SnapshotAvailable
 FEATURES
-   PI_loadGISData : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: IO_GIS:: PI_loadGISData.others {
-      Taste::InterfaceName           => "loadGISData";            
+    receivedState : IN PARAMETER DataView::CellularAutomatonState {
+       Taste::encoding => NATIVE;
+    };
+END PI_SnapshotAvailable;
+
+SUBPROGRAM IMPLEMENTATION PI_SnapshotAvailable.others
+END PI_SnapshotAvailable.others;
+
+
+SUBPROGRAM RI_StartSimulation
+FEATURES
+    cfg : IN PARAMETER DataView::SimConfig {
+       Taste::encoding => NATIVE;
+    };
+END RI_StartSimulation;
+
+SUBPROGRAM IMPLEMENTATION RI_StartSimulation.others
+END RI_StartSimulation.others;
+
+
+SUBPROGRAM RI_BufferFreed
+END RI_BufferFreed;
+
+SUBPROGRAM IMPLEMENTATION RI_BufferFreed.others
+END RI_BufferFreed.others;
+
+
+
+SYSTEM UserInterface
+FEATURES
+   PI_SimulationFinished : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: UserInterface:: PI_SimulationFinished.others {
+      Taste::InterfaceName           => "SimulationFinished";            
       Taste::RCMoperationKind        => any;      
       -- Unrecognized property: enable_multicast => true      
       Taste::Communication_Layer     => "default";      
       -- Unrecognized property: required_system_element => NO      
       -- Unrecognized property: is_simulink_interface => false      
    };
-PROPERTIES
-   -- ignored property: name = IO_GIS
-   -- ignored property: is_type = NO
-   Source_Language => (SDL);
-   -- ignored property: default_implementation = default
-   -- ignored property: fixed_system_element = NO
-   -- ignored property: required_system_element = NO
-   Taste::Instances_Max => 1;
-   Taste::Startup_Priority => 1;
-   Taste::Instances_Min => 1;
-   TASTE_IV_Properties::Default_Codegen => C;
-
-END IO_GIS;
-
-SYSTEM IMPLEMENTATION IO_GIS.others
-END IO_GIS.others;
-
-END interfaceview::IV::IO_GIS;
-
-
-
-PACKAGE interfaceview::IV::UI
-PUBLIC
-
-WITH Taste;
-WITH DataView;
-WITH TASTE_IV_Properties;
-WITH interfaceview::IV::Core;
-
-SUBPROGRAM PI_displaySnapshot
-FEATURES
-    modifications : IN PARAMETER DataView::GridModificationList {
-       Taste::encoding => NATIVE;
-    };
-    finished : IN PARAMETER DataView::T_Boolean {
-       Taste::encoding => NATIVE;
-    };
-END PI_displaySnapshot;
-
-SUBPROGRAM IMPLEMENTATION PI_displaySnapshot.others
-END PI_displaySnapshot.others;
-
-
-SUBPROGRAM PI_displayInitialGrid
-FEATURES
-    grid : IN PARAMETER DataView::Grid {
-       Taste::encoding => NATIVE;
-    };
-END PI_displayInitialGrid;
-
-SUBPROGRAM IMPLEMENTATION PI_displayInitialGrid.others
-END PI_displayInitialGrid.others;
-
-
-SUBPROGRAM RI_startSimulationFromGIS
-FEATURES
-    folder : IN PARAMETER DataView::FilePath {
-       Taste::encoding => NATIVE;
-    };
-    timeStepDuration : IN PARAMETER DataView::Duration {
-       Taste::encoding => NATIVE;
-    };
-    totalDuration : IN PARAMETER DataView::Duration {
-       Taste::encoding => NATIVE;
-    };
-    snapshotPeriod : IN PARAMETER DataView::TimeStep {
-       Taste::encoding => NATIVE;
-    };
-END RI_startSimulationFromGIS;
-
-SUBPROGRAM IMPLEMENTATION RI_startSimulationFromGIS.others
-END RI_startSimulationFromGIS.others;
-
-
-
-SYSTEM UI
-FEATURES
-   PI_displaySnapshot : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: UI:: PI_displaySnapshot.others {
-      Taste::InterfaceName           => "displaySnapshot";            
+   PI_UserPressStart : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: UserInterface:: PI_UserPressStart.others {
+      Taste::InterfaceName           => "UserPressStart";            
       Taste::RCMoperationKind        => any;      
       -- Unrecognized property: enable_multicast => true      
       Taste::Communication_Layer     => "default";      
       -- Unrecognized property: required_system_element => NO      
       -- Unrecognized property: is_simulink_interface => false      
    };
-   PI_displayInitialGrid : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: UI:: PI_displayInitialGrid.others {
-      Taste::InterfaceName           => "displayInitialGrid";            
+   PI_SnapshotAvailable : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: UserInterface:: PI_SnapshotAvailable.others {
+      Taste::InterfaceName           => "SnapshotAvailable";            
       Taste::RCMoperationKind        => any;      
       -- Unrecognized property: enable_multicast => true      
       Taste::Communication_Layer     => "default";      
       -- Unrecognized property: required_system_element => NO      
       -- Unrecognized property: is_simulink_interface => false      
    };
-   RI_startSimulationFromGIS : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: Core:: PI_startSimulationFromGIS.others {
+   RI_StartSimulation : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: CoreEngineCA:: PI_StartSimulation.others {
       Taste::labelInheritance        => "true";
-      Taste::InterfaceName           => "startSimulationFromGIS";            
+      Taste::InterfaceName           => "StartSimulation";            
+      Taste::RCMoperationKind        => any;      
+      -- Unrecognized property: enable_multicast => true      
+      Taste::Communication_Layer     => "default";      
+      -- Unrecognized property: required_system_element => NO      
+      -- Unrecognized property: is_simulink_interface => false      
+   };
+   RI_BufferFreed : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: CoreEngineCA:: PI_BufferFreed.others {
+      Taste::labelInheritance        => "true";
+      Taste::InterfaceName           => "BufferFreed";            
       Taste::RCMoperationKind        => any;      
       -- Unrecognized property: enable_multicast => true      
       Taste::Communication_Layer     => "default";      
@@ -269,7 +261,7 @@ FEATURES
       -- Unrecognized property: is_simulink_interface => false      
    };
 PROPERTIES
-   -- ignored property: name = UI
+   -- ignored property: name = UserInterface
    -- ignored property: is_type = NO
    Source_Language => (SDL);
    -- ignored property: default_implementation = default
@@ -280,20 +272,91 @@ PROPERTIES
    Taste::Instances_Min => 1;
    TASTE_IV_Properties::Default_Codegen => C;
 
-END UI;
+END UserInterface;
 
-SYSTEM IMPLEMENTATION UI.others
-END UI.others;
+SYSTEM IMPLEMENTATION UserInterface.others
+END UserInterface.others;
 
-END interfaceview::IV::UI;
+END interfaceview::IV::UserInterface;
+
+
+
+PACKAGE interfaceview::IV::GISDataHandler
+PUBLIC
+
+WITH Taste;
+WITH DataView;
+WITH TASTE_IV_Properties;
+WITH interfaceview::IV::CoreEngineCA;
+
+SUBPROGRAM PI_LoadGISData
+FEATURES
+    gisDataPath : IN PARAMETER DataView::FolderPath {
+       Taste::encoding => NATIVE;
+    };
+END PI_LoadGISData;
+
+SUBPROGRAM IMPLEMENTATION PI_LoadGISData.others
+END PI_LoadGISData.others;
+
+
+SUBPROGRAM RI_GISDataLoaded
+FEATURES
+    loadedState : IN PARAMETER DataView::CellularAutomatonState {
+       Taste::encoding => NATIVE;
+    };
+END RI_GISDataLoaded;
+
+SUBPROGRAM IMPLEMENTATION RI_GISDataLoaded.others
+END RI_GISDataLoaded.others;
+
+
+
+SYSTEM GISDataHandler
+FEATURES
+   PI_LoadGISData : PROVIDES SUBPROGRAM ACCESS interfaceview::IV:: GISDataHandler:: PI_LoadGISData.others {
+      Taste::InterfaceName           => "LoadGISData";            
+      Taste::RCMoperationKind        => any;      
+      -- Unrecognized property: enable_multicast => true      
+      Taste::Communication_Layer     => "default";      
+      -- Unrecognized property: required_system_element => NO      
+      -- Unrecognized property: is_simulink_interface => false      
+   };
+   RI_GISDataLoaded : REQUIRES SUBPROGRAM ACCESS interfaceview::IV:: CoreEngineCA:: PI_GISDataLoaded.others {
+      Taste::labelInheritance        => "true";
+      Taste::InterfaceName           => "GISDataLoaded";            
+      Taste::RCMoperationKind        => any;      
+      -- Unrecognized property: enable_multicast => true      
+      Taste::Communication_Layer     => "default";      
+      -- Unrecognized property: required_system_element => NO      
+      -- Unrecognized property: is_simulink_interface => false      
+   };
+PROPERTIES
+   -- ignored property: name = GISDataHandler
+   -- ignored property: is_type = NO
+   Source_Language => (SDL);
+   -- ignored property: default_implementation = default
+   -- ignored property: fixed_system_element = NO
+   -- ignored property: required_system_element = NO
+   Taste::Instances_Max => 1;
+   Taste::Startup_Priority => 1;
+   Taste::Instances_Min => 1;
+   TASTE_IV_Properties::Default_Codegen => C;
+
+END GISDataHandler;
+
+SYSTEM IMPLEMENTATION GISDataHandler.others
+END GISDataHandler.others;
+
+END interfaceview::IV::GISDataHandler;
 
 
 PACKAGE interfaceview::IV
 PUBLIC
 
-WITH interfaceview::IV::Core;
-WITH interfaceview::IV::IO_GIS;
-WITH interfaceview::IV::UI;
+WITH interfaceview::IV::CoreEngineCA;
+WITH interfaceview::IV::UserInterface;
+WITH interfaceview::IV::GISDataHandler;
 WITH Taste;
 WITH DataView;
 WITH TASTE_IV_Properties;
@@ -306,14 +369,16 @@ END interfaceview;
 
 SYSTEM IMPLEMENTATION interfaceview.others
 SUBCOMPONENTS
-  Core : SYSTEM interfaceview::IV::Core::Core.others;
-  IO_GIS : SYSTEM interfaceview::IV::IO_GIS::IO_GIS.others;
-  UI : SYSTEM interfaceview::IV::UI::UI.others;
+  CoreEngineCA : SYSTEM interfaceview::IV::CoreEngineCA::CoreEngineCA.others;
+  UserInterface : SYSTEM interfaceview::IV::UserInterface::UserInterface.others;
+  GISDataHandler : SYSTEM interfaceview::IV::GISDataHandler::GISDataHandler.others;
 CONNECTIONS
-   Core_RI_displaySnapshot_UI_PI_displaySnapshot : SUBPROGRAM ACCESS UI.PI_displaySnapshot -> Core.RI_displaySnapshot;
-   UI_RI_startSimulationFromGIS_Core_PI_startSimulationFromGIS : SUBPROGRAM ACCESS Core.PI_startSimulationFromGIS -> UI.RI_startSimulationFromGIS;
-   Core_RI_displayInitialGrid_UI_PI_displayInitialGrid : SUBPROGRAM ACCESS UI.PI_displayInitialGrid -> Core.RI_displayInitialGrid;
-   Core_RI_loadGISData_IO_GIS_PI_loadGISData : SUBPROGRAM ACCESS IO_GIS.PI_loadGISData -> Core.RI_loadGISData;
+   CoreEngineCA_RI_SimulationFinished_UserInterface_PI_SimulationFinished : SUBPROGRAM ACCESS UserInterface.PI_SimulationFinished -> CoreEngineCA.RI_SimulationFinished;
+   CoreEngineCA_RI_LoadGISData_GISDataHandler_PI_LoadGISData : SUBPROGRAM ACCESS GISDataHandler.PI_LoadGISData -> CoreEngineCA.RI_LoadGISData;
+   UserInterface_RI_BufferFreed_CoreEngineCA_PI_BufferFreed : SUBPROGRAM ACCESS CoreEngineCA.PI_BufferFreed -> UserInterface.RI_BufferFreed;
+   GISDataHandler_RI_GISDataLoaded_CoreEngineCA_PI_GISDataLoaded : SUBPROGRAM ACCESS CoreEngineCA.PI_GISDataLoaded -> GISDataHandler.RI_GISDataLoaded;
+   UserInterface_RI_StartSimulation_CoreEngineCA_PI_StartSimulation : SUBPROGRAM ACCESS CoreEngineCA.PI_StartSimulation -> UserInterface.RI_StartSimulation;
+   CoreEngineCA_RI_SnapshotAvailable_UserInterface_PI_SnapshotAvailable : SUBPROGRAM ACCESS UserInterface.PI_SnapshotAvailable -> CoreEngineCA.RI_SnapshotAvailable;
 END interfaceview.others;
 
 PROPERTIES

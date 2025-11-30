@@ -31,18 +31,18 @@ check_targets:
 
 # Generate the language-specific data view needed before editing user code
 dataview:	${DATAVIEW_UNIQ} dataview/C/built
-	# Copy the dataview to SDL/SEDS function Core (no context parameters)
-	cp -u ${DATAVIEW_UNIQ} core/SDL/src
+	# Copy the dataview to SDL/SEDS function CoreEngineCA (no context parameters)
+	cp -u ${DATAVIEW_UNIQ} coreengineca/SDL/src
 	# Compute MD5 of the dataview, needed to decide if code needs to be re-generated
-	md5sum -c "core/SDL/src/dataview.md5"  &> /dev/null || md5sum  "core/SDL/src/dataview-uniq.asn" >  "core/SDL/src/dataview.md5"
-	# Copy the dataview to SDL/SEDS function IO_GIS (no context parameters)
-	cp -u ${DATAVIEW_UNIQ} io_gis/SDL/src
+	md5sum -c "coreengineca/SDL/src/dataview.md5"  &> /dev/null || md5sum  "coreengineca/SDL/src/dataview-uniq.asn" >  "coreengineca/SDL/src/dataview.md5"
+	# Copy the dataview to SDL/SEDS function GISDataHandler (no context parameters)
+	cp -u ${DATAVIEW_UNIQ} gisdatahandler/SDL/src
 	# Compute MD5 of the dataview, needed to decide if code needs to be re-generated
-	md5sum -c "io_gis/SDL/src/dataview.md5"  &> /dev/null || md5sum  "io_gis/SDL/src/dataview-uniq.asn" >  "io_gis/SDL/src/dataview.md5"
-	# Copy the dataview to SDL/SEDS function UI (no context parameters)
-	cp -u ${DATAVIEW_UNIQ} ui/SDL/src
+	md5sum -c "gisdatahandler/SDL/src/dataview.md5"  &> /dev/null || md5sum  "gisdatahandler/SDL/src/dataview-uniq.asn" >  "gisdatahandler/SDL/src/dataview.md5"
+	# Copy the dataview to SDL/SEDS function UserInterface (no context parameters)
+	cp -u ${DATAVIEW_UNIQ} userinterface/SDL/src
 	# Compute MD5 of the dataview, needed to decide if code needs to be re-generated
-	md5sum -c "ui/SDL/src/dataview.md5"  &> /dev/null || md5sum  "ui/SDL/src/dataview-uniq.asn" >  "ui/SDL/src/dataview.md5"
+	md5sum -c "userinterface/SDL/src/dataview.md5"  &> /dev/null || md5sum  "userinterface/SDL/src/dataview-uniq.asn" >  "userinterface/SDL/src/dataview.md5"
 	# Pre-cache the Dataview for opengeode to speed up parsing
 	taste-cache-datamodel-for-sdl --toC
 
@@ -97,15 +97,15 @@ build/system_config.h:	$(wildcard */*/wrappers/*_system_config.h)
 	cat $^ > $@
 
 #  Call DMT/aadl2glueC to generate glue code from the mini-cv.aadl files
-aadl2glueC:	core/SDL/wrappers/aadl2glueC_built io_gis/SDL/wrappers/aadl2glueC_built ui/SDL/wrappers/aadl2glueC_built
+aadl2glueC:	coreengineca/SDL/wrappers/aadl2glueC_built gisdatahandler/SDL/wrappers/aadl2glueC_built userinterface/SDL/wrappers/aadl2glueC_built
 
-core/SDL/wrappers/aadl2glueC_built: core/SDL/wrappers/core_mini_cv.aadl ${DATAVIEW_AADLV1}
+coreengineca/SDL/wrappers/aadl2glueC_built: coreengineca/SDL/wrappers/coreengineca_mini_cv.aadl ${DATAVIEW_AADLV1}
 	touch $@
 
-io_gis/SDL/wrappers/aadl2glueC_built: io_gis/SDL/wrappers/io_gis_mini_cv.aadl ${DATAVIEW_AADLV1}
+gisdatahandler/SDL/wrappers/aadl2glueC_built: gisdatahandler/SDL/wrappers/gisdatahandler_mini_cv.aadl ${DATAVIEW_AADLV1}
 	touch $@
 
-ui/SDL/wrappers/aadl2glueC_built: ui/SDL/wrappers/ui_mini_cv.aadl ${DATAVIEW_AADLV1}
+userinterface/SDL/wrappers/aadl2glueC_built: userinterface/SDL/wrappers/userinterface_mini_cv.aadl ${DATAVIEW_AADLV1}
 	touch $@
 
 

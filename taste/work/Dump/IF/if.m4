@@ -9,14 +9,18 @@ divert(-1)
 */dnl
 include(templates.m4)
 divert(-1)
-define(`m4_core_displayinitialgrid',`ui_displayinitialgrid')dnl
-define(`m4_core_displayInitialGrid_provider',`ui')dnl
-define(`m4_core_displaysnapshot',`ui_displaysnapshot')dnl
-define(`m4_core_displaySnapshot_provider',`ui')dnl
-define(`m4_core_loadgisdata',`io_gis_loadgisdata')dnl
-define(`m4_core_loadGISData_provider',`io_gis')dnl
-define(`m4_ui_startsimulationfromgis',`core_startsimulationfromgis')dnl
-define(`m4_ui_startSimulationFromGIS_provider',`core')dnl
+define(`m4_coreengineca_loadgisdata',`gisdatahandler_loadgisdata')dnl
+define(`m4_coreengineca_LoadGISData_provider',`gisdatahandler')dnl
+define(`m4_coreengineca_simulationfinished',`userinterface_simulationfinished')dnl
+define(`m4_coreengineca_SimulationFinished_provider',`userinterface')dnl
+define(`m4_coreengineca_snapshotavailable',`userinterface_snapshotavailable')dnl
+define(`m4_coreengineca_SnapshotAvailable_provider',`userinterface')dnl
+define(`m4_gisdatahandler_gisdataloaded',`coreengineca_gisdataloaded')dnl
+define(`m4_gisdatahandler_GISDataLoaded_provider',`coreengineca')dnl
+define(`m4_userinterface_bufferfreed',`coreengineca_bufferfreed')dnl
+define(`m4_userinterface_BufferFreed_provider',`coreengineca')dnl
+define(`m4_userinterface_startsimulation',`coreengineca_startsimulation')dnl
+define(`m4_userinterface_StartSimulation_provider',`coreengineca')dnl
 divert(1)dnl
 system taste;
 /*
@@ -48,29 +52,37 @@ endabstract;
 
 
 divert(20)
-// ERROR: Interface "startSimulationFromGIS" in function "Core" has unsupported kind: "ANY_OPERATION"
+// ERROR: Interface "BufferFreed" in function "CoreEngineCA" has unsupported kind: "ANY_OPERATION"
+
+// ERROR: Interface "GISDataLoaded" in function "CoreEngineCA" has unsupported kind: "ANY_OPERATION"
+
+// ERROR: Interface "StartSimulation" in function "CoreEngineCA" has unsupported kind: "ANY_OPERATION"
 
 
 
 
 
 
-include(core.if)
+include(coreengineca.if)
 
-// ERROR: Interface "loadGISData" in function "IO_GIS" has unsupported kind: "ANY_OPERATION"
-
-
-
-include(io_gis.if)
-
-// ERROR: Interface "displayInitialGrid" in function "UI" has unsupported kind: "ANY_OPERATION"
-
-// ERROR: Interface "displaySnapshot" in function "UI" has unsupported kind: "ANY_OPERATION"
+// ERROR: Interface "LoadGISData" in function "GISDataHandler" has unsupported kind: "ANY_OPERATION"
 
 
 
 
-include(ui.if)
+include(gisdatahandler.if)
+
+// ERROR: Interface "SimulationFinished" in function "UserInterface" has unsupported kind: "ANY_OPERATION"
+
+// ERROR: Interface "SnapshotAvailable" in function "UserInterface" has unsupported kind: "ANY_OPERATION"
+
+// ERROR: Interface "UserPressStart" in function "UserInterface" has unsupported kind: "ANY_OPERATION"
+
+
+
+
+
+include(userinterface.if)
 
 
 

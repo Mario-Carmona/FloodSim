@@ -71,9 +71,10 @@ void io_gis_PI_loadgisdata(asn1SccFilePath *in__folder, asn1SccGrid *grid)
    io_gis_RI_get_sender(&ctxt.sender);
    // COMMENT Call C++ function to load the grid (24,12)
    // grid = loadGISFolder(folder)
+   // grid = addSinkBoundary(grid)
    // io_gis_loadGISData_transition (None,None)
    io_gis_loadgisdata_transition();
-   // RETURN  (None,None) at 123407833449024, 170
+   // RETURN  (None,None) at 138361116134912, 225
    return;
 }
 
@@ -96,8 +97,8 @@ void runTransitionIo_Gis(int Id)
       {
          case 0:
          {
-            // NEXT_STATE Idle (34,18) at 123407833344256, 125
-            // COMMENT Waiting for LoadGISDataSignal (37,8)
+            // NEXT_STATE Idle (37,18) at 138361116135680, 125
+            // COMMENT Waiting for LoadGISDataSignal (40,8)
             trId = -1;
             ctxt.state = asn1SccIo_gis_States_idle;
             goto continuous_signals;
@@ -105,7 +106,7 @@ void runTransitionIo_Gis(int Id)
          }
          case 1:
          {
-            // NEXT_STATE Idle (50,22) at 123407833972160, 235
+            // NEXT_STATE Idle (53,22) at 138361116811584, 235
             trId = -1;
             ctxt.state = asn1SccIo_gis_States_idle;
             goto continuous_signals;

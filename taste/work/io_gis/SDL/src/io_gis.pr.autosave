@@ -1,14 +1,14 @@
 /* CIF PROCESS (172, 158), (150, 75) */
 
 process Io_Gis;
-    /* CIF procedure (370, 179), (95, 35) */
+    /* CIF procedure (410, 180), (95, 35) */
     /* CIF Keep Specific Geode Partition 'default' */
     procedure loadGISData;
         /* CIF Keep Specific Geode Partition 'default' */
         /* CIF TEXT (156, 66), (170, 140) */
         fpar
           in folder FilePath,
-          in/out grid GridVector;
+          in/out grid Grid;
         /* CIF ENDTEXT */
         /* CIF START (407, 65), (70, 35) */
         START;
@@ -16,7 +16,9 @@ process Io_Gis;
             task 'grid = loadGISFolder(folder)'
             /* CIF comment (558, 120), (216, 35) */
             comment 'Call C++ function to load the grid';
-            /* CIF return (424, 170), (35, 35) */
+            /* CIF task (407, 175), (70, 35) */
+            task 'add';
+            /* CIF return (424, 225), (35, 35) */
             return ;
     endprocedure;
     /* CIF START (562, 75), (70, 35) */
@@ -30,15 +32,9 @@ process Io_Gis;
     state Idle
     /* CIF comment (652, 125), (203, 35) */
     comment 'Waiting for LoadGISDataSignal';
-        /* CIF input (546, 180), (95, 35) */
+        /* CIF input (547, 180), (95, 35) */
         input loadGISData;
-            /* CIF task (484, 235), (220, 35) */
-            task 'grid = loadGISFolder(folderPath)'
-            /* CIF comment (727, 235), (216, 35) */
-            comment 'Call C++ function to load the grid';
-            /* CIF output (525, 290), (138, 35) */
-            output GISDataReady(grid);
-            /* CIF NEXTSTATE (559, 345), (70, 35) */
+            /* CIF NEXTSTATE (560, 235), (70, 35) */
             NEXTSTATE Idle;
     endstate;
 endprocess Io_Gis;

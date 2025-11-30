@@ -1,0 +1,227 @@
+/* CIF PROCESS (250, 150), (150, 75) */
+
+process CoreEngineCA;
+    /* CIF Keep Specific Geode Partition 'default' */
+    /* CIF TEXT (39, 168), (276, 173) */
+    dcl config SimConfig;
+    
+    dcl internalState CellularAutomatonState;
+    
+    dcl snapshotCopy CellularAutomatonState;
+    
+    dcl simTime T_Float;
+    
+    dcl stepCount T_UInt32;
+    
+    dcl stepToNextSnapshot T_UInt32;
+    /* CIF ENDTEXT */
+    /* CIF procedure (43, 481), (107, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure SendSnapshot;
+        /* CIF START (515, 124), (70, 35) */
+        START;
+            /* CIF task (450, 179), (199, 35) */
+            task snapshotCopy := internalState
+            /* CIF comment (670, 179), (124, 35) */
+            comment '1. Prepare a copy';
+            /* CIF task (431, 234), (238, 35) */
+            task snapshotCopy.timestamp := simTime;
+            /* CIF task (427, 289), (245, 35) */
+            task snapshotCopy.stepIndex := stepCount;
+            /* CIF output (438, 344), (223, 35) */
+            output SnapshotAvailable(snapshotCopy)
+            /* CIF comment (682, 344), (70, 35) */
+            comment '2. Send';
+            /* CIF return (532, 394), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (43, 536), (94, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure BufferFreed;
+        /* CIF START (542, 118), (70, 35) */
+        START;
+            /* CIF task (421, 173), (311, 35) */
+            task -- The UI has processed the data, we can continue --;
+            /* CIF return (559, 223), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (42, 372), (114, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure StartSimulation;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (196, 82), (170, 140) */
+        fpar
+            in cfg SimConfig;
+        /* CIF ENDTEXT */
+        /* CIF START (448, 79), (70, 35) */
+        START;
+            /* CIF task (435, 134), (94, 35) */
+            task config := cfg;
+            /* CIF output (373, 189), (218, 35) */
+            output LoadGISData(config.gisDataPath);
+            /* CIF return (465, 239), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (41, 425), (113, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure GISDataLoaded;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (258, 136), (270, 140) */
+        fpar
+            in loadedState CellularAutomatonState;
+        /* CIF ENDTEXT */
+        /* CIF START (611, 149), (70, 35) */
+        START;
+            /* CIF task (551, 204), (188, 35) */
+            task internalState := loadedState;
+            /* CIF task (552, 259), (187, 35) */
+            task 'Initialize TensorFlow Graph';
+            /* CIF task (592, 314), (106, 35) */
+            task simTime := 0.0;
+            /* CIF task (591, 369), (108, 35) */
+            task stepCount := 0;
+            /* CIF task (504, 424), (283, 35) */
+            task stepToNextSnapshot := config.snapshotFreq;
+            /* CIF PROCEDURECALL (592, 474), (107, 35) */
+            call SendSnapshot
+            /* CIF comment (719, 474), (176, 35) */
+            comment 'Send initial snapshot (t=0)';
+            /* CIF return (628, 524), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF START (450, 130), (70, 35) */
+    START;
+        /* CIF NEXTSTATE (432, 180), (107, 35) */
+        NEXTSTATE WaitingConfig;
+    /* CIF state (787, 904), (105, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state FinalizingWait;
+        /* CIF input (792, 959), (94, 35) */
+        input BufferFreed;
+            /* CIF output (772, 1014), (134, 35) */
+            output SimulationFinished;
+            /* CIF NEXTSTATE (786, 1064), (107, 35) */
+            NEXTSTATE WaitingConfig;
+    endstate;
+    /* CIF state (362, 513), (72, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state Evolving
+    /* CIF comment (453, 511), (223, 38) */
+    comment 'In RealTime mode, we are moving 
+directly toward evolution';
+        /* CIF provided (363, 568), (70, 35) */
+        provided true;
+            /* CIF decision (295, 623), (206, 50) */
+            decision simTime < config.totalDuration;
+                /* CIF ANSWER (732, 693), (70, 23) */
+                (false):
+                    /* CIF PROCEDURECALL (714, 736), (107, 35) */
+                    call SendSnapshot
+                    /* CIF comment (841, 736), (138, 35) */
+                    comment 'Send final snapshot';
+                    /* CIF decision (719, 791), (96, 50) */
+                    decision config.mode;
+                        /* CIF ANSWER (623, 861), (141, 23) */
+                        (realTimeSkipFrames):
+                            /* CIF output (627, 904), (134, 35) */
+                            output SimulationFinished;
+                            /* CIF NEXTSTATE (641, 959), (107, 35) */
+                            NEXTSTATE WaitingConfig;
+                        /* CIF ANSWER (776, 861), (126, 23) */
+                        (losslessAllFrames):
+                            /* CIF NEXTSTATE (787, 904), (105, 35) */
+                            NEXTSTATE FinalizingWait;
+                    enddecision;
+                /* CIF ANSWER (217, 693), (70, 23) */
+                (true):
+                    /* CIF task (143, 736), (217, 35) */
+                    task 'TF: Run Step (Moore + Torricelli)'
+                    /* CIF comment (380, 736), (231, 35) */
+                    comment '1. Physical Calculation (TensorFlow)';
+                    /* CIF task (175, 791), (152, 35) */
+                    task 'Update internalState';
+                    /* CIF task (160, 841), (183, 35) */
+                    task stepCount := stepCount + 1;
+                    /* CIF task (129, 896), (245, 35) */
+                    task simTime := simTime + config.timeStep;
+                    /* CIF decision (141, 951), (221, 50) */
+                    decision stepCount = stepToNextSnapshot
+                    /* CIF comment (382, 958), (129, 35) */
+                    comment '2. Check Snapshot';
+                        /* CIF ANSWER (433, 1021), (70, 23) */
+                        (false):
+                            /* CIF NEXTSTATE (432, 1064), (72, 35) */
+                            NEXTSTATE Evolving;
+                        /* CIF ANSWER (177, 1021), (70, 23) */
+                        (true):
+                            /* CIF PROCEDURECALL (158, 1064), (107, 35) */
+                            call SendSnapshot;
+                            /* CIF task (2, 1114), (420, 35) */
+                            task stepToNextSnapshot := stepToNextSnapshot + config.snapshotFreq;
+                            /* CIF decision (163, 1169), (96, 50) */
+                            decision config.mode;
+                                /* CIF ANSWER (67, 1239), (141, 23) */
+                                (realTimeSkipFrames):
+                                    /* CIF NEXTSTATE (102, 1282), (72, 35) */
+                                    NEXTSTATE Evolving;
+                                /* CIF ANSWER (220, 1239), (126, 23) */
+                                (losslessAllFrames):
+                                    /* CIF NEXTSTATE (235, 1282), (97, 35) */
+                                    NEXTSTATE BlockedByUI;
+                            enddecision;
+                    enddecision;
+            enddecision;
+    endstate;
+    /* CIF state (1005, 513), (97, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state BlockedByUI
+    /* CIF comment (1132, 474), (262, 113) */
+    comment 'In Lossless mode, we must wait for 
+the UI to render the initial state
+
+Note: The BlockedByUI state is designed 
+to return to Evolving upon exit
+
+Represents: cv_producer.wait() in C++';
+        /* CIF input (1006, 568), (94, 35) */
+        input BufferFreed;
+            /* CIF NEXTSTATE (1018, 623), (72, 35) */
+            NEXTSTATE Evolving;
+    endstate;
+    /* CIF state (435, 290), (97, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state LoadingData;
+        /* CIF input (428, 345), (113, 35) */
+        input GISDataLoaded;
+            /* CIF decision (436, 400), (96, 50) */
+            decision config.mode;
+                /* CIF ANSWER (991, 470), (126, 23) */
+                (losslessAllFrames):
+                    /* CIF NEXTSTATE (1005, 513), (97, 35) */
+                    NEXTSTATE BlockedByUI
+                    /* CIF comment (1132, 474), (262, 113) */
+                    comment 'In Lossless mode, we must wait for 
+the UI to render the initial state
+
+Note: The BlockedByUI state is designed 
+to return to Evolving upon exit
+
+Represents: cv_producer.wait() in C++';
+                /* CIF ANSWER (327, 470), (141, 23) */
+                (realTimeSkipFrames):
+                    /* CIF NEXTSTATE (362, 513), (72, 35) */
+                    NEXTSTATE Evolving
+                    /* CIF comment (453, 511), (223, 38) */
+                    comment 'In RealTime mode, we are moving 
+directly toward evolution';
+            enddecision;
+    endstate;
+    /* CIF state (432, 180), (107, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state WaitingConfig;
+        /* CIF input (427, 235), (114, 35) */
+        input StartSimulation;
+            /* CIF NEXTSTATE (435, 290), (97, 35) */
+            NEXTSTATE LoadingData;
+    endstate;
+endprocess CoreEngineCA;

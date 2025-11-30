@@ -1,0 +1,19 @@
+Gisdatahandler-Datamodel DEFINITIONS ::=
+BEGIN
+--  This file was generated automatically by OpenGEODE
+IMPORTS
+   T-UInt32, T-Float, FolderPath, SyncMode, SimConfig, Layer, CellularAutomatonState, SurfaceType, CellType FROM DANASIM-DATAVIEW
+   T-Int32, TASTE-BasicTypes-T-UInt32, T-Int8, T-UInt8, T-Boolean, T-Null-Record, T-Runtime-Error FROM TASTE-BasicTypes
+   PID-Range, PID FROM System-Dataview;
+
+Gisdatahandler-States ::= ENUMERATED {idle}
+
+Gisdatahandler-Context ::= SEQUENCE {
+   state Gisdatahandler-States,
+   init-done BOOLEAN,
+   sender PID,
+   offspring PID
+}
+
+Gisdatahandler-T-Runtime-Error-Selection ::= ENUMERATED {noerror-present(1), encodeerror-present(2), decodeerror-present(3)}
+END

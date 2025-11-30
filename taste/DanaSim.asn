@@ -2,69 +2,65 @@
 DANASIM-DATAVIEW DEFINITIONS ::=
 BEGIN
 
+    /* ================================ */
+    /* DEFINITION OF DATA TYPES         */
+    /* ================================ */
+
     T-UInt32 ::= INTEGER (0 .. 4294967294)
 
+    T-Float ::= REAL (-2147483648.0 .. 2147483647.0)
+
+    FolderPath ::= IA5String (SIZE(1..255))
+
+    /* Synchronization Mode */
+    SyncMode ::= ENUMERATED {
+        realTimeSkipFrames,
+        losslessAllFrames
+    }
+
+    /* Simulation Settings */
+    SimConfig ::= SEQUENCE {
+        gisDataPath FolderPath,
+        totalDuration T-Float,
+        timeStep T-Float,
+        snapshotFreq T-UInt32,
+        mode SyncMode
+    }
+
+    /* Data Matrix */
+    Layer ::= SEQUENCE SIZE (1 .. 1048576) OF T-Float
+
+    /* State of the Automata with Visible Layers */
+    CellularAutomatonState ::= SEQUENCE {
+        rows INTEGER (1 .. 1024),
+        cols INTEGER (1 .. 1024),
+        timestamp T-Float,
+        stepIndex T-UInt32,
+
+        /* Explicit layers */
+        elevation Layer,
+        waterDepth Layer
+    }
+
+
+
+
+    -----------
+
+
+
     SurfaceType ::= ENUMERATED {
-        soil,
-        rock,
-        asphalt,
-        forest,
-        waterSurface
+        soil(0),
+        rock(1),
+        asphalt(2),
+        forest(3),
+        waterSurface(4)
     }
 
-    FlowCoefficient ::= REAL (0.0 .. 1.0)
-
-    ScaleFactor ::= REAL (0.0 .. 8.0)
-
-    Duration ::= T-UInt32  -- unit: seconds
-
-    TimeStep ::= T-UInt32
-
-    FilePath ::= IA5String (SIZE(1..255))
-
-    CellState ::= SEQUENCE {
-        elevation   T-UInt32,  -- unit: mm - range: [sea level, mount everest]
-        waterDepth  T-UInt32,    -- unit: mm - range: [0 m, 10 m]
-        surfaceType SurfaceType
+    CellType ::= ENUMERATED {
+        normal(0),
+        source(1),
+        sink(2)
     }
-
-    Height ::= T-UInt32
-
-    GridVector ::= SEQUENCE (SIZE(1 .. 1048576)) OF CellState
-
-    Grid ::= SEQUENCE {
-        width  INTEGER (1 .. 1024),
-        height INTEGER (1 .. 1024),
-        cells  GridVector
-    }
-
-    CellIndex ::= INTEGER (0 .. 1048575)
-
-    Outflow ::= SEQUENCE {
-        depth    T-UInt32,
-        neighbor CellIndex
-    }
-
-    OutflowList ::= SEQUENCE (SIZE(0 .. 9)) OF Outflow
-
-    MooreNeighborIndex ::= INTEGER (0 .. 8)
-
-    MooreNeighborList ::= SEQUENCE (SIZE(0 .. 9)) OF CellIndex
-
-    GridCellNeighborList ::= SEQUENCE (SIZE(0 .. 1048576)) OF MooreNeighborList
-
-    FlowingWaterEvent ::= SEQUENCE {
-        targetCell CellIndex
-    }
-
-    FlowingWaterEventList ::= SEQUENCE (SIZE(0 .. 1048576)) OF FlowingWaterEvent
-
-    GridModification ::= SEQUENCE {
-        targetCell CellIndex,
-        increment  BOOLEAN,
-        delta      T-UInt32
-    }
-
-    GridModificationList ::= SEQUENCE (SIZE(0 .. 4294967295)) OF GridModification
 
 END

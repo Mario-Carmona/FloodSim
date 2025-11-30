@@ -1,0 +1,21 @@
+Ui-manager-Datamodel DEFINITIONS ::=
+BEGIN
+--  This file was generated automatically by OpenGEODE
+IMPORTS
+   Double, FolderPath, FilePath, WaterState, CellLayerData, GridData, T-UInt32, T-UInt64, SurfaceType, CellType, FrictionCoefficient, ScaleFactor, Duration, TimeStep, CellState, GridVector, Grid, CellIndex, Outflow, OutflowList, MooreNeighborIndex, MooreNeighborList, GridCellNeighborList, FlowingWaterEvent, FlowingWaterEventList, GridModification, GridModificationList FROM DANASIM-DATAVIEW
+   T-Int32, TASTE-BasicTypes-T-UInt32, T-Int8, T-UInt8, T-Boolean, T-Null-Record, T-Runtime-Error FROM TASTE-BasicTypes
+   PID-Range, PID FROM System-Dataview;
+
+Ui-manager-States ::= ENUMERATED {displayingsimulation, initialscreen, maploaded}
+
+Ui-manager-Context ::= SEQUENCE {
+   state Ui-manager-States,
+   init-done BOOLEAN,
+   sender PID,
+   offspring PID,
+   newgriddata GridData
+}
+
+Ui-Manager-T-Runtime-Error-Selection ::= ENUMERATED {noerror-present(1), encodeerror-present(2), decodeerror-present(3)}
+Ui-Manager-T-Runtime-Error-Selection ::= ENUMERATED {noerror-present(1), encodeerror-present(2), decodeerror-present(3)}
+END

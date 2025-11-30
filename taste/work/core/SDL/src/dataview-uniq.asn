@@ -4,15 +4,25 @@ BEGIN
 
     T-UInt32 ::= INTEGER (0 .. 4294967294)
 
+    T-UInt64 ::= INTEGER (0 .. 18446744073709551615)
+
+    Double ::= REAL (0.0 .. 1.0E308)
+
     SurfaceType ::= ENUMERATED {
-        soil,
-        rock,
-        asphalt,
-        forest,
-        waterSurface
+        soil(0),
+        rock(1),
+        asphalt(2),
+        forest(3),
+        waterSurface(4)
     }
 
-    FlowCoefficient ::= REAL (0.0 .. 1.0)
+    CellType ::= ENUMERATED {
+        normal(0),
+        source(1),
+        sink(2)
+    }
+
+    FrictionCoefficient ::= REAL (0.0 .. 1.0)
 
     ScaleFactor ::= REAL (0.0 .. 8.0)
 
@@ -25,16 +35,18 @@ BEGIN
     CellState ::= SEQUENCE {
         elevation   T-UInt32,  -- unit: mm - range: [sea level, mount everest]
         waterDepth  T-UInt32,    -- unit: mm - range: [0 m, 10 m]
-        surfaceType SurfaceType
+        surfaceType SurfaceType,
+        cellType CellType,
+        inflowPerTimeStep T-UInt32 OPTIONAL
     }
-
-    Height ::= T-UInt32
 
     GridVector ::= SEQUENCE (SIZE(1 .. 1048576)) OF CellState
 
     Grid ::= SEQUENCE {
         width  INTEGER (1 .. 1024),
         height INTEGER (1 .. 1024),
+        cellSize Double,  -- unit: m
+        cellArea Double,  -- unit: m^2
         cells  GridVector
     }
 

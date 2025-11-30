@@ -1,0 +1,44 @@
+/* CIF PROCESS (250, 150), (150, 75) */
+
+process GisDataHandler;
+    /* CIF procedure (684, 225), (98, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure LoadGISData;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (86, 132), (255, 140) */
+        fpar
+            in gisDataPath FolderPath;
+        
+        dcl folderPath FolderPath; 
+        dcl tempState CellularAutomatonState;
+        /* CIF ENDTEXT */
+        /* CIF START (472, 138), (70, 35) */
+        START;
+            /* CIF task (419, 193), (174, 35) */
+            task folderPath := gisDataPath;
+            /* CIF task (369, 248), (275, 35) */
+            task 'tempState.rows := getForm(elevation.rdc)';
+            /* CIF task (371, 303), (270, 35) */
+            task 'tempState.cols := getForm(elevation.rdc)';
+            /* CIF task (351, 353), (310, 35) */
+            task 'tempState.elevation := readIDRISI(elevation.rst)';
+            /* CIF task (344, 408), (325, 35) */
+            task 'tempState.waterDepth := readIDRISI(waterInit.rst)';
+            /* CIF output (414, 463), (184, 35) */
+            output GISDataLoaded(tempState);
+            /* CIF return (489, 513), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF START (815, 118), (70, 35) */
+    START;
+        /* CIF NEXTSTATE (815, 168), (70, 35) */
+        NEXTSTATE Idle;
+    /* CIF state (815, 168), (70, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state Idle;
+        /* CIF input (800, 223), (98, 35) */
+        input LoadGISData;
+            /* CIF NEXTSTATE (815, 278), (70, 35) */
+            NEXTSTATE Idle;
+    endstate;
+endprocess GisDataHandler;

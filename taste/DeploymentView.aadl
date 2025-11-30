@@ -19,11 +19,11 @@ END deploymentview::DV::Node_Linux;
 PACKAGE deploymentview::DV
 PUBLIC
 
-WITH interfaceview::IV::IO_GIS;
+WITH interfaceview::IV::GISDataHandler;
 
-WITH interfaceview::IV::Core;
+WITH interfaceview::IV::UserInterface;
 
-WITH interfaceview::IV::UI;
+WITH interfaceview::IV::CoreEngineCA;
 
 
 WITH ocarina_processors_x86;
@@ -38,16 +38,16 @@ END Node_Linux;
 
 SYSTEM IMPLEMENTATION Node_Linux.others
 SUBCOMPONENTS
-   IV_IO_GIS : SYSTEM interfaceview::IV::IO_GIS::IO_GIS.others {
-      Taste::FunctionName => "IO_GIS";
+   IV_GISDataHandler : SYSTEM interfaceview::IV::GISDataHandler::GISDataHandler.others {
+      Taste::FunctionName => "GISDataHandler";
    };
 
-   IV_Core : SYSTEM interfaceview::IV::Core::Core.others {
-      Taste::FunctionName => "Core";
+   IV_UserInterface : SYSTEM interfaceview::IV::UserInterface::UserInterface.others {
+      Taste::FunctionName => "UserInterface";
    };
 
-   IV_UI : SYSTEM interfaceview::IV::UI::UI.others {
-      Taste::FunctionName => "UI";
+   IV_CoreEngineCA : SYSTEM interfaceview::IV::CoreEngineCA::CoreEngineCA.others {
+      Taste::FunctionName => "CoreEngineCA";
    };
 
    demo : PROCESS deploymentview::DV::Node_Linux::demo.others {
@@ -59,7 +59,7 @@ SUBCOMPONENTS
    x86_linux : PROCESSOR ocarina_processors_x86::x86.generic_linux;
 PROPERTIES
    
-   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_IO_GIS;
+   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_GISDataHandler;
    
    
    
@@ -69,7 +69,7 @@ PROPERTIES
    
 
    
-   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_Core;
+   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_UserInterface;
    
    
    
@@ -79,7 +79,7 @@ PROPERTIES
    
 
    
-   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_UI;
+   Taste::APLC_Binding => (reference (demo)) APPLIES TO IV_CoreEngineCA;
    
    
    

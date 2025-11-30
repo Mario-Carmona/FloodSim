@@ -1,0 +1,112 @@
+/* CIF PROCESS (249, 150), (150, 75) */
+
+process UserInterface;
+    /* CIF Keep Specific Geode Partition 'default' */
+    /* CIF TEXT (106, 51), (267, 140) */
+    dcl cfg SimConfig;
+    
+    dcl currentState CellularAutomatonState;
+    /* CIF ENDTEXT */
+    /* CIF procedure (235, 225), (131, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure SnapshotAvailable;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (156, 93), (279, 140) */
+        fpar
+            in receivedState CellularAutomatonState;
+        /* CIF ENDTEXT */
+        /* CIF START (579, 104), (70, 35) */
+        START;
+            /* CIF task (516, 159), (195, 35) */
+            task currentState := receivedState;
+            /* CIF task (534, 209), (158, 35) */
+            task 'render(receivedState)';
+            /* CIF decision (574, 264), (78, 50) */
+            decision cfg.mode
+            /* CIF comment (673, 271), (206, 35) */
+            comment 'BRIDGE LOGIC (Consumer Side)';
+                /* CIF ANSWER (812, 334), (126, 23) */
+                (losslessAllFrames):
+                    /* CIF output (828, 377), (94, 35) */
+                    output BufferFreed
+                    /* CIF comment (945, 375), (300, 38) */
+                    comment 'In Lossless mode, we must notify the Core that 
+we have finished and freed the buffer';
+                /* CIF ANSWER (468, 334), (141, 23) */
+                (realTimeSkipFrames):
+                    /* CIF task (424, 372), (229, 38) */
+                    task -- In RealTime mode, we don't send --
+-- anything, the Core doesn't wait --;
+            enddecision;
+            /* CIF return (596, 429), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (384, 115), (110, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure UserPressStart;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (328, 132), (176, 140) */
+        fpar
+            in dataPath FolderPath, 
+            in dur T_Float, 
+            in dt T_Float, 
+            in freq T_UInt32,
+            in syncMode SyncMode;
+        /* CIF ENDTEXT */
+        /* CIF START (649, 135), (70, 35) */
+        START;
+            /* CIF task (590, 190), (186, 35) */
+            task cfg.gisDataPath := dataPath;
+            /* CIF task (603, 245), (161, 35) */
+            task cfg.totalDuration := dur;
+            /* CIF task (620, 300), (128, 35) */
+            task cfg.timeStep := dt;
+            /* CIF task (600, 355), (166, 35) */
+            task cfg.snapshotFreq := freq;
+            /* CIF task (606, 410), (154, 35) */
+            task cfg.mode := syncMode;
+            /* CIF output (613, 460), (141, 35) */
+            output StartSimulation(cfg);
+            /* CIF return (666, 510), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF procedure (978, 225), (134, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure SimulationFinished;
+        /* CIF START (513, 158), (70, 35) */
+        START;
+            /* CIF task (447, 213), (201, 35) */
+            task 'Display: Simulation Complete';
+            /* CIF return (530, 263), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF START (554, 11), (70, 35) */
+    START;
+        /* CIF NEXTSTATE (554, 61), (70, 35) */
+        NEXTSTATE Idle;
+    /* CIF state (530, 171), (113, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state RenderingLoop;
+        /* CIF input (832, 226), (134, 35) */
+        input SimulationFinished;
+            /* CIF NEXTSTATE (865, 281), (70, 35) */
+            NEXTSTATE Idle;
+        /* CIF input (378, 226), (131, 35) */
+        input SnapshotAvailable
+        /* CIF comment (530, 226), (258, 35) */
+        comment 'Equivalent to: bridge.waitForSnapshot()';
+            /* CIF NEXTSTATE (387, 281), (113, 35) */
+            NEXTSTATE RenderingLoop;
+    endstate;
+    /* CIF state (554, 61), (70, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state Idle;
+        /* CIF input (531, 116), (110, 35) */
+        input UserPressStart
+        /* CIF comment (660, 114), (289, 38) */
+        comment 'The user configures the simulation, including 
+the synchronization mode';
+            /* CIF NEXTSTATE (530, 171), (113, 35) */
+            NEXTSTATE RenderingLoop;
+    endstate;
+endprocess UserInterface;

@@ -1,0 +1,35 @@
+/* CIF PROCESS (250, 150), (150, 75) */
+
+process DataHandlerGIS;
+    /* CIF procedure (286, 117), (123, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure loadMapRequest;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (54, 115), (170, 140) */
+        fpar
+            in folder FolderPath;
+        
+        dcl gridData GridData;
+        /* CIF ENDTEXT */
+        /* CIF START (373, 142), (70, 35) */
+        START;
+            /* CIF task (264, 197), (287, 35) */
+            task 'read_IDRISI32_Layers(folder, OUT gridData)';
+            /* CIF output (285, 247), (244, 35) */
+            output MapData(gridData) TO CoreEngineCA;
+            /* CIF return (390, 297), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF START (463, 10), (70, 35) */
+    START;
+        /* CIF NEXTSTATE (429, 60), (136, 35) */
+        NEXTSTATE WaitingForRequest;
+    /* CIF state (429, 60), (136, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state WaitingForRequest;
+        /* CIF input (434, 115), (126, 35) */
+        input LoadMapRequest;
+            /* CIF NEXTSTATE (429, 170), (136, 35) */
+            NEXTSTATE WaitingForRequest;
+    endstate;
+endprocess DataHandlerGIS;

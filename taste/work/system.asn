@@ -8,11 +8,11 @@ BEGIN
 
    -- List of functions (instances) present in the system
    PID ::= ENUMERATED {
-       core,
+       coreengineca,
        
-       io-gis,
+       gisdatahandler,
        
-       ui,
+       userinterface,
        
        
        env

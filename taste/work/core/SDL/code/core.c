@@ -22,16 +22,18 @@ void runTransitionCore(int Id);
 
 //// State Aggregations Start functions
 //// Declaration Of Inner Procedures
-void _0_core_normalizeOutflows(asn1SccT_UInt32 cellwaterdepth, asn1SccT_UInt32 totaloutflowdepth, asn1SccOutflowList celloutflowlist, asn1SccOutflowList *normalizecelloutflowlist, asn1SccT_UInt32 *normalizetotaloutflowdepth);
-void _0_core_computeWaterFlow(asn1SccCellIndex selfcell, asn1SccCellIndex neighborcell, asn1SccOutflow *outflow);
+void _0_core_normalizeOutflows(asn1SccT_UInt32 cellwaterdepth, asn1SccT_UInt32 totaloutflowdepth, asn1SccOutflowList celloutflowlist, asn1SccT_UInt32 *normalizetotaloutflowdepth, asn1SccOutflowList *normalizecelloutflowlist);
+void _0_core_computeOutflow(asn1SccT_UInt64 selfcellheight, asn1SccT_UInt32 selfcelldepth, asn1SccFrictionCoefficient frictioncoefficient, asn1SccCellIndex neighborcell, asn1SccOutflow *outflow);
 void _0_core_calculateGridCellNeighbors();
 void _0_core_addInitialEvents();
 void _0_core_applyModifications(asn1SccGridModificationList modifications);
 void _0_core_runSimulationStep();
 void core_PI_startsimulationfromgis(asn1SccFilePath *in__folder, asn1SccDuration *in__timestepduration, asn1SccDuration *in__totalduration, asn1SccTimeStep *in__snapshotperiod);
 void _0_core_calculateCellMooreNeighbors(asn1SccCellIndex index, asn1SccMooreNeighborList *neighbors);
-void _0_core_updateCell(asn1SccCellIndex cellindex, asn1SccGridModificationList *modlist, asn1SccFlowingWaterEventList *nexteventlist);
-void _0_core_getFlowCoefficient(asn1SccSurfaceType surfacetype, asn1SccFlowCoefficient *flowcoefficient);
+void _0_core_updateCell(asn1SccCellIndex cellindex, asn1SccGridModificationList *modificationlist, asn1SccFlowingWaterEventList *nextflowingwatereventlist);
+void _0_core_getFrictionCoefficient(asn1SccSurfaceType surfacetype, asn1SccFrictionCoefficient *frictioncoefficient);
+void _0_core_addFlowingWaterEvent(asn1SccCellIndex targetcell, asn1SccFlowingWaterEventList *eventlist);
+void _0_core_addGridModification(asn1SccCellIndex targetcell, asn1SccT_Boolean increment, asn1SccT_UInt32 delta, asn1SccGridModificationList *modificationlist);
 
 
 //// Startup
@@ -74,7 +76,7 @@ void core_startsimulationfromgis_transition()
 //// Output Signals
 
 //// Definition Of Inner Procedures
-void _0_core_normalizeOutflows(asn1SccT_UInt32 cellwaterdepth, asn1SccT_UInt32 totaloutflowdepth, asn1SccOutflowList celloutflowlist, asn1SccOutflowList *normalizecelloutflowlist, asn1SccT_UInt32 *normalizetotaloutflowdepth)
+void _0_core_normalizeOutflows(asn1SccT_UInt32 cellwaterdepth, asn1SccT_UInt32 totaloutflowdepth, asn1SccOutflowList celloutflowlist, asn1SccT_UInt32 *normalizetotaloutflowdepth, asn1SccOutflowList *normalizecelloutflowlist)
 {
    asn1SccMooreNeighborIndex index;
    asn1SccScaleFactor scalefactor;
@@ -86,7 +88,7 @@ void _0_core_normalizeOutflows(asn1SccT_UInt32 cellwaterdepth, asn1SccT_UInt32 t
       (*normalizecelloutflowlist) = (asn1SccOutflowList) celloutflowlist;
       // normalizeTotalOutflowDepth := totalOutflowDepth (56,25)
       (*normalizetotaloutflowdepth) = (asn1SccT_UInt32) totaloutflowdepth;
-      // RETURN  (None,None) at 137970063850944, 440
+      // RETURN  (None,None) at 132427198483392, 440
       return;
       // ANSWER true (62,17)
    } else if((((totaloutflowdepth > cellwaterdepth)) == true))
@@ -110,44 +112,91 @@ void _0_core_normalizeOutflows(asn1SccT_UInt32 cellwaterdepth, asn1SccT_UInt32 t
    // ANSWER false (86,25)
    if((((index < celloutflowlist.nCount)) == false))
    {
-      // RETURN  (None,None) at 137970062090880, 778
+      // RETURN  (None,None) at 132427200170880, 778
       return;
       // ANSWER true (92,25)
    } else if((((index < celloutflowlist.nCount)) == true))
    {
-      // JOIN loop (95,33) at 137970064044352, 778
+      // JOIN loop (95,33) at 132427198196736, 778
       goto loop;
    } //last
 }
 
 
-void _0_core_computeWaterFlow(asn1SccCellIndex selfcell, asn1SccCellIndex neighborcell, asn1SccOutflow *outflow)
+void _0_core_computeOutflow(asn1SccT_UInt64 selfcellheight, asn1SccT_UInt32 selfcelldepth, asn1SccFrictionCoefficient frictioncoefficient, asn1SccCellIndex neighborcell, asn1SccOutflow *outflow)
 {
-   asn1SccFlowCoefficient flowcoefficient;
-   asn1SccHeight selfcellheight;
-   asn1SccHeight neighborcellheight;
-   // getFlowCoefficient(coreGrid.cells(selfCell).surfaceType, flowCoefficient) (121,17)
-   _0_core_getFlowCoefficient(ctxt.coregrid.cells.arr[selfcell].surfaceType, &flowcoefficient);
-   // selfCellHeight := coreGrid.cells(selfCell).elevation + coreGrid.cells(selfCell).waterDepth (124,17)
-   selfcellheight = (asn1SccHeight) (ctxt.coregrid.cells.arr[selfcell].elevation + ctxt.coregrid.cells.arr[selfcell].waterDepth);
-   // neighborCellHeight := coreGrid.cells(neighborCell).elevation + coreGrid.cells(neighborCell).waterDepth (127,17)
-   neighborcellheight = (asn1SccHeight) (ctxt.coregrid.cells.arr[neighborcell].elevation + ctxt.coregrid.cells.arr[neighborcell].waterDepth);
-   // DECISION selfCellHeight > neighborCellHeight (130,36)
-   // ANSWER false (133,17)
+   asn1SccT_UInt64 neighborcellheight;
+   asn1SccDouble g = 9.8;
+   asn1SccT_UInt64 dh_mm;
+   asn1SccDouble dh_m;
+   asn1SccT_Boolean diag;
+   asn1SccDouble distance_ij_m;
+   asn1SccDouble m_sqrt2;
+   asn1SccDouble height_avg_m;
+   asn1SccDouble speed;
+   asn1SccDouble area_face;
+   asn1SccDouble flow;
+   asn1SccDouble volume;
+   // neighborCellHeight := coreGrid.cells(neighborCell).elevation + coreGrid.cells(neighborCell).waterDepth (142,17)
+   neighborcellheight = (asn1SccT_UInt64) (ctxt.coregrid.cells.arr[neighborcell].elevation + ctxt.coregrid.cells.arr[neighborcell].waterDepth);
+   // DECISION selfCellHeight > neighborCellHeight (145,36)
+   // ANSWER false (148,17)
    if((((selfcellheight > neighborcellheight)) == false))
    {
-      // outflow.depth := 0 (136,25)
+      // outflow.depth := 0 (151,25)
       (*outflow).depth = (asn1SccT_UInt32) 0;
-      // ANSWER true (139,17)
+      // outflow.neighbor := neighborCell (154,25)
+      (*outflow).neighbor = (asn1SccCellIndex) neighborcell;
+      // RETURN  (None,None) at 132426688957568, 449
+      return;
+      // ANSWER true (160,17)
    } else if((((selfcellheight > neighborcellheight)) == true))
    {
-      // outflow.depth := fix (floor (flowCoefficient * float (selfCellHeight - neighborCellHeight))) (142,25)
-      (*outflow).depth = (asn1SccT_UInt32) (asn1SccUint)(floor((flowcoefficient * (asn1Real64)((selfcellheight - neighborcellheight)))));
+      // dH_mm := selfCellHeight - neighborCellHeight (163,25)
+      dh_mm = (asn1SccT_UInt64) (selfcellheight - neighborcellheight);
+      // dH_m := float (dH_mm) * 0.001 (166,25)
+      dh_m = (asn1SccDouble) ((asn1Real64)(dh_mm) * 0.001);
+      // DECISION diag (-1,-1)
+      // ANSWER true (172,25)
+      if(((diag) == true))
+      {
+         // distance_ij_m := coreGrid.cellSize * M_SQRT2 (175,33)
+         distance_ij_m = (asn1SccDouble) (ctxt.coregrid.cellSize * m_sqrt2);
+         // ANSWER false (178,25)
+      } else if(((diag) == false))
+      {
+         // distance_ij_m := coreGrid.cellSize (181,33)
+         distance_ij_m = (asn1SccDouble) ctxt.coregrid.cellSize;
+      } //last
+      // height_avg_m := (selfCellDepth + coreGrid.cells(neighborCell).waterDepth) * 0.5 * 0.001 (185,25)
+      height_avg_m = (asn1SccDouble) (((selfcelldepth + ctxt.coregrid.cells.arr[neighborcell].waterDepth) * 0.5) * 0.001);
+      // DECISION height_avg_m (-1,-1)
+      // ANSWER <0.001 (191,25)
+      if(((height_avg_m) < 0.001))
+      {
+         // height_avg_m := 0.001 (194,33)
+         height_avg_m = (asn1SccDouble) 0.001;
+         // ANSWER ELSE (None,None)
+      } // 1
+      else
+      {
+         // nothing done
+      } //last
+      // speed := frictionCoefficient * sqrt ((2.0 * g *dH_m) / distance_ij_m) (201,25)
+      speed = (asn1SccDouble) (frictioncoefficient * sqrt((((2.0 * g) * dh_m) / distance_ij_m)));
+      // area_face := height_avg_m * coreGrid.cellSize (204,25)
+      area_face = (asn1SccDouble) (height_avg_m * ctxt.coregrid.cellSize);
+      // flow := speed * area_face (207,25)
+      flow = (asn1SccDouble) (speed * area_face);
+      // volume := flow * timeStepDuration (210,25)
+      volume = (asn1SccDouble) (flow * timeStepDuration);
+      // outflow.depth := fix (floor (flowCoefficient * float (selfCellHeight - neighborCellHeight))) (213,25)
+      (*outflow).depth = (asn1SccT_UInt32) (asn1SccUint)(floor((flowCoefficient * (asn1Real64)((selfcellheight - neighborcellheight)))));
+      // outflow.neighbor := neighborCell (216,25)
+      (*outflow).neighbor = (asn1SccCellIndex) neighborcell;
+      // RETURN  (None,None) at 132426688954880, 1147
+      return;
    } //last
-   // outflow.neighbor := neighborCell (146,17)
-   (*outflow).neighbor = (asn1SccCellIndex) neighborcell;
-   // RETURN  (None,None) at 137970062351296, 550
-   return;
 }
 
 
@@ -155,44 +204,44 @@ void _0_core_calculateGridCellNeighbors()
 {
    asn1SccCellIndex index;
    asn1SccMooreNeighborList neighbors;
-   asn1SccUint memcpy_counter_89 = 0;
-   asn1SccGridCellNeighborList right_temp_89;
-   asn1SccGridCellNeighborList memcpy_temp_89;
-   // gridNeighbors := {} (166,17)
+   asn1SccGridCellNeighborList right_temp_148;
+   asn1SccGridCellNeighborList memcpy_temp_148;
+   asn1SccUint memcpy_counter_148 = 0;
+   // gridNeighbors := {} (237,17)
    ctxt.gridneighbors = (asn1SccGridCellNeighborList) asn1SccGridCellNeighborList_constant;
-   // index := 0 (169,17)
+   // index := 0 (240,17)
    index = (asn1SccCellIndex) 0;
    // JOIN loop (None,None) at None, None
    goto loop;
-   // CONNECTION loop (172,12)
+   // CONNECTION loop (243,12)
    loop:
-   // neighbors := {} (175,17)
+   // neighbors := {} (246,17)
    neighbors = (asn1SccMooreNeighborList) asn1SccMooreNeighborList_constant;
-   // calculateCellMooreNeighbors(index, neighbors) (178,17)
+   // calculateCellMooreNeighbors(index, neighbors) (249,17)
    _0_core_calculateCellMooreNeighbors(index, &neighbors);
-   // gridNeighbors := gridNeighbors // {neighbors} (181,17)
+   // gridNeighbors := gridNeighbors // {neighbors} (252,17)
    {
-      right_temp_89 =(asn1SccGridCellNeighborList) {1, {neighbors}};
-      memcpy_temp_89 = ctxt.gridneighbors;
-      for(memcpy_counter_89 = 0; memcpy_counter_89 < 1; memcpy_counter_89++)
+      right_temp_148 =(asn1SccGridCellNeighborList) {1, {neighbors}};
+      memcpy_temp_148 = ctxt.gridneighbors;
+      for(memcpy_counter_148 = 0; memcpy_counter_148 < 1; memcpy_counter_148++)
       {
-         memcpy_temp_89.arr[memcpy_temp_89.nCount + memcpy_counter_89] = right_temp_89.arr[memcpy_counter_89];
+         memcpy_temp_148.arr[memcpy_temp_148.nCount + memcpy_counter_148] = right_temp_148.arr[memcpy_counter_148];
       }
-      memcpy_temp_89.nCount += 1;
+      memcpy_temp_148.nCount += 1;
    }
-   ctxt.gridneighbors = (asn1SccGridCellNeighborList) memcpy_temp_89;
-   // index := index + 1 (184,17)
+   ctxt.gridneighbors = (asn1SccGridCellNeighborList) memcpy_temp_148;
+   // index := index + 1 (255,17)
    index = (asn1SccCellIndex) (index + 1);
-   // DECISION index < length (coreGrid.cells) (187,27)
-   // ANSWER false (190,17)
+   // DECISION index < length (coreGrid.cells) (258,27)
+   // ANSWER false (261,17)
    if((((index < ctxt.coregrid.cells.nCount)) == false))
    {
-      // RETURN  (None,None) at 137970062551360, 631
+      // RETURN  (None,None) at 132427199030080, 631
       return;
-      // ANSWER true (196,17)
+      // ANSWER true (267,17)
    } else if((((index < ctxt.coregrid.cells.nCount)) == true))
    {
-      // JOIN loop (199,25) at 137970062594240, 631
+      // JOIN loop (270,25) at 132427199114560, 631
       goto loop;
    } //last
 }
@@ -202,50 +251,79 @@ void _0_core_addInitialEvents()
 {
    asn1SccCellIndex index;
    asn1SccFlowingWaterEvent newevent;
-   asn1SccFlowingWaterEventList memcpy_temp_90;
-   asn1SccUint memcpy_counter_90 = 0;
-   asn1SccFlowingWaterEventList right_temp_90;
-   // index := 0 (217,17)
+   asn1SccFlowingWaterEventList right_temp_149;
+   asn1SccFlowingWaterEventList memcpy_temp_150;
+   asn1SccUint memcpy_counter_149 = 0;
+   asn1SccFlowingWaterEventList memcpy_temp_149;
+   asn1SccFlowingWaterEventList right_temp_150;
+   asn1SccUint memcpy_counter_150 = 0;
+   // index := 0 (288,17)
    index = (asn1SccCellIndex) 0;
    // JOIN loop (None,None) at None, None
    goto loop;
-   // CONNECTION loop (220,12)
+   // CONNECTION loop (291,12)
    loop:
-   // DECISION coreGrid.cells(index).waterDepth (-1,-1)
-   // ANSWER >0 (226,17)
-   if(((ctxt.coregrid.cells.arr[index].waterDepth) > 0))
+   // DECISION coreGrid.cells(index).cellType (-1,-1)
+   // ANSWER normal (297,17)
+   if(((ctxt.coregrid.cells.arr[index].cellType) == asn1SccCellType_normal))
    {
-      // newEvent := {targetCell index} (229,25)
-      newevent = (asn1SccFlowingWaterEvent) {.targetCell = index};
-      // eventList := eventList // {newEvent} (232,25)
+      // DECISION coreGrid.cells(index).waterDepth (-1,-1)
+      // ANSWER >0 (303,25)
+      if(((ctxt.coregrid.cells.arr[index].waterDepth) > 0))
       {
-         right_temp_90 =(asn1SccFlowingWaterEventList) {1, {newevent}};
-         memcpy_temp_90 = ctxt.eventlist;
-         for(memcpy_counter_90 = 0; memcpy_counter_90 < 1; memcpy_counter_90++)
+         // newEvent := {targetCell index} (306,33)
+         newevent = (asn1SccFlowingWaterEvent) {.targetCell = index};
+         // flowingWaterEventList := flowingWaterEventList // {newEvent} (309,33)
          {
-            memcpy_temp_90.arr[memcpy_temp_90.nCount + memcpy_counter_90] = right_temp_90.arr[memcpy_counter_90];
+            right_temp_149 =(asn1SccFlowingWaterEventList) {1, {newevent}};
+            memcpy_temp_149 = ctxt.flowingwatereventlist;
+            for(memcpy_counter_149 = 0; memcpy_counter_149 < 1; memcpy_counter_149++)
+            {
+               memcpy_temp_149.arr[memcpy_temp_149.nCount + memcpy_counter_149] = right_temp_149.arr[memcpy_counter_149];
+            }
+            memcpy_temp_149.nCount += 1;
          }
-         memcpy_temp_90.nCount += 1;
+         ctxt.flowingwatereventlist = (asn1SccFlowingWaterEventList) memcpy_temp_149;
+         // ANSWER ELSE (None,None)
+      } // 1
+      else
+      {
+         // nothing done
+      } //last
+      // ANSWER source (316,17)
+   } else if(((ctxt.coregrid.cells.arr[index].cellType) == asn1SccCellType_source))
+   {
+      // newEvent := {targetCell index} (319,25)
+      newevent = (asn1SccFlowingWaterEvent) {.targetCell = index};
+      // flowingWaterEventList := flowingWaterEventList // {newEvent} (322,25)
+      {
+         right_temp_150 =(asn1SccFlowingWaterEventList) {1, {newevent}};
+         memcpy_temp_150 = ctxt.flowingwatereventlist;
+         for(memcpy_counter_150 = 0; memcpy_counter_150 < 1; memcpy_counter_150++)
+         {
+            memcpy_temp_150.arr[memcpy_temp_150.nCount + memcpy_counter_150] = right_temp_150.arr[memcpy_counter_150];
+         }
+         memcpy_temp_150.nCount += 1;
       }
-      ctxt.eventlist = (asn1SccFlowingWaterEventList) memcpy_temp_90;
+      ctxt.flowingwatereventlist = (asn1SccFlowingWaterEventList) memcpy_temp_150;
       // ANSWER ELSE (None,None)
    } // 1
    else
    {
       // nothing done
    } //last
-   // index := index +1 (239,17)
+   // index := index +1 (329,17)
    index = (asn1SccCellIndex) (index + 1);
-   // DECISION index < length (coreGrid.cells) (242,27)
-   // ANSWER false (245,17)
+   // DECISION index < length (coreGrid.cells) (332,27)
+   // ANSWER false (335,17)
    if((((index < ctxt.coregrid.cells.nCount)) == false))
    {
-      // RETURN  (None,None) at 137970062818880, 594
+      // RETURN  (None,None) at 132427196860480, 722
       return;
-      // ANSWER true (251,17)
+      // ANSWER true (341,17)
    } else if((((index < ctxt.coregrid.cells.nCount)) == true))
    {
-      // JOIN loop (254,25) at 137970062861376, 594
+      // JOIN loop (344,25) at 132427196885184, 722
       goto loop;
    } //last
 }
@@ -255,38 +333,38 @@ void _0_core_applyModifications(asn1SccGridModificationList modifications)
 {
    asn1SccT_UInt32 index;
    asn1SccCellState cell;
-   // index := 0 (275,17)
+   // index := 0 (365,17)
    index = (asn1SccT_UInt32) 0;
    // JOIN loop (None,None) at None, None
    goto loop;
-   // CONNECTION loop (278,12)
+   // CONNECTION loop (368,12)
    loop:
-   // cell := coreGrid.cells(modifications(index).targetCell) (281,17)
+   // cell := coreGrid.cells(modifications(index).targetCell) (371,17)
    cell = (asn1SccCellState) ctxt.coregrid.cells.arr[modifications.arr[index].targetCell];
    // DECISION modifications(index).increment (-1,-1)
-   // ANSWER true (287,17)
+   // ANSWER true (377,17)
    if(((modifications.arr[index].increment) == true))
    {
-      // cell.waterDepth := cell.waterDepth + modifications(index).delta (290,25)
+      // cell.waterDepth := cell.waterDepth + modifications(index).delta (380,25)
       cell.waterDepth = (asn1SccT_UInt32) (cell.waterDepth + modifications.arr[index].delta);
-      // ANSWER false (293,17)
+      // ANSWER false (383,17)
    } else if(((modifications.arr[index].increment) == false))
    {
-      // cell.waterDepth := cell.waterDepth - modifications(index).delta (296,25)
+      // cell.waterDepth := cell.waterDepth - modifications(index).delta (386,25)
       cell.waterDepth = (asn1SccT_UInt32) (cell.waterDepth - modifications.arr[index].delta);
    } //last
-   // index := index + 1 (300,17)
+   // index := index + 1 (390,17)
    index = (asn1SccT_UInt32) (index + 1);
-   // DECISION index < length (modifications) (303,27)
-   // ANSWER false (306,17)
+   // DECISION index < length (modifications) (393,27)
+   // ANSWER false (396,17)
    if((((index < modifications.nCount)) == false))
    {
-      // RETURN  (None,None) at 137970060506432, 644
+      // RETURN  (None,None) at 132427197135360, 644
       return;
-      // ANSWER true (312,17)
+      // ANSWER true (402,17)
    } else if((((index < modifications.nCount)) == true))
    {
-      // JOIN loop (315,25) at 137970060564864, 644
+      // JOIN loop (405,25) at 132427197179392, 644
       goto loop;
    } //last
 }
@@ -294,56 +372,57 @@ void _0_core_applyModifications(asn1SccGridModificationList modifications)
 
 void _0_core_runSimulationStep()
 {
-   asn1SccFlowingWaterEventList nexteventlist;
-   asn1SccGridModificationList modlist;
+   asn1SccFlowingWaterEventList nextflowingwatereventlist;
+   asn1SccGridModificationList modificationlist;
    asn1SccCellIndex index;
-   asn1SccFlowingWaterEvent event;
-   asn1SccGridModificationList memcpy_temp_91;
-   int memcpy_counter_91 = 0;
-   // modList := {} (336,17)
-   modlist = (asn1SccGridModificationList) asn1SccGridModificationList_constant;
-   // nextEventList := {} (339,17)
-   nexteventlist = (asn1SccFlowingWaterEventList) asn1SccFlowingWaterEventList_constant;
-   // index := 0 (342,17)
+   int memcpy_counter_151 = 0;
+   asn1SccGridModificationList memcpy_temp_151;
+   // modificationList := {} (424,17)
+   modificationlist = (asn1SccGridModificationList) asn1SccGridModificationList_constant;
+   // nextFlowingWaterEventList := {} (427,17)
+   nextflowingwatereventlist = (asn1SccFlowingWaterEventList) asn1SccFlowingWaterEventList_constant;
+   // index := 0 (430,17)
    index = (asn1SccCellIndex) 0;
    // JOIN loop (None,None) at None, None
    goto loop;
-   // CONNECTION loop (345,12)
+   // CONNECTION loop (433,12)
    loop:
-   // event := eventList(index) (348,17)
-   event = (asn1SccFlowingWaterEvent) ctxt.eventlist.arr[index];
-   // updateCell(event.targetCell, modList, nextEventList) (351,17)
-   _0_core_updateCell(event.targetCell, &modlist, &nexteventlist);
-   // index := index + 1 (354,17)
+   // updateCell(
+   //     flowingWaterEventList(index).targetCell, 
+   //     modificationList, 
+   //     nextFlowingWaterEventList
+   // ) (436,17)
+   _0_core_updateCell(ctxt.flowingwatereventlist.arr[index].targetCell, &modificationlist, &nextflowingwatereventlist);
+   // index := index + 1 (443,17)
    index = (asn1SccCellIndex) (index + 1);
-   // DECISION index < length (eventList) (357,27)
-   // ANSWER false (360,17)
-   if((((index < ctxt.eventlist.nCount)) == false))
+   // DECISION index < length (flowingWaterEventList) (446,27)
+   // ANSWER true (449,17)
+   if((((index < ctxt.flowingwatereventlist.nCount)) == true))
    {
-      // accumModList := accumModList // modList (363,25)
-      {
-         memcpy_temp_91 = ctxt.accummodlist;
-         for(memcpy_counter_91 = 0; memcpy_counter_91 < modlist.nCount; memcpy_counter_91++)
-         {
-            memcpy_temp_91.arr[memcpy_temp_91.nCount + memcpy_counter_91] = modlist.arr[memcpy_counter_91];
-         }
-         memcpy_temp_91.nCount += modlist.nCount;
-      }
-      ctxt.accummodlist = (asn1SccGridModificationList) memcpy_temp_91;
-      // eventList := nextEventList (366,25)
-      ctxt.eventlist = (asn1SccFlowingWaterEventList) nexteventlist;
-      // applyModifications(modList) (369,25)
-      _0_core_applyModifications(modlist);
-      // COMMENT Advance the counter (375,20)
-      // currentTimeStep := currentTimeStep + 1 (372,25)
-      ctxt.currenttimestep = (asn1SccTimeStep) (ctxt.currenttimestep + 1);
-      // RETURN  (None,None) at 137970062165696, 821
-      return;
-      // ANSWER true (381,17)
-   } else if((((index < ctxt.eventlist.nCount)) == true))
-   {
-      // JOIN loop (384,25) at 137970060869184, 601
+      // JOIN loop (452,25) at 132427197212352, 609
       goto loop;
+      // ANSWER false (455,17)
+   } else if((((index < ctxt.flowingwatereventlist.nCount)) == false))
+   {
+      // accumModList := accumModList // modificationList (458,25)
+      {
+         memcpy_temp_151 = ctxt.accummodlist;
+         for(memcpy_counter_151 = 0; memcpy_counter_151 < modificationlist.nCount; memcpy_counter_151++)
+         {
+            memcpy_temp_151.arr[memcpy_temp_151.nCount + memcpy_counter_151] = modificationlist.arr[memcpy_counter_151];
+         }
+         memcpy_temp_151.nCount += modificationlist.nCount;
+      }
+      ctxt.accummodlist = (asn1SccGridModificationList) memcpy_temp_151;
+      // flowingWaterEventList := nextFlowingWaterEventList (461,25)
+      ctxt.flowingwatereventlist = (asn1SccFlowingWaterEventList) nextflowingwatereventlist;
+      // applyModifications(modificationList) (464,25)
+      _0_core_applyModifications(modificationlist);
+      // COMMENT Advance the counter (470,20)
+      // currentTimeStep := currentTimeStep + 1 (467,25)
+      ctxt.currenttimestep = (asn1SccTimeStep) (ctxt.currenttimestep + 1);
+      // RETURN  (None,None) at 132427199913088, 829
+      return;
    } //last
 }
 
@@ -354,33 +433,33 @@ void core_PI_startsimulationfromgis(asn1SccFilePath *in__folder, asn1SccDuration
    asn1SccDuration timestepduration = *in__timestepduration;
    asn1SccDuration totalduration = *in__totalduration;
    asn1SccTimeStep snapshotperiod = *in__snapshotperiod;
-   asn1SccFilePath tmp11286;
+   asn1SccFilePath tmp24325;
    // get_sender(sender) (1,5)
    core_RI_get_sender(&ctxt.sender);
-   // currentTimeStep := 0 (405,17)
+   // currentTimeStep := 0 (494,17)
    ctxt.currenttimestep = (asn1SccTimeStep) 0;
-   // totalTimeSteps := totalDuration / timeStepDuration (408,17)
+   // totalTimeSteps := totalDuration / timeStepDuration (497,17)
    ctxt.totaltimesteps = (asn1SccTimeStep) (totalduration / timestepduration);
-   // coreSnapshotPeriod := snapshotPeriod (411,17)
+   // coreSnapshotPeriod := snapshotPeriod (500,17)
    ctxt.coresnapshotperiod = (asn1SccTimeStep) snapshotperiod;
-   // nextSnapshotTimeStep := coreSnapshotPeriod (414,17)
+   // nextSnapshotTimeStep := coreSnapshotPeriod (503,17)
    ctxt.nextsnapshottimestep = (asn1SccTimeStep) ctxt.coresnapshotperiod;
-   // eventList := {} (417,17)
-   ctxt.eventlist = (asn1SccFlowingWaterEventList) asn1SccFlowingWaterEventList_constant;
-   // accumModList := {} (420,17)
+   // flowingWaterEventList := {} (506,17)
+   ctxt.flowingwatereventlist = (asn1SccFlowingWaterEventList) asn1SccFlowingWaterEventList_constant;
+   // accumModList := {} (509,17)
    ctxt.accummodlist = (asn1SccGridModificationList) asn1SccGridModificationList_constant;
-   // loadGISData(folder, coreGrid) (423,17)
-   tmp11286 = (asn1SccFilePath) folder;
-   core_RI_loadGISData(&tmp11286, &ctxt.coregrid);
-   // displayInitialGrid(coreGrid) (426,19)
+   // loadGISData(folder, coreGrid) (512,17)
+   tmp24325 = (asn1SccFilePath) folder;
+   core_RI_loadGISData(&tmp24325, &ctxt.coregrid);
+   // displayInitialGrid(coreGrid) (515,19)
    core_RI_displayInitialGrid(&ctxt.coregrid);
-   // addInitialEvents (429,17)
+   // addInitialEvents (518,17)
    _0_core_addInitialEvents();
-   // calculateGridCellNeighbors (432,17)
+   // calculateGridCellNeighbors (521,17)
    _0_core_calculateGridCellNeighbors();
    // core_startSimulationFromGIS_transition (None,None)
    core_startsimulationfromgis_transition();
-   // RETURN  (None,None) at 137970062211968, 648
+   // RETURN  (None,None) at 132427196984576, 653
    return;
 }
 
@@ -393,116 +472,125 @@ void core_PI_startSimulationFromGIS(asn1SccFilePath *in__folder, asn1SccDuration
 
 void _0_core_calculateCellMooreNeighbors(asn1SccCellIndex index, asn1SccMooreNeighborList *neighbors)
 {
-   // RETURN  (None,None) at 137970061108608, 188
+   // RETURN  (None,None) at 132427010213952, 188
    return;
 }
 
 
-void _0_core_updateCell(asn1SccCellIndex cellindex, asn1SccGridModificationList *modlist, asn1SccFlowingWaterEventList *nexteventlist)
+void _0_core_updateCell(asn1SccCellIndex cellindex, asn1SccGridModificationList *modificationlist, asn1SccFlowingWaterEventList *nextflowingwatereventlist)
 {
-   asn1SccMooreNeighborList neighbors;
-   asn1SccCellState cell;
-   asn1SccCellIndex neighbor;
    asn1SccMooreNeighborIndex neighborindex;
+   asn1SccMooreNeighborList neighbors;
    asn1SccOutflow outflow;
+   asn1SccMooreNeighborIndex outflowindex;
    asn1SccOutflowList celloutflowlist;
    asn1SccT_UInt32 totaloutflowdepth;
-   asn1SccFlowingWaterEvent newevent;
-   asn1SccMooreNeighborIndex outflowindex;
-   asn1SccGridModification modification;
    asn1SccOutflowList normalizecelloutflowlist;
    asn1SccT_UInt32 normalizetotaloutflowdepth;
-   asn1SccUint memcpy_counter_94 = 0;
-   asn1SccGridModificationList memcpy_temp_96;
-   asn1SccFlowingWaterEventList memcpy_temp_95;
-   asn1SccGridModificationList memcpy_temp_93;
-   asn1SccFlowingWaterEventList right_temp_95;
-   asn1SccFlowingWaterEventList right_temp_92;
-   asn1SccUint memcpy_counter_92 = 0;
-   asn1SccUint memcpy_counter_96 = 0;
-   asn1SccOutflowList right_temp_94;
-   asn1SccUint memcpy_counter_93 = 0;
-   asn1SccGridModificationList right_temp_96;
-   asn1SccFlowingWaterEventList memcpy_temp_92;
-   asn1SccGridModificationList right_temp_93;
-   asn1SccUint memcpy_counter_95 = 0;
-   asn1SccOutflowList memcpy_temp_94;
-   // neighbors := gridNeighbors(cellIndex) (494,17)
+   asn1SccT_UInt64 selfcellheight;
+   asn1SccFrictionCoefficient frictioncoefficient;
+   asn1SccOutflowList memcpy_temp_152;
+   asn1SccUint memcpy_counter_152 = 0;
+   asn1SccOutflowList right_temp_152;
+   // DECISION coreGrid.cells(cellIndex).cellType (-1,-1)
+   // ANSWER source (581,17)
+   if(((ctxt.coregrid.cells.arr[cellindex].cellType) == asn1SccCellType_source))
+   {
+      // addFlowingWaterEvent(
+      //     cellIndex, 
+      //     nextFlowingWaterEventList
+      // ) (584,25)
+      _0_core_addFlowingWaterEvent(cellindex, &(*nextflowingwatereventlist));
+      // addGridModification(
+      //     cellIndex,
+      //     true,
+      //     coreGrid.cells(cellIndex).inflowPerTimeStep,
+      //     modificationList
+      // ) (590,25)
+      _0_core_addGridModification(cellindex, true, ctxt.coregrid.cells.arr[cellindex].inflowPerTimeStep, &(*modificationlist));
+      // ANSWER ELSE (None,None)
+   } // 1
+   else
+   {
+      // nothing done
+   } //last
+   // neighbors := gridNeighbors(cellIndex) (602,17)
    neighbors = (asn1SccMooreNeighborList) ctxt.gridneighbors.arr[cellindex];
-   // neighborIndex := 0 (497,17)
+   // neighborIndex := 0 (605,17)
    neighborindex = (asn1SccMooreNeighborIndex) 0;
-   // cellOutFlowList := {} (500,17)
+   // cellOutFlowList := {} (608,17)
    celloutflowlist = (asn1SccOutflowList) asn1SccOutflowList_constant;
-   // totalOutflowDepth := 0 (503,17)
+   // totalOutflowDepth := 0 (611,17)
    totaloutflowdepth = (asn1SccT_UInt32) 0;
+   // selfCellHeight := coreGrid.cells(cellIndex).elevation + coreGrid.cells(cellIndex).waterDepth (614,17)
+   selfcellheight = (asn1SccT_UInt64) (ctxt.coregrid.cells.arr[cellindex].elevation + ctxt.coregrid.cells.arr[cellindex].waterDepth);
+   // getFrictionCoefficient(coreGrid.cells(cellIndex).surfaceType, frictionCoefficient) (617,17)
+   _0_core_getFrictionCoefficient(ctxt.coregrid.cells.arr[cellindex].surfaceType, &frictioncoefficient);
    // JOIN loopComputeWaterFlow (None,None) at None, None
    goto loopcomputewaterflow;
-   // CONNECTION loopAddGridModifications (571,28)
+   // CONNECTION loopAddGridModifications (704,28)
    loopaddgridmodifications:
-   // newEvent := {targetCell cellOutflowList(outflowIndex).neighbor} (574,33)
-   newevent = (asn1SccFlowingWaterEvent) {.targetCell = celloutflowlist.arr[outflowindex].neighbor};
-   // nextEventList := nextEventList // {newEvent} (577,33)
+   // DECISION coreGrid.cells(cellOutflowList(outflowIndex).neighbor).cellType (-1,-1)
+   // ANSWER sink (710,33)
+   if(((ctxt.coregrid.cells.arr[celloutflowlist.arr[outflowindex].neighbor].cellType) == asn1SccCellType_sink))
    {
-      right_temp_92 =(asn1SccFlowingWaterEventList) {1, {newevent}};
-      memcpy_temp_92 = (*nexteventlist);
-      for(memcpy_counter_92 = 0; memcpy_counter_92 < 1; memcpy_counter_92++)
-      {
-         memcpy_temp_92.arr[memcpy_temp_92.nCount + memcpy_counter_92] = right_temp_92.arr[memcpy_counter_92];
-      }
-      memcpy_temp_92.nCount += 1;
-   }
-   (*nexteventlist) = (asn1SccFlowingWaterEventList) memcpy_temp_92;
-   // modification := {
-   //   targetCell cellOutflowList(outflowIndex).neighbor, 
-   //   increment true,
-   //   delta cellOutflowList(outflowIndex).depth
-   // } (580,33)
-   modification = (asn1SccGridModification) {.targetCell = celloutflowlist.arr[outflowindex].neighbor, .increment = true, .delta = celloutflowlist.arr[outflowindex].depth};
-   // modList := modList // {modification} (587,33)
+      ;
+      // ANSWER ELSE (None,None)
+   } // 1
+   else
    {
-      right_temp_93 =(asn1SccGridModificationList) {1, {modification}};
-      memcpy_temp_93 = (*modlist);
-      for(memcpy_counter_93 = 0; memcpy_counter_93 < 1; memcpy_counter_93++)
-      {
-         memcpy_temp_93.arr[memcpy_temp_93.nCount + memcpy_counter_93] = right_temp_93.arr[memcpy_counter_93];
-      }
-      memcpy_temp_93.nCount += 1;
-   }
-   (*modlist) = (asn1SccGridModificationList) memcpy_temp_93;
-   // outflowIndex := outflowIndex + 1 (590,33)
+      // addFlowingWaterEvent(
+      //     cellOutflowList(outflowIndex).neighbor, 
+      //     nextFlowingWaterEventList
+      // ) (716,41)
+      _0_core_addFlowingWaterEvent(celloutflowlist.arr[outflowindex].neighbor, &(*nextflowingwatereventlist));
+      // addGridModification(
+      //     cellOutflowList(outflowIndex).neighbor,
+      //     true,
+      //     cellOutflowList(outflowIndex).depth,
+      //     modificationList
+      // ) (722,41)
+      _0_core_addGridModification(celloutflowlist.arr[outflowindex].neighbor, true, celloutflowlist.arr[outflowindex].depth, &(*modificationlist));
+   } //last
+   // outflowIndex := outflowIndex + 1 (731,33)
    outflowindex = (asn1SccMooreNeighborIndex) (outflowindex + 1);
-   // DECISION outflowIndex < length (cellOutflowList) (593,50)
-   // ANSWER false (596,33)
+   // DECISION outflowIndex < length (cellOutflowList) (734,50)
+   // ANSWER false (737,33)
    if((((outflowindex < celloutflowlist.nCount)) == false))
    {
-      // RETURN  (None,None) at 137970058616960, 1912
+      // RETURN  (None,None) at 132427010965888, 2607
       return;
-      // ANSWER true (602,33)
+      // ANSWER true (743,33)
    } else if((((outflowindex < celloutflowlist.nCount)) == true))
    {
-      // JOIN loopAddGridModifications (605,41) at 137970058642624, 1912
+      // JOIN loopAddGridModifications (746,41) at 132427011024960, 2607
       goto loopaddgridmodifications;
    } //last
-   // CONNECTION loopComputeWaterFlow (506,12)
+   // CONNECTION loopComputeWaterFlow (620,12)
    loopcomputewaterflow:
-   // computeWaterFlow(cellIndex, neighbors(neighborIndex), outflow) (509,17)
-   _0_core_computeWaterFlow(cellindex, neighbors.arr[neighborindex], &outflow);
+   // computeOutflow(
+   //     selfCellHeight, 
+   //     frictionCoefficient,
+   //     neighbors(neighborIndex), 
+   //     outflow
+   // ) (623,17)
+   _0_core_computeOutflow(selfcellheight, frictioncoefficient, neighbors.arr[neighborindex], outflow);
    // DECISION outflow.depth (-1,-1)
-   // ANSWER >0 (515,17)
+   // ANSWER >0 (634,17)
    if(((outflow.depth) > 0))
    {
-      // cellOutflowList := cellOutflowList // {outflow} (518,25)
+      // cellOutflowList := cellOutflowList // {outflow} (637,25)
       {
-         right_temp_94 =(asn1SccOutflowList) {1, {outflow}};
-         memcpy_temp_94 = celloutflowlist;
-         for(memcpy_counter_94 = 0; memcpy_counter_94 < 1; memcpy_counter_94++)
+         right_temp_152 =(asn1SccOutflowList) {1, {outflow}};
+         memcpy_temp_152 = celloutflowlist;
+         for(memcpy_counter_152 = 0; memcpy_counter_152 < 1; memcpy_counter_152++)
          {
-            memcpy_temp_94.arr[memcpy_temp_94.nCount + memcpy_counter_94] = right_temp_94.arr[memcpy_counter_94];
+            memcpy_temp_152.arr[memcpy_temp_152.nCount + memcpy_counter_152] = right_temp_152.arr[memcpy_counter_152];
          }
-         memcpy_temp_94.nCount += 1;
+         memcpy_temp_152.nCount += 1;
       }
-      celloutflowlist = (asn1SccOutflowList) memcpy_temp_94;
-      // totalOutflowDepth := totalOutflowDepth + outflow.depth (521,25)
+      celloutflowlist = (asn1SccOutflowList) memcpy_temp_152;
+      // totalOutflowDepth := totalOutflowDepth + outflow.depth (640,25)
       totaloutflowdepth = (asn1SccT_UInt32) (totaloutflowdepth + outflow.depth);
       // ANSWER ELSE (None,None)
    } // 1
@@ -510,54 +598,52 @@ void _0_core_updateCell(asn1SccCellIndex cellindex, asn1SccGridModificationList 
    {
       // nothing done
    } //last
-   // neighborIndex := neighborIndex + 1 (528,17)
+   // neighborIndex := neighborIndex + 1 (647,17)
    neighborindex = (asn1SccMooreNeighborIndex) (neighborindex + 1);
-   // DECISION neighborIndex < length (neighbors) (531,35)
-   // ANSWER true (534,17)
+   // DECISION neighborIndex < length (neighbors) (650,35)
+   // ANSWER true (653,17)
    if((((neighborindex < neighbors.nCount)) == true))
    {
-      // JOIN loopComputeWaterFlow (537,25) at 137970061406208, 930
+      // JOIN loopComputeWaterFlow (656,25) at 132427010603136, 1428
       goto loopcomputewaterflow;
-      // ANSWER false (540,17)
+      // ANSWER false (659,17)
    } else if((((neighborindex < neighbors.nCount)) == false))
    {
       // DECISION length (cellOutflowList) (-1,-1)
-      // ANSWER >0 (546,25)
+      // ANSWER >0 (665,25)
       if(((celloutflowlist.nCount) > 0))
       {
-         // normalizeOutflows(coreGrid.cells(cellIndex).waterDepth, totalOutflowDepth, cellOutflowList, normalizeCellOutflowList, normalizeTotalOutflowDepth) (549,33)
-         _0_core_normalizeOutflows(ctxt.coregrid.cells.arr[cellindex].waterDepth, totaloutflowdepth, celloutflowlist, &normalizecelloutflowlist, &normalizetotaloutflowdepth);
-         // newEvent := {targetCell cellIndex} (552,33)
-         newevent = (asn1SccFlowingWaterEvent) {.targetCell = cellindex};
-         // nextEventList := nextEventList // {newEvent} (555,33)
+         // normalizeOutflows(
+         //     coreGrid.cells(cellIndex).waterDepth, 
+         //     totalOutflowDepth, 
+         //     cellOutflowList,  
+         //     normalizeTotalOutflowDepth,
+         //     normalizeCellOutflowList
+         // ) (668,33)
+         _0_core_normalizeOutflows(ctxt.coregrid.cells.arr[cellindex].waterDepth, totaloutflowdepth, celloutflowlist, &normalizetotaloutflowdepth, &normalizecelloutflowlist);
+         // DECISION coreGrid.cells(cellIndex).cellType (-1,-1)
+         // ANSWER source (680,33)
+         if(((ctxt.coregrid.cells.arr[cellindex].cellType) == asn1SccCellType_source))
          {
-            right_temp_95 =(asn1SccFlowingWaterEventList) {1, {newevent}};
-            memcpy_temp_95 = (*nexteventlist);
-            for(memcpy_counter_95 = 0; memcpy_counter_95 < 1; memcpy_counter_95++)
-            {
-               memcpy_temp_95.arr[memcpy_temp_95.nCount + memcpy_counter_95] = right_temp_95.arr[memcpy_counter_95];
-            }
-            memcpy_temp_95.nCount += 1;
-         }
-         (*nexteventlist) = (asn1SccFlowingWaterEventList) memcpy_temp_95;
-         // modification := {
-         //   targetCell cellIndex, 
-         //   increment false,
-         //   delta normalizeTotalOutflowDepth
-         // } (558,33)
-         modification = (asn1SccGridModification) {.targetCell = cellindex, .increment = false, .delta = normalizetotaloutflowdepth};
-         // modList := modList // {modification} (565,33)
+            ;
+            // ANSWER ELSE (None,None)
+         } // 1
+         else
          {
-            right_temp_96 =(asn1SccGridModificationList) {1, {modification}};
-            memcpy_temp_96 = (*modlist);
-            for(memcpy_counter_96 = 0; memcpy_counter_96 < 1; memcpy_counter_96++)
-            {
-               memcpy_temp_96.arr[memcpy_temp_96.nCount + memcpy_counter_96] = right_temp_96.arr[memcpy_counter_96];
-            }
-            memcpy_temp_96.nCount += 1;
-         }
-         (*modlist) = (asn1SccGridModificationList) memcpy_temp_96;
-         // outflowIndex := 0 (568,33)
+            // addFlowingWaterEvent(
+            //     cellIndex, 
+            //     nextFlowingWaterEventList
+            // ) (686,41)
+            _0_core_addFlowingWaterEvent(cellindex, &(*nextflowingwatereventlist));
+         } //last
+         // addGridModification(
+         //     cellIndex,
+         //     false,
+         //     normalizeTotalOutflowDepth,
+         //     modificationList
+         // ) (693,33)
+         _0_core_addGridModification(cellindex, false, normalizetotaloutflowdepth, &(*modificationlist));
+         // outflowIndex := 0 (701,33)
          outflowindex = (asn1SccMooreNeighborIndex) 0;
          // JOIN loopAddGridModifications (None,None) at None, None
          goto loopaddgridmodifications;
@@ -565,43 +651,95 @@ void _0_core_updateCell(asn1SccCellIndex cellindex, asn1SccGridModificationList 
       } // 1
       else
       {
-         // RETURN  (None,None) at 137970058669824, 1043
+         // RETURN  (None,None) at 132427011066240, 1541
          return;
       } //last
    } //last
 }
 
 
-void _0_core_getFlowCoefficient(asn1SccSurfaceType surfacetype, asn1SccFlowCoefficient *flowcoefficient)
+void _0_core_getFrictionCoefficient(asn1SccSurfaceType surfacetype, asn1SccFrictionCoefficient *frictioncoefficient)
 {
    // DECISION surfaceType (-1,-1)
-   // ANSWER rock (635,17)
-   if(((surfacetype) == asn1SccSurfaceType_rock))
+   // ANSWER waterSurface (776,17)
+   if(((surfacetype) == asn1SccSurfaceType_waterSurface))
    {
-      // flowCoefficient := 0.2 (638,25)
-      (*flowcoefficient) = (asn1SccFlowCoefficient) 0.2;
-      // ANSWER asphalt (641,17)
+      // frictionCoefficient := 0.2 (779,25)
+      (*frictioncoefficient) = (asn1SccFrictionCoefficient) 0.2;
+      // ANSWER rock (782,17)
+   } else if(((surfacetype) == asn1SccSurfaceType_rock))
+   {
+      // frictionCoefficient := 0.2 (785,25)
+      (*frictioncoefficient) = (asn1SccFrictionCoefficient) 0.2;
+      // ANSWER asphalt (788,17)
    } else if(((surfacetype) == asn1SccSurfaceType_asphalt))
    {
-      // flowCoefficient := 0.2 (644,25)
-      (*flowcoefficient) = (asn1SccFlowCoefficient) 0.2;
-      // ANSWER forest (647,17)
+      // frictionCoefficient := 0.2 (791,25)
+      (*frictioncoefficient) = (asn1SccFrictionCoefficient) 0.2;
+      // ANSWER forest (794,17)
    } else if(((surfacetype) == asn1SccSurfaceType_forest))
    {
-      // flowCoefficient := 0.2 (650,25)
-      (*flowcoefficient) = (asn1SccFlowCoefficient) 0.2;
-      // ANSWER waterSurface (653,17)
-   } else if(((surfacetype) == asn1SccSurfaceType_waterSurface))
-   {
-      // flowCoefficient := 0.2 (656,25)
-      (*flowcoefficient) = (asn1SccFlowCoefficient) 0.2;
-      // ANSWER soil (659,17)
+      // frictionCoefficient := 0.2 (797,25)
+      (*frictioncoefficient) = (asn1SccFrictionCoefficient) 0.2;
+      // ANSWER soil (800,17)
    } else if(((surfacetype) == asn1SccSurfaceType_soil))
    {
-      // flowCoefficient := 0.2 (662,25)
-      (*flowcoefficient) = (asn1SccFlowCoefficient) 0.2;
+      // frictionCoefficient := 0.2 (803,25)
+      (*frictioncoefficient) = (asn1SccFrictionCoefficient) 0.2;
    } //last
-   // RETURN  (None,None) at 137970058919232, 303
+   // RETURN  (None,None) at 132427010798848, 303
+   return;
+}
+
+
+void _0_core_addFlowingWaterEvent(asn1SccCellIndex targetcell, asn1SccFlowingWaterEventList *eventlist)
+{
+   asn1SccFlowingWaterEvent event;
+   asn1SccUint memcpy_counter_153 = 0;
+   asn1SccFlowingWaterEventList right_temp_153;
+   asn1SccFlowingWaterEventList memcpy_temp_153;
+   // event := {targetCell targetCell} (827,17)
+   event = (asn1SccFlowingWaterEvent) {.targetCell = targetcell};
+   // eventList := eventList // {event} (830,17)
+   {
+      right_temp_153 =(asn1SccFlowingWaterEventList) {1, {event}};
+      memcpy_temp_153 = (*eventlist);
+      for(memcpy_counter_153 = 0; memcpy_counter_153 < 1; memcpy_counter_153++)
+      {
+         memcpy_temp_153.arr[memcpy_temp_153.nCount + memcpy_counter_153] = right_temp_153.arr[memcpy_counter_153];
+      }
+      memcpy_temp_153.nCount += 1;
+   }
+   (*eventlist) = (asn1SccFlowingWaterEventList) memcpy_temp_153;
+   // RETURN  (None,None) at 132427010337792, 260
+   return;
+}
+
+
+void _0_core_addGridModification(asn1SccCellIndex targetcell, asn1SccT_Boolean increment, asn1SccT_UInt32 delta, asn1SccGridModificationList *modificationlist)
+{
+   asn1SccGridModification modification;
+   asn1SccGridModificationList memcpy_temp_154;
+   asn1SccGridModificationList right_temp_154;
+   asn1SccUint memcpy_counter_154 = 0;
+   // modification := {
+   //   targetCell targetCell,
+   //   increment increment,
+   //   delta delta
+   // } (855,17)
+   modification = (asn1SccGridModification) {.targetCell = targetcell, .increment = increment, .delta = delta};
+   // modificationList := modificationList // {modification} (862,17)
+   {
+      right_temp_154 =(asn1SccGridModificationList) {1, {modification}};
+      memcpy_temp_154 = (*modificationlist);
+      for(memcpy_counter_154 = 0; memcpy_counter_154 < 1; memcpy_counter_154++)
+      {
+         memcpy_temp_154.arr[memcpy_temp_154.nCount + memcpy_counter_154] = right_temp_154.arr[memcpy_counter_154];
+      }
+      memcpy_temp_154.nCount += 1;
+   }
+   (*modificationlist) = (asn1SccGridModificationList) memcpy_temp_154;
+   // RETURN  (None,None) at 132427008129600, 397
    return;
 }
 
@@ -619,7 +757,7 @@ void runTransitionCore(int Id)
       {
          case 0:
          {
-            // NEXT_STATE Idle (673,18) at 137970063418432, 99
+            // NEXT_STATE Idle (872,18) at 132427199821504, 150
             trId = -1;
             ctxt.state = asn1SccCore_States_idle;
             goto continuous_signals;
@@ -627,35 +765,35 @@ void runTransitionCore(int Id)
          }
          case 1:
          {
-            // runSimulationStep (683,17)
+            // runSimulationStep (882,17)
             _0_core_runSimulationStep();
-            // finished := currentTimeStep >= totalTimeSteps (686,17)
+            // finished := currentTimeStep >= totalTimeSteps (885,17)
             ctxt.finished = (asn1SccT_Boolean) (ctxt.currenttimestep >= ctxt.totaltimesteps);
-            // DECISION currentTimeStep >= nextSnapshotTimeStep (689,37)
-            // ANSWER false (692,17)
+            // DECISION currentTimeStep >= nextSnapshotTimeStep (888,37)
+            // ANSWER false (891,17)
             if((((ctxt.currenttimestep >= ctxt.nextsnapshottimestep)) == false))
             {
                ;
-               // ANSWER true (695,17)
+               // ANSWER true (894,17)
             } else if((((ctxt.currenttimestep >= ctxt.nextsnapshottimestep)) == true))
             {
-               // displaySnapShot(accumModList, finished) (698,27)
+               // displaySnapShot(accumModList, finished) (897,27)
                core_RI_displaySnapshot(&ctxt.accummodlist, &ctxt.finished);
-               // nextSnapshotTimeStep := nextSnapshotTimeStep + coreSnapshotPeriod (701,25)
+               // nextSnapshotTimeStep := nextSnapshotTimeStep + coreSnapshotPeriod (900,25)
                ctxt.nextsnapshottimestep = (asn1SccTimeStep) (ctxt.nextsnapshottimestep + ctxt.coresnapshotperiod);
             } //last
             // DECISION finished (-1,-1)
-            // ANSWER false (708,17)
+            // ANSWER false (907,17)
             if(((ctxt.finished) == false))
             {
-               // NEXT_STATE Running (711,30) at 137970063849856, 756
+               // NEXT_STATE Running (910,30) at 132427198267264, 807
                trId = -1;
                ctxt.state = asn1SccCore_States_running;
                goto continuous_signals;
-               // ANSWER true (714,17)
+               // ANSWER true (913,17)
             } else if(((ctxt.finished) == true))
             {
-               // NEXT_STATE Idle (717,30) at 137970063878848, 756
+               // NEXT_STATE Idle (916,30) at 132427198295488, 807
                trId = -1;
                ctxt.state = asn1SccCore_States_idle;
                goto continuous_signals;
@@ -664,7 +802,7 @@ void runTransitionCore(int Id)
          }
          case 2:
          {
-            // NEXT_STATE Running (729,22) at 137970063657600, 209
+            // NEXT_STATE Running (928,22) at 132427200143744, 260
             trId = -1;
             ctxt.state = asn1SccCore_States_running;
             goto continuous_signals;

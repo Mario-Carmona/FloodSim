@@ -1,0 +1,59 @@
+/* CIF PROCESS (177, 154), (150, 75) */
+
+process UI_Manager;
+    /* CIF Keep Specific Geode Partition 'default' */
+    /* CIF TEXT (7, 181), (180, 140) */
+    dcl newGridData GridData;
+    /* CIF ENDTEXT */
+    /* CIF procedure (0, 439), (87, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    procedure renderGrid;
+        /* CIF Keep Specific Geode Partition 'default' */
+        /* CIF TEXT (149, 125), (170, 140) */
+        fpar
+            in gridData GridData;
+        /* CIF ENDTEXT */
+        /* CIF START (465, 120), (70, 35) */
+        START;
+            /* CIF return (482, 175), (35, 35) */
+            return ;
+    endprocedure;
+    /* CIF START (380, 10), (70, 35) */
+    START;
+        /* CIF NEXTSTATE (367, 60), (95, 35) */
+        NEXTSTATE InitialScreen;
+    /* CIF state (340, 390), (146, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state DisplayingSimulation;
+        /* CIF input (225, 445), (225, 35) */
+        input UpdateGridRequest(newGridData);
+            /* CIF PROCEDURECALL (251, 500), (172, 35) */
+            call renderGrid(newGridData);
+            /* CIF NEXTSTATE (264, 555), (146, 35) */
+            NEXTSTATE DisplayingSimulation;
+        /* CIF input (461, 445), (150, 35) */
+        input SimulationCompleted;
+            /* CIF NEXTSTATE (488, 500), (95, 35) */
+            NEXTSTATE InitialScreen;
+    endstate;
+    /* CIF state (367, 225), (92, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state MapLoaded;
+        /* CIF input (340, 280), (147, 35) */
+        input UserStartsSimulation;
+            /* CIF output (356, 335), (114, 35) */
+            output SimulationStart;
+            /* CIF NEXTSTATE (340, 390), (146, 35) */
+            NEXTSTATE DisplayingSimulation;
+    endstate;
+    /* CIF state (367, 60), (95, 35) */
+    /* CIF Keep Specific Geode Partition 'default' */
+    state InitialScreen;
+        /* CIF input (326, 115), (174, 35) */
+        input UserSelectsFolder(folder);
+            /* CIF output (328, 170), (170, 35) */
+            output LoadMapRequest(folder);
+            /* CIF NEXTSTATE (367, 225), (92, 35) */
+            NEXTSTATE MapLoaded;
+    endstate;
+endprocess UI_Manager;
