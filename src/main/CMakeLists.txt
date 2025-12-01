@@ -1,14 +1,9 @@
-add_executable(FloodSimApp
-    main.cpp
+
+add_executable(DanaSimCLI
+    main_cli.cpp
 )
 
-target_link_libraries(FloodSimApp
-    PRIVATE flood_core
-            flood_gis
-            flood_mqtt
-            flood_taste
-            flood_gui
-            cxxopts::cxxopts
-            TBB::tbb
-            fmt::fmt
+target_link_libraries(DanaSimCLI PRIVATE
+    danasim_options
+    DanaSim::UI::CLI
 )

@@ -52,3 +52,20 @@
 *.synctex.gz
 *.bbl
 *.blg
+
+# CMake Build Artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+CTestTestfile.cmake
+cpack_options.cmake
+*.cmake
+install_manifest.txt
+compile_commands.json
+
+# Build Output Directories
+/build/
+
+# VCPKG
+/vcpkg_installed

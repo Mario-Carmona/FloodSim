@@ -1,0 +1,26 @@
+====================================================================================
+
+- Añadir vcpkg como submódulo al repositorio de github
+
+git submodule add https://github.com/microsoft/vcpkg external/vcpkg
+cd external/vcpkg
+git fetch --tags
+git checkout 2025.03.19
+cd ../..
+git add external/vcpkg
+git commit -m "Add vcpkg submodule at tag 2025.03.19"
+
+====================================================================================
+
+- En caso de actualizar la versión de vcpkg utilizada se debe hacer lo siguiente:
+
+    * Actualizar el builtin-baseline del vcpkg.json:
+
+cd external/vcpkg
+git rev-parse HEAD
+
+Este último comando te devuelve el valor a colocar en ese campo.
+
+Añadir esta explicación al Readme.md
+
+====================================================================================

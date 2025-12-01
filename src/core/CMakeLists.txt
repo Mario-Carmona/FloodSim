@@ -1,17 +1,15 @@
-# Capa CORE — simulador puro
-add_library(flood_core
-    Grid.cpp
-    Simulator.cpp
-    HydrologyModel.cpp
-    FloodPropagation.cpp
+
+add_library(danasim_core
+    CoreEngineCA.cpp
 )
 
-target_include_directories(flood_core PUBLIC
+target_include_directories(danasim_core PUBLIC
     ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(flood_core
-    PRIVATE fmt::fmt
-            nlohmann_json::nlohmann_json
-            magic_enum::magic_enum
+target_link_libraries(danasim_core PUBLIC 
+    danasim_options
+    DanaSim::Common
 )
+
+add_library(DanaSim::Core ALIAS danasim_core)
