@@ -5,10 +5,10 @@
 git submodule add https://github.com/microsoft/vcpkg external/vcpkg
 cd external/vcpkg
 git fetch --tags
-git checkout 2025.03.19
+git checkout 2025.10.17
 cd ../..
 git add external/vcpkg
-git commit -m "Add vcpkg submodule at tag 2025.03.19"
+git commit -m "Add vcpkg submodule at tag 2025.10.17"
 
 ====================================================================================
 
@@ -20,7 +20,5 @@ cd external/vcpkg
 git rev-parse HEAD
 
 Este último comando te devuelve el valor a colocar en ese campo.
-
-Añadir esta explicación al Readme.md
 
 ====================================================================================
