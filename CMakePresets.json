@@ -13,7 +13,7 @@
             "description": "Base preset defining common cache variables shared by all presets.",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_CXX_STANDARD": "17",
+                "CMAKE_CXX_STANDARD": "26",
                 "CMAKE_CXX_STANDARD_REQUIRED": "ON",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
@@ -31,21 +31,21 @@
                 "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed"
             }
         },
-        {
-            "name": "windows-apps",
-            "inherits": ["apps"],
-            "description": "Windows-specific preset using Visual Studio 2022 and static vcpkg triplets.",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            },
-            "generator": "Visual Studio 17 2022",
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
-                "VCPKG_HOST_TRIPLET": "x64-windows-static"
-            }
+      {
+        "name": "windows-apps",
+        "inherits": ["apps"],
+        "description": "Windows-specific preset using Visual Studio 2026 and static vcpkg triplets.",
+        "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Windows"
         },
+        "generator": "Visual Studio 18 2026",
+        "cacheVariables": {
+          "VCPKG_TARGET_TRIPLET": "x64-windows",
+          "VCPKG_HOST_TRIPLET": "x64-windows"
+        }
+      },
         {
             "name": "docs",
             "inherits": ["common"],
