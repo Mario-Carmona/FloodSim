@@ -20,5 +20,3 @@ cd external/vcpkg
 git rev-parse HEAD
 
 Este último comando te devuelve el valor a colocar en ese campo.
-
-====================================================================================
