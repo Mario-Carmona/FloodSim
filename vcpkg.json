@@ -1,5 +1,5 @@
 {
-  "builtin-baseline": "5bf0c55239da398b8c6f450818c9e28d36bf9966",
+  "builtin-baseline": "74e6536215718009aae747d86d84b78376bf9e09",
   "dependencies": [
     "tensorflow-cc"
   ]
