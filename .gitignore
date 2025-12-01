@@ -69,3 +69,9 @@ compile_commands.json
 
 # VCPKG
 /vcpkg_installed
+
+# Editor configuration (VS Code)
+.vscode/
+
+# Visual Studio Directory
+.vs/
