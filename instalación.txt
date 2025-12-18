@@ -1,0 +1,45 @@
+====================================================================================
+
+- Añadir vcpkg como submódulo al repositorio de github
+
+git submodule add https://github.com/microsoft/vcpkg external/vcpkg
+cd external/vcpkg
+git fetch --tags
+git checkout 2025.10.17
+cd ../..
+git add external/vcpkg
+git commit -m "Add vcpkg submodule at tag 2025.10.17"
+
+- En caso de actualizar la versión de vcpkg utilizada se debe hacer lo siguiente:
+
+    * Actualizar el builtin-baseline del vcpkg.json:
+
+cd external/vcpkg
+git rev-parse HEAD
+
+Este último comando te devuelve el valor a colocar en ese campo.
+
+====================================================================================
+
+- Instalar Python >= 3.10.0
+
+- Usar setup_python_env.bat o setup_python_env.sh para el entorno de python
+
+- Para activar el entorno para usar los paquetes:
+
+.venv\Scripts\activate.bat
+
+o
+
+source .venv/bin/activate
+
+====================================================================================
+
+- Instalar Visual Studio 2026
+
+====================================================================================
+
+- Instalar Wix Tool Set con Chocolatey (choco install wixtoolset) - Debes abrir un terminal en modo Administrador
+
+- Fijar ruta a Wix en el CMakePresets.json -> CPACK_WIX_ROOT
+

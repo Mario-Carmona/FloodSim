@@ -7,12 +7,12 @@ void SimulationBridge::pushState(StatePtr newState) {
     std::unique_lock<std::mutex> lock(mtx);
 
     if (currentMode == SyncMode::RealTime_SkipFrames) {
-        // Lógica RealTime: Sobrescribir sin piedad
+        // RealTime Logic: Always overwrite
         latestSnapshot = newState;
         hasNewRealTimeData = true;
         cv_consumer.notify_one(); 
     } else {
-        // Lógica Lossless: Bloquear si está lleno
+        // Lossless Logic: Block if full
         cv_producer.wait(lock, [this]() {
             return bufferQueue.size() < MAX_QUEUE_SIZE || !isRunning.load();
         });
@@ -27,9 +27,9 @@ void SimulationBridge::pushState(StatePtr newState) {
 bool SimulationBridge::waitForState(StatePtr& outState) {
     std::unique_lock<std::mutex> lock(mtx);
 
-    // Esperar mientras no haya datos Y la simulación siga activa
+    // Wait until there is no data and the simulation is still active
     cv_consumer.wait(lock, [this]() {
-        if (!isRunning.load()) return true; // Salir
+        if (!isRunning.load()) return true; // Exit
         
         if (currentMode == SyncMode::RealTime_SkipFrames) return hasNewRealTimeData;
         else return !bufferQueue.empty();
@@ -37,7 +37,7 @@ bool SimulationBridge::waitForState(StatePtr& outState) {
 
     if (!isRunning.load() && 
         (currentMode == SyncMode::RealTime_SkipFrames ? !hasNewRealTimeData : bufferQueue.empty())) {
-        return false; // Fin de simulación
+        return false; // End of simulation
     }
 
     if (currentMode == SyncMode::RealTime_SkipFrames) {
@@ -46,7 +46,7 @@ bool SimulationBridge::waitForState(StatePtr& outState) {
     } else {
         outState = bufferQueue.front();
         bufferQueue.pop();
-        // Avisar al Core que hay espacio libre
+        // Notify the Core that there is free space
         cv_producer.notify_one();
     }
     return true;

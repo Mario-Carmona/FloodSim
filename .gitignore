@@ -1,44 +1,3 @@
-# Prerequisites
-*.d
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# debug information files
-*.dwo
 
 # Latex
 *.out
@@ -60,18 +19,39 @@ CMakeScripts/
 cmake_install.cmake
 CTestTestfile.cmake
 cpack_options.cmake
-*.cmake
 install_manifest.txt
 compile_commands.json
 
 # Build Output Directories
-/build/
+/build
 
 # VCPKG
 /vcpkg_installed
 
 # Editor configuration (VS Code)
-.vscode/
+/.vscode
 
 # Visual Studio Directory
-.vs/
+/.vs
+
+# Python Virtual Environment
+/.venv
+
+# Installers directory
+/installer
+
+# Executables directory
+/bin
+
+# Libraries directory
+/lib
+
+# GIS Data
+*.rdc
+*.rst
+
+# PragmaDev
+lock.info
+
+# Python export models
+/models

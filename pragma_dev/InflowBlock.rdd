@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE Diagram SYSTEM "rtdsDiagram.dtd">
+
+<SdlFSMDiagram language="sdl" type="prcd" is_extract="FALSE" is_temporary="FALSE">
+<SdlFSMPartition name="" needs_cleanup="FALSE">
+<NonStateTransition top_left_coordinates="395 159">
+<SdlFSMSymbol identifier="SYM1" type="sdlPrcdStart" outline_color="-" background_color="-" center_coordinates="618 174" dimensions="60 30" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM2" type="sdlTask" text="i = 0" outline_color="-" background_color="-" center_coordinates="618 221" dimensions="60 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM3" type="sdlTask" text="totalInflow = 0.0" outline_color="-" background_color="-" center_coordinates="618 273" dimensions="144 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM4" type="sdlCnctrIn" text="loop" outline_color="-" background_color="-" center_coordinates="618 325" dimensions="110 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM5" type="sdlPrcdCall" text="neighbor = GetNeighbor(-directions[i][0], -directions[i][1])" outline_color="-" background_color="-" center_coordinates="618 377" dimensions="446 40" attached_symbol_id=""/>
+<DecisionBlock>
+<SdlFSMSymbol identifier="SYM14" type="sdlDecision" text="isBoundary(neighbor)" outline_color="-" background_color="-" center_coordinates="618 429" dimensions="166 40" attached_symbol_id=""/>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM15" type="sdlAnswer" text="true" outline_color="-" background_color="-" center_coordinates="618 481" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM16" type="sdlAnswer" text="false" outline_color="-" background_color="-" center_coordinates="839 481" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM19" type="sdlTask" text="totalInflow = totalInflow + neighbor.outflows[i]" outline_color="-" background_color="-" center_coordinates="839 533" dimensions="362 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+</DecisionBlock>
+<SdlFSMSymbol identifier="SYM8" type="sdlTask" text="i = i + 1" outline_color="-" background_color="-" center_coordinates="618 597" dimensions="82 40" attached_symbol_id=""/>
+<DecisionBlock>
+<SdlFSMSymbol identifier="SYM9" type="sdlDecision" text="i == len(directions)" outline_color="-" background_color="-" center_coordinates="618 649" dimensions="166 40" attached_symbol_id=""/>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM10" type="sdlAnswer" text="false" outline_color="-" background_color="-" center_coordinates="618 701" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM12" type="sdlCnctrOut" text="loop" outline_color="-" background_color="-" center_coordinates="618 753" dimensions="60 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM11" type="sdlAnswer" text="true" outline_color="-" background_color="-" center_coordinates="688 701" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM13" type="sdlPrcdReturn" outline_color="-" background_color="-" center_coordinates="688 747" dimensions="28 28" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+</DecisionBlock>
+</Transition>
+</NonStateTransition>
+<PageSpecification pageWidth="21.0" pageHeight="29.7" topMargin="1.0" bottomMargin="1.0" leftMargin="1.0" rightMargin="1.0" pageFooter="TRUE" scaleFactor="1.0"/>
+</SdlFSMPartition>
+</SdlFSMDiagram>

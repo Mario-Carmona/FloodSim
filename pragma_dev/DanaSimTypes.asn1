@@ -1,0 +1,15 @@
+DanaSimTypes DEFINITIONS ::= BEGIN
+
+-- Defines the structure of the grid dimensions.
+Dimensions-Type ::= SEQUENCE {
+    n-rows  INTEGER (1..MAX),  -- Y Dimension: Number of Rows
+    m-cols  INTEGER (1..MAX)   -- X Dimension: Number of Columns
+}
+
+State-Type ::= ENUMERATED {
+    EMPTY   (0),
+    STATIC  (1),
+    DYNAMIC (2)
+}
+
+END

@@ -10,6 +10,8 @@ target_include_directories(danasim_core PUBLIC
 target_link_libraries(danasim_core PUBLIC 
     danasim_options
     DanaSim::Common
+    DanaSim::IO::GIS
+    tensorflow_c
 )
 
 add_library(DanaSim::Core ALIAS danasim_core)

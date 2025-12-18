@@ -1,91 +1,175 @@
 {
-    "version": 6,
-    "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 25,
-        "patch": 0
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 1,
+    "patch": 1
+  },
+  "configurePresets": [
+    {
+      "name": "common-configure-options",
+      "hidden": true,
+      "description": "Base preset defining common cache variables shared by all presets.",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/external/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed"
+      }
     },
-    "configurePresets": 
-    [
-        {
-            "name": "common",
-            "hidden": true,
-            "description": "Base preset defining common cache variables shared by all presets.",
-            "binaryDir": "${sourceDir}/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_CXX_STANDARD": "26",
-                "CMAKE_CXX_STANDARD_REQUIRED": "ON",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-            }
-        },
-        {
-            "name": "apps",
-            "hidden": true,
-            "inherits": ["common"],
-            "description": "Defines settings for building project executables.",
-            "architecture": "x64",
-            "cacheVariables": {
-                "DANASIM_BUILD_APPS": "ON",
-                "DANASIM_BUILD_DOCS": "OFF",
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/external/vcpkg/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed"
-            }
-        },
-      {
-        "name": "windows-apps",
-        "inherits": ["apps"],
-        "description": "Windows-specific preset using Visual Studio 2026 and static vcpkg triplets.",
-        "condition": {
-          "type": "equals",
-          "lhs": "${hostSystemName}",
-          "rhs": "Windows"
-        },
-        "generator": "Visual Studio 18 2026",
-        "cacheVariables": {
-          "VCPKG_TARGET_TRIPLET": "x64-windows",
-          "VCPKG_HOST_TRIPLET": "x64-windows"
-        }
+    {
+      "name": "apps",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "Defines settings for building project executables.",
+      "architecture": "x64",
+      "cacheVariables": {
+        "DANASIM_BUILD_APPS": "ON",
+        "DANASIM_BUILD_DOCS": "OFF",
+        "VCPKG_MANIFEST_FEATURES": "apps",
+        "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/${hostSystemName}/$<CONFIG>",
+        "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
+        "CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>"
+      }
+    },
+    {
+      "name": "windows-apps",
+      "hidden": true,
+      "inherits": [
+        "apps"
+      ],
+      "description": "Windows-specific preset using Visual Studio 2026 and static vcpkg triplets.",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
       },
+      "generator": "Visual Studio 18 2026",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "VCPKG_HOST_TRIPLET": "x64-windows"
+      }
+    },
+    {
+      "name": "windows-apps-release",
+      "inherits": [
+        "windows-apps"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "windows-apps-debug",
+      "inherits": [
+        "windows-apps"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "docs",
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "DANASIM_BUILD_APPS": "OFF",
+        "DANASIM_BUILD_DOCS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-apps-debug",
+      "configurePreset": "windows-apps-debug",
+      "description": "Build the Windows Debug configuration.",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-apps-release",
+      "configurePreset": "windows-apps-release",
+      "description": "Build the Windows Release configuration.",
+      "configuration": "Release"
+    }
+  ],
+  "packagePresets": [
+    {
+      "name": "common-package-options",
+      "hidden": true,
+      "description": "Base preset defining common CPack variables for all package types.",
+      "variables": {
+        "CPACK_PACKAGE_VENDOR": "Tu Nombre o Compañía",
+        "CPACK_PACKAGE_CONTACT": "contacto@ejemplo.com",
+        "CPACK_PACKAGE_DESCRIPTION_SUMMARY": "Simulador de Redes Neuronales y Procesamiento de Datos (NN/Data Processing)",
+        "CPACK_PACKAGE_HOMEPAGE_URL": "http://www.ejemplo.com/danasim",
+        "CPACK_ARCHIVE_COMPONENT_INSTALL": "ON",
+        "CPACK_PACKAGE_DIRECTORY": "${sourceDir}/installer"
+      }
+    },
+    {
+      "name": "windows-installer",
+      "displayName": "Windows Installer (MSI)",
+      "inherits": [
+        "common-package-options"
+      ],
+      "generators": [ "WIX" ],
+      "configurePreset": "windows-apps-release",
+      "variables": {
+        "CPACK_WIX_ROOT": "C:/Program Files (x86)/WiX Toolset v3.14/bin"
+      }
+     }
+  ],
+  "workflowPresets": [
+    {
+      "name": "windows-apps-debug",
+      "steps": [
         {
-            "name": "docs",
-            "inherits": ["common"],
-            "description": "",
-            "cacheVariables": {
-                "DANASIM_BUILD_APPS": "OFF",
-                "DANASIM_BUILD_DOCS": "ON"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "windows-apps-debug",
-            "configurePreset": "windows-apps",
-            "description": "Build the Windows Debug configuration.",
-            "configuration": "Debug"
+          "type": "configure",
+          "name": "windows-apps-debug"
         },
         {
-            "name": "windows-apps-release",
-            "configurePreset": "windows-apps",
-            "description": "Build the Windows Release configuration.",
-            "configuration": "Release"
+          "type": "build",
+          "name": "windows-apps-debug"
         }
-    ],
-    "workflowPresets": [
+      ]
+    },
+    {
+      "name": "windows-apps-release",
+      "steps": [
         {
-            "name": "windows-apps-debug",
-            "description": "Workflow to configure and build the Windows Debug target.",
-            "steps": [
-                { "type": "configure", "name": "windows-apps" },
-                { "type": "build", "name": "windows-apps-debug" }
-            ]
+          "type": "configure",
+          "name": "windows-apps-release"
         },
         {
-            "name": "windows-apps-release",
-            "description": "Workflow to configure and build the Windows Release target.",
-            "steps": [
-                { "type": "configure", "name": "windows-apps" },
-                { "type": "build", "name": "windows-apps-release" }
-            ]
+          "type": "build",
+          "name": "windows-apps-release"
         }
-    ]
+      ]
+    },
+    {
+      "name": "windows-installer",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-apps-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-apps-release"
+        },
+        {
+          "type": "package",
+          "name": "windows-installer"
+        }
+      ]
+    }
+  ]
 }

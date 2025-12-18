@@ -1,6 +1,23 @@
 {
   "builtin-baseline": "74e6536215718009aae747d86d84b78376bf9e09",
-  "dependencies": [
-    
-  ]
+  "name": "danasim",
+  "dependencies": [],
+  "features": {
+    "apps": {
+      "description": "Build Apps",
+      "dependencies": [
+        {
+          "name": "gdal",
+          "default-features": false,
+          "features": [ "tools" ]
+        }
+      ]
+    },
+    "tests": {
+      "description": "Build Tests",
+      "dependencies": [
+        "gtest"
+      ]
+    }
+  }
 }

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE Diagram SYSTEM "rtdsDiagram.dtd">
+
+<SdlFSMDiagram language="sdl" type="prcs" is_extract="FALSE" is_temporary="FALSE">
+<SdlFSMPartition name="" needs_cleanup="FALSE">
+<SdlFSMSymbol identifier="SYM58" type="sdlText" text="DCL
+
+// NEIGHBORHOOD CONFIGURATION (Moore 8)
+// (dy_offset, dx_offset, distance_factor)
+directions = [
+    (1, 0, 1.0), (-1, 0, 1.0), (0, 1, 1.0), (0, -1, 1.0),          // N, S, E, O
+    (-1, 1, 1.414), (-1, -1, 1.414), (1, 1, 1.414), (1, -1, 1.414) // Diagonals
+]
+
+float outflows[8];
+float totalPotentialOutflow;
+float realOutflows[8];
+float totalOutflow;
+
+float totalInflow;
+
+float totalNetFlow;" outline_color="-" background_color="-" center_coordinates="402 306" dimensions="580 258" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM96" type="sdlPrcdDecl" text="OutflowBlock" outline_color="-" background_color="-" center_coordinates="855 213" dimensions="104 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM97" type="sdlPrcdDecl" text="InflowBlock" outline_color="-" background_color="-" center_coordinates="1047 213" dimensions="96 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM108" type="sdlPrcdDecl" text="CalculateOutflow" outline_color="-" background_color="-" center_coordinates="869 317" dimensions="132 40" attached_symbol_id=""/>
+<StateTransitionBlock top_left_coordinates="142 482">
+<SdlFSMSymbol identifier="SYM41" type="sdlState" text="EMPTY" outline_color="-" background_color="-" center_coordinates="295 502" dimensions="60 40" attached_symbol_id=""/>
+<NormalStateTransition>
+<SdlFSMSymbol identifier="SYM44" type="sdlInputSig" text="NewWaterDepth" outline_color="-" background_color="-" center_coordinates="295 554" dimensions="110 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM109" type="sdlTask" text="totalOutflow = 0.0" outline_color="-" background_color="-" center_coordinates="295 606" dimensions="146 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM105" type="sdlPrcdCall" text="InflowBlock" outline_color="-" background_color="-" center_coordinates="295 658" dimensions="96 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM113" type="sdlTask" text="totalNetFlow = totalInflow - totalOutflow" outline_color="-" background_color="-" center_coordinates="295 710" dimensions="306 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM112" type="sdlTask" text="WaterDepth = WaterDepth + totalNetFlow" outline_color="-" background_color="-" center_coordinates="295 762" dimensions="286 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM106" type="sdlSendSig" text="NewCellState" outline_color="-" background_color="-" center_coordinates="295 814" dimensions="104 40" attached_symbol_id=""/>
+<DecisionBlock>
+<SdlFSMSymbol identifier="SYM118" type="sdlDecision" text="CellState" outline_color="-" background_color="-" center_coordinates="295 866" dimensions="88 40" attached_symbol_id=""/>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM119" type="sdlAnswer" text="EMPTY" outline_color="-" background_color="-" center_coordinates="295 918" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM121" type="sdlState" text="EMPTY" outline_color="-" background_color="-" center_coordinates="295 970" dimensions="60 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM120" type="sdlAnswer" text="STATIC" outline_color="-" background_color="-" center_coordinates="369 918" dimensions="68 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM122" type="sdlState" text="STATIC" outline_color="-" background_color="-" center_coordinates="369 970" dimensions="68 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM123" type="sdlAnswer" text="DYNAMIC" outline_color="-" background_color="-" center_coordinates="450 918" dimensions="74 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM124" type="sdlState" text="DYNAMIC" outline_color="-" background_color="-" center_coordinates="450 970" dimensions="74 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+</DecisionBlock>
+</Transition>
+</NormalStateTransition>
+</StateTransitionBlock>
+<StateTransitionBlock top_left_coordinates="981 482">
+<SdlFSMSymbol identifier="SYM43" type="sdlState" text="DYNAMIC" outline_color="-" background_color="-" center_coordinates="1134 502" dimensions="68 40" attached_symbol_id=""/>
+<NormalStateTransition>
+<SdlFSMSymbol identifier="SYM46" type="sdlInputSig" text="NewWaterDepth" outline_color="-" background_color="-" center_coordinates="1134 554" dimensions="110 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM98" type="sdlPrcdCall" text="OutflowBlock" outline_color="-" background_color="-" center_coordinates="1134 606" dimensions="104 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM99" type="sdlPrcdCall" text="InflowBlock" outline_color="-" background_color="-" center_coordinates="1134 658" dimensions="96 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM116" type="sdlTask" text="totalNetFlow = totalInflow - totalOutflow" outline_color="-" background_color="-" center_coordinates="1134 710" dimensions="306 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM117" type="sdlTask" text="WaterDepth = WaterDepth + totalNetFlow" outline_color="-" background_color="-" center_coordinates="1134 762" dimensions="286 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM100" type="sdlSendSig" text="NewCellState" outline_color="-" background_color="-" center_coordinates="1134 814" dimensions="104 40" attached_symbol_id=""/>
+<DecisionBlock>
+<SdlFSMSymbol identifier="SYM132" type="sdlDecision" text="CellState" outline_color="-" background_color="-" center_coordinates="1134 866" dimensions="88 40" attached_symbol_id=""/>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM133" type="sdlAnswer" text="EMPTY" outline_color="-" background_color="-" center_coordinates="1134 918" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM136" type="sdlState" text="EMPTY" outline_color="-" background_color="-" center_coordinates="1134 970" dimensions="60 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM134" type="sdlAnswer" text="STATIC" outline_color="-" background_color="-" center_coordinates="1208 918" dimensions="68 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM137" type="sdlState" text="STATIC" outline_color="-" background_color="-" center_coordinates="1208 970" dimensions="68 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM135" type="sdlAnswer" text="DYNAMIC" outline_color="-" background_color="-" center_coordinates="1289 918" dimensions="74 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM138" type="sdlState" text="DYNAMIC" outline_color="-" background_color="-" center_coordinates="1289 970" dimensions="74 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+</DecisionBlock>
+</Transition>
+</NormalStateTransition>
+</StateTransitionBlock>
+<StateTransitionBlock top_left_coordinates="569 482">
+<SdlFSMSymbol identifier="SYM52" type="sdlState" text="STATIC" outline_color="-" background_color="-" center_coordinates="722 502" dimensions="62 40" attached_symbol_id=""/>
+<NormalStateTransition>
+<SdlFSMSymbol identifier="SYM56" type="sdlInputSig" text="NewWaterDepth" outline_color="-" background_color="-" center_coordinates="722 554" dimensions="110 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM110" type="sdlTask" text="totalOutflow = 0.0" outline_color="-" background_color="-" center_coordinates="722 606" dimensions="146 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM102" type="sdlPrcdCall" text="InflowBlock" outline_color="-" background_color="-" center_coordinates="722 658" dimensions="96 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM114" type="sdlTask" text="totalNetFlow = totalInflow - totalOutflow" outline_color="-" background_color="-" center_coordinates="722 710" dimensions="306 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM115" type="sdlTask" text="WaterDepth = WaterDepth + totalNetFlow" outline_color="-" background_color="-" center_coordinates="722 762" dimensions="286 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM103" type="sdlSendSig" text="NewCellState" outline_color="-" background_color="-" center_coordinates="722 814" dimensions="104 40" attached_symbol_id=""/>
+<DecisionBlock>
+<SdlFSMSymbol identifier="SYM125" type="sdlDecision" text="CellState" outline_color="-" background_color="-" center_coordinates="722 866" dimensions="88 40" attached_symbol_id=""/>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM126" type="sdlAnswer" text="EMPTY" outline_color="-" background_color="-" center_coordinates="722 918" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM129" type="sdlState" text="EMPTY" outline_color="-" background_color="-" center_coordinates="722 970" dimensions="60 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM127" type="sdlAnswer" text="STATIC" outline_color="-" background_color="-" center_coordinates="796 918" dimensions="68 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM130" type="sdlState" text="STATIC" outline_color="-" background_color="-" center_coordinates="796 970" dimensions="68 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM128" type="sdlAnswer" text="DYNAMIC" outline_color="-" background_color="-" center_coordinates="877 918" dimensions="74 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM131" type="sdlState" text="DYNAMIC" outline_color="-" background_color="-" center_coordinates="877 970" dimensions="74 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+</DecisionBlock>
+</Transition>
+</NormalStateTransition>
+</StateTransitionBlock>
+<PageSpecification pageWidth="21.0" pageHeight="29.7" topMargin="1.0" bottomMargin="1.0" leftMargin="1.0" rightMargin="1.0" pageFooter="TRUE" scaleFactor="1.0"/>
+</SdlFSMPartition>
+</SdlFSMDiagram>

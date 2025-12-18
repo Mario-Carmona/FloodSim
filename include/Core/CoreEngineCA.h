@@ -3,34 +3,39 @@
 #include "Common/Types.h"
 #include "Common/SimulationBridge.h"
 #include <memory>
+#include <vector>
 
-// TensorFlow Includes (necesarios aquí porque usamos unique_ptr<Scope> como miembro)
-#include "tensorflow/cc/client/client_session.h"
-#include "tensorflow/cc/ops/standard_ops.h"
-#include "tensorflow/core/framework/tensor.h"
+// === TENSORFLOW C API ===
+extern "C" {
+    #include "tensorflow/c/c_api.h"
+}
 
 class CoreEngineCA {
+public:
+    explicit CoreEngineCA(SimulationBridge& b);
+    ~CoreEngineCA();
+
+    // El método initialize ahora incluye la lógica para la generación JIT del ONNX
+    void initialize(const SimConfig& cfg);
+
+    void runSimulation();
+
 private:
+    void runStepTF();
+    TF_Buffer* readBufferFromFile(const char* file); // Helper to load .pb
+
     SimulationBridge& bridge;
     SimConfig config;
     StatePtr internalState; // Estado interno mutable
 
-    // TensorFlow pointers
-    std::unique_ptr<Scope> rootScope;
-    std::unique_ptr<ClientSession> session;
-    Output inputStatePH;
-    Output evolvedStateOp;
+    // TensorFlow C Pointers
+    TF_Graph* graph = nullptr;
+    TF_Session* session = nullptr;
+    TF_Status* status = nullptr;
 
-    const float GRAVITY = 9.81f;
-
-    // Construcción del Grafo Computacional (Torricelli + Moore)
-    void buildGraph(int rows, int cols);
-    // Auxiliar: Packing -> Run -> Unpacking
-    void runStepTF();
-
-public:
-    explicit CoreEngineCA(SimulationBridge& b);
-    void initialize(const SimConfig& cfg, StatePtr initState);
-    // Bucle Principal del Hilo de Simulación
-    void simulationLoop();
+    // Puntos de entrada y salida (Handles)
+    TF_Output inputStatePH; // "input_state"
+    TF_Output dtPH;         // "dt"
+    TF_Output dxPH;         // "dx"
+    TF_Output evolvedStateOp; // "output_state"
 };

@@ -1,6 +1,10 @@
 
 add_executable(DanaSimCLI
-    main_cli.cpp
+    mainCLI.cpp
+)
+
+set_target_properties(DanaSimCLI PROPERTIES
+    DEBUG_POSTFIX "d"
 )
 
 target_link_libraries(DanaSimCLI PRIVATE

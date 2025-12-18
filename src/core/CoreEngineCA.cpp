@@ -1,177 +1,180 @@
 
 #include "Core/CoreEngineCA.h"
+#include "IO/GIS/GISDataHandler.h"
 #include <iostream>
-#include <vector>
+#include <fstream>
 
-using namespace tensorflow;
-using namespace tensorflow::ops;
 
-CoreEngineCA::CoreEngineCA(SimulationBridge& b) : bridge(b) {}
+// Constantes de estado alineadas con el modelo Python
+const float ST_EMPTY = 0.0f;
+const float ST_STATIC = 1.0f;
+const float ST_DYNAMIC = 2.0f;
 
-void CoreEngineCA::initialize(const SimConfig& cfg, StatePtr initState) {
+CoreEngineCA::CoreEngineCA(SimulationBridge& b)
+    : bridge(b), internalState(std::make_shared<CellularAutomatonState>()) {
+    status = TF_NewStatus();
+}
+
+CoreEngineCA::~CoreEngineCA() {
+    if (session) TF_DeleteSession(session, status);
+    if (graph) TF_DeleteGraph(graph);
+    if (status) TF_DeleteStatus(status);
+}
+
+void CoreEngineCA::initialize(const SimConfig& cfg) {
     config = cfg;
-    // Clonamos el estado inicial para uso interno
-    internalState = std::make_shared<CellularAutomatonState>(*initState);
-    
-    // Setup TF
-    rootScope = std::make_unique<Scope>(Scope::NewRootScope());
-    session = std::make_unique<ClientSession>(*rootScope);
-    
-    buildGraph(initState->rows, initState->cols);
-}
 
-void CoreEngineCA::buildGraph(int rows, int cols) {
-    // Input: [1, H, W, 2] -> Canal 0: Elev, Canal 1: Agua
-    inputStatePH = Placeholder(*rootScope, DT_FLOAT, Placeholder::Attrs().Shape({1, rows, cols, 2}));
-    
-    auto elev = Slice(*rootScope, inputStatePH, {0,0,0,0}, {1, rows, cols, 1});
-    auto water = Slice(*rootScope, inputStatePH, {0,0,0,1}, {1, rows, cols, 1});
-    auto head = Add(*rootScope, elev, water);
 
-    std::vector<Output> flows_out;
-    int shifts_y[] = {-1, -1, -1,  0, 0,  1, 1, 1};
-    int shifts_x[] = {-1,  0,  1, -1, 1, -1, 0, 1};
-    float dists[]  = {1.414, 1.0, 1.414, 1.0, 1.0, 1.414, 1.0, 1.414}; 
+    GISDataHandler::loadGISData(config.gisDataPath, *internalState);
 
-    auto zero = Const(*rootScope, 0.0f);
-    auto dt = Const(*rootScope, (float)config.timeStep);
-    auto two_g = Const(*rootScope, 2.0f * GRAVITY);
 
-    for(int k=0; k<8; ++k) {
-        // 1. Shift para alinear vecino
-        auto neighbor_head = Roll(*rootScope, head, {shifts_y[k], shifts_x[k]}, {1, 2});
-        
-        // 2. Diff y Gradiente
-        auto diff = Sub(*rootScope, head, neighbor_head);
-        auto gradient = Maximum(*rootScope, diff, zero); // ReLU
-        
-        // 3. Torricelli: v = sqrt(2gh)
-        auto vel = Sqrt(*rootScope, Multiply(*rootScope, two_g, gradient));
-        
-        // 4. Flujo Potencial
-        auto flow = Multiply(*rootScope, vel, water);
-        flow = Multiply(*rootScope, flow, Const(*rootScope, (float)config.timeStep / dists[k]));
-        flow = Multiply(*rootScope, flow, Const(*rootScope, 0.1f)); // Fricción / Estabilidad
-        
-        flows_out.push_back(flow);
+    graph = TF_NewGraph();
+
+    // 1. Cargar el Grafo Congelado (.pb)
+    TF_Buffer* graph_def = readBufferFromFile(".\\..\\..\\..\\models\\model_ca.pb");
+    if (!graph_def) {
+        std::cerr << "[TF] Error: No se encontró el archivo del modelo." << std::endl;
+        return;
     }
 
-    // 5. Balance de Masas (Limiter)
-    auto sum_out = AddN(*rootScope, flows_out);
-    auto safe_water = Maximum(*rootScope, water, Const(*rootScope, 1e-5f));
-    auto fraction = Div(*rootScope, safe_water, Add(*rootScope, sum_out, safe_water));
-    auto limiter = Minimum(*rootScope, fraction, Const(*rootScope, 1.0f));
+    TF_ImportGraphDefOptions* opts = TF_NewImportGraphDefOptions();
+    TF_GraphImportGraphDef(graph, graph_def, opts, status);
+    TF_DeleteImportGraphDefOptions(opts);
+    TF_DeleteBuffer(graph_def);
 
-    // 6. Calcular Flujos Netos
-    std::vector<Output> net_fluxes;
-    for(int k=0; k<8; ++k) {
-        auto out_f = Multiply(*rootScope, flows_out[k], limiter);
-        // Inflow es el Outflow del vecino en dirección opuesta
-        auto in_f = Roll(*rootScope, out_f, {-shifts_y[k], -shifts_x[k]}, {1, 2});
-        net_fluxes.push_back(Sub(*rootScope, in_f, out_f));
+    if (TF_GetCode(status) != TF_OK) {
+        std::cerr << "[TF] Error al importar: " << TF_Message(status) << std::endl;
+        return;
     }
 
-    auto net_change = AddN(*rootScope, net_fluxes);
-    auto new_water = Add(*rootScope, water, net_change);
-    new_water = Maximum(*rootScope, new_water, zero); // Clamp 0
+    // 2. Vincular los nodos del grafo por nombre
+    inputStatePH = { TF_GraphOperationByName(graph, "input_state"), 0 };
+    dtPH = { TF_GraphOperationByName(graph, "dt"), 0 };
+    dxPH = { TF_GraphOperationByName(graph, "dx"), 0 };
+    evolvedStateOp = { TF_GraphOperationByName(graph, "output_state"), 0 };
 
-    evolvedStateOp = Concat(*rootScope, 3, {elev, new_water});
+    // 3. Crear Sesión
+    TF_SessionOptions* sess_opts = TF_NewSessionOptions();
+    session = TF_NewSession(graph, sess_opts, status);
+    TF_DeleteSessionOptions(sess_opts);
+
+    std::cout << "[Core] Motor TensorFlow inicializado correctamente." << std::endl;
 }
 
-void CoreEngineCA::simulationLoop() {
-    std::cout << "[Core] Simulation thread started." << std::endl;
-        
-    double currentTime = 0.0;
+void CoreEngineCA::runStepTF() {
+    const int H = internalState->rows;
+    const int W = internalState->cols;
+
+    // --- FASE 1: Empaquetado de Datos (Grid -> Tensor [1, H, W, 4]) ---
+    int64_t dims[] = { 1, H, W, 4 };
+    size_t data_size = sizeof(float) * H * W * 4;
+    std::vector<float> buffer(H * W * 4);
+
+    for (int i = 0; i < H; ++i) {
+        for (int j = 0; j < W; ++j) {
+            int idx = (i * W + j) * 4;
+            buffer[idx + 0] = internalState->layerElevation.at(i, j);
+            buffer[idx + 1] = internalState->layerWaterDepth.at(i, j);
+            buffer[idx + 2] = internalState->layerRoughness.at(i, j);
+            buffer[idx + 3] = (float)internalState->layerCellState.at(i, j);
+        }
+    }
+
+    TF_Tensor* state_tensor = TF_AllocateTensor(TF_FLOAT, dims, 4, data_size);
+    std::memcpy(TF_TensorData(state_tensor), buffer.data(), data_size);
+
+    // --- FASE 2: Tensores Escalares (dt, dx) ---
+    TF_Tensor* dt_tensor = TF_AllocateTensor(TF_FLOAT, nullptr, 0, sizeof(float));
+    TF_Tensor* dx_tensor = TF_AllocateTensor(TF_FLOAT, nullptr, 0, sizeof(float));
+
+    *(float*)TF_TensorData(dt_tensor) = (float)config.timeStep;
+    *(float*)TF_TensorData(dx_tensor) = (float)config.cellSize;
+
+    // --- FASE 3: Ejecución ---
+    TF_Output inputs[] = { inputStatePH, dtPH, dxPH };
+    TF_Tensor* input_values[] = { state_tensor, dt_tensor, dx_tensor };
+    TF_Tensor* output_values[1] = { nullptr };
+
+    TF_SessionRun(session, nullptr,
+        inputs, input_values, 3,
+        &evolvedStateOp, output_values, 1,
+        nullptr, 0, nullptr, status);
+
+    if (TF_GetCode(status) != TF_OK) {
+        std::cerr << "[TF] Error en ejecución: " << TF_Message(status) << std::endl;
+    }
+    else {
+        // --- FASE 4: Desempaquetado (Tensor -> Grid) ---
+        float* out_ptr = (float*)TF_TensorData(output_values[0]);
+        for (int i = 0; i < H; ++i) {
+            for (int j = 0; j < W; ++j) {
+                int idx = (i * W + j) * 4;
+                // Actualizamos profundidad y el nuevo estado calculado por la GPU
+                internalState->layerWaterDepth.at(i, j) = out_ptr[idx + 1];
+                internalState->layerCellState.at(i, j) = (int)out_ptr[idx + 3];
+            }
+        }
+        TF_DeleteTensor(output_values[0]);
+    }
+
+    // Limpieza de tensores de entrada
+    TF_DeleteTensor(state_tensor);
+    TF_DeleteTensor(dt_tensor);
+    TF_DeleteTensor(dx_tensor);
+}
+
+void CoreEngineCA::runSimulation() {
+    float currentTime = 0;
     int step = 0;
 
     // =========================================================
     // ENVIAR SNAPSHOT INICIAL (t=0)
     // =========================================================
     {
-        // Creamos copia del estado inicial cargado
-        auto initialSnapshot = std::make_shared<CellularAutomatonState>(*internalState);
-        initialSnapshot->timestamp = 0.0;
-        initialSnapshot->stepIndex = 0;
-
-        // Enviamos al bridge.
-        // - Si es RealTime: Lo envía y sigue inmediatamente.
-        // - Si es Lossless: SE BLOQUEA AQUÍ hasta que la UI lo procese.
-        bridge.pushState(initialSnapshot);
+        auto snapshot = std::make_shared<CellularAutomatonState>(*internalState);
+        bridge.pushState(snapshot);
     }
     // =========================================================
 
-    // Ahora comienza el bucle de evolución
-    while (bridge.isSimulationRunning() && currentTime < config.totalDuration) {
-        // 1. Ejecutar TF (Run Step)
+    while (currentTime < config.totalDuration) {
         runStepTF();
-        
+
         currentTime += config.timeStep;
         step++;
-
-        internalState->timestamp = currentTime;
         internalState->stepIndex = step;
 
-        // 2. Publicar Snapshot
+        // Publicar estado a la UI cada N pasos
         if (step % config.snapshotFreq == 0) {
-            // COPIA PROFUNDA necesaria para evitar race conditions
             auto snapshot = std::make_shared<CellularAutomatonState>(*internalState);
-            
-            // Enviamos al bridge (bloqueará o no según el modo)
             bridge.pushState(snapshot);
         }
+
+        std::cout << "[Core] Step " << step << ": Completed" << std::endl;
+        std::cout << "[Core] Time " << currentTime << " of " << config.totalDuration << std::endl;
     }
 
     // =========================================================
     // ENVIAR EL SNAPSHOT FINAL (t = End)
     // =========================================================
-    std::cout << "[Core] Loop finished. Sending Final Snapshot..." << std::endl;
     {
-        // 1. Crear copia del estado final exacto
-        auto finalSnapshot = std::make_shared<CellularAutomatonState>(*internalState);
-        
-        // 2. Enviar a la UI.
-        // Si estamos en modo Lossless, esta línea BLOQUEARÁ al Core
-        // hasta que la UI haya procesado este último frame.
-        // Esto garantiza que el vídeo/visualización llegue hasta el final.
-        bridge.pushState(finalSnapshot);
+        auto snapshot = std::make_shared<CellularAutomatonState>(*internalState);
+        bridge.pushState(snapshot);
     }
     // =========================================================
 
-    std::cout << "[Core] Stopping bridge (Signal Finish)." << std::endl;
-    
-    // 3. Ahora es seguro cerrar el puente.
-    // La UI recibirá 'false' en waitForState SOLO DESPUÉS de haber leído el finalSnapshot.
     bridge.stop();
 }
 
-void CoreEngineCA::runStepTF() {
-    int H = internalState->rows;
-    int W = internalState->cols;
-
-    // Packing
-    Tensor inputTensor(DT_FLOAT, TensorShape({1, H, W, 2}));
-    auto map = inputTensor.tensor<float, 4>();
-    for(int i=0; i<H; ++i) {
-        for(int j=0; j<W; ++j) {
-            map(0, i, j, 0) = internalState->layerElevation.at(i, j);
-            map(0, i, j, 1) = internalState->layerWaterDepth.at(i, j);
-        }
-    }
-
-    // Run
-    std::vector<Tensor> outputs;
-    Status s = session->Run({{inputStatePH, inputTensor}}, {evolvedStateOp}, {}, &outputs);
-    if(!s.ok()) {
-        std::cerr << "TF Error: " << s.ToString() << std::endl;
-        bridge.stop();
-        return;
-    }
-
-    // Unpacking
-    auto outMap = outputs[0].tensor<float, 4>();
-    for(int i=0; i<H; ++i) {
-        for(int j=0; j<W; ++j) {
-            internalState->layerWaterDepth.at(i, j) = outMap(0, i, j, 1);
-        }
-    }
+TF_Buffer* CoreEngineCA::readBufferFromFile(const char* file) {
+    std::ifstream ifs(file, std::ios::binary | std::ios::ate);
+    if (!ifs.is_open()) return nullptr;
+    std::streamsize size = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
+    void* data = std::malloc(size);
+    ifs.read(static_cast<char*>(data), size);
+    TF_Buffer* buf = TF_NewBuffer();
+    buf->data = data;
+    buf->length = size;
+    buf->data_deallocator = [](void* d, size_t l) { std::free(d); };
+    return buf;
 }

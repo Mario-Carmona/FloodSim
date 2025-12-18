@@ -10,6 +10,7 @@ target_include_directories(danasim_ui_cli PUBLIC
 target_link_libraries(danasim_ui_cli PUBLIC
     danasim_options
     DanaSim::UI::Base
+    DanaSim::IO::GIS
 )
 
 add_library(DanaSim::UI::CLI ALIAS danasim_ui_cli)

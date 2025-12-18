@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE DictionaryObjects SYSTEM "rtdsDictionaryObjects.dtd">
+
+<DictionaryObjects version="11340" language="none">
+<Item id="ITEM1" type="ttcn_module" name="DanaSimTypes" scope="current" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE">
+<SourceFilePosition isDefine="TRUE" lineNumber="0" columnNumber="0"/>
+</Item>
+<Item id="ITEM2" type="ttcn_component" name="INTEGER" scope="global" defined="FALSE" anchorItemId="ITEM1" searchPolicy="-1" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE">
+<AlternateType type="type"/>
+<SourceFilePosition isDefine="FALSE" lineNumber="4" columnNumber="8"/>
+<SourceFilePosition isDefine="FALSE" lineNumber="5" columnNumber="8"/>
+</Item>
+<Item id="ITEM3" type="type" name="State-Type" parentId="ITEM1" scope="none" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE">
+<SourceFilePosition isDefine="TRUE" lineNumber="8" columnNumber="0"/>
+</Item>
+<Item id="ITEM4" type="type" name="Dimensions-Type" parentId="ITEM1" scope="none" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE">
+<SourceFilePosition isDefine="TRUE" lineNumber="3" columnNumber="0"/>
+</Item>
+<Item id="ITEM5" type="variable" name="m-cols" parentId="ITEM4" scope="none" variableTypeName="INTEGER" variableTypeId="ITEM2" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE">
+</Item>
+<Item id="ITEM6" type="variable" name="n-rows" parentId="ITEM4" scope="none" variableTypeName="INTEGER" variableTypeId="ITEM2" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE">
+</Item>
+</DictionaryObjects>

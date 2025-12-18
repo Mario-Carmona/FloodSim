@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <filesystem>
 
 // Modo de Sincronización entre Core y UI
 enum class SyncMode {
@@ -11,11 +12,12 @@ enum class SyncMode {
 };
 
 struct SimConfig {
-    std::string gisPath;
+    std::filesystem::path gisDataPath;
+    double cellSize;
     double totalDuration;
     double timeStep;       // dt (segundos)
     int snapshotFreq;      // Cada cuántos pasos se envía un frame a la UI
-    SyncMode syncMode;     // El modo elegido
+    SyncMode mode;     // El modo elegido
 };
 
 // Matriz auxiliar para manejo de capas en CPU
@@ -42,7 +44,9 @@ struct CellularAutomatonState {
 
     // Capas explícitas
     LayerMatrix layerElevation;  // Estática
-    LayerMatrix layerWaterDepth; // Dinámica
+    LayerMatrix layerRoughness;  // Estática
+    LayerMatrix layerCellState;  // Dinámica (Secundaria)
+    LayerMatrix layerWaterDepth; // Dinámica (Principal)
 };
 
 using StatePtr = std::shared_ptr<CellularAutomatonState>;
