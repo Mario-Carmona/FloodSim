@@ -60,10 +60,32 @@ if (WIN32)
     set(TF_IMPLIB ${TF_LIB_DIR}/tensorflow.lib)
 
     set_target_properties(tensorflow_c PROPERTIES
-        IMPORTED_LOCATION ${TF_DLL}
-        IMPORTED_IMPLIB  ${TF_IMPLIB}
-        INTERFACE_INCLUDE_DIRECTORIES ${TF_INCLUDE_DIR}
+        IMPORTED_LOCATION "${TF_DLL}"
+        IMPORTED_IMPLIB  "${TF_IMPLIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "${TF_INCLUDE_DIR}"
     )
+
+    # ============================================================
+    # AUTOMATIC DLL DEPLOYMENT (vcpkg-style)
+    # ============================================================
+    # Overriding target_link_libraries to ensure that any EXECUTABLE 
+    # linked with tensorflow_c receives a copy of the DLL in its output directory.
+    function(target_link_libraries _target)
+        _target_link_libraries(${_target} ${ARGN})
+
+        if(TARGET ${_target})
+            get_target_property(_type ${_target} TYPE)
+            if(_type STREQUAL "EXECUTABLE")
+                add_custom_command(TARGET ${_target} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${TF_DLL}"
+                        "$<TARGET_FILE_DIR:${_target}>"
+                    COMMENT "TensorFlow-AutoCopy: Copiando DLL a la carpeta del ejecutable ${_target}"
+                    VERBATIM
+                )
+            endif()
+        endif()
+    endfunction()
 
 elseif (APPLE)
     set_target_properties(tensorflow_c PROPERTIES
