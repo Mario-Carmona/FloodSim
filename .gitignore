@@ -55,3 +55,6 @@ lock.info
 
 # Python export models
 /models
+
+# Python compiled files
+__pycache__

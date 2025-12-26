@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 9,
   "cmakeMinimumRequired": {
     "major": 4,
     "minor": 1,
@@ -10,37 +10,81 @@
       "name": "common-configure-options",
       "hidden": true,
       "description": "Base preset defining common cache variables shared by all presets.",
+      "architecture": "x64",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/${hostSystemName}/$<CONFIG>",
+        "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
+        "CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/external/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed"
       }
     },
     {
-      "name": "apps",
+      "name": "debug",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "cli",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "DANASIM_BUILD_GUI": "OFF"
+      }
+    },
+    {
+      "name": "gui",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "DANASIM_BUILD_GUI": "ON"
+      }
+    },
+    {
+      "name": "app",
       "hidden": true,
       "inherits": [
         "common-configure-options"
       ],
       "description": "Defines settings for building project executables.",
-      "architecture": "x64",
       "cacheVariables": {
         "DANASIM_BUILD_APPS": "ON",
-        "DANASIM_BUILD_DOCS": "OFF",
-        "VCPKG_MANIFEST_FEATURES": "apps",
-        "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/${hostSystemName}/$<CONFIG>",
-        "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
-        "CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>"
+        "VCPKG_MANIFEST_FEATURES": "app"
       }
     },
     {
-      "name": "windows-apps",
+      "name": "windows-app",
       "hidden": true,
       "inherits": [
-        "apps"
+        "app"
       ],
       "description": "Windows-specific preset using Visual Studio 2026 and static vcpkg triplets.",
       "condition": {
@@ -55,48 +99,46 @@
       }
     },
     {
-      "name": "windows-apps-release",
+      "name": "windows-cli-debug",
       "inherits": [
-        "windows-apps"
+        "windows-app",
+        "cli",
+        "debug"
       ],
-      "description": "",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "description": ""
     },
     {
-      "name": "windows-apps-debug",
+      "name": "windows-cli-release",
       "inherits": [
-        "windows-apps"
+        "windows-app",
+        "cli",
+        "release"
       ],
-      "description": "",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+      "description": ""
     },
     {
       "name": "docs",
+      "hidden": true,
       "inherits": [
         "common-configure-options"
       ],
       "description": "",
       "cacheVariables": {
-        "DANASIM_BUILD_APPS": "OFF",
         "DANASIM_BUILD_DOCS": "ON"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "windows-apps-debug",
-      "configurePreset": "windows-apps-debug",
-      "description": "Build the Windows Debug configuration.",
+      "name": "windows-cli-debug",
+      "configurePreset": "windows-cli-debug",
+      "description": "",
       "configuration": "Debug"
     },
     {
-      "name": "windows-apps-release",
-      "configurePreset": "windows-apps-release",
-      "description": "Build the Windows Release configuration.",
+      "name": "windows-cli-release",
+      "configurePreset": "windows-cli-release",
+      "description": "",
       "configuration": "Release"
     }
   ],
@@ -121,7 +163,7 @@
         "common-package-options"
       ],
       "generators": [ "WIX" ],
-      "configurePreset": "windows-apps-release",
+      "configurePreset": "windows-cli-release",
       "variables": {
         "CPACK_WIX_ROOT": "C:/Program Files (x86)/WiX Toolset v3.14/bin"
       }
@@ -129,28 +171,28 @@
   ],
   "workflowPresets": [
     {
-      "name": "windows-apps-debug",
+      "name": "windows-cli-debug",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-apps-debug"
+          "name": "windows-cli-debug"
         },
         {
           "type": "build",
-          "name": "windows-apps-debug"
+          "name": "windows-cli-debug"
         }
       ]
     },
     {
-      "name": "windows-apps-release",
+      "name": "windows-cli-release",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-apps-release"
+          "name": "windows-cli-release"
         },
         {
           "type": "build",
-          "name": "windows-apps-release"
+          "name": "windows-cli-release"
         }
       ]
     },
@@ -159,11 +201,11 @@
       "steps": [
         {
           "type": "configure",
-          "name": "windows-apps-release"
+          "name": "windows-cli-release"
         },
         {
           "type": "build",
-          "name": "windows-apps-release"
+          "name": "windows-cli-release"
         },
         {
           "type": "package",

@@ -1,0 +1,18 @@
+
+- Sacer capturas del SDL yu subirlas a la carpeta compartida.
+
+- Implementar la salida de MQTT con paho-mqtt (esta librería tanto en C++ como en python).
+
+El formato será Protobuf.
+
+El servidor será en Mosquito.
+
+Y con MQTT Explorer se puede ver el tráfico de mensajes.
+
+Le enviaré un vector de tuplas (x, y, 0 o 1 si hay agua o no.)
+
+- Cuando pruebe el modelo decirle cuanto tarda por inferencia.
+
+- Mirar si con Copernicus y otro satélite se puede obtener datos de altura de agua
+
+

@@ -80,8 +80,6 @@ if (WIN32)
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
                         "${TF_DLL}"
                         "$<TARGET_FILE_DIR:${_target}>"
-                    COMMENT "TensorFlow-AutoCopy: Copiando DLL a la carpeta del ejecutable ${_target}"
-                    VERBATIM
                 )
             endif()
         endif()
