@@ -3,17 +3,43 @@
   "name": "danasim",
   "dependencies": [],
   "features": {
-    "apps": {
+    "app": {
       "description": "Build Apps",
       "dependencies": [
         {
           "name": "gdal",
           "default-features": false,
           "features": [ "tools" ]
+        },
+        {
+          "name": "yaml-cpp"
+        },
+        {
+          "name": "spdlog"
+        },
+        {
+          "name": "magic-enum"
+        },
+        {
+          "name": "zlib"
+        },
+        {
+          "name": "paho-mqttpp3"
+        },
+        {
+          "name": "protobuf"
+        },
+        {
+          "name": "highfive"
+        },
+        {
+          "name": "opencv4",
+          "default-features": false,
+          "features": [ "png", "jpeg" ]
         }
       ]
     },
-    "tests": {
+    "test": {
       "description": "Build Tests",
       "dependencies": [
         "gtest"

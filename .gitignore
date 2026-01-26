@@ -34,9 +34,6 @@ compile_commands.json
 # Visual Studio Directory
 /.vs
 
-# Python Virtual Environment
-/.venv
-
 # Installers directory
 /installer
 
@@ -50,8 +47,20 @@ compile_commands.json
 *.rdc
 *.rst
 
+# HDF5 Data
+*.h5
+
 # PragmaDev
 lock.info
 
 # Python export models
 /models
+
+# Python compiled files
+__pycache__
+
+# Simulation Output Directories
+/outputs
+
+# Tensorflow scripts logs
+/python/tensorflow_scripts/logs

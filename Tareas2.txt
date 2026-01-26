@@ -1,0 +1,2 @@
+- Debo documentar las entradas (capas, tipos de archivos de las capas) y las salidas (enseñar como son las salidas).
+- Debo documentar el core y que realiza en cada iteración.

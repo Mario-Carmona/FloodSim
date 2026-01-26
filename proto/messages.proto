@@ -1,0 +1,33 @@
+
+syntax = "proto3";
+
+package danasim.proto;
+
+// Represents a single snapshot or discrete step in the simulation.
+// This message is designed to transmit only the state changes (deltas)
+// to optimize bandwidth usage.
+message SimulationFrame {
+    // -- Metadata --
+
+    // The sequential index of the current simulation step.
+    int64 step_index = 1;
+
+    // The elapsed simulation time (typically in seconds).
+    float simulation_time = 2;
+
+    // --- Campos para Fragmentación ---
+    int32 chunk_index = 3;  // Índice del fragmento actual (0, 1, 2...)
+    int32 total_chunks = 4; // Cuántos fragmentos componen el frame total
+    bool is_last_chunk = 5; // Flag opcional para facilitar el cierre
+
+    // -- Deltas --
+    // Coordinates of cells that changed state (e.g., dry <-> wet) during this frame.
+    // These fields function as parallel arrays: the coordinate pair for the
+    // i-th change is defined by (changed_x[i], changed_y[i]).
+
+    // List of X coordinates for cells that changed state.
+    repeated int64 changed_x = 6;
+
+    // List of Y coordinates for cells that changed state.
+    repeated int64 changed_y = 7;
+}

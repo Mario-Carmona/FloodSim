@@ -1,0 +1,35 @@
+scenario:
+  name: scenario_29_10_2024_Raul
+
+logging:
+  level: info
+  async: true
+  silent: false
+  file: simulation.log
+
+input:
+  type: file
+  path: ../../../data/data_29_10_2024_Raul
+
+output:
+  snapshot:
+    every_n_steps: 3
+  outputs:
+    - type: mqtt
+      address: mqtt://test.mosquitto.org:1883
+      topic: danasim/updates
+      client_id: Simulation_Publisher_Node
+      qos: 1
+      format: protobuf
+
+state_updater:
+  type: tensorflow
+  model_path: ../../../models
+
+simulation:
+  time_step: 5.0
+  total_time: 28800.0
+  view_min_x: 700000.0
+  view_max_x: 740000.0
+  view_min_y: 4365000.0
+  view_max_y: 4375000.0

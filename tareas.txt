@@ -1,0 +1,18 @@
+
+- Sacer capturas del SDL yu subirlas a la carpeta compartida.
+
+- Cuando pruebe el modelo decirle cuanto tarda por inferencia.
+
+- Mirar si con Copernicus y otro satélite se puede obtener datos de altura de agua
+
+- Modelo Tensorflow:
+
+Optimizar tensorflow. Al cargar el modelo, inicializar el estado de las capas estáticas y del dx y dt. 
+En cada step se le pide al modelo que genere el nuevo estado, pero este nuevo estado no lo tiene que 
+obtener el core, simplemente se le asigna el nuevo estado a la variable que tenía el estado anterior 
+de esta forma evitamos pasar información innecesaria del modelo al core. El core solo lee los outputs 
+del modelo cuando le toca generar el snapshot. De esta forma se reduce al máximo la comunicación entre 
+modelo y core
+
+- Añadir que al asignar el nombre a la hebra con la función de Utils.h, dentro de esa función se llame al Logger
+para que tenga el mismo nombre en ambos sitios.
