@@ -42,15 +42,15 @@ namespace danasim {
         virtual void waitForReady() = 0;
 
         // Core: Publica nuevo snapshot
-        virtual void publish(Snapshot snapshot) = 0;
+        virtual void publish(Snapshot* snapshot) = 0;
         
         // Output: Espera datos. Retorna un par {Snapshot, Guard}
         // El Guard llamará a signalDone automáticamente al destruirse.
-        virtual std::pair<Snapshot, std::unique_ptr<SnapshotReadGuard>> waitForSnapshot(uint64_t lastStep) = 0;
+        virtual std::pair<Snapshot*, std::unique_ptr<SnapshotReadGuard>> waitForSnapshot(StepType lastStep) = 0;
         
         virtual void stop() = 0;
         virtual bool isRunning() const noexcept = 0;
-        virtual std::size_t everyNSteps() const noexcept = 0;
+        virtual StepType everyNSteps() const noexcept = 0;
     };
 
 } // namespace danasim

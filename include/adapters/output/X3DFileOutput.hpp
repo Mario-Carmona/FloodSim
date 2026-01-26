@@ -15,7 +15,7 @@ namespace danasim {
     public:
         explicit X3DFileOutput(const std::filesystem::path& outputDirectory);
 
-        void run(SnapshotManager& snapshotManager) override;
+        void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 
         std::string getThreadName() const override { return "Out_X3D"; }
 

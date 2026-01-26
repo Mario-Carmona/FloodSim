@@ -1,3 +1,14 @@
+/**
+ * @file Config.hpp
+ * @brief Defines the data structures that hold the application configuration.
+ *
+ * This file uses std::variant to handle polymorphic configuration sections
+ * and std::filesystem for robust path handling.
+ *
+ * @version 1.0
+ * @date 2026
+ * @copyright Copyright (c) 2026 Danasim
+ */
 
 #pragma once
 
@@ -6,40 +17,46 @@
 #include <filesystem>
 #include <variant>
 
+#include "Types.hpp"
+
 namespace danasim {
 
+    // -------------------------------------------------------------------------
+    // Input Configuration
+    // -------------------------------------------------------------------------
+
     /**
-     * @brief Input configuration
+     * @enum InputConfigType
+     * @brief Supported input source types.
      */
     enum class InputConfigType {
-        FILE,
-        MQTT
+        FILE
     };
-
-    // Configuración específica para archivos GIS
-    struct FileInputConfig {
-        std::string path;
-    };
-
-    // Configuración específica para tiempo real vía MQTT
-    struct MQTTInputConfig {
-        std::string broker;
-        std::string topic;
-    };
-
-    using InputConfig = std::variant<FileInputConfig, MQTTInputConfig>;
 
     /**
-     * @brief Output configuration
+     * @struct FileInputConfig
+     * @brief Configuration for file-based inputs.
+     */
+    struct FileInputConfig {
+        std::filesystem::path path; ///< Path to the input file.
+    };
+
+    /// Variant holding the active input configuration.
+    using InputConfig = std::variant<FileInputConfig>;
+
+    // -------------------------------------------------------------------------
+    // Output Configuration
+    // -------------------------------------------------------------------------
+
+    /**
+     * @brief Container for output configuration logic.
      */
     struct OutputConfig {
+
         enum class OutputConfigEntryType {
             X3D_FILE,
-            MQTT
-        };
-
-        enum class MQTTFormat {
-            PROTOBUF
+            MQTT,
+            IMAGE
         };
 
         struct X3DFileOutputConfigEntry {
@@ -47,65 +64,78 @@ namespace danasim {
         };
 
         struct MQTTOutputConfigEntry {
+
+            enum class PayloadFormat {
+                PROTOBUF
+            };
+
             std::string address;
             std::string topic;
             std::string clientId;
             int qos;
-            MQTTFormat format;
+            PayloadFormat payloadFormat;
         };
 
-        using OutputConfigEntry = std::variant<X3DFileOutputConfigEntry, MQTTOutputConfigEntry>;
+        struct ImageOutputConfigEntry {
+            // Placeholder for future image config
+        };
 
+        /// Variant for polymorphic output types.
+        using OutputConfigEntry = std::variant<X3DFileOutputConfigEntry, MQTTOutputConfigEntry, ImageOutputConfigEntry>;
+
+        /**
+         * @struct SnapshotConfig
+         * @brief Controls how often the simulation state is captured.
+         */
         struct SnapshotConfig {
-            std::size_t everyNSteps;
+            StepType everyNSteps = 1; ///< Default: Capture every step.
         };
 
         std::vector<OutputConfigEntry> outputs;
         SnapshotConfig snapshot;
     };
 
+    // -------------------------------------------------------------------------
+    // State Updater Configuration
+    // -------------------------------------------------------------------------
 
-    /**
-     * @brief State updater configuration
-	 */
     enum class StateUpdaterConfigType {
-        TENSORFLOW,
-        EXPERIMENTAL
+        TENSORFLOW
     };
 
     struct TensorFlowStateUpdaterConfig {
-        std::string modelPath;
+        std::filesystem::path modelPath;
     };
 
-    struct ExperimentalStateUpdaterConfig {};
+    using StateUpdaterConfig = std::variant<TensorFlowStateUpdaterConfig>;
 
-    using StateUpdaterConfig = std::variant<TensorFlowStateUpdaterConfig, ExperimentalStateUpdaterConfig>;
+    // -------------------------------------------------------------------------
+    // General Settings
+    // -------------------------------------------------------------------------
 
-
-    /**
-     * @brief Simulation (core) configuration
-     */
     struct SimulationConfig {
-        float timeStep;     // seconds
-        float totalTime;    // seconds
+        float timeStep = 0.1f;    ///< Simulation step delta in seconds.
+        float totalTime = 0.0f;   ///< Total duration in seconds.
+        float viewMinX; 
+        float viewMaxX;
+        float viewMinY;
+        float viewMaxY;
     };
-
 
     struct ScenarioConfig {
         std::string name;
     };
 
-
     struct LoggingConfig {
-        std::string level;
-        bool async;
-        bool silent;
-        std::string file;
+        std::string level = "info";
+        bool async = false;
+        bool silent = false;
+        std::filesystem::path file;
     };
 
-
     /**
-     * @brief Root configuration object
+     * @struct Config
+     * @brief Root configuration object aggregating all modules.
      */
     struct Config {
         LoggingConfig logging;

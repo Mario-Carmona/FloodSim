@@ -28,6 +28,14 @@
         },
         {
           "name": "protobuf"
+        },
+        {
+          "name": "highfive"
+        },
+        {
+          "name": "opencv4",
+          "default-features": false,
+          "features": [ "png", "jpeg" ]
         }
       ]
     },

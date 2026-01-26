@@ -12,6 +12,7 @@ namespace danasim {
         , remaining_(0)
         , running_(true)
         , everyNSteps_(config.everyNSteps)
+        , currentSnapshot_(nullptr)
     {
     }
 
@@ -20,6 +21,8 @@ namespace danasim {
     }
 
     void AsyncSnapshotManager::waitForReady() {
+        LOG_INFO("Wait for ready");
+
         std::unique_lock<std::mutex> lock(mutex_);
         // Esperamos si:
         // 1. Todavía hay outputs procesando (remaining > 0)
@@ -27,9 +30,11 @@ namespace danasim {
         cvCore_.wait(lock, [this] {
             return remaining_ == 0 || !running_;
             });
+
+        LOG_INFO("Wait for ready [DONE]");
     }
 
-    void AsyncSnapshotManager::publish(Snapshot snapshot) {
+    void AsyncSnapshotManager::publish(Snapshot* snapshot) {
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (!running_) return;
@@ -42,24 +47,20 @@ namespace danasim {
         cvOutputs_.notify_all();
     }
 
-    std::pair<Snapshot, std::unique_ptr<SnapshotReadGuard>> AsyncSnapshotManager::waitForSnapshot(uint64_t lastStep) {
+    std::pair<Snapshot*, std::unique_ptr<SnapshotReadGuard>> AsyncSnapshotManager::waitForSnapshot(StepType lastStep) {
         std::unique_lock<std::mutex> lock(mutex_);
 
         cvOutputs_.wait(lock, [this, lastStep] {
             if (!running_) return true; // Salir si paramos
-            if (!currentSnapshot_.isValid()) return false; // Esperar si no hay datos
-
-            // FIX DEL DEADLOCK INICIAL:
-            // Si lastStep es MAX (primera vez), aceptamos cualquier snapshot (incluso el 0)
-            if (lastStep == std::numeric_limits<uint64_t>::max()) return true;
+            if (currentSnapshot_ == nullptr) return false; // Esperar si no hay datos
 
             // Lógica normal: solo avanzamos si hay un paso nuevo
-            return currentSnapshot_.step() > lastStep;
+            return currentSnapshot_->step() > lastStep;
             });
 
         // Si estamos parando, retornamos null
         if (!running_) {
-            return { Snapshot{}, nullptr };
+            return { nullptr, nullptr };
         }
 
         // Creamos el Guard. Cuando el Output lo destruya, llamará a internalSignalDone

@@ -5,7 +5,6 @@ target_sources(danasim_factories
     PRIVATE
         InputFactory.cpp
         OutputFactory.cpp
-        SnapshotSerializerFactory.cpp
         StateUpdaterFactory.cpp
 )
 
@@ -18,5 +17,5 @@ target_link_libraries(danasim_factories
     PUBLIC
         danasim_options
         danasim_core
-        danasim_state_updater_adapters
+        danasim_adapters
 )

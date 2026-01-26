@@ -1,9 +1,9 @@
 scenario:
-  name: first_data_1
+  name: second_data_1
 
 logging:
-  level: info
-  async: true
+  level: debug
+  async: false
   silent: false
   file: simulation.log
 
@@ -23,8 +23,9 @@ output:
       format: protobuf
 
 state_updater:
-  type: experimental
+  type: tensorflow
+  model_path: ../../../models
 
 simulation:
   time_step: 1.0
-  total_time: 20.0
+  total_time: 5.0

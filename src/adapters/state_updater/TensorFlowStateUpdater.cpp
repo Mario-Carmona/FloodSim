@@ -6,172 +6,253 @@
 #include <cstring>
 #include <stdexcept>
 
+#include "app/logging/Logger.hpp"
+
 namespace danasim {
 
-    // Función auxiliar para cargar el archivo .pb
-    TF_Buffer* read_file(const std::string& file) {
-        std::ifstream f(file, std::ios::binary | std::ios::ate);
-        if (!f.is_open()) return nullptr;
-        std::streamsize size = f.tellg();
-        f.seekg(0, std::ios::beg);
-        std::vector<char> data(size);
-        if (!f.read(data.data(), size)) return nullptr;
-        return TF_NewBufferFromString(data.data(), size);
+    // Helper estático para buscar operaciones
+    TensorFlowStateUpdater::TF_Port TensorFlowStateUpdater::TF_Port::From(TF_Graph* g, const std::string& name, int idx) {
+        TF_Operation* op = TF_GraphOperationByName(g, name.c_str());
+        if (!op) {
+            LOG_ERROR("TF Node not found: {}", name);
+            // En un caso real podrías lanzar excepción aquí si es crítico
+        }
+        return { {op, idx} }; // Construimos el TF_Output interno y el struct TF_Port
     }
 
-    TensorFlowStateUpdater::TensorFlowStateUpdater(const std::string& modelPath) {
+    TensorFlowStateUpdater::TensorFlowStateUpdater(const std::filesystem::path& modelPath) {
         status_ = TF_NewStatus();
         graph_ = TF_NewGraph();
 
-        // 1. Cargar el Grafo
-        TF_Buffer* graph_def = read_file(modelPath);
-        if (!graph_def) throw std::runtime_error("No se pudo leer el modelo .pb");
+        TF_SessionOptions* sess_opts = TF_NewSessionOptions();
+        TF_Buffer* run_opts = nullptr;
+        const char* tags[] = { "serve" };
 
-        TF_ImportGraphDefOptions* import_opts = TF_NewImportGraphDefOptions();
-        TF_GraphImportGraphDef(graph_, graph_def, import_opts, status_);
-        TF_DeleteImportGraphDefOptions(import_opts);
-        TF_DeleteBuffer(graph_def);
+        LOG_INFO("Loading TensorFlow SavedModel from: {}", modelPath.string());
+        session_ = TF_LoadSessionFromSavedModel(
+            sess_opts, run_opts, modelPath.string().c_str(), tags, 1, graph_, nullptr, status_
+        );
 
         if (TF_GetCode(status_) != TF_OK) {
-            throw std::runtime_error(TF_Message(status_));
+            LOG_ERROR("Failed to load model: {}", TF_Message(status_));
+            throw std::runtime_error("Could not load TensorFlow model");
         }
-
-        // 2. Crear la Sesión
-        TF_SessionOptions* sess_opts = TF_NewSessionOptions();
-        session_ = TF_NewSession(graph_, sess_opts, status_);
         TF_DeleteSessionOptions(sess_opts);
 
+        // =========================================================
+        // MAPEO DE NODOS (Según tu Integration Guide)
+        // =========================================================
 
-        // Cachear dt y dx por separado ya que no son "capas" del grid
-        dt_op_ = { TF_GraphOperationByName(graph_, "dt"), 0 };
-        dx_op_ = { TF_GraphOperationByName(graph_, "dx"), 0 };
+        // >> METHOD: 'init' (INPUTS)
+        p_init_dt_ = TF_Port::From(graph_, "init_dt");
+        p_init_dx_ = TF_Port::From(graph_, "init_dx");
+        p_init_elevation_ = TF_Port::From(graph_, "init_elevation");
+        p_init_roughness_ = TF_Port::From(graph_, "init_roughness");
+        p_init_water_depth_ = TF_Port::From(graph_, "init_water_depth");
+        p_init_rainfall_ = TF_Port::From(graph_, "init_rainfall");
+        p_init_steps_batch_ = TF_Port::From(graph_, "init_steps_batch");
+        p_init_map_origin_x_ = TF_Port::From(graph_, "init_map_origin_x");
+        p_init_map_origin_y_ = TF_Port::From(graph_, "init_map_origin_y");
 
+        // >> METHOD: 'init' (OUTPUTS)
+        out_init_trigger_ = TF_Port::From(graph_, "StatefulPartitionedCall", 0);
 
-        // --- CACHEAR SOLO COORDENADAS ---
-        // Buscamos los nodos con los nuevos nombres
-        op_changed_x_ = { TF_GraphOperationByName(graph_, "changed_x"), 0 };
-        op_changed_y_ = { TF_GraphOperationByName(graph_, "changed_y"), 0 };
+        // >> METHOD: 'run_batch' (OUTPUTS)
+        out_run_batch_trigger_ = TF_Port::From(graph_, "StatefulPartitionedCall_2", 0);
 
-        if (!op_changed_x_.oper || !op_changed_y_.oper) {
-            throw std::runtime_error("El modelo .pb no tiene las salidas 'changed_x/changed_y'. Vuelve a exportarlo.");
-        }
+        // >> METHOD: 'render' (INPUTS)
+        p_render_view_min_x_ = TF_Port::From(graph_, "render_view_min_x");
+        p_render_view_max_x_ = TF_Port::From(graph_, "render_view_max_x");
+        p_render_view_min_y_ = TF_Port::From(graph_, "render_view_min_y");
+        p_render_view_max_y_ = TF_Port::From(graph_, "render_view_max_y");
+
+        // >> METHOD: 'render' (OUTPUTS)
+        // La tabla dice que todos salen de "StatefulPartitionedCall_1"
+        // Indices: 0->state, 1->x, 2->y, 3->water
+        std::string render_op_name = "StatefulPartitionedCall_1";
+
+        out_render_changed_x_ = TF_Port::From(graph_, render_op_name, 0);
+        out_render_changed_y_ = TF_Port::From(graph_, render_op_name, 1);
+        out_render_water_depth_ = TF_Port::From(graph_, render_op_name, 2);
     }
 
     TensorFlowStateUpdater::~TensorFlowStateUpdater() {
-        TF_CloseSession(session_, status_);
-        TF_DeleteSession(session_, status_);
-        TF_DeleteGraph(graph_);
-        TF_DeleteStatus(status_);
+        if (session_) {
+            TF_CloseSession(session_, status_);
+            TF_DeleteSession(session_, status_);
+        }
+        if (graph_) TF_DeleteGraph(graph_);
+        if (status_) TF_DeleteStatus(status_);
     }
 
-    void TensorFlowStateUpdater::update(MapGrid& grid, float dt) {
-        if (cached_layers_.empty()) {
-            for (auto& value : magic_enum::enum_values<LayerId>()) {
-                const auto& desc = MapGrid::getDescriptor(value);
+    void TensorFlowStateUpdater::initialize(const MapGrid& grid, float dt, StepType steps_batch) {
+        LOG_INFO("Initializing TF Model");
 
-                CachedLayer cache;
-                cache.is_dynamic = (desc.category == LayerCategory::Dynamic);
+        // 1. Inputs del Init
+        std::vector<TF_Output> inputs = {
+            p_init_elevation_.op, p_init_roughness_.op,
+            p_init_water_depth_.op, p_init_rainfall_.op,
+            p_init_dt_.op, p_init_dx_.op,
+            p_init_steps_batch_.op,
+            p_init_map_origin_x_.op, p_init_map_origin_y_.op
+        };
 
-                // Buscamos la entrada en el modelo con el nombre definido en el descriptor
-                cache.input_op = { TF_GraphOperationByName(graph_, desc.name.c_str()), 0 };
+        std::vector<TF_Tensor*> input_values;
+        input_values.push_back(createGridTensor<float>(grid.getLayer<float>(LayerId::Elevation).data(), grid.rows(), grid.cols()));
+        input_values.push_back(createGridTensor<float>(grid.getLayer<float>(LayerId::Roughness).data(), grid.rows(), grid.cols()));
+        input_values.push_back(createGridTensor<float>(grid.getLayer<float>(LayerId::WaterDepth).data(), grid.rows(), grid.cols()));
+        input_values.push_back(createGridTensor<float>(grid.getLayer<float>(LayerId::Rainfall).data(), grid.rows(), grid.cols()));
+        input_values.push_back(createScalar<float>(dt));
+        input_values.push_back(createScalar<float>(grid.cellSize()));
+        input_values.push_back(createScalar<StepType>(steps_batch));
+        input_values.push_back(createScalar<float>(grid.mapOriginX()));
+        input_values.push_back(createScalar<float>(grid.mapOriginY()));
 
-                if (cache.input_op.oper == nullptr) {
-                    // Si una capa del Grid no está en el modelo, simplemente la ignoramos
-                    continue;
-                }
+        TF_Tensor* out_tensor = nullptr;
 
-                // Si es dinámica, buscamos también su salida (ej: "output_waterDepth")
-                if (cache.is_dynamic) {
-                    std::string out_name = "output_" + desc.name;
-                    cache.output_op = { TF_GraphOperationByName(graph_, out_name.c_str()), 0 };
-                }
-
-                cached_layers_.push_back(cache);
-            }
-        }
-        
-        
-        const int64_t dims[] = { 1, (int64_t)grid.height(), (int64_t)grid.width(), 1 };
-        const size_t layer_bytes = sizeof(float) * grid.cellCount();
-
-        // Deallocator vacío: le dice a TF que NO libere nuestra memoria del MapGrid
-        auto dummy_dealloc = [](void*, size_t, void*) {};
-
-        // 1. PREPARAR ENTRADAS (Zero-Copy)
-        std::vector<TF_Output> inputs;
-        std::vector<TF_Tensor*> input_tensors;
-        std::vector<TF_Output> outputs;
-
-        for (auto& value : magic_enum::enum_values<LayerId>()) {
-			const auto& layer = cached_layers_[static_cast<size_t>(value)];
-
-            inputs.push_back(layer.input_op);
-            input_tensors.push_back(TF_NewTensor(TF_FLOAT, dims, 4,
-                grid.layerData(value),
-                layer_bytes, dummy_dealloc, nullptr));
-
-            if (layer.is_dynamic && layer.output_op.oper != nullptr) {
-                outputs.push_back(layer.output_op);
-            }
-        }
-
-        // Solo pedimos X e Y
-        if (op_changed_x_.oper) {
-            outputs.push_back(op_changed_x_);
-            outputs.push_back(op_changed_y_);
-        }
-
-        // Añadir dt y dx
-        inputs.push_back(dt_op_);
-        input_tensors.push_back(TF_NewTensor(TF_FLOAT, nullptr, 0, &dt, sizeof(float), dummy_dealloc, nullptr));
-
-        float dx = grid.cellSize();
-        inputs.push_back(dx_op_);
-        input_tensors.push_back(TF_NewTensor(TF_FLOAT, nullptr, 0, &dx, sizeof(float), dummy_dealloc, nullptr));
-
-        std::vector<TF_Tensor*> output_tensors(outputs.size(), nullptr);
-
-        // 3. EJECUTAR
+        // 2. Ejecutar Init (Sin outputs relevantes)
         TF_SessionRun(session_, nullptr,
-            inputs.data(), input_tensors.data(), static_cast<int>(inputs.size()),
-            outputs.data(), output_tensors.data(), static_cast<int>(outputs.size()),
-            nullptr, 0, nullptr, status_);
+            inputs.data(), input_values.data(), static_cast<int>(inputs.size()),
+            &out_init_trigger_.op, &out_tensor, 1,
+            nullptr, 0, nullptr, status_
+        );
 
-        // 4. COPIAR RESULTADOS Y LIMPIAR
-        if (TF_GetCode(status_) == TF_OK) {
-            int out_idx = 0;
-            for (auto& value : magic_enum::enum_values<LayerId>()) {
-				const auto& layer = cached_layers_[static_cast<size_t>(value)];
+        checkStatus("SessionRun (Initialize)");
 
-                if (layer.is_dynamic && layer.output_op.oper != nullptr) {
-                    std::memcpy(grid.layerData(value),
-                        TF_TensorData(output_tensors[out_idx++]),
-                        layer_bytes);
-                }
-            }
+        // Limpieza
+        for (auto* t : input_values) TF_DeleteTensor(t);
+        if (out_tensor) TF_DeleteTensor(out_tensor);
+    }
 
+    void TensorFlowStateUpdater::update() {
+        // 3. Ejecutar 'run_batch'
+        auto start = std::chrono::high_resolution_clock::now();
 
-            TF_Tensor* tx = output_tensors[out_idx++];
-            TF_Tensor* ty = output_tensors[out_idx++];
+        TF_Tensor* out_run_batch_tensor = nullptr;
 
-            int64_t num_changes = TF_Dim(tx, 0);
+        TF_SessionRun(session_, nullptr,
+            nullptr, nullptr, 0,
+            &out_run_batch_trigger_.op, &out_run_batch_tensor, 1,
+            nullptr, 0, nullptr, status_
+        );
 
-            // Usamos los nuevos accessors
-            auto& vec_x = grid.changedX();
-            auto& vec_y = grid.changedY();
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        LOG_INFO("TF Graph Execution time: {}s", elapsed.count());
 
-            vec_x.resize(num_changes);
-            vec_y.resize(num_changes);
+        checkStatus("SessionRun (Update Batch)");
 
-            if (num_changes > 0) {
-                std::memcpy(vec_x.data(), TF_TensorData(tx), num_changes * sizeof(int32_t));
-                std::memcpy(vec_y.data(), TF_TensorData(ty), num_changes * sizeof(int32_t));
-            }
+        // 5. Limpieza
+        if (out_run_batch_tensor) TF_DeleteTensor(out_run_batch_tensor);
+    }
+
+    void TensorFlowStateUpdater::render(const MapGrid& grid, Snapshot& snapshot_) {
+        // 1. Inputs: Estado Actual (State y Water)
+        // OJO: El orden en el vector inputs debe coincidir con el vector input_values
+        std::vector<TF_Output> inputs = {
+            p_render_view_min_x_.op, p_render_view_max_x_.op,
+            p_render_view_min_y_.op, p_render_view_max_y_.op
+        };
+
+        std::vector<TF_Tensor*> input_values;
+        input_values.push_back(createScalar<float>(grid.viewMinX()));
+        input_values.push_back(createScalar<float>(grid.viewMaxX()));
+        input_values.push_back(createScalar<float>(grid.viewMinY()));
+        input_values.push_back(createScalar<float>(grid.viewMaxY()));
+
+        // 2. Outputs Esperados (Ordenados según la tabla y tu código)
+        std::vector<TF_Output> outputs = {
+            out_render_changed_x_.op,   // 0
+            out_render_changed_y_.op,   // 1
+            out_render_water_depth_.op  // 2
+        };
+        std::vector<TF_Tensor*> output_values(outputs.size(), nullptr);
+
+        auto start_render = std::chrono::high_resolution_clock::now();
+
+        TF_SessionRun(session_, nullptr,
+            inputs.data(), input_values.data(), static_cast<int>(inputs.size()),
+            outputs.data(), output_values.data(), static_cast<int>(outputs.size()),
+            nullptr, 0, nullptr, status_
+        );
+
+        auto end_render = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_render = end_render - start_render;
+        LOG_INFO("Render Execution time: {}s", elapsed_render.count());
+
+        checkStatus("SessionRun (Render)");
+
+        // 4. Extraer Datos de Vuelta a C++
+
+        // Output 2: Water Depth (¡Cuidado con el índice, en tu tabla es el 3!)
+        float* water_ptr = static_cast<float*>(TF_TensorData(output_values[2]));
+
+        std::vector<float>& waterSnapshot = snapshot_.waterDepth();
+        waterSnapshot.resize(grid.cellCount());
+
+        std::memcpy(waterSnapshot.data(), water_ptr, grid.cellCount() * sizeof(float));
+
+        // Output 0 & 1: Changed Indices
+        TF_Tensor* tx = output_values[0];
+        TF_Tensor* ty = output_values[1];
+
+        int64_t num_changes = TF_Dim(tx, 0); // Dimensión 0 es el número de elementos
+
+        auto& vec_x = snapshot_.changedX();
+        auto& vec_y = snapshot_.changedY();
+
+        vec_x.resize(num_changes);
+        vec_y.resize(num_changes);
+
+        if (num_changes > 0) {
+            std::memcpy(vec_x.data(), TF_TensorData(tx), num_changes * sizeof(GridIndexType));
+            std::memcpy(vec_y.data(), TF_TensorData(ty), num_changes * sizeof(GridIndexType));
         }
 
-        // Limpieza de tensores
-        for (auto* t : input_tensors) TF_DeleteTensor(t);
-        for (auto* t : output_tensors) if (t) TF_DeleteTensor(t);
+        // Limpieza
+        for (auto* t : input_values) TF_DeleteTensor(t);
+        for (auto* t : output_values) if (t) TF_DeleteTensor(t);
+    }
+
+    // --- Helpers de Memoria ---
+
+    template <>
+    TF_Tensor* TensorFlowStateUpdater::createScalar<float>(float value) {
+        TF_Tensor* t = TF_AllocateTensor(TF_FLOAT, nullptr, 0, sizeof(float));
+        std::memcpy(TF_TensorData(t), &value, sizeof(float));
+        return t;
+    }
+
+    template <>
+    TF_Tensor* TensorFlowStateUpdater::createScalar<int64_t>(int64_t value) {
+        TF_Tensor* t = TF_AllocateTensor(TF_INT64, nullptr, 0, sizeof(int64_t));
+        std::memcpy(TF_TensorData(t), &value, sizeof(int64_t));
+        return t;
+    }
+
+    template <>
+    TF_Tensor* TensorFlowStateUpdater::createGridTensor<float>(const float* data, int64_t rows, int64_t cols) {
+        int64_t dims[] = { 1, rows, cols, 1 };
+        size_t nbytes = rows * cols * sizeof(float);
+        TF_Tensor* t = TF_AllocateTensor(TF_FLOAT, dims, 4, nbytes);
+        std::memcpy(TF_TensorData(t), data, nbytes);
+        return t;
+    }
+
+    template <>
+    TF_Tensor* TensorFlowStateUpdater::createGridTensor<int8_t>(const int8_t* data, int64_t rows, int64_t cols) {
+        int64_t dims[] = { 1, rows, cols, 1 };
+        size_t nbytes = rows * cols * sizeof(int8_t);
+        TF_Tensor* t = TF_AllocateTensor(TF_INT8, dims, 4, nbytes);
+        std::memcpy(TF_TensorData(t), data, nbytes);
+        return t;
+    }
+
+    void TensorFlowStateUpdater::checkStatus(const std::string& context) {
+        if (TF_GetCode(status_) != TF_OK) {
+            LOG_ERROR("TF Error [{}]: {}", context, TF_Message(status_));
+            throw std::runtime_error("TensorFlow execution failed");
+        }
     }
 
 } // namespace danasim

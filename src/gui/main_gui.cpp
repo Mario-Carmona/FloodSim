@@ -13,7 +13,7 @@ int main(int argc, char** argv)
         app.run();
     });
 
-    setThreadName(simulationThread, output->getThreadName());
+    danasim::setCurrentThreadName("GUI");
 
     // appQt.exec();  // GUI event loop
 

@@ -10,7 +10,6 @@
       "name": "common-configure-options",
       "hidden": true,
       "description": "Base preset defining common cache variables shared by all presets.",
-      "architecture": "x64",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "20",
@@ -87,6 +86,7 @@
         "app"
       ],
       "description": "Windows-specific preset using Visual Studio 2026 and static vcpkg triplets.",
+      "architecture": "x64",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -117,6 +117,36 @@
       "description": ""
     },
     {
+      "name": "linux-app",
+      "hidden": true,
+      "inherits": [
+        "app"
+      ],
+      "description": "Linux-specific preset using Ninja and static vcpkg triplets.",
+      "architecture": "x64",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "11.4.0",
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "VCPKG_HOST_TRIPLET": "x64-linux"
+      }
+    },
+    {
+      "name": "linux-cli-debug",
+      "inherits": [ "linux-app", "cli", "debug" ],
+      "description": "Debug build for Linux CLI"
+    },
+    {
+      "name": "linux-cli-release",
+      "inherits": [ "linux-app", "cli", "release" ],
+      "description": "Release build for Linux CLI"
+    },
+    {
       "name": "docs",
       "hidden": true,
       "inherits": [
@@ -139,6 +169,16 @@
       "name": "windows-cli-release",
       "configurePreset": "windows-cli-release",
       "description": "",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-cli-debug",
+      "configurePreset": "linux-cli-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-cli-release",
+      "configurePreset": "linux-cli-release",
       "configuration": "Release"
     }
   ],
@@ -193,6 +233,32 @@
         {
           "type": "build",
           "name": "windows-cli-release"
+        }
+      ]
+    },
+    {
+      "name": "linux-cli-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-cli-debug"
+        },
+        {
+          "type": "build",
+          "name": "linux-cli-debug"
+        }
+      ]
+    },
+    {
+      "name": "linux-cli-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-cli-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-cli-release"
         }
       ]
     },

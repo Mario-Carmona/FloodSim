@@ -5,8 +5,8 @@ target_sources(danasim_core
     PRIVATE
         simulation/SimulationCore.cpp
         snapshot/AsyncSnapshotManager.cpp
-        snapshot/Snapshot.cpp
         grid/MapGrid.cpp
+        grid/StreamedLayerManager.cpp
 )
 
 target_include_directories(danasim_core
@@ -18,4 +18,5 @@ target_link_libraries(danasim_core
     PUBLIC 
         danasim_options
         magic_enum::magic_enum
+        HighFive
 )

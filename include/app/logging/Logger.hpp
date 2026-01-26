@@ -7,13 +7,14 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <memory>
+#include <filesystem>
 
 namespace danasim {
 
     class Logger {
     public:
         // Inicialización global
-        static void init(const std::string& level, bool async, bool silent, const std::string& logFile);
+        static void init(const std::string& level, bool async, bool silent, const std::filesystem::path& logFile);
         static void shutdown();
 
         // Obtener el logger crudo de spdlog (para máxima velocidad)

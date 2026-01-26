@@ -7,7 +7,6 @@
 #include <stdexcept>
 
 #include "app/logging/Logger.hpp"
-#include "adapters/snapshot_serializer/X3DSnapshotSerializer.hpp"
 
 namespace danasim {
 
@@ -19,9 +18,9 @@ namespace danasim {
         }
     }
 
-    void X3DFileOutput::run(SnapshotManager& snapshotManager)
+    void X3DFileOutput::run(SnapshotManager& snapshotManager, const std::filesystem::path& /* outputPath */)
     {
-        uint64_t lastProcessedStep = 0xFFFFFFFFFFFFFFFF; // Empezamos desde antes del paso 0
+        StepType lastProcessedStep = -1; // Empezamos desde antes del paso 0
 
         while (true) {
             try {
@@ -31,19 +30,19 @@ namespace danasim {
 
                 // Si el guard es nulo, significa que el sistema se está deteniendo
                 if (!guard) {
-                    LOG_INFO("[X3DOutput] Stopping thread (manager stopped).");
+                    LOG_INFO("Stopping thread (manager stopped).");
                     break;
                 }
 
                 // 2. Procesamiento
-                std::string filename = "step_" + std::to_string(snapshot.step()) + ".html";
+                std::string filename = "step_" + std::to_string(snapshot->step()) + ".html";
 
                 // Serializamos y escribimos a disco
-                X3DSnapshotSerializer serializer;
-                serializer.serializeToFile(snapshot, outputDirectory_ / filename);
+                // X3DSnapshotSerializer serializer;
+                // serializer.serializeToFile(snapshot, outputDirectory_ / filename);
 
                 // Actualizamos el tracking
-                lastProcessedStep = snapshot.step();
+                lastProcessedStep = snapshot->step();
 
                 // Logger opcional para debug (puede ser ruidoso si hay muchos pasos)
                 // Logger::instance().info("[X3DOutput] Saved " + filename);

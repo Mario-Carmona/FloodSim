@@ -71,7 +71,7 @@ namespace danasim {
         return spdlog::level::info;
     }
 
-    void Logger::init(const std::string& level, bool async, bool silent, const std::string& logFile)
+    void Logger::init(const std::string& level, bool async, bool silent, const std::filesystem::path& logFile)
     {
         std::vector<spdlog::sink_ptr> sinks;
 
@@ -79,7 +79,7 @@ namespace danasim {
             sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 
             if (!logFile.empty()) {
-                sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFile, true));
+                sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFile.string(), true));
             }
         }
         else {

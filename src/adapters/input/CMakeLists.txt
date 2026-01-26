@@ -4,7 +4,6 @@ add_library(danasim_input_adapters)
 target_sources(danasim_input_adapters
     PRIVATE
         FileInput.cpp
-        MQTTInput.cpp
 )
 
 target_include_directories(danasim_input_adapters

@@ -10,6 +10,7 @@
 #include "core/ports/StateUpdaterPort.hpp"
 #include "core/ports/InputPort.hpp"
 #include "core/grid/MapGrid.hpp"
+#include "core/grid/StreamedLayerManager.hpp"
 
 namespace danasim {
 
@@ -19,7 +20,7 @@ namespace danasim {
     class SimulationCore {
     public:
         SimulationCore(
-            std::unique_ptr<StateUpdaterPort> stateUpdater,
+            StateUpdaterPort* stateUpdater,
             InputPort* input,
             SnapshotManager* snapshotManager,
             const SimulationConfig& config,
@@ -32,24 +33,24 @@ namespace danasim {
         void run();
 
     private:
-        void initializeState();
-
         // Dependencies
-        std::unique_ptr<StateUpdaterPort> stateUpdater_;
+        StateUpdaterPort* stateUpdater_;
         SnapshotManager* snapshotManager_;
         InputPort* input_;
+        StreamedLayerManager streamedLayerManager_;
 
         // Simulation parameters
         float timeStep_;
         float totalTime_;
-        std::size_t maxSteps_;
+        StepType maxSteps_;
 
         // Identification
         std::string scenarioName_;
 
         // Simulation state (mutable)
-        MapGrid active_;
-        MapGrid snapshot_;
+        MapGrid currentGrid_;
+
+        Snapshot currentSnapshot_;
     };
 
 } // namespace danasim

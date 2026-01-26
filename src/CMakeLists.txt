@@ -28,65 +28,124 @@ find_package(PahoMqttCpp CONFIG REQUIRED)
 # Protobuf
 find_package(Protobuf CONFIG REQUIRED)
 
+# HighFive
+find_package(HighFive CONFIG REQUIRED)
+
+# OpenCV
+set(OpenCV_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/opencv4")
+find_package(OpenCV REQUIRED)
+
 # ---------------------------------------------------------
 # Python Virtual Environment Automation
 # ---------------------------------------------------------
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-set(VENV_PATH "${CMAKE_SOURCE_DIR}/.venv")
+# --- Función para crear entornos Python aislados ---
+function(create_python_env ENV_NAME)
+    set(PYTHONPATH "${CMAKE_SOURCE_DIR}/python")
 
-if(WIN32)
-    set(PYTHON_VENV_EXE "${VENV_PATH}/Scripts/python.exe")
-    set(PIP_VENV_EXE "${VENV_PATH}/Scripts/pip.exe")
-else()
-    set(PYTHON_VENV_EXE "${VENV_PATH}/bin/python")
-    set(PIP_VENV_EXE "${VENV_PATH}/bin/pip")
-endif()
+    # Definir la ruta donde vivirá el entorno (dentro de build/venvs)
+    set(VENV_PATH "${CMAKE_SOURCE_DIR}/build/venvs/${ENV_NAME}_env")
+    
+    # Detectar ejecutable del entorno virtual según S.O.
+    if(WIN32)
+        set(VENV_PYTHON "${VENV_PATH}/Scripts/python.exe")
+        set(VENV_PIP "${VENV_PATH}/Scripts/pip.exe")
+    else()
+        set(VENV_PYTHON "${VENV_PATH}/bin/python")
+        set(VENV_PIP "${VENV_PATH}/bin/pip")
+    endif()
 
-# Create venv if it doesn't exist 
-if(NOT EXISTS "${VENV_PATH}")
-    message(STATUS "Creating Python virtual environment...")
-    execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv "${VENV_PATH}")
-endif()
+    # 1. Crear el entorno solo si no existe
+    if(NOT EXISTS "${VENV_PYTHON}")
+        message(STATUS "Creando entorno virtual Python: ${ENV_NAME}...")
+        execute_process(
+            COMMAND "${Python3_EXECUTABLE}" -m venv "${VENV_PATH}"
+            RESULT_VARIABLE _res
+        )
+        if(NOT _res EQUAL 0)
+            message(FATAL_ERROR "Fallo al crear venv ${ENV_NAME}")
+        endif()
 
-# Install dependencies if requirements.txt changed or stamp is missing
-message(STATUS "Installing Python dependencies...")
-execute_process(
-    COMMAND "${PIP_VENV_EXE}" install -r "${CMAKE_SOURCE_DIR}/requirements.txt"
-    RESULT_VARIABLE pip_result
-    OUTPUT_VARIABLE pip_stdout
-    ERROR_VARIABLE pip_stderr
-)
+        message(STATUS "Configurando PYTHONPATH extra para ${ENV_NAME}...")
+        
+        # Creamos un archivo temporal en la carpeta de build con el contenido
+        file(WRITE "${VENV_PATH}/Lib/site-packages/${ENV_NAME}_env_custom.pth" "${PYTHONPATH}")
+    endif()
 
-# Show the error only if something went wrong
-if(NOT pip_result EQUAL 0)
-    message(FATAL_ERROR "Error instalando dependencias: ${pip_stderr}")
-endif()
+    set(REQS_FILE "${PYTHONPATH}/${ENV_NAME}/requirements.txt")
+
+    # 2. Instalar requerimientos (siempre se intenta para actualizar cambios)
+    if(EXISTS "${REQS_FILE}")
+        message(STATUS "Instalando dependencias para ${ENV_NAME} desde ${REQS_FILE}...")
+        execute_process(
+            COMMAND "${VENV_PIP}" install -r "${REQS_FILE}"
+            OUTPUT_QUIET # Quita esto si quieres ver el log de pip
+            RESULT_VARIABLE _res
+        )
+        if(NOT _res EQUAL 0)
+            message(WARNING "Hubo un error instalando dependencias para ${ENV_NAME}")
+        endif()
+    endif()
+
+    # 3. Exportar la variable para usarla luego en el proyecto
+    # Crea una variable con el nombre del entorno en mayúsculas (ej: TF_ENV_PYTHON)
+    string(TOUPPER "${ENV_NAME}_env" ENV_NAME_UPPER)
+    set(${ENV_NAME_UPPER}_PYTHON "${VENV_PYTHON}" PARENT_SCOPE)
+
+endfunction()
+
+
+
+# --- Creación de los dos entornos ---
+
+# 1. Entorno "Builder" (TensorFlow)
+create_python_env("tensorflow_scripts")
+
+# 2. Entorno "Monitor" (MQTT + Protobuf Moderno)
+create_python_env("mqtt_scripts")
+
+# 3. Entorno "Data"
+create_python_env("sim_data_scripts")
+
+
 
 
 
 # ------------------------------------------------------------
 # Model Generation
 # ------------------------------------------------------------
-set(MODEL_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/tensorflow/export_model.py")
 
-if(NOT EXISTS "${MODEL_SCRIPT}")
-    message(FATAL_ERROR 
-        "Required model export script not found at: ${MODEL_SCRIPT}\n"
-        "Please ensure the script exists before configuring the project."
-    )
-else()
-    message(STATUS "Generating/Overwriting TensorFlow Model")
-    execute_process(
-        COMMAND "${PYTHON_VENV_EXE}" "${MODEL_SCRIPT}"
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        RESULT_VARIABLE export_result
-    )
+# 1. Definir variables de rutas para claridad
+set(TF_SCRIPT "${CMAKE_SOURCE_DIR}/python/tensorflow_scripts/export_model.py")
+set(COMMON_SCRIPT "${CMAKE_SOURCE_DIR}/python/tensorflow_scripts/constants_loader.py")
+set(CONSTANTS_HPP "${CMAKE_SOURCE_DIR}/include/core/common/SimulationConstants.hpp")
+set(MODEL_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/models")
+set(MODEL_SENTINEL "${MODEL_OUTPUT_DIR}/saved_model.pb") # Archivo testigo que crea Tensorflow
+
+
+# 2. CREAR EL COMANDO (La lógica inteligente)
+# Esto dice: "Para obtener 'saved_model.pb', ejecuta este comando Python".
+# Solo se ejecutará si falta el .pb O si alguno de los DEPENDS ha cambiado.
+add_custom_command(
+    OUTPUT "${MODEL_SENTINEL}"
     
-    if(NOT export_result EQUAL 0)
-        message(FATAL_ERROR "Failed to generate the TensorFlow .pb model.")
-    endif()
-endif()
+    # El comando a ejecutar (usa el python detectado)
+    COMMAND ${TENSORFLOW_SCRIPTS_ENV_PYTHON} "${TF_SCRIPT}"
+    
+    # DEPENDENCIAS: Si alguno de estos cambia, se regenera el modelo
+    DEPENDS "${TF_SCRIPT}" "${COMMON_SCRIPT}" "${CONSTANTS_HPP}" "${REQ_TF}"
+    
+    # Opcional: El directorio de trabajo
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    
+    COMMENT "Comprobando cambios en el modelo TensorFlow..."
+    VERBATIM
+)
+
+# 3. CREAR EL TARGET (El envoltorio)
+# Creamos un "objetivo" abstracto que depende del archivo de salida anterior.
+add_custom_target(generate_model_tf DEPENDS "${MODEL_SENTINEL}")
 
 
 
@@ -101,8 +160,8 @@ endif()
 # Rutas
 set(PROTO_DIR "${CMAKE_SOURCE_DIR}/proto")
 set(PROTO_FILE "${PROTO_DIR}/messages.proto")
-set(GENERATED_DIR_CPP "${CMAKE_SOURCE_DIR}/include/proto")
-set(GENERATED_DIR_PYTHON "${CMAKE_SOURCE_DIR}/scripts/mqtt/libs")
+set(GENERATED_DIR_CPP "${CMAKE_SOURCE_DIR}/include/adapters/output/mqtt/payload/proto")
+set(GENERATED_DIR_PYTHON "${CMAKE_SOURCE_DIR}/python/mqtt_scripts/libs")
 
 # Archivos de salida esperados
 set(PROTO_SRCS "${GENERATED_DIR_CPP}/messages.pb.cc") # Nota: protoc suele replicar la estructura de carpetas 'schema/'
@@ -142,6 +201,11 @@ add_library(danasim_options INTERFACE)
 target_compile_features(danasim_options INTERFACE cxx_std_20)
 
 if(WIN32)
+    target_compile_definitions(danasim_options INTERFACE 
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN # Opcional: Acelera la compilación en Windows
+    )
+
     target_compile_options(danasim_options INTERFACE
         # DEBUG
         $<$<CONFIG:Debug>:/Od /Zi /RTC1 /W4 /utf-8>
