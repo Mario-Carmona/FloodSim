@@ -130,7 +130,6 @@
       },
       "generator": "Ninja",
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "11.4.0",
         "VCPKG_TARGET_TRIPLET": "x64-linux",
         "VCPKG_HOST_TRIPLET": "x64-linux"
       }
