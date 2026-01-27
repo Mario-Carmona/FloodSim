@@ -9,7 +9,7 @@
 #include <exception>
 #include <iostream>
 #include <chrono>
-#include <format>
+#include <fmt/core.h>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -56,7 +56,7 @@ namespace danasim {
         : config_(ConfigLoader::load(configPath))
     {
         auto localTime = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-        std::string timestamp = std::format("{:%Y-%m-%d_%H-%M-%S}", std::chrono::floor<std::chrono::seconds>(localTime));
+        std::string timestamp = fmt::format("{:%Y-%m-%d_%H-%M-%S}", std::chrono::floor<std::chrono::seconds>(localTime));
 
         outputPath_ = OUTPUT_BASE_PATH / (config_.scenario.name + "_" + timestamp);
 

@@ -21,6 +21,6 @@ target_link_libraries(danasim_output_adapters
         danasim_options
         danasim_core
         danasim_output_mqtt
-        PahoMqttCpp::paho-mqttpp3 PahoMqttCpp::paho-mqttpp3-shared
+        PahoMqttCpp::paho-mqttpp3 PahoMqttCpp::paho-mqttpp3-static
         ${OpenCV_LIBS}
 )

@@ -7,7 +7,7 @@
 
 #include <variant>
 #include <stdexcept>
-#include <format>
+#include <fmt/core.h>
 
 #include "app/logging/Logger.hpp"
 #include "core/ports/OutputPort.hpp"

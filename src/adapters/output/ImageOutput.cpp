@@ -129,7 +129,7 @@ namespace danasim {
         int cols = canvas.cols - sidebarWidth;
 
         // A. TÍTULO
-        std::string title = std::format("Step: {} - Time: {:.2f}s", snapshot.step(), snapshot.time());
+        std::string title = fmt::format("Step: {} - Time: {:.2f}s", snapshot.step(), snapshot.time());
         int fontFace = cv::FONT_HERSHEY_DUPLEX;
         double fontScale = baseScale * 1.2;
         cv::Size textSize = cv::getTextSize(title, fontFace, fontScale, thickness, nullptr);
@@ -169,7 +169,7 @@ namespace danasim {
 
             auto paintBarLabel = [](cv::Mat& canvas, float val, int pointX, int pointY, double scale, int fontFace, int thickness) {
                 cv::putText(
-                    canvas, std::format("{:.1f}m", val), { pointX, pointY },
+                    canvas, fmt::format("{:.1f}m", val), { pointX, pointY },
                     fontFace, scale, { 50,50,50 }, thickness, cv::LINE_AA
                 );
             };
@@ -266,7 +266,7 @@ namespace danasim {
         drawUI(finalCanvas, snapshot, baseScale, thickness, marginTitle, sidebarWidth);
 
         // Guardar Imagen Principal
-        std::string filename = std::format("Combined_{:06d}.png", snapshot.step());
+        std::string filename = fmt::format("Combined_{:06d}.png", snapshot.step());
 
         if (cv::imwrite((imagesOutputPath / filename).string(), finalCanvas)) {
             LOG_INFO("Saved image: {}", filename);
@@ -297,12 +297,12 @@ namespace danasim {
         }
 
         // Agregar texto específico a la imagen de cambios
-        std::string changesLabel = std::format("Active Cells: {}", chX.size());
+        std::string changesLabel = fmt::format("Active Cells: {}", chX.size());
         cv::putText(changesImg, changesLabel, { 20, 40 }, cv::FONT_HERSHEY_SIMPLEX, 0.8, { 255, 255, 255 }, 4);
         cv::putText(changesImg, changesLabel, { 20, 40 }, cv::FONT_HERSHEY_SIMPLEX, 0.8, { 0, 0, 255 }, 2);
 
         // Construir nombre de archivo (_changes.png)
-        std::string changesFilename = std::format("Changes_{:06d}.png", snapshot.step());
+        std::string changesFilename = fmt::format("Changes_{:06d}.png", snapshot.step());
 
         if (cv::imwrite((imagesOutputPath / changesFilename).string(), changesImg)) {
             // Opcional: Descomentar si quieres confirmación de escritura

@@ -8,7 +8,7 @@
 
 #include <variant>
 #include <stdexcept>
-#include <format>
+#include <fmt/core.h>
 #include <filesystem>
 
 #include "app/config/Config.hpp"
@@ -40,7 +40,7 @@ namespace danasim {
             [](const TensorFlowStateUpdaterConfig& cfg) -> std::unique_ptr<StateUpdaterPort> {
                 // Validation: Ensure the model file actually exists before passing it to TF
                 if (!std::filesystem::exists(cfg.modelPath)) {
-                    auto msg = std::format("StateUpdaterFactory: Model file not found at '{}'",
+                    auto msg = fmt::format("StateUpdaterFactory: Model file not found at '{}'",
                                            cfg.modelPath.string());
                     LOG_ERROR("{}", msg);
                     throw std::runtime_error(msg);
