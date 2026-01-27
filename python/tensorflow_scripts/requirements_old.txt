@@ -1,0 +1,6 @@
+# Solo para generar el modelo
+tensorflow==2.10.0
+tensorboard-plugin-profile==2.8.0
+
+# Numpy compatible con TF 2.10
+numpy>=1.20,<2.0.0
