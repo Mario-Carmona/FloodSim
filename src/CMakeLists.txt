@@ -74,24 +74,25 @@ function(create_python_env ENV_NAME ISOLATE_ENVIRONMENT)
                 RESULT_VARIABLE _res
             )
         else()
+            execute_process(
+                COMMAND "${Python3_EXECUTABLE}" -m pip install --quiet virtualenv
+                RESULT_VARIABLE _res_virtualenv
+            )
+
+            execute_process(
+                COMMAND "${VENV_PYTHON}" -m pip install wrapt --upgrade --ignore-installed
+                RESULT_VARIABLE _res_wrapt
+            )
+
             # EN LINUX: Usamos 'virtualenv' (soluciona el problema de Kaggle/Ubuntu)
             # Primero intentamos encontrar el ejecutable virtualenv
             find_program(VIRTUALENV_EXE "virtualenv")
-            
-            if(VIRTUALENV_EXE)
-                # Si existe el comando 'virtualenv', lo usamos directo
-                execute_process(
-                    COMMAND "${VIRTUALENV_EXE}" ${VENV_PATH} ${VENV_FLAGS}
-                    RESULT_VARIABLE _res
-                )
-            else()
-                # Fallback: Intentar usarlo como módulo o volver a venv estándar
-                # Intentamos 'python -m virtualenv'
-                execute_process(
-                    COMMAND "${Python3_EXECUTABLE}" -m virtualenv ${VENV_PATH} ${VENV_FLAGS}
-                    RESULT_VARIABLE _res
-                )
-            endif()
+
+            # Si existe el comando 'virtualenv', lo usamos directo
+            execute_process(
+                COMMAND "${VIRTUALENV_EXE}" ${VENV_PATH} ${VENV_FLAGS}
+                RESULT_VARIABLE _res
+            )
         endif()
 
         if(NOT _res EQUAL 0)

@@ -8,8 +8,6 @@ sudo apt update
 # Instalar herramientas esenciales (compilador, make, cmake, git)
 sudo apt install -y build-essential ninja-build curl zip unzip tar
 
-pip install --quiet virtualenv
-
 # 1. Descargar el instalador oficial (.sh)
 wget https://github.com/Kitware/CMake/releases/download/v4.1.1/cmake-4.1.1-linux-x86_64.sh
 
