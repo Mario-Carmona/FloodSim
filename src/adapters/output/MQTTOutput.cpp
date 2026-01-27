@@ -19,8 +19,7 @@ namespace danasim {
         // Future formats (e.g., JSON, FLATBUFFERS) would be added here.
 
         default: {
-            // Using C++20 std::format for clean error construction
-            auto msg = std::format("PayloadSerializerFactory: Unknown format identifier '{}'",
+            auto msg = fmt::format("PayloadSerializerFactory: Unknown format identifier '{}'",
                 static_cast<int>(format));
 
             LOG_ERROR("{}", msg);
