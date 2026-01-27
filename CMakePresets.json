@@ -123,7 +123,6 @@
         "app"
       ],
       "description": "Linux-specific preset using Ninja and static vcpkg triplets.",
-      "architecture": "x64",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
