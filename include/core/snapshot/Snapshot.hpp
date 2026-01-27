@@ -31,7 +31,7 @@ namespace danasim {
         /**
          * @brief Constructs an empty/invalid snapshot.
          */
-        constexpr Snapshot() noexcept
+        Snapshot() noexcept
             : step_(0), time_(0.0f)
         {
 
@@ -45,12 +45,12 @@ namespace danasim {
         /**
          * @return The simulation step number.
          */
-        [[nodiscard]] constexpr StepType step() const noexcept { return step_; }
+        [[nodiscard]] StepType step() const noexcept { return step_; }
 
         /**
          * @return The accumulated simulation time in seconds.
          */
-        [[nodiscard]] constexpr float time() const noexcept { return time_; }
+        [[nodiscard]] float time() const noexcept { return time_; }
 
         /**
          * @brief Access to topology change tracking vectors.
