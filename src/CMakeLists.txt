@@ -101,7 +101,22 @@ function(create_python_env ENV_NAME ISOLATE_ENVIRONMENT)
         message(STATUS "Configurando PYTHONPATH extra para ${ENV_NAME}...")
         
         # Creamos un archivo temporal en la carpeta de build con el contenido
-        file(WRITE "${VENV_PATH}/Lib/site-packages/${ENV_NAME}_env_custom.pth" "${PYTHONPATH}")
+        if(WIN32)
+            # En Windows la carpeta es "Lib" (con mayúscula) y directa
+            set(SITE_PACKAGES_DIR "${VENV_PATH}/Lib/site-packages")
+        else()
+            # En Linux es "lib" (minúscula) e incluye la versión (ej: python3.10)
+            # CMake ya sabe la versión gracias a find_package(Python3)
+            set(SITE_PACKAGES_DIR "${VENV_PATH}/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages")
+        endif()
+
+        # Nos aseguramos de que la carpeta exista antes de escribir
+        file(MAKE_DIRECTORY "${SITE_PACKAGES_DIR}")
+
+        message(STATUS "Configurando PYTHONPATH extra en: ${SITE_PACKAGES_DIR}")
+        
+        # Escribimos el archivo .pth en la ruta calculada dinámicamente
+        file(WRITE "${SITE_PACKAGES_DIR}/${ENV_NAME}_env_custom.pth" "${PYTHONPATH}")
     endif()
 
     set(REQS_FILE "${PYTHONPATH}/${ENV_NAME}/requirements.txt")
