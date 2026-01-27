@@ -6,7 +6,7 @@
 #include "core/grid/StreamedLayerManager.hpp"
 
 #include <cmath>
-#include <format>
+#include <fmt/core.h>
 #include <algorithm>
 #include <stdexcept>
 
@@ -28,7 +28,7 @@ namespace danasim {
                 break;
             }
             default:
-                auto msg = std::format(
+                auto msg = fmt::format(
                     "No specific initialization logic for streamed layer: {}", magic_enum::enum_name(layerId)
                 );
                 LOG_ERROR("{}", msg);
@@ -275,7 +275,7 @@ namespace danasim {
         }
 
         default:
-            auto msg = std::format(
+            auto msg = fmt::format(
                 "calculateLayerValue: Conversion logic not defined for layer ID {}",
                 static_cast<int>(layerId)
             );

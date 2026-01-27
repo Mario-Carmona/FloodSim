@@ -6,7 +6,7 @@
 #include "adapters/input/FileInput.hpp"
 
 #include <stdexcept>
-#include <format>
+#include <fmt/core.h>
 #include <algorithm>
 #include <memory>
 
@@ -79,7 +79,7 @@ namespace danasim {
             }
             catch (const std::exception& ex) {
                 // Enhance exception with context before re-throwing
-                auto msg = std::format("Failed to load layer '{}': {}", desc.name, ex.what());
+                auto msg = fmt::format("Failed to load layer '{}': {}", desc.name, ex.what());
                 LOG_ERROR("{}", msg);
                 throw std::runtime_error(msg);
             }
@@ -105,7 +105,7 @@ namespace danasim {
         );
 
         if (!dataset) {
-            auto msg = std::format("GDAL failed to open file: {}", filePath.string());
+            auto msg = fmt::format("GDAL failed to open file: {}", filePath.string());
             LOG_ERROR("{}", msg);
             throw std::runtime_error(msg);
         }
@@ -133,7 +133,7 @@ namespace danasim {
         else {
             // 3. Validate Dimensions
             if (width != grid.cols() || height != grid.rows()) {
-                auto msg = std::format(
+                auto msg = fmt::format(
                     "Dimension mismatch. Grid is {}x{}, but file '{}' is {}x{}", 
                     grid.cols(), grid.rows(), filePath.filename().string(), width, height
                 );
@@ -205,7 +205,7 @@ namespace danasim {
             break;
         }
         default:
-            auto msg = std::format(
+            auto msg = fmt::format(
                 "There is no initialization logic for the secondary layer: {}",
                 magic_enum::enum_name(id)
             );
@@ -217,7 +217,7 @@ namespace danasim {
 
     std::filesystem::path FileInput::findFileWithExtension(const std::filesystem::path& directory, std::string_view extension) {
         if (!std::filesystem::exists(directory)) {
-            auto msg = std::format("Input directory missing: '{}'", directory.string());
+            auto msg = fmt::format("Input directory missing: '{}'", directory.string());
             LOG_ERROR("{}", msg);
             throw std::runtime_error(msg);
         }
@@ -228,7 +228,7 @@ namespace danasim {
             }
         }
 
-        auto msg = std::format("No file with extension '{}' found in '{}'", extension, directory.string());
+        auto msg = fmt::format("No file with extension '{}' found in '{}'", extension, directory.string());
         LOG_ERROR("{}", msg);
         throw std::runtime_error(msg);
     }

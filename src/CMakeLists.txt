@@ -35,6 +35,9 @@ find_package(HighFive CONFIG REQUIRED)
 set(OpenCV_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/opencv4")
 find_package(OpenCV REQUIRED)
 
+# fmt
+find_package(fmt CONFIG REQUIRED)
+
 # ---------------------------------------------------------
 # Python Virtual Environment Automation
 # ---------------------------------------------------------
@@ -74,19 +77,23 @@ function(create_python_env ENV_NAME ISOLATE_ENVIRONMENT)
                 RESULT_VARIABLE _res
             )
         else()
-            execute_process(
-                COMMAND "${Python3_EXECUTABLE}" -m pip install --quiet virtualenv
-                RESULT_VARIABLE _res_virtualenv
-            )
-
-            execute_process(
-                COMMAND "${VENV_PYTHON}" -m pip install wrapt --upgrade --ignore-installed
-                RESULT_VARIABLE _res_wrapt
-            )
-
             # EN LINUX: Usamos 'virtualenv' (soluciona el problema de Kaggle/Ubuntu)
             # Primero intentamos encontrar el ejecutable virtualenv
             find_program(VIRTUALENV_EXE "virtualenv")
+
+            if(NOT VIRTUALENV_EXE)
+                execute_process(
+                    COMMAND "${Python3_EXECUTABLE}" -m pip install --quiet virtualenv
+                    RESULT_VARIABLE _res_virtualenv
+                )
+
+                execute_process(
+                    COMMAND "${Python3_EXECUTABLE}" -m pip install wrapt --upgrade --ignore-installed
+                    RESULT_VARIABLE _res_wrapt
+                )
+
+                find_program(VIRTUALENV_EXE "virtualenv")
+            endif()
 
             # Si existe el comando 'virtualenv', lo usamos directo
             execute_process(
@@ -252,6 +259,8 @@ add_library(danasim_options INTERFACE)
 
 # 1. Opciones de COMPILACIÓN (Compile Flags)
 target_compile_features(danasim_options INTERFACE cxx_std_20)
+
+target_link_libraries(danasim_options INTERFACE fmt::fmt)
 
 if(WIN32)
     target_compile_definitions(danasim_options INTERFACE 

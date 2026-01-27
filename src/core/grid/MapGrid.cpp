@@ -7,7 +7,7 @@
 
 #include <algorithm>
 #include <stdexcept>
-#include <format>
+#include <fmt/core.h>
 
 namespace danasim {
 
@@ -73,7 +73,7 @@ namespace danasim {
 
                 default:
                     // Critical safety catch for new enum values without descriptors
-                    auto msg = std::format(
+                    auto msg = fmt::format(
                         "LayerId '{}' is missing a descriptor definition in MapGrid::initializeDescriptors()",
                         magic_enum::enum_name(value)
                     );
@@ -111,7 +111,7 @@ namespace danasim {
             else if (desc.role == LayerRole::Principal) {
                 // If we find a Principal layer after starting Secondary layers, it's an error.
                 if (secondaryStarted) {
-                    auto msg = std::format(
+                    auto msg = fmt::format(
                         "Layer Order Error: Layer '{}' (Principal) appears after a Secondary layer. "
                         "Please reorder LayerId enum so all Principal layers come first.",
                         desc.name
@@ -144,7 +144,7 @@ namespace danasim {
 
         // 1. Sanity Check: Ensure valid dimensions to prevent math errors later
         if (rows == 0 || cols == 0) {
-            auto msg = std::format("MapGrid initialization failed: Invalid dimensions {}x{}.", cols, rows);
+            auto msg = fmt::format("MapGrid initialization failed: Invalid dimensions {}x{}.", cols, rows);
             LOG_ERROR("{}", msg);
             throw std::invalid_argument(msg);
         }

@@ -8,7 +8,7 @@
 #include <yaml-cpp/yaml.h>
 #include <string_view>
 #include <filesystem>
-#include <format>
+#include <fmt/core.h>
 
 #include "app/logging/Logger.hpp"
 
