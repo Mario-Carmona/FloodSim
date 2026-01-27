@@ -88,7 +88,7 @@ namespace danasim {
                 return std::get<std::vector<T>>(layers_[index]);
             }
 
-            auto msg = std::format("MapGrid: Type mismatch for layer '{}'", magic_enum::enum_name(id));
+            auto msg = fmt::format("MapGrid: Type mismatch for layer '{}'", magic_enum::enum_name(id));
             LOG_ERROR("{}", msg);
             throw std::runtime_error(msg);
         }
@@ -100,7 +100,7 @@ namespace danasim {
                 return std::get<std::vector<T>>(layers_[index]);
             }
             
-            auto msg = std::format("MapGrid: Type mismatch for layer '{}'", magic_enum::enum_name(id));
+            auto msg = fmt::format("MapGrid: Type mismatch for layer '{}'", magic_enum::enum_name(id));
             LOG_ERROR("{}", msg);
             throw std::runtime_error(msg);
         }
