@@ -8,8 +8,9 @@
 
 #include <exception>
 #include <iostream>
-#include <chrono>
+#include <ctime>
 #include <fmt/core.h>
+#include <fmt/chrono.h>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -55,8 +56,17 @@ namespace danasim {
     Application::Application(const std::string& configPath)
         : config_(ConfigLoader::load(configPath))
     {
-        auto localTime = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-        std::string timestamp = fmt::format("{:%Y-%m-%d_%H-%M-%S}", std::chrono::floor<std::chrono::seconds>(localTime));
+        // 1. Obtenemos el tiempo actual del sistema
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+        // 2. Lo convertimos a tiempo local (estructura clásica std::tm)
+        // Usamos *std::localtime porque devuelve un puntero
+        std::tm localTime = *std::localtime(&now_c);
+
+        // 3. Formateamos
+        // fmt soporta std::tm nativamente con la misma sintaxis que tenías
+        std::string timestamp = fmt::format("{:%Y-%m-%d_%H-%M-%S}", localTime);
 
         outputPath_ = OUTPUT_BASE_PATH / (config_.scenario.name + "_" + timestamp);
 
