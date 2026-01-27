@@ -19,7 +19,6 @@
 #include <variant>
 #include <cstdint>
 #include <stdexcept>
-#include <format>
 
 #include <magic_enum/magic_enum.hpp>
 
