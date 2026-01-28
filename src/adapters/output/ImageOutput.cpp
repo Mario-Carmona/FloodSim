@@ -306,7 +306,7 @@ namespace danasim {
 
         if (cv::imwrite((imagesOutputPath / changesFilename).string(), changesImg)) {
             // Opcional: Descomentar si quieres confirmación de escritura
-            LOG_INFO("Saved image: {} | Num. Changes: {}", changesFilename, chX.size());
+            LOG_INFO("Saved image: {} | Num. Changes: {}", (imagesOutputPath / changesFilename).string(), chX.size());
         }
         else {
             LOG_ERROR("Failed to write image: {}", (imagesOutputPath / changesFilename).string());
