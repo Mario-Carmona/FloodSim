@@ -1,6 +1,7 @@
 {
-  "builtin-baseline": "74e6536215718009aae747d86d84b78376bf9e09",
+  "builtin-baseline": "66c0373dc7fca549e5803087b9487edfe3aca0a1",
   "name": "danasim",
+  "version": "1.0.0",
   "dependencies": [],
   "features": {
     "app": {
@@ -9,7 +10,7 @@
         {
           "name": "gdal",
           "default-features": false,
-          "features": [ "tools" ]
+          "features": []
         },
         {
           "name": "yaml-cpp"

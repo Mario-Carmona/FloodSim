@@ -19,7 +19,7 @@ output:
 
 state_updater:
   type: tensorflow
-  model_path: models
+  model_path: ../../../models
 
 simulation:
   time_step: 1.0
