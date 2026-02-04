@@ -64,3 +64,6 @@ __pycache__
 
 # Tensorflow scripts logs
 /python/tensorflow_scripts/logs
+
+# Data directories
+/data

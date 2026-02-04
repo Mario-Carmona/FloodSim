@@ -5,7 +5,8 @@
 git submodule add https://github.com/microsoft/vcpkg external/vcpkg
 cd external/vcpkg
 git fetch --tags
-git checkout 2025.10.17
+git checkout 2026.01.16
+.\bootstrap-vcpkg.bat
 cd ../..
 git add external/vcpkg
 git commit -m "Add vcpkg submodule at tag 2025.10.17"
