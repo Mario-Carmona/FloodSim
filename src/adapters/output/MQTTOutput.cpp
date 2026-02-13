@@ -57,7 +57,8 @@ namespace danasim {
             try {
                 // 1. Bloqueo hasta recibir datos
                 // Recibimos el snapshot Y el guardia de seguridad
-                auto [snapshot, guard] = snapshotManager.waitForSnapshot(lastProcessedStep);
+                auto [data, guard] = snapshotManager.waitForSnapshot(lastProcessedStep);
+                auto [snapshot, changes] = data;
 
                 // Si el guard es null, significa que snapshotManager se ha detenido
                 if (!guard) {
@@ -67,12 +68,12 @@ namespace danasim {
 
                 LOG_INFO("Consuming snapshot");
 
-                publishInChunks(*snapshot);
+                publishInChunks(snapshot, changes);
 
-                LOG_INFO("Publish Completed | Num. Changes: {}", snapshot->changedX().size());
+                LOG_INFO("Publish Completed | Num. Changes: {}", changes.x.size());
 
                 // Actualizamos tracking
-                lastProcessedStep = snapshot->step();
+                lastProcessedStep = snapshot.step();
 
                 // AL FINAL DEL SCOPE: 'guard' se destruye -> llama a signalDone()
             }
@@ -82,6 +83,10 @@ namespace danasim {
                 // Si quieres que un error mate el hilo, pon un break aquí.
             }
         }
+    }
+
+    void MQTTOutput::setGrid(const MapGrid& grid) {
+
     }
 
     void MQTTOutput::connect()
@@ -103,15 +108,15 @@ namespace danasim {
         }
     }
 
-    void MQTTOutput::publishInChunks(const Snapshot& snapshot) {
-        if (snapshot.changedX().empty()) return;
+    void MQTTOutput::publishInChunks(const Snapshot& snapshot, const ChangeList& changes) {
+        if (changes.x.empty()) return;
 
         // Define un tamaño de fragmento (ej. 5000 coordenadas por mensaje)
-        int32_t totalChunks = static_cast<int32_t>((snapshot.changedX().size() + CHUNK_SIZE - 1) / CHUNK_SIZE);
+        int32_t totalChunks = static_cast<int32_t>((changes.x.size() + CHUNK_SIZE - 1) / CHUNK_SIZE);
 
         for (int32_t chunkIndex = 0; chunkIndex < totalChunks; ++chunkIndex) {
             std::string payload;
-            payloadSerializer_->serializeChunk(snapshot, chunkIndex, totalChunks, CHUNK_SIZE, payload);
+            payloadSerializer_->serializeChunk(snapshot, changes, chunkIndex, totalChunks, CHUNK_SIZE, payload);
 
             if (!client_.is_connected()) return;
 

@@ -21,7 +21,7 @@
         "CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/external/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_INSTALL_OPTIONS": "--clean-after-build",
-        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed"
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/build/vcpkg_installed"
       }
     },
     {
@@ -44,6 +44,17 @@
       "description": "",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "rel-with-deb-info",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     },
     {
@@ -118,6 +129,15 @@
       "description": ""
     },
     {
+      "name": "windows-cli-rel-with-deb-info",
+      "inherits": [
+        "windows-app",
+        "cli",
+        "rel-with-deb-info"
+      ],
+      "description": ""
+    },
+    {
       "name": "linux-app",
       "hidden": true,
       "inherits": [
@@ -175,6 +195,12 @@
       "configurePreset": "windows-cli-release",
       "description": "",
       "configuration": "Release"
+    },
+    {
+      "name": "windows-cli-rel-with-deb-info",
+      "configurePreset": "windows-cli-rel-with-deb-info",
+      "description": "",
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "linux-cli-debug",
@@ -238,6 +264,19 @@
         {
           "type": "build",
           "name": "windows-cli-release"
+        }
+      ]
+    },
+    {
+      "name": "windows-cli-rel-with-deb-info",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-cli-rel-with-deb-info"
+        },
+        {
+          "type": "build",
+          "name": "windows-cli-rel-with-deb-info"
         }
       ]
     },

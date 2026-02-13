@@ -13,28 +13,44 @@
           "features": []
         },
         {
-          "name": "yaml-cpp"
+          "name": "yaml-cpp",
+          "default-features": false,
+          "features": []
         },
         {
-          "name": "spdlog"
+          "name": "spdlog",
+          "default-features": false,
+          "features": ["fmt"]
         },
         {
-          "name": "magic-enum"
+          "name": "magic-enum",
+          "default-features": false,
+          "features": []
         },
         {
-          "name": "zlib"
+          "name": "zlib",
+          "default-features": false,
+          "features": []
         },
         {
-          "name": "paho-mqttpp3"
+          "name": "paho-mqttpp3",
+          "default-features": false,
+          "features": []
         },
         {
-          "name": "protobuf"
+          "name": "protobuf",
+          "default-features": false,
+          "features": []
         },
         {
-          "name": "highfive"
+          "name": "highfive",
+          "default-features": false,
+          "features": []
         },
         {
-          "name": "fmt"
+          "name": "fmt",
+          "default-features": false,
+          "features": []
         },
         {
           "name": "opencv4",

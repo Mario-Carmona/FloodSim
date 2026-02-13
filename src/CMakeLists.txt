@@ -9,8 +9,8 @@ find_package(GDAL CONFIG REQUIRED)
 # YAML
 find_package(yaml-cpp REQUIRED)
 
-# Tensorflow C 
-include(${CMAKE_SOURCE_DIR}/cmake/tensorflow.cmake)
+# ONNX Runtime
+include(${CMAKE_SOURCE_DIR}/cmake/onnxruntime.cmake)
 
 # spdlog
 find_package(spdlog CONFIG REQUIRED)
@@ -160,13 +160,13 @@ endfunction()
 # --- Creación de los dos entornos ---
 
 # 1. Entorno "Builder" (TensorFlow)
-create_python_env("tensorflow_scripts", ON)
+create_python_env("tensorflow_scripts" ON)
 
 # 2. Entorno "Monitor" (MQTT + Protobuf Moderno)
-create_python_env("mqtt_scripts", OFF)
+create_python_env("mqtt_scripts" OFF)
 
 # 3. Entorno "Data"
-create_python_env("sim_data_scripts", OFF)
+create_python_env("sim_data_scripts" OFF)
 
 
 
@@ -177,11 +177,12 @@ create_python_env("sim_data_scripts", OFF)
 # ------------------------------------------------------------
 
 # 1. Definir variables de rutas para claridad
-set(TF_SCRIPT "${CMAKE_SOURCE_DIR}/python/tensorflow_scripts/export_model.py")
+set(EXPORT_MODEL_SCRIPT "${CMAKE_SOURCE_DIR}/python/tensorflow_scripts/export_model.py")
+set(MODEL_SCRIPT "${CMAKE_SOURCE_DIR}/python/tensorflow_scripts/simulator_module.py")
 set(COMMON_SCRIPT "${CMAKE_SOURCE_DIR}/python/tensorflow_scripts/constants_loader.py")
 set(CONSTANTS_HPP "${CMAKE_SOURCE_DIR}/include/core/common/SimulationConstants.hpp")
 set(MODEL_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/models")
-set(MODEL_SENTINEL "${MODEL_OUTPUT_DIR}/saved_model.pb") # Archivo testigo que crea Tensorflow
+set(MODEL_SENTINEL "${MODEL_OUTPUT_DIR}/simulation_model_cpu.onnx") # Archivo testigo que crea Tensorflow
 
 
 # 2. CREAR EL COMANDO (La lógica inteligente)
@@ -191,10 +192,10 @@ add_custom_command(
     OUTPUT "${MODEL_SENTINEL}"
     
     # El comando a ejecutar (usa el python detectado)
-    COMMAND ${TENSORFLOW_SCRIPTS_ENV_PYTHON} "${TF_SCRIPT}"
+    COMMAND ${TENSORFLOW_SCRIPTS_ENV_PYTHON} "${EXPORT_MODEL_SCRIPT}"
     
     # DEPENDENCIAS: Si alguno de estos cambia, se regenera el modelo
-    DEPENDS "${TF_SCRIPT}" "${COMMON_SCRIPT}" "${CONSTANTS_HPP}" "${REQ_TF}"
+    DEPENDS "${EXPORT_MODEL_SCRIPT}" "${MODEL_SCRIPT}" "${COMMON_SCRIPT}" "${CONSTANTS_HPP}" "${REQ_TF}"
     
     # Opcional: El directorio de trabajo
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -273,18 +274,25 @@ if(WIN32)
         $<$<CONFIG:Debug>:/Od /Zi /RTC1 /W4 /utf-8>
         # RELEASE
         $<$<CONFIG:Release>:/O2 /DNDEBUG /GL /W4 /utf-8>
+        # RELWITHDEBINFO
+        $<$<CONFIG:RelWithDebInfo>:/O2 /Zi /Zo /DNDEBUG /GL /W4 /utf-8>
     )
     
     # 2. Opciones de LINKER (Solo MSVC suele necesitar esto para LTCG)
     target_link_options(danasim_options INTERFACE
+        # DEBUG
         $<$<CONFIG:Debug>:/DEBUG>
+        # RELEASE
         $<$<CONFIG:Release>:/LTCG /OPT:REF /OPT:ICF>
+        # RELWITHDEBINFO
+        $<$<CONFIG:RelWithDebInfo>:/DEBUG /LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO>
     )
 else()
     # GCC / Clang
     target_compile_options(danasim_options INTERFACE
         $<$<CONFIG:Debug>:-g -O0 -Wall -Wextra>
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
+        $<$<CONFIG:RelWithDebInfo>:-O3 -g -DNDEBUG>
     )
 endif()
 

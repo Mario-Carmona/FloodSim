@@ -29,6 +29,8 @@ namespace danasim {
 
         void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 
+        void setGrid(const MapGrid& grid) override;
+
         std::string getThreadName() const override { return "Out_MQTT"; }
 
     private:
@@ -36,7 +38,7 @@ namespace danasim {
         static std::unique_ptr<PayloadSerializer> createPayloadSerializer(const OutputConfig::MQTTOutputConfigEntry::PayloadFormat& format);
 
         void connect();
-        void publishInChunks(const Snapshot& snapshot);
+        void publishInChunks(const Snapshot& snapshot, const ChangeList& changes);
 
         const int MAX_INFLIGHT = 100;
         const int BATCH_SIZE = 20;

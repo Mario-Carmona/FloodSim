@@ -1,109 +1,91 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
-import shutil
-import subprocess
-import re
 import tensorflow as tf
-
+import tf2onnx
+from tf2onnx import utils
 from tensorflow_scripts.simulator_module import SimulatorModule
 
+# Helper para imprimir tipos de datos ONNX de forma legible
+def get_onnx_type_name(type_id):
+    # Mapeo básico de tipos protobuf de ONNX
+    types = {
+        1: "FLOAT", 2: "UINT8", 3: "INT8", 4: "UINT16", 5: "INT16",
+        6: "INT32", 7: "INT64", 8: "STRING", 9: "BOOL",
+    }
+    return types.get(type_id, f"UNKNOWN({type_id})")
 
-def parse_tf_cli_output(text):
-    """Analiza la salida de saved_model_cli para extraer firmas."""
-    signatures = text.split("signature_def['")
-    parsed_data = {}
+def inspect_onnx_model(model_proto):
+    """
+    Imprime los metadatos del modelo ONNX generado para su uso en C++.
+    """
+    print("\n" + "="*60)
+    print("   ONNX MODEL INTERFACE (C++ REFERENCE)")
+    print("="*60 + "\n")
 
-    for sig in signatures[1:]:
-        sig_name = sig.split("']")[0]
-        parsed_data[sig_name] = {'inputs': [], 'outputs': []}
-        
-        # Regex para capturar: nombre_python, nombre_nodo_tf, indice
-        # Inputs
-        input_matches = re.finditer(r"inputs\['(.*?)'\].*?name: (.*?):(\d+)", sig, re.DOTALL)
-        for m in input_matches:
-            parsed_data[sig_name]['inputs'].append((m.group(1), m.group(2), m.group(3)))
+    graph = model_proto.graph
 
-        # Outputs
-        output_matches = re.finditer(r"outputs\['(.*?)'\].*?name: (.*?):(\d+)", sig, re.DOTALL)
-        for m in output_matches:
-            parsed_data[sig_name]['outputs'].append((m.group(1), m.group(2), m.group(3)))
+    def print_node_info(nodes, title):
+        print(f"--- {title} ---")
+        for node in nodes:
+            name = node.name
             
-    return parsed_data
-
-def print_cpp_guide(data):
-    """Print the formatted table for C++."""
-    print("\n   INTEGRATION GUIDE TENSORFLOW -> C++")
-    print("   " + "-"*74)
-    
-    for method, content in data.items():
-        if method == "__saved_model_init_op": continue
-        
-        print(f"\n   >> METHOD: '{method}'")
-        print("   " + "-" * 74)
-        print(f"   {'TYPE':<8} | {'PYTHON KEY':<15} | {'C++ NODE NAME':<35} | {'IDX':<3}")
-        print("   " + "-" * 74)
-        
-        for py, node, idx in content['inputs']:
-            print(f"   {'INPUT':<8} | {py:<15} | {node:<35} | {idx:<3}")
+            # Obtener tipo y forma
+            tensor_type = node.type.tensor_type
+            elem_type = get_onnx_type_name(tensor_type.elem_type)
             
-        for py, node, idx in content['outputs']:
-            print(f"   {'OUTPUT':<8} | {py:<15} | {node:<35} | {idx:<3}")
-        print("   " + "-" * 74 + "\n")
+            dims = []
+            for dim in tensor_type.shape.dim:
+                if dim.dim_value > 0:
+                    dims.append(str(dim.dim_value))
+                elif dim.dim_param:
+                    dims.append(f"? ({dim.dim_param})") # Dimensión dinámica
+                else:
+                    dims.append("?")
+            
+            shape_str = f"[{', '.join(dims)}]"
+            
+            print(f" Name:  '{name}'")
+            print(f" Type:  {elem_type}")
+            print(f" Shape: {shape_str}")
+            print("-" * 30)
 
+    print_node_info(graph.input, "INPUTS (Usar en input_names_)")
+    print("\n")
+    print_node_info(graph.output, "OUTPUTS (Usar en output_names_)")
+    print("="*60 + "\n")
 
-if __name__ == "__main__":
-    # --- EJECUCIÓN ---
+def export_to_onnx():
+    output_path = "models/simulation_model_cpu.onnx"
 
-    # 2. Imprimir Bloque Encapsulado
-    print("\n" + "#"*80)
+    # Crear directorio si no existe
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    output_dir = 'models'
-    if os.path.exists(output_dir): shutil.rmtree(output_dir)
-    
     module = SimulatorModule()
 
+    spec = (
+        tf.TensorSpec((None, None, None, 1), tf.float32, name="water_depth"),
+        tf.TensorSpec((None, None, None, 1), tf.float32, name="elevation"),
+        tf.TensorSpec((None, None, None, 1), tf.float32, name="roughness"),
+        tf.TensorSpec((None, None, None, 1), tf.float32, name="rainfall"),
+        tf.TensorSpec((), tf.float32, name="dt"),
+        tf.TensorSpec((), tf.float32, name="dx")
+    )
 
-    # --- 1. DEFINIR FIRMAS (SIGNATURES) ---
+    print(f"Generando grafo ONNX en: {output_path} ...")
     
-    # INIT: Acepta configuración + steps_batch
-    c_init = module.initialize_state.get_concrete_function()
+    # Convertimos la función concreta directamente a ONNX
+    model_proto, _ = tf2onnx.convert.from_function(
+        function=module.run_simulation_batch,
+        input_signature=spec,
+        opset=15,
+        output_path=output_path
+    )
     
-    # RUN_BATCH: Solo acepta el estado actual. El número de pasos ya está guardado dentro.
-    c_run = module.run_simulation_batch.get_concrete_function()
+    print("Exportacion completada")
 
-    c_render = module.get_view_changes.get_concrete_function()
+    # --- INSPECCIÓN PARA C++ ---
+    inspect_onnx_model(model_proto)
 
-
-    # --- 2. GUARDAR MODELO ---
-    tf.saved_model.save(module, output_dir, signatures={
-        'init': c_init,
-        'run_batch': c_run,
-        'render': c_render
-    })
-
-    print(f"   SavedModel exported to '{output_dir}'")
-
-    print("#"*80)
-
-    try:
-        # 1. Ejecutar el comando CLI de TensorFlow
-        cmd = [
-            sys.executable, "-m", "tensorflow.python.tools.saved_model_cli", 
-            "show", "--dir", output_dir, "--all"
-        ]
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-    
-        if result.returncode == 0:
-            data = parse_tf_cli_output(result.stdout)
-            print_cpp_guide(data)
-        else:
-            print("\n   [ERROR] No se pudo inspeccionar el modelo:")
-            print(result.stderr)
-
-    except Exception as e:
-        print(f"\n   [EXCEPCIÓN] Fallo al ejecutar saved_model_cli: {e}")
-
-    print("#"*80 + "\n")
+if __name__ == "__main__":
+    export_to_onnx()

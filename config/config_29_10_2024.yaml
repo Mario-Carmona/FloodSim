@@ -13,16 +13,16 @@ input:
 
 output:
   snapshot:
-    every_n_steps: 60
+    every_n_steps: 2
   outputs:
     - type: image
 
 state_updater:
   type: tensorflow
-  model_path: ../../../models
+  model_path: ../../../models/simulation_model_cpu.onnx
 
 simulation:
-  time_step: 10.0
+  time_step: 1.0
   total_time: 28800.0
   view_min_x: 705000.0
   view_max_x: 720000.0

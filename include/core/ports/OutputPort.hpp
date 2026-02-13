@@ -47,6 +47,8 @@ namespace danasim {
          */
         [[nodiscard]]
         virtual std::string getThreadName() const = 0;
+
+        virtual void setGrid(const MapGrid& grid) = 0;
     };
 
 } // namespace danasim

@@ -16,7 +16,7 @@
 #include "core/ports/StateUpdaterPort.hpp"
 
 // Include concrete implementations
-#include "adapters/state_updater/TensorFlowStateUpdater.hpp"
+#include "adapters/state_updater/OnnxStateUpdater.hpp"
 
 namespace danasim {
 
@@ -36,8 +36,8 @@ namespace danasim {
     {
         return std::visit(overloaded{
 
-            // TensorFlow Strategy
-            [](const TensorFlowStateUpdaterConfig& cfg) -> std::unique_ptr<StateUpdaterPort> {
+            // Onnx Strategy
+            [](const OnnxStateUpdaterConfig& cfg) -> std::unique_ptr<StateUpdaterPort> {
                 // Validation: Ensure the model file actually exists before passing it to TF
                 if (!std::filesystem::exists(cfg.modelPath)) {
                     auto msg = fmt::format("StateUpdaterFactory: Model file not found at '{}'",
@@ -46,8 +46,8 @@ namespace danasim {
                     throw std::runtime_error(msg);
                 }
 
-                LOG_DEBUG("Initializing TensorFlow State Updater using model: {}", cfg.modelPath.string());
-                return std::make_unique<TensorFlowStateUpdater>(cfg.modelPath);
+                LOG_DEBUG("Initializing Onnx State Updater using model: {}", cfg.modelPath.string());
+                return std::make_unique<OnnxStateUpdater>(cfg.modelPath);
             },
 
             // Catch-all for unhandled types

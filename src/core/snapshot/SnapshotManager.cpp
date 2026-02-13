@@ -1,5 +1,5 @@
 
-#include "core/snapshot/AsyncSnapshotManager.hpp"
+#include "core/snapshot/SnapshotManager.hpp"
 
 #include "app/logging/Logger.hpp"
 
@@ -7,20 +7,23 @@
 
 namespace danasim {
 
-    AsyncSnapshotManager::AsyncSnapshotManager(const OutputConfig::SnapshotConfig& config, size_t numOutputs)
+    using DataPair = std::pair<const Snapshot&, const ChangeList&>;
+
+    SnapshotManager::SnapshotManager(const OutputConfig::SnapshotConfig& config, size_t numOutputs)
         : totalOutputs_(numOutputs)
         , remaining_(0)
         , running_(true)
         , everyNSteps_(config.everyNSteps)
         , currentSnapshot_(nullptr)
+        , changes_(nullptr)
     {
     }
 
-    AsyncSnapshotManager::~AsyncSnapshotManager() {
+    SnapshotManager::~SnapshotManager() {
         stop();
     }
 
-    void AsyncSnapshotManager::waitForReady() {
+    void SnapshotManager::waitForReady() {
         LOG_INFO("Wait for ready");
 
         std::unique_lock<std::mutex> lock(mutex_);
@@ -34,12 +37,14 @@ namespace danasim {
         LOG_INFO("Wait for ready [DONE]");
     }
 
-    void AsyncSnapshotManager::publish(Snapshot* snapshot) {
+    void SnapshotManager::publish(const Snapshot* snapshot, const ChangeList* changes) {
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (!running_) return;
 
             currentSnapshot_ = snapshot;
+            changes_ = changes;
+
             // Reiniciamos la barrera: todos los outputs deben leer esto
             remaining_ = totalOutputs_;
         }
@@ -47,7 +52,7 @@ namespace danasim {
         cvOutputs_.notify_all();
     }
 
-    std::pair<Snapshot*, std::unique_ptr<SnapshotReadGuard>> AsyncSnapshotManager::waitForSnapshot(StepType lastStep) {
+    std::pair<std::pair<const Snapshot&, const ChangeList&>, std::unique_ptr<SnapshotReadGuard>> SnapshotManager::waitForSnapshot(StepType lastStep) {
         std::unique_lock<std::mutex> lock(mutex_);
 
         cvOutputs_.wait(lock, [this, lastStep] {
@@ -60,7 +65,7 @@ namespace danasim {
 
         // Si estamos parando, retornamos null
         if (!running_) {
-            return { nullptr, nullptr };
+            return { DataPair(*currentSnapshot_, *changes_), nullptr };
         }
 
         // Creamos el Guard. Cuando el Output lo destruya, llamará a internalSignalDone
@@ -68,10 +73,10 @@ namespace danasim {
             this->internalSignalDone();
             });
 
-        return { currentSnapshot_, std::move(guard) };
+        return { DataPair(*currentSnapshot_, *changes_), std::move(guard) };
     }
 
-    void AsyncSnapshotManager::internalSignalDone() {
+    void SnapshotManager::internalSignalDone() {
         std::lock_guard<std::mutex> lock(mutex_);
         if (remaining_ > 0) {
             remaining_--;
@@ -82,7 +87,7 @@ namespace danasim {
         }
     }
 
-    void AsyncSnapshotManager::stop() {
+    void SnapshotManager::stop() {
         {
             std::lock_guard<std::mutex> lock(mutex_);
             running_ = false;

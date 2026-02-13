@@ -28,20 +28,9 @@ namespace danasim {
     public:
         virtual ~StateUpdaterPort() = default;
 
-        virtual void initialize(const MapGrid& grid, float dt, StepType steps_batch) = 0;
+        virtual void initialize(MapGrid& grid, float step_time) = 0;
 
-        /**
-         * @brief Advances the simulation by a specified number of steps.
-         *
-         * @param[in,out] grid The simulation grid containing the current state (WaterDepth, etc.).
-         * Values are updated in-place.
-         * @param[in] dt The time delta for a single step (in seconds).
-         * @param[in] steps_batch The number of iterations to perform in this call.
-         * (Batching steps is useful for GPU/TensorFlow overhead reduction).
-         */
-        virtual void update() = 0;
-
-        virtual void render(const MapGrid& grid, Snapshot& snapshot_) = 0;
+        virtual void run() = 0;
     };
 
 } // namespace danasim

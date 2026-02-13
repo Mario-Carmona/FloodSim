@@ -24,7 +24,7 @@
 #include "app/factory/StateUpdaterFactory.hpp"
 #include "app/logging/Logger.hpp"
 
-#include "core/snapshot/AsyncSnapshotManager.hpp"
+#include "core/snapshot/SnapshotManager.hpp"
 #include "core/simulation/SimulationCore.hpp"
 #include "core/ports/OutputPort.hpp"
 
@@ -111,7 +111,7 @@ namespace danasim {
             // 3. Snapshot Manager (Async State Capture)
             // -------------------------------------------------
             // Size is based on the number of output ports expecting data
-            snapshotManager_ = std::make_unique<AsyncSnapshotManager>(
+            snapshotManager_ = std::make_unique<SnapshotManager>(
                 config_.output.snapshot, 
                 outputs_.size()
             );
@@ -127,10 +127,17 @@ namespace danasim {
             // -------------------------------------------------
             LOG_INFO("Constructing simulation core");
 
+            std::vector<OutputPort*> outputsPtr;
+
+            for (auto& output : outputs_) {
+                outputsPtr.push_back(output.get());
+            }
+
             // Note: SimulationCore takes ownership of stateUpdater
             core_ = std::make_unique<SimulationCore>(
                 stateUpdater.get(),
                 input.get(),
+                outputsPtr,
                 snapshotManager_.get(),
                 config_.simulation,
                 config_.scenario.name

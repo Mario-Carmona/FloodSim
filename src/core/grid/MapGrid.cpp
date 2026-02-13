@@ -6,8 +6,9 @@
 #include "core/grid/MapGrid.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <cmath>
 #include <stdexcept>
-#include <fmt/core.h>
 
 namespace danasim {
 
@@ -133,13 +134,6 @@ namespace danasim {
     // Class Implementation
     // -------------------------------------------------------------------------
 
-    MapGrid::MapGrid(float viewMinX, float viewMaxX, float viewMinY, float viewMaxY) {
-        viewMinX_ = viewMinX;
-        viewMaxX_ = viewMaxX;
-        viewMinY_ = viewMinY;
-		viewMaxY_ = viewMaxY;
-    }
-
     void MapGrid::init(GridIndexType rows, GridIndexType cols, float cellSize, float mapOriginX, float mapOriginY) {
 
         // 1. Sanity Check: Ensure valid dimensions to prevent math errors later
@@ -176,31 +170,6 @@ namespace danasim {
             }
             else if (desc.dataType == LayerDataType::Int8) {
                 storage = std::vector<int8_t>(cellCount_, static_cast<int8_t>(0));
-            }
-        }
-    }
-
-    void MapGrid::clearLayers() {
-        for (auto& layerId : magic_enum::enum_values<LayerId>()) {
-            if (layerId != LayerId::Elevation) {
-
-                size_t index = static_cast<size_t>(layerId);
-
-                std::visit([](auto&& vec) {
-                    // Obtenemos el tipo limpio (sin referencias ni const)
-                    using T = std::decay_t<decltype(vec)>;
-
-                    // 1. Caso MONOSTATE: No hacer nada
-                    if constexpr (std::is_same_v<T, std::monostate>) {
-                        return;
-                    }
-                    // 2. Caso VECTORES (float o int8_t)
-                    else {
-                        vec.clear(); // Size pasa a 0, Capacity se mantiene (generalmente)
-                        vec.shrink_to_fit(); // Descomenta si quieres liberar la RAM física también
-                    }
-                }, layers_[index]);
-
             }
         }
     }

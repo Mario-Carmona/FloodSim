@@ -4,7 +4,8 @@ add_library(danasim_core)
 target_sources(danasim_core
     PRIVATE
         simulation/SimulationCore.cpp
-        snapshot/AsyncSnapshotManager.cpp
+        snapshot/SnapshotManager.cpp
+        snapshot/Snapshot.cpp
         grid/MapGrid.cpp
         grid/StreamedLayerManager.cpp
 )

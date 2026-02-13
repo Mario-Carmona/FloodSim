@@ -26,7 +26,8 @@ namespace danasim {
             try {
                 // 1. Bloqueo hasta recibir datos (RAII Pattern)
                 // Obtenemos el snapshot y el 'guard' que gestiona la señalización
-                auto [snapshot, guard] = snapshotManager.waitForSnapshot(lastProcessedStep);
+                auto [data, guard] = snapshotManager.waitForSnapshot(lastProcessedStep);
+                auto [snapshot, changes] = data;
 
                 // Si el guard es nulo, significa que el sistema se está deteniendo
                 if (!guard) {
@@ -35,14 +36,14 @@ namespace danasim {
                 }
 
                 // 2. Procesamiento
-                std::string filename = "step_" + std::to_string(snapshot->step()) + ".html";
+                std::string filename = "step_" + std::to_string(snapshot.step()) + ".html";
 
                 // Serializamos y escribimos a disco
                 // X3DSnapshotSerializer serializer;
                 // serializer.serializeToFile(snapshot, outputDirectory_ / filename);
 
                 // Actualizamos el tracking
-                lastProcessedStep = snapshot->step();
+                lastProcessedStep = snapshot.step();
 
                 // Logger opcional para debug (puede ser ruidoso si hay muchos pasos)
                 // Logger::instance().info("[X3DOutput] Saved " + filename);
@@ -55,6 +56,10 @@ namespace danasim {
                 // El bucle continúa, y el 'guard' habrá liberado al Core correctamente.
             }
         }
+    }
+
+    void X3DFileOutput::setGrid(const MapGrid& grid) {
+
     }
 
 } // namespace danasim

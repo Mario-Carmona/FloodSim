@@ -3,7 +3,7 @@ add_library(danasim_state_updater_adapters)
 
 target_sources(danasim_state_updater_adapters
     PRIVATE
-        TensorFlowStateUpdater.cpp
+        OnnxStateUpdater.cpp
 )
 
 target_include_directories(danasim_state_updater_adapters
@@ -15,7 +15,7 @@ target_link_libraries(danasim_state_updater_adapters
     PUBLIC
         danasim_options
         danasim_core
-        tensorflow_c
+        onnxruntime
 )
 
 # 4. ENLAZAR CON TU LIBRERÍA (La conexión)

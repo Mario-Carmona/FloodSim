@@ -31,12 +31,20 @@ namespace danasim {
 
         void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 
+        void setGrid(const MapGrid& grid) override;
+
         std::string getThreadName() const override { return "Out_Image"; }
 
     private:
-        void saveSnapshotAsImage(const Snapshot& snapshot, const std::filesystem::path& imagesOutputPath);
+        int rows_;
+        int cols_;
 
-        cv::Mat createTerrainBackground(const Snapshot& snapshot);
+        const float* elevation_;
+
+
+        void saveSnapshotAsImage(const Snapshot& snapshot, const ChangeList& changes, const std::filesystem::path& imagesOutputPath);
+
+        cv::Mat createTerrainBackground(const Snapshot& snapshot, bool useColorMap);
 
         void drawUI(cv::Mat& canvas, const Snapshot& snapshot, double baseScale, int thickness, int marginTitle, int sidebarWidth);
         

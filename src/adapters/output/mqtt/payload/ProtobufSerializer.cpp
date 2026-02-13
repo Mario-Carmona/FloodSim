@@ -7,7 +7,7 @@
 
 namespace danasim {
 
-    void ProtobufSerializer::serializeChunk(const Snapshot& snapshot, const int32_t chunkIndex, const int32_t totalChunks, const size_t chunkSize, std::string& result) const {
+    void ProtobufSerializer::serializeChunk(const Snapshot& snapshot, const ChangeList& changes, const int32_t chunkIndex, const int32_t totalChunks, const size_t chunkSize, std::string& result) const {
         // 1. Crear el mensaje Protobuf
         danasim::proto::SimulationFrame frame;
 
@@ -20,8 +20,8 @@ namespace danasim {
 
         // 2. Copiar los vectores de coordenadas (Zero-Copy logic si es posible, o iteradores)
         // MapGrid::changedX() devuelve std::vector<int32_t>
-        const auto& vec_x = snapshot.changedX();
-        const auto& vec_y = snapshot.changedY();
+        const auto& vec_x = changes.x;
+        const auto& vec_y = changes.y;
 
         size_t start = chunkIndex * chunkSize;
         size_t end = std::min(start + chunkSize, vec_x.size());

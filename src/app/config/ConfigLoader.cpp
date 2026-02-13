@@ -55,7 +55,7 @@ namespace danasim {
 
         template <>
         StateUpdaterConfigType parseEnum<StateUpdaterConfigType>(std::string_view value) {
-            if (value == "tensorflow")   return StateUpdaterConfigType::TENSORFLOW;
+            if (value == "onnx")   return StateUpdaterConfigType::ONNX;
             throw ConfigurationException("Invalid state updater type: " + std::string(value));
         }
 
@@ -231,8 +231,8 @@ namespace danasim {
             auto type = parseEnum<StateUpdaterConfigType>(extract<std::string>(node, "type"));
 
             switch (type) {
-            case StateUpdaterConfigType::TENSORFLOW: {
-                config.stateUpdater = TensorFlowStateUpdaterConfig{
+            case StateUpdaterConfigType::ONNX: {
+                config.stateUpdater = OnnxStateUpdaterConfig{
                     .modelPath = extract<std::string>(node, "model_path")
                 };
                 break;

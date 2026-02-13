@@ -17,6 +17,8 @@ namespace danasim {
 
         void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 
+        void setGrid(const MapGrid& grid) override;
+
         std::string getThreadName() const override { return "Out_X3D"; }
 
     private:

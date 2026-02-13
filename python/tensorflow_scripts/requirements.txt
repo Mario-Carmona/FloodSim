@@ -1,5 +1,14 @@
-# Solo para generar el modelo
-tensorflow==2.16.1
+# --- EL ANCLA (Versión Roca Sólida) ---
+# Bajamos a 2.15.0. Es la versión más estable actualmente para Windows.
+tensorflow==2.19.0
 
-# Numpy compatible con TF 2.10
-numpy
+# --- LA REGLA DE ORO ---
+# Seguimos protegiéndonos de Numpy 2.0
+numpy<2.0
+
+# --- CONVERSIÓN ---
+# tf2onnx moderno para tener tus Opsets
+tf2onnx>=1.16.1
+
+# --- PARIDAD C++ ---
+onnxruntime==1.23.2

@@ -2,9 +2,13 @@
 #pragma once
 
 #include <memory>
-#include <vector>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
 
+#include "app/config/Config.hpp"
 #include "core/snapshot/Snapshot.hpp"
+#include "core/snapshot/ChangeList.hpp"
 
 namespace danasim {
 
@@ -36,21 +40,39 @@ namespace danasim {
      */
     class SnapshotManager {
     public:
-        virtual ~SnapshotManager() = default;
+        SnapshotManager(const OutputConfig::SnapshotConfig& config, size_t numOutputs);
+        virtual ~SnapshotManager();
 
         // Core: Espera a que los consumidores terminen
-        virtual void waitForReady() = 0;
+        void waitForReady();
 
         // Core: Publica nuevo snapshot
-        virtual void publish(Snapshot* snapshot) = 0;
+        void publish(const Snapshot* snapshot, const ChangeList* changes);
         
         // Output: Espera datos. Retorna un par {Snapshot, Guard}
         // El Guard llamará a signalDone automáticamente al destruirse.
-        virtual std::pair<Snapshot*, std::unique_ptr<SnapshotReadGuard>> waitForSnapshot(StepType lastStep) = 0;
+        std::pair<std::pair<const Snapshot&, const ChangeList&>, std::unique_ptr<SnapshotReadGuard>> waitForSnapshot(StepType lastStep);
         
-        virtual void stop() = 0;
-        virtual bool isRunning() const noexcept = 0;
-        virtual StepType everyNSteps() const noexcept = 0;
+        void stop();
+        bool isRunning() const noexcept { return running_; }
+        StepType everyNSteps() const noexcept { return everyNSteps_; }
+
+    private:
+        // Uso interno para decrementar contador
+        void internalSignalDone();
+
+        std::mutex mutex_;
+        std::condition_variable cvCore_;    // Core espera aquí
+        std::condition_variable cvOutputs_; // Outputs esperan aquí
+
+        const Snapshot* currentSnapshot_; // Snapshot compartido
+        const ChangeList* changes_;
+
+        size_t totalOutputs_;
+        size_t remaining_; // Cuántos outputs faltan por leer el snapshot actual
+
+        std::atomic<bool> running_;
+        StepType everyNSteps_;
     };
 
 } // namespace danasim

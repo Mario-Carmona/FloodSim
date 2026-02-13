@@ -100,14 +100,14 @@ namespace danasim {
     // -------------------------------------------------------------------------
 
     enum class StateUpdaterConfigType {
-        TENSORFLOW
+        ONNX
     };
 
-    struct TensorFlowStateUpdaterConfig {
+    struct OnnxStateUpdaterConfig {
         std::filesystem::path modelPath;
     };
 
-    using StateUpdaterConfig = std::variant<TensorFlowStateUpdaterConfig>;
+    using StateUpdaterConfig = std::variant<OnnxStateUpdaterConfig>;
 
     // -------------------------------------------------------------------------
     // General Settings

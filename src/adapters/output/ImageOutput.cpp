@@ -16,7 +16,7 @@ namespace danasim {
             .units = "Elevation (m)",
             .minVal = 0.0,
             .maxVal = 1000.0,  // Placeholder, se calcula dinámicamente
-            .colormap = cv::COLORMAP_CIVIDIS,
+            .colormap = cv::COLORMAP_BONE,
             .doHillshade = true,
             .maskZero = false
         };
@@ -24,8 +24,8 @@ namespace danasim {
         layerConfigs_[LayerId::WaterDepth] = Config{
             .units = "Depth (m)",
             .minVal = 0.0,
-            .maxVal = 3.0,
-            .colormap = cv::COLORMAP_TURBO,
+            .maxVal = 10.0,
+            .colormap = cv::COLORMAP_JET,
             .doHillshade = false,
             .maskZero = true
         };
@@ -48,7 +48,8 @@ namespace danasim {
             try {
                 // 1. Bloqueo hasta recibir datos
                 // Recibimos el snapshot Y el guardia de seguridad
-                auto [snapshot, guard] = snapshotManager.waitForSnapshot(lastProcessedStep);
+                auto [data, guard] = snapshotManager.waitForSnapshot(lastProcessedStep);
+                auto [snapshot, changes] = data;
 
                 // Si el guard es null, significa que snapshotManager se ha detenido
                 if (!guard) {
@@ -60,10 +61,10 @@ namespace danasim {
 
                 // 2. Procesamiento
                 // Si esto falla (excepción), 'guard' se destruye aquí y avisa al core automáticamente.
-                saveSnapshotAsImage(*snapshot, imagesOutputPath);
+                saveSnapshotAsImage(snapshot, changes, imagesOutputPath);
 
                 // Actualizamos tracking
-                lastProcessedStep = snapshot->step();
+                lastProcessedStep = snapshot.step();
 
                 // AL FINAL DEL SCOPE: 'guard' se destruye -> llama a signalDone()
             }
@@ -75,16 +76,59 @@ namespace danasim {
         }
     }
 
+    void ImageOutput::setGrid(const MapGrid& grid) {
+        rows_ = static_cast<int>(grid.rows());
+        cols_ = static_cast<int>(grid.cols());
+
+        elevation_ = grid.getLayer<float>(LayerId::Elevation).data();
+
+        const auto& elevData = grid.getLayer<float>(LayerId::Elevation);
+        layerConfigs_[LayerId::Elevation].maxVal = *std::max_element(elevData.begin(), elevData.end());
+    }
+
+    // Función auxiliar para crear la paleta Geográfica (Verde -> Marrón -> Blanco)
+    cv::Mat getTopographicLUT() {
+        cv::Mat lut(1, 256, CV_8UC3);
+        for (int i = 0; i < 256; ++i) {
+            cv::Vec3b color;
+            // Definimos 4 puntos clave (BGR):
+            // 0:   Verde Oscuro (30, 100, 30)
+            // 120: Verde Claro  (80, 180, 100)
+            // 190: Marrón       (60, 100, 160)
+            // 255: Blanco       (255, 255, 255)
+
+            if (i < 120) {
+                // Transición Verde Oscuro -> Verde Claro (Valles)
+                float t = (float)i / 120.0f;
+                color[0] = (uchar)(30 + t * (80 - 30));   // Blue
+                color[1] = (uchar)(100 + t * (180 - 100));// Green
+                color[2] = (uchar)(30 + t * (100 - 30));  // Red
+            }
+            else if (i < 190) {
+                // Transición Verde Claro -> Marrón (Montañas medias)
+                float t = (float)(i - 120) / 70.0f;
+                color[0] = (uchar)(80 - t * (80 - 60));    // Blue (baja un poco)
+                color[1] = (uchar)(180 - t * (180 - 100)); // Green (baja para oscurecer)
+                color[2] = (uchar)(100 + t * (160 - 100)); // Red (sube para marrón)
+            }
+            else {
+                // Transición Marrón -> Blanco (Picos / Nieve)
+                float t = (float)(i - 190) / 65.0f;
+                color[0] = (uchar)(60 + t * (255 - 60));
+                color[1] = (uchar)(100 + t * (255 - 100));
+                color[2] = (uchar)(160 + t * (255 - 160));
+            }
+            lut.at<cv::Vec3b>(i) = color;
+        }
+        return lut;
+    }
+
     // =========================================================================
     // 1. HELPER: GENERACIÓN DEL TERRENO (ELEVACIÓN + HILLSHADE)
     // =========================================================================
-    cv::Mat ImageOutput::createTerrainBackground(const Snapshot& snapshot) {
-        int rows = static_cast<int>(snapshot.rows());
-        int cols = static_cast<int>(snapshot.cols());
-
-        const auto& elevData = snapshot.elevation();
+    cv::Mat ImageOutput::createTerrainBackground(const Snapshot& snapshot, bool useColorMap) {
         // Creamos Mat envolviendo los datos (sin copia inicial)
-        cv::Mat rawElev(rows, cols, CV_32F, const_cast<float*>(elevData.data()));
+        cv::Mat rawElev(rows_, cols_, CV_32F, const_cast<float*>(elevation_));
 
         // Configuración
         const auto& cfg = layerConfigs_[LayerId::Elevation];
@@ -97,8 +141,24 @@ namespace danasim {
         diff.convertTo(normElev, CV_8U, 255.0 / (cfg.maxVal - cfg.minVal));
 
         // 2. Aplicar Mapa de Color (Terreno)
-        cv::Mat colorTerrain;
-        cv::applyColorMap(normElev, colorTerrain, cfg.colormap);
+        // Usamos un gris muy claro (240, 240, 240) para que parezca papel o maqueta.
+        cv::Mat baseTerrain;
+
+        if (useColorMap) {
+            // --- CORRECCIÓN DEL ERROR ---
+            // cv::LUT requiere que la imagen de entrada tenga los mismos canales que la LUT (3).
+            // Convertimos el gris de 1 canal a BGR de 3 canales.
+            cv::Mat normElev3Ch;
+            cv::cvtColor(normElev, normElev3Ch, cv::COLOR_GRAY2BGR);
+
+            static cv::Mat topoLUT = getTopographicLUT();
+            cv::LUT(normElev3Ch, topoLUT, baseTerrain);
+        }
+        else {
+            // OPCIÓN B: Estilo Maqueta (Gris Claro / Blanco)
+            // Ideal para superponer datos de fluidos sin distorsión de color
+            baseTerrain = cv::Mat(rows_, cols_, CV_8UC3, cv::Scalar(240, 240, 240));
+        }
 
         // 3. Calcular Hillshade (Sombreado)
         if (cfg.doHillshade) {
@@ -115,10 +175,10 @@ namespace danasim {
             cv::cvtColor(hillshade, hillshadeBGR, cv::COLOR_GRAY2BGR);
 
             // Mezclar Color * Sombra
-            cv::multiply(colorTerrain, hillshadeBGR, colorTerrain, 1.0 / 255.0);
+            cv::multiply(baseTerrain, hillshadeBGR, baseTerrain, 1.0 / 255.0);
         }
 
-        return colorTerrain; // Devuelve la imagen base lista
+        return baseTerrain; // Devuelve la imagen base lista
     }
 
     // =========================================================================
@@ -192,22 +252,11 @@ namespace danasim {
     // =========================================================================
     // 3. FUNCIÓN PRINCIPAL 
     // =========================================================================
-    void ImageOutput::saveSnapshotAsImage(const Snapshot& snapshot, const std::filesystem::path& imagesOutputPath) {
-        int rows = static_cast<int>(snapshot.rows());
-        int cols = static_cast<int>(snapshot.cols());
-
-        // Si estamos en el paso 0, escaneamos el terreno para ajustar la escala de color
-        if (snapshot.step() == 0) {
-            const auto& elevData = snapshot.elevation();
-
-            // Actualizamos la configuración (esto afectará a createTerrainBackground y drawUI)
-            layerConfigs_[LayerId::Elevation].maxVal = *std::max_element(elevData.begin(), elevData.end());
-        }
-
+    void ImageOutput::saveSnapshotAsImage(const Snapshot& snapshot, const ChangeList& changes, const std::filesystem::path& imagesOutputPath) {
         // 1. Configuración de Estilo Dinámico (Para máxima visibilidad)
         // Calculamos el tamaño de fuente basándonos en el ancho de la imagen.
         // Esto asegura que se lea bien en 4K o en 800x600.
-        double baseScale = std::max(0.6f, cols / 1000.0f);
+        double baseScale = std::max(0.6f, cols_ / 1000.0f);
         int thickness = std::max(1, static_cast<int>(baseScale * 2));
         int marginTitle = static_cast<int>(60 * baseScale);
         int sidebarWidth = static_cast<int>(350 * baseScale); // Barra lateral ancha
@@ -216,18 +265,13 @@ namespace danasim {
         // PASO 1: Generar el Terreno Base (Solo una vez)
         // ---------------------------------------------------------------------
         // Esto encapsula toda la lógica del Hillshade y el MDT
-        cv::Mat baseTerrain = createTerrainBackground(snapshot);
-
-        // ---------------------------------------------------------------------
-        // PASO 2: Generar Imagen COMBINADA (Agua + Terreno)
-        // ---------------------------------------------------------------------
-        cv::Mat combinedImg = baseTerrain.clone(); // Copiamos el fondo limpio
+        cv::Mat maquetteTerrain = createTerrainBackground(snapshot, false);
+        cv::Mat combinedImg = maquetteTerrain.clone();
 
         // Pintar Agua
-        const auto& waterData = snapshot.waterDepth();
         const auto& wCfg = layerConfigs_[LayerId::WaterDepth];
 
-        cv::Mat rawWater(rows, cols, CV_32F, const_cast<float*>(waterData.data()));
+        cv::Mat rawWater(rows_, cols_, CV_32F, const_cast<float*>(snapshot.waterDepth().data()));
         cv::Mat normWater;
 
         rawWater.convertTo(normWater, CV_8U, 255.0 / wCfg.maxVal);
@@ -235,32 +279,32 @@ namespace danasim {
         cv::Mat waterColorMap;
         cv::applyColorMap(normWater, waterColorMap, wCfg.colormap);
 
-        const float* wPtr = waterData.data();
+        const float* wPtr = snapshot.waterDepth().data();
 
         // Recorrido eficiente de píxeles
-        for (int r = 0; r < rows; ++r) {
+        for (int r = 0; r < rows_; ++r) {
             cv::Vec3b* dstPtr = combinedImg.ptr<cv::Vec3b>(r);
             const cv::Vec3b* srcWaterPtr = waterColorMap.ptr<cv::Vec3b>(r);
-            const float* depthPtr = wPtr + (r * cols);
+            const float* depthPtr = wPtr + (r * cols_);
 
-            for (int c = 0; c < cols; ++c) {
+            for (int c = 0; c < cols_; ++c) {
                 if (depthPtr[c] > WATER_EPSILON) {
                     // Mezcla Alpha: 0.7 Agua + 0.3 Terreno
                     cv::Vec3b wCol = srcWaterPtr[c];
                     cv::Vec3b tCol = dstPtr[c];
 
                     dstPtr[c] = cv::Vec3b(
-                        static_cast<uchar>(wCol[0] * 0.7 + tCol[0] * 0.3),
-                        static_cast<uchar>(wCol[1] * 0.7 + tCol[1] * 0.3),
-                        static_cast<uchar>(wCol[2] * 0.7 + tCol[2] * 0.3)
+                        static_cast<uchar>(wCol[0] * 0.85 + tCol[0] * 0.15),
+                        static_cast<uchar>(wCol[1] * 0.85 + tCol[1] * 0.15),
+                        static_cast<uchar>(wCol[2] * 0.85 + tCol[2] * 0.15)
                     );
                 }
             }
         }
 
         // Crear Canvas Final (Con márgenes blancos) y copiar el mapa
-        cv::Mat finalCanvas(rows + marginTitle, cols + sidebarWidth, CV_8UC3, cv::Scalar(250, 250, 250));
-        combinedImg.copyTo(finalCanvas(cv::Rect(0, marginTitle, cols, rows)));
+        cv::Mat finalCanvas(rows_ + marginTitle, cols_ + sidebarWidth, CV_8UC3, cv::Scalar(250, 250, 250));
+        combinedImg.copyTo(finalCanvas(cv::Rect(0, marginTitle, cols_, rows_)));
 
         // Pintar UI (Título y Leyendas)
         drawUI(finalCanvas, snapshot, baseScale, thickness, marginTitle, sidebarWidth);
@@ -281,17 +325,18 @@ namespace danasim {
         // ---------------------------------------------------------------------
         // AQUÍ ESTÁ LO QUE PEDÍAS: Usamos 'baseTerrain.clone()' de nuevo.
         // Así tenemos el mismo fondo hillshade bonito, pero sin el agua pintada.
-        cv::Mat changesImg = baseTerrain.clone();
+        cv::Mat topoTerrain = createTerrainBackground(snapshot, true);
+        cv::Mat changesImg = topoTerrain.clone();
 
-        const auto& chX = snapshot.changedX();
-        const auto& chY = snapshot.changedY();
-        cv::Vec3b redColor(0, 0, 255);
+        const auto& chX = changes.x;
+        const auto& chY = changes.y;
+        cv::Vec3b activeColor(0, 0, 255);
 
         // Pintar puntos rojos
         if (chX.size() == chY.size()) {
             for (size_t i = 0; i < chX.size(); ++i) {
-                if (chX[i] >= 0 && chX[i] < snapshot.cols() && chY[i] >= 0 && chY[i] < snapshot.rows()) {
-                    changesImg.at<cv::Vec3b>(static_cast<int>(chY[i]), static_cast<int>(chX[i])) = redColor;
+                if (chX[i] >= 0 && chX[i] < cols_ && chY[i] >= 0 && chY[i] < rows_) {
+                    changesImg.at<cv::Vec3b>(static_cast<int>(chY[i]), static_cast<int>(chX[i])) = activeColor;
                 }
             }
         }

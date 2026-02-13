@@ -19,8 +19,13 @@
 #include <variant>
 #include <cstdint>
 #include <stdexcept>
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 #include <magic_enum/magic_enum.hpp>
+
+#include <fmt/core.h>
 
 #include "app/logging/Logger.hpp"
 #include "core/grid/LayerTypes.hpp"
@@ -54,7 +59,6 @@ namespace danasim {
     class MapGrid {
     public:
         MapGrid() = default;
-        MapGrid(float viewMinX, float viewMaxX, float viewMinY, float viewMaxY);
         ~MapGrid() = default;
 
         /**
@@ -70,8 +74,6 @@ namespace danasim {
          * @throw std::bad_alloc If there is insufficient memory to allocate the grid.
          */
         void init(GridIndexType rows, GridIndexType cols, float cellSize, float mapOriginX, float mapOriginY);
-
-        void clearLayers();
 
         /**
          * @brief Access the raw data vector for a specific layer.
@@ -105,6 +107,35 @@ namespace danasim {
             throw std::runtime_error(msg);
         }
 
+        /**
+         * @brief Obtiene el puntero crudo a los datos de la capa para interoperabilidad (Zero-Copy).
+         * Retorna nullptr si la capa no es del tipo T o está vacía.
+         */
+        template <typename T>
+        T* getLayerDataRaw(LayerId id) {
+            size_t index = static_cast<size_t>(id);
+            auto& variant = layers_[index];
+
+            if (std::holds_alternative<std::vector<T>>(variant)) {
+                std::vector<T>& vec = std::get<std::vector<T>>(variant);
+                return vec.empty() ? nullptr : vec.data();
+            }
+            return nullptr;
+        }
+
+        // Versión const para inputs de solo lectura
+        template <typename T>
+        const T* getLayerDataRaw(LayerId id) const {
+            size_t index = static_cast<size_t>(id);
+            auto& variant = layers_[index];
+
+            if (std::holds_alternative<std::vector<T>>(variant)) {
+                const std::vector<T>& vec = std::get<std::vector<T>>(variant);
+                return vec.empty() ? nullptr : vec.data();
+            }
+            return nullptr;
+        }
+
         // --- Getters ---
 
         [[nodiscard]] GridIndexType rows() const noexcept { return rows_; }
@@ -114,11 +145,6 @@ namespace danasim {
 
         [[nodiscard]] float mapOriginX() const noexcept { return mapOriginX_; }
         [[nodiscard]] float mapOriginY() const noexcept { return mapOriginY_; }
-
-        [[nodiscard]] float viewMinX() const noexcept { return viewMinX_; }
-        [[nodiscard]] float viewMaxX() const noexcept { return viewMaxX_; }
-        [[nodiscard]] float viewMinY() const noexcept { return viewMinY_; }
-        [[nodiscard]] float viewMaxY() const noexcept { return viewMaxY_; }
 
         // --- Static Metadata Access ---
 
@@ -130,16 +156,12 @@ namespace danasim {
         FlatVectorIndexType cellCount_ = 0;
         float cellSize_ = 0.0f;
 
+        // Storage for all layers defined in the enum
+        std::array<LayerDataVariant, magic_enum::enum_count<LayerId>()> layers_;
+
         float mapOriginX_;
         float mapOriginY_;
 
-        float viewMinX_;
-        float viewMaxX_;
-        float viewMinY_;
-        float viewMaxY_;
-
-        // Storage for all layers defined in the enum
-        std::array<LayerDataVariant, magic_enum::enum_count<LayerId>()> layers_;
 
         // Metadata descriptors (static)
         static const std::array<LayerDescriptor, magic_enum::enum_count<LayerId>()> descriptors_;
