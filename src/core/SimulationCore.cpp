@@ -1,9 +1,9 @@
 
-#include "core/simulation/SimulationCore.hpp"
+#include "core/SimulationCore.hpp"
 
 #include <cmath>
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 #include "core/snapshot/Snapshot.hpp"
 #include "core/common/SimulationConstants.hpp"
 

@@ -11,6 +11,7 @@
 #include <ctime>
 #include <fmt/core.h>
 #include <fmt/chrono.h>
+#include <filesystem>
 
 #ifdef _WIN32
     #include <windows.h>
@@ -19,14 +20,14 @@
 #endif
 
 #include "app/config/ConfigLoader.hpp"
-#include "app/factory/InputFactory.hpp"
-#include "app/factory/OutputFactory.hpp"
-#include "app/factory/StateUpdaterFactory.hpp"
-#include "app/logging/Logger.hpp"
+#include "adapters/input/InputFactory.hpp"
+#include "adapters/output/OutputFactory.hpp"
+#include "adapters/state_updater/StateUpdaterFactory.hpp"
+#include "logging/Logger.hpp"
 
 #include "core/snapshot/SnapshotManager.hpp"
-#include "core/simulation/SimulationCore.hpp"
-#include "core/ports/OutputPort.hpp"
+#include "core/SimulationCore.hpp"
+#include "ports/OutputPort.hpp"
 
 namespace danasim {
 
@@ -53,7 +54,7 @@ namespace danasim {
     #endif
     }
 
-    Application::Application(const std::string& configPath)
+    Application::Application(const std::filesystem::path& configPath)
         : config_(ConfigLoader::load(configPath))
     {
         // 1. Obtenemos el tiempo actual del sistema
@@ -68,7 +69,7 @@ namespace danasim {
         // fmt soporta std::tm nativamente con la misma sintaxis que tenías
         std::string timestamp = fmt::format("{:%Y-%m-%d_%H-%M-%S}", localTime);
 
-        outputPath_ = OUTPUT_BASE_PATH / (config_.scenario.name + "_" + timestamp);
+        outputPath_ = config_.scenario.outputDir / (config_.scenario.name + "_" + timestamp);
 
         if (!std::filesystem::exists(outputPath_)) {
             std::filesystem::create_directories(outputPath_);
@@ -79,7 +80,8 @@ namespace danasim {
             config_.logging.level,
             config_.logging.async,
             config_.logging.silent,
-            outputPath_ / config_.logging.file
+            config_.logging.saveLogFile,
+            outputPath_
         );
     }
 

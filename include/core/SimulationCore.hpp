@@ -8,9 +8,9 @@
 #include "app/config/Config.hpp"
 #include "core/snapshot/SnapshotManager.hpp"
 #include "core/snapshot/ChangeList.hpp"
-#include "core/ports/StateUpdaterPort.hpp"
-#include "core/ports/InputPort.hpp"
-#include "core/ports/OutputPort.hpp"
+#include "ports/StateUpdaterPort.hpp"
+#include "ports/InputPort.hpp"
+#include "ports/OutputPort.hpp"
 #include "core/grid/MapGrid.hpp"
 #include "core/grid/StreamedLayerManager.hpp"
 

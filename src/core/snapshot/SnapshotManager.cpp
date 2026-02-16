@@ -1,7 +1,7 @@
 
 #include "core/snapshot/SnapshotManager.hpp"
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 
 #include <limits>
 

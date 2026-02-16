@@ -3,14 +3,14 @@
  * @brief Implementation of the OutputFactory using C++20 visitor pattern.
  */
 
-#include "app/factory/OutputFactory.hpp"
+#include "adapters/output/OutputFactory.hpp"
 
 #include <variant>
 #include <stdexcept>
 #include <fmt/core.h>
 
-#include "app/logging/Logger.hpp"
-#include "core/ports/OutputPort.hpp"
+#include "logging/Logger.hpp"
+#include "ports/OutputPort.hpp"
 #include "app/config/Config.hpp"
 
 // Include concrete implementations
@@ -45,9 +45,9 @@ namespace danasim {
             outputs.push_back(std::visit(overloaded{
 
                 // 1. X3D File Output
-                [](const OutputConfig::X3DFileOutputConfigEntry& arg) -> std::unique_ptr<OutputPort> {
-                    LOG_DEBUG("Initializing X3D Output: {}", arg.filePath.string());
-                    return std::make_unique<X3DFileOutput>(arg.filePath);
+                [](const OutputConfig::X3DFileOutputConfigEntry&) -> std::unique_ptr<OutputPort> {
+                    LOG_DEBUG("Initializing X3D Output");
+                    return std::make_unique<X3DFileOutput>();
                 },
 
                 // 2. MQTT Output

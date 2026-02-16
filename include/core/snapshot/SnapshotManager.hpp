@@ -44,10 +44,10 @@ namespace danasim {
         virtual ~SnapshotManager();
 
         // Core: Espera a que los consumidores terminen
-        void waitForReady();
+        virtual void waitForReady();
 
         // Core: Publica nuevo snapshot
-        void publish(const Snapshot* snapshot, const ChangeList* changes);
+        virtual void publish(const Snapshot* snapshot, const ChangeList* changes);
         
         // Output: Espera datos. Retorna un par {Snapshot, Guard}
         // El Guard llamará a signalDone automáticamente al destruirse.
@@ -55,7 +55,7 @@ namespace danasim {
         
         void stop();
         bool isRunning() const noexcept { return running_; }
-        StepType everyNSteps() const noexcept { return everyNSteps_; }
+        virtual StepType everyNSteps() const noexcept { return everyNSteps_; }
 
     private:
         // Uso interno para decrementar contador

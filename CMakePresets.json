@@ -65,7 +65,7 @@
       ],
       "description": "",
       "cacheVariables": {
-        "DANASIM_BUILD_GUI": "OFF"
+        "ENABLE_GUI": "OFF"
       }
     },
     {
@@ -76,7 +76,7 @@
       ],
       "description": "",
       "cacheVariables": {
-        "DANASIM_BUILD_GUI": "ON"
+        "ENABLE_GUI": "ON"
       }
     },
     {
@@ -87,15 +87,14 @@
       ],
       "description": "Defines settings for building project executables.",
       "cacheVariables": {
-        "DANASIM_BUILD_APPS": "ON",
-        "VCPKG_MANIFEST_FEATURES": "app"
+        "BUILD_APP": "ON"
       }
     },
     {
-      "name": "windows-app",
+      "name": "windows",
       "hidden": true,
       "inherits": [
-        "app"
+        "common-configure-options"
       ],
       "description": "Windows-specific preset using Visual Studio 2026 and static vcpkg triplets.",
       "architecture": "x64",
@@ -113,7 +112,8 @@
     {
       "name": "windows-cli-debug",
       "inherits": [
-        "windows-app",
+        "windows",
+        "app",
         "cli",
         "debug"
       ],
@@ -122,7 +122,8 @@
     {
       "name": "windows-cli-release",
       "inherits": [
-        "windows-app",
+        "windows",
+        "app",
         "cli",
         "release"
       ],
@@ -131,17 +132,18 @@
     {
       "name": "windows-cli-rel-with-deb-info",
       "inherits": [
-        "windows-app",
+        "windows",
+        "app",
         "cli",
         "rel-with-deb-info"
       ],
       "description": ""
     },
     {
-      "name": "linux-app",
+      "name": "linux",
       "hidden": true,
       "inherits": [
-        "app"
+        "common-configure-options"
       ],
       "description": "Linux-specific preset using Ninja and static vcpkg triplets.",
       "condition": {
@@ -163,23 +165,37 @@
     },
     {
       "name": "linux-cli-debug",
-      "inherits": [ "linux-app", "cli", "debug" ],
+      "inherits": [ "linux", "app", "cli", "debug" ],
       "description": "Debug build for Linux CLI"
     },
     {
       "name": "linux-cli-release",
-      "inherits": [ "linux-app", "cli", "release" ],
+      "inherits": [ "linux", "app", "cli", "release" ],
       "description": "Release build for Linux CLI"
     },
     {
-      "name": "docs",
+      "name": "tests",
       "hidden": true,
-      "inherits": [
-        "common-configure-options"
-      ],
+      "inherits": [ "common-configure-options", "cli", "debug" ],
       "description": "",
       "cacheVariables": {
-        "DANASIM_BUILD_DOCS": "ON"
+        "BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "windows-tests-all",
+      "inherits": [ "windows", "tests" ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_ALL_TESTS": "ON"
+      }
+    },
+    {
+      "name": "windows-tests-state-updater",
+      "inherits": [ "windows", "tests" ],
+      "description": "",
+      "cacheVariables": {
+        "ENABLE_STATE_UPDATER_ADAPTERS": "ON"
       }
     }
   ],
@@ -211,6 +227,16 @@
       "name": "linux-cli-release",
       "configurePreset": "linux-cli-release",
       "configuration": "Release"
+    },
+    {
+      "name": "windows-tests-all",
+      "configurePreset": "windows-tests-all",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-tests-state-updater",
+      "configurePreset": "windows-tests-state-updater",
+      "configuration": "Debug"
     }
   ],
   "packagePresets": [
@@ -238,7 +264,7 @@
       "variables": {
         "CPACK_WIX_ROOT": "C:/Program Files (x86)/WiX Toolset v3.14/bin"
       }
-     }
+    }
   ],
   "workflowPresets": [
     {
@@ -322,6 +348,48 @@
           "name": "windows-installer"
         }
       ]
+    },
+    {
+      "name": "windows-tests-all",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-tests-all"
+        },
+        {
+          "type": "build",
+          "name": "windows-tests-all"
+        }
+      ]
+    },
+    {
+      "name": "windows-tests-state-updater",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-tests-state-updater"
+        },
+        {
+          "type": "build",
+          "name": "windows-tests-state-updater"
+        }
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-tests-all",
+      "displayName": "Test Windows Debug",
+      "configurePreset": "windows-tests-all", 
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true,
+        "shortProgress": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "jobs": 4
+      }
     }
   ]
 }

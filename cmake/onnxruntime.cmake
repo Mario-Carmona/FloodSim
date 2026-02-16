@@ -68,8 +68,8 @@ message(STATUS "ONNX Runtime library directory: ${ONNX_RUNTIME_LIB_DIR}")
 add_library(onnxruntime SHARED IMPORTED)
 
 if (WIN32)
-    set(ONNX_RUNTIME_DLL ${ONNX_RUNTIME_LIB_DIR}/onnxruntime.dll)
-    set(ONNX_RUNTIME_IMPLIB ${ONNX_RUNTIME_LIB_DIR}/onnxruntime.lib)
+    set(ONNX_RUNTIME_DLL ${ONNX_RUNTIME_LIB_DIR}/onnxruntime.dll CACHE INTERNAL "Ruta global a la DLL de ONNX")
+    set(ONNX_RUNTIME_IMPLIB ${ONNX_RUNTIME_LIB_DIR}/onnxruntime.lib CACHE INTERNAL "Ruta global a la LIB de ONNX")
 
     set_target_properties(onnxruntime PROPERTIES
         IMPORTED_LOCATION "${ONNX_RUNTIME_DLL}"

@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 #include "adapters/output/mqtt/payload/ProtobufSerializer.hpp"
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 
 namespace danasim {
 

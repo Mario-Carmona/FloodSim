@@ -23,11 +23,11 @@ namespace danasim {
          *
          * Validates the existence of the file and the correctness of the schema.
          *
-         * @param filePath The path to the YAML configuration file.
+         * @param configPath The path to the YAML configuration file.
          * @return Config A fully populated and validated configuration object.
          * * @throw ConfigurationException If the file cannot be found or contains invalid data.
          */
-        static Config load(const std::filesystem::path& filePath);
+        static Config load(const std::filesystem::path& configPath);
     };
 
 } // namespace danasim

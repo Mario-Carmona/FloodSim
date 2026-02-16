@@ -1,4 +1,20 @@
 
+
+set(OpenCV_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/opencv4")
+find_package(OpenCV REQUIRED)
+
+
+find_package(PahoMqttCpp CONFIG REQUIRED)
+
+
+
+
+# 2. Entorno "Monitor" (MQTT + Protobuf Moderno)
+create_python_env("mqtt_scripts" OFF)
+
+
+
+
 add_subdirectory(mqtt)
 
 add_library(danasim_output_adapters)
@@ -8,6 +24,7 @@ target_sources(danasim_output_adapters
         X3DFileOutput.cpp
         MQTTOutput.cpp
         ImageOutput.cpp
+        OutputFactory.cpp
 )
 
 target_include_directories(danasim_output_adapters

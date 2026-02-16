@@ -1,9 +1,20 @@
 
+
+# magic-enum
+find_package(magic_enum CONFIG REQUIRED)
+
+# HighFive
+find_package(HighFive CONFIG REQUIRED)
+
+
+
+
+
 add_library(danasim_core)
 
 target_sources(danasim_core
     PRIVATE
-        simulation/SimulationCore.cpp
+        SimulationCore.cpp
         snapshot/SnapshotManager.cpp
         snapshot/Snapshot.cpp
         grid/MapGrid.cpp

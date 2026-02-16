@@ -16,6 +16,7 @@
 #include <string_view>
 #include <exception>
 #include <cstdlib>
+#include <filesystem>
 
 #include "app/Application.hpp"
 
@@ -28,7 +29,8 @@ namespace {
      */
     void printUsage(std::string_view programName)
     {
-        std::cerr << "Usage: " << programName << " --config /path/to/config.yaml\n";
+        std::cerr << "Usage: " << programName << " [--config /path/to/config.yaml]\n";
+        std::cerr << "If no arguments are provided, the configuration path will be prompted interactively.\n";
     }
 
 } // anonymous namespace
@@ -49,30 +51,61 @@ namespace {
 int main(int argc, char* argv[])
 {
     try {
+        std::string configInputStr;
+
         // -----------------------------
-        // Argument Parsing (C++20 Style)
+        // Argument Parsing & Input
         // -----------------------------
-        // We expect exactly 3 arguments: [program_name] [--config] [path]
-        if (argc != 3) {
+        if (argc == 3) {
+            // Se pasaron parámetros por línea de comandos
+            const std::string_view flag{ argv[1] };
+
+            if (flag != "--config") {
+                printUsage(argv[0]);
+                return EXIT_FAILURE;
+            }
+            configInputStr = argv[2];
+
+        }
+        else if (argc == 1) {
+            // No se pasaron parámetros -> Modo Interactivo
+            std::cout << "--- Danasim Configuration ---\n";
+            std::cout << "Current Working Directory: " << std::filesystem::current_path() << "\n";
+            std::cout << "Enter the path to the configuration file (.yaml): ";
+
+            std::getline(std::cin, configInputStr);
+
+            if (configInputStr.empty()) {
+                std::cerr << "Fatal error: Configuration path cannot be empty.\n";
+                return EXIT_FAILURE;
+            }
+        }
+        else {
+            // Número inválido de argumentos (ej: solo 2, o más de 3)
             printUsage(argv[0]);
             return EXIT_FAILURE;
         }
 
-        // Use std::string_view for efficient, non-allocating comparison
-        const std::string_view flag{ argv[1] };
+        // -----------------------------
+        // Path Resolution
+        // -----------------------------
+        // std::filesystem::absolute usa el CWD automáticamente para resolver rutas relativas.
+        // Si la ruta ya es absoluta (ej: C:\configs\app.yaml), la deja intacta.
+        std::filesystem::path absoluteConfigPath = std::filesystem::absolute(configInputStr).lexically_normal();
 
-        if (flag != "--config") {
-            printUsage(argv[0]);
+        // Opcional: Validar que el archivo realmente existe antes de pasarlo a la app
+        if (!std::filesystem::exists(absoluteConfigPath)) {
+            std::cerr << "Fatal error: Configuration file not found at " << absoluteConfigPath << "\n";
             return EXIT_FAILURE;
         }
 
-        const std::string configPath = argv[2];
+        std::cout << "Loading configuration from: " << absoluteConfigPath << "\n";
 
         // -----------------------------
         // Application Initialization
         // -----------------------------
-        // Instantiate the main application logic with the parsed config path
-        danasim::Application app(configPath);
+        // Pasamos la ruta absoluta convertida a string (o como std::filesystem::path si tu app lo soporta)
+        danasim::Application app(absoluteConfigPath);
 
         // -----------------------------
         // Simulation Execution

@@ -3,14 +3,14 @@
  * @brief Implementation of the InputFactory using C++20 visitor pattern.
  */
 
-#include "app/factory/InputFactory.hpp"
+#include "adapters/input/InputFactory.hpp"
 
 #include <variant>
 #include <stdexcept>
 #include <fmt/core.h>
 
-#include "app/logging/Logger.hpp"
-#include "core/ports/InputPort.hpp"
+#include "logging/Logger.hpp"
+#include "ports/InputPort.hpp"
 
 // Include concrete implementations
 #include "adapters/input/FileInput.hpp"

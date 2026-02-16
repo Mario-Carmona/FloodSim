@@ -3,7 +3,7 @@
 
 #include "adapters/output/mqtt/payload/proto/messages.pb.h"
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 
 namespace danasim {
 

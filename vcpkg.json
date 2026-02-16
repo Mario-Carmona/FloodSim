@@ -2,40 +2,41 @@
   "builtin-baseline": "66c0373dc7fca549e5803087b9487edfe3aca0a1",
   "name": "danasim",
   "version": "1.0.0",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "name": "fmt",
+      "default-features": false,
+      "features": []
+    },
+    {
+      "name": "spdlog",
+      "default-features": false,
+      "features": [ "fmt" ]
+    },
+    {
+      "name": "whereami",
+      "default-features": false,
+      "features": []
+    }
+  ],
   "features": {
-    "app": {
-      "description": "Build Apps",
+    "input-adapters": {
+      "description": "Input adapters",
       "dependencies": [
         {
           "name": "gdal",
           "default-features": false,
           "features": []
-        },
+        }
+      ]
+    },
+    "output-adapters": {
+      "description": "Output adapters",
+      "dependencies": [
         {
-          "name": "yaml-cpp",
+          "name": "opencv4",
           "default-features": false,
-          "features": []
-        },
-        {
-          "name": "spdlog",
-          "default-features": false,
-          "features": ["fmt"]
-        },
-        {
-          "name": "magic-enum",
-          "default-features": false,
-          "features": []
-        },
-        {
-          "name": "zlib",
-          "default-features": false,
-          "features": []
-        },
-        {
-          "name": "paho-mqttpp3",
-          "default-features": false,
-          "features": []
+          "features": [ "png", "jpeg" ]
         },
         {
           "name": "protobuf",
@@ -43,26 +44,59 @@
           "features": []
         },
         {
+          "name": "paho-mqttpp3",
+          "default-features": false,
+          "features": []
+        }
+      ]
+    },
+    "app": {
+      "description": "App",
+      "dependencies": [
+        {
+          "name": "yaml-cpp",
+          "default-features": false,
+          "features": []
+        }
+      ]
+    },
+    "app-core": {
+      "description": "Core",
+      "dependencies": [
+        {
+          "name": "magic-enum",
+          "default-features": false,
+          "features": []
+        },
+        {
           "name": "highfive",
           "default-features": false,
           "features": []
-        },
-        {
-          "name": "fmt",
-          "default-features": false,
-          "features": []
-        },
-        {
-          "name": "opencv4",
-          "default-features": false,
-          "features": [ "png", "jpeg" ]
         }
       ]
+    },
+    "gui": {
+      "description": "GUI",
+      "dependencies": []
     },
     "test": {
       "description": "Build Tests",
       "dependencies": [
-        "gtest"
+        {
+          "name": "gtest",
+          "default-features": false,
+          "features": []
+        }
+      ]
+    },
+    "benchmark": {
+      "description": "Build Benchmarks",
+      "dependencies": [
+        {
+          "name": "benchmark",
+          "default-features": false,
+          "features": []
+        }
       ]
     }
   }

@@ -27,7 +27,7 @@
 
 #include <fmt/core.h>
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 #include "core/grid/LayerTypes.hpp"
 #include "Types.hpp"
 

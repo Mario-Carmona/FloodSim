@@ -7,7 +7,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "core/ports/OutputPort.hpp"
+#include "ports/OutputPort.hpp"
 
 namespace danasim {
 

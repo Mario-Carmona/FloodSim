@@ -4,7 +4,7 @@
  * @brief Implementation of the StateUpdater factory using C++20 visitor pattern.
  */
 
-#include "app/factory/StateUpdaterFactory.hpp"
+#include "adapters/state_updater/StateUpdaterFactory.hpp"
 
 #include <variant>
 #include <stdexcept>
@@ -12,8 +12,8 @@
 #include <filesystem>
 
 #include "app/config/Config.hpp"
-#include "app/logging/Logger.hpp"
-#include "core/ports/StateUpdaterPort.hpp"
+#include "logging/Logger.hpp"
+#include "ports/StateUpdaterPort.hpp"
 
 // Include concrete implementations
 #include "adapters/state_updater/OnnxStateUpdater.hpp"

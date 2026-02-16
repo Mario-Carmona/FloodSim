@@ -17,7 +17,7 @@
 // Magic Enum Includes
 #include <magic_enum/magic_enum.hpp>
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 #include "core/grid/LayerTypes.hpp"
 #include "core/common/SimulationConstants.hpp"
 #include "core/grid/MapGrid.hpp"

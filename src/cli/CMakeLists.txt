@@ -7,7 +7,6 @@ target_link_libraries(danasim_cli
     PRIVATE
         danasim_options
         danasim_app
-        danasim_adapters
 )
 
 set_target_properties(danasim_cli PROPERTIES

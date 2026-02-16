@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <string>
 
-#include "core/ports/OutputPort.hpp"
+#include "ports/OutputPort.hpp"
 
 namespace danasim {
 
@@ -13,16 +13,13 @@ namespace danasim {
      */
     class X3DFileOutput : public OutputPort {
     public:
-        explicit X3DFileOutput(const std::filesystem::path& outputDirectory);
+        explicit X3DFileOutput();
 
         void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 
         void setGrid(const MapGrid& grid) override;
 
         std::string getThreadName() const override { return "Out_X3D"; }
-
-    private:
-        std::filesystem::path outputDirectory_;
     };
 
 } // namespace danasim

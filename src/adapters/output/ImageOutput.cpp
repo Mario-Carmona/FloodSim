@@ -6,7 +6,7 @@
 
 #include "app/config/Config.hpp"
 #include "core/common/SimulationConstants.hpp"
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 #include "core/grid/MapGrid.hpp"
 
 namespace danasim {

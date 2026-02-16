@@ -1,7 +1,5 @@
 
 add_subdirectory(config)
-add_subdirectory(factory)
-add_subdirectory(logging)
 
 
 add_library(danasim_app)
@@ -19,7 +17,7 @@ target_include_directories(danasim_app
 target_link_libraries(danasim_app
     PUBLIC
         danasim_options
-        danasim_logging
         danasim_config
-        danasim_factories
+        danasim_core
+        danasim_adapters
 )

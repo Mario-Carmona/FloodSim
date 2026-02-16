@@ -10,7 +10,8 @@
 #include <filesystem>
 #include <fmt/core.h>
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
+#include "misc/Paths.hpp"
 
 namespace danasim {
 
@@ -102,19 +103,21 @@ namespace danasim {
 
     } // anonymous namespace
 
-    Config ConfigLoader::load(const std::filesystem::path& filePath)
+    Config ConfigLoader::load(const std::filesystem::path& configPath)
     {
-        if (!std::filesystem::exists(filePath)) {
-            throw ConfigurationException("Configuration file not found: " + filePath.string());
+        if (!std::filesystem::exists(configPath)) {
+            throw ConfigurationException("Configuration file not found: " + configPath.string());
         }
 
         YAML::Node root;
         try {
-            root = YAML::LoadFile(filePath.string());
+            root = YAML::LoadFile(configPath.string());
         }
         catch (const YAML::ParserException& e) {
             throw ConfigurationException("YAML Syntax Error: " + std::string(e.what()));
         }
+
+        const std::filesystem::path configFolder = configPath.parent_path();
 
         Config config;
 
@@ -129,7 +132,7 @@ namespace danasim {
             switch (type) {
             case InputConfigType::FILE: {
                 config.input = FileInputConfig{
-                    .path = extract<std::string>(node, "path")
+                    .path = (configFolder / extract<std::string>(node, "path")).lexically_normal()
                 };
                 break;
             }
@@ -156,9 +159,7 @@ namespace danasim {
 
                 switch (type) {
                 case OutputConfig::OutputConfigEntryType::X3D_FILE: {
-                    config.output.outputs.emplace_back(OutputConfig::X3DFileOutputConfigEntry{
-                        .filePath = extract<std::string>(outNode, "file_path")
-                        });
+                    config.output.outputs.emplace_back(OutputConfig::X3DFileOutputConfigEntry{});
                     break;
                 }
                 case OutputConfig::OutputConfigEntryType::MQTT: {
@@ -208,10 +209,7 @@ namespace danasim {
             config.logging.level = extract<std::string>(node, "level");
             config.logging.async = extract<bool>(node, "async");
             config.logging.silent = extract<bool>(node, "silent");
-
-            if (node["file"]) {
-                config.logging.file = node["file"].as<std::string>();
-            }
+            config.logging.saveLogFile = extract<bool>(node, "saveLogFile");
         }
 
         // -----------------------------
@@ -219,6 +217,14 @@ namespace danasim {
         // -----------------------------
         {
             const auto node = requireNode(root, "scenario");
+
+            if (node["outputDir"]) {
+                config.scenario.outputDir = (configFolder / extract<std::string>(node, "outputDir")).lexically_normal();
+            }
+            else {
+                config.scenario.outputDir = GetAppDataDirectory("Danasim");
+            }
+
             config.scenario.name = extract<std::string>(node, "name");
         }
 
@@ -233,7 +239,7 @@ namespace danasim {
             switch (type) {
             case StateUpdaterConfigType::ONNX: {
                 config.stateUpdater = OnnxStateUpdaterConfig{
-                    .modelPath = extract<std::string>(node, "model_path")
+                    .modelPath = (configFolder / extract<std::string>(node, "model_path")).lexically_normal()
                 };
                 break;
             }

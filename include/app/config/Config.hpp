@@ -60,7 +60,7 @@ namespace danasim {
         };
 
         struct X3DFileOutputConfigEntry {
-            std::filesystem::path filePath;
+            // Placeholder for future X3D config
         };
 
         struct MQTTOutputConfigEntry {
@@ -123,14 +123,15 @@ namespace danasim {
     };
 
     struct ScenarioConfig {
+        std::filesystem::path outputDir;
         std::string name;
     };
 
     struct LoggingConfig {
         std::string level = "info";
-        bool async = false;
-        bool silent = false;
-        std::filesystem::path file;
+        bool async;
+        bool silent;
+        bool saveLogFile;
     };
 
     /**

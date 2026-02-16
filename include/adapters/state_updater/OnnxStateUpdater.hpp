@@ -6,7 +6,7 @@
 #include <memory>
 #include <onnxruntime_cxx_api.h>
 
-#include "core/ports/StateUpdaterPort.hpp"
+#include "ports/StateUpdaterPort.hpp"
 #include "core/grid/MapGrid.hpp"
 
 namespace danasim {

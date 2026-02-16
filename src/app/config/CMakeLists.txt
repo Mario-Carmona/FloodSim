@@ -1,4 +1,8 @@
 
+find_package(yaml-cpp REQUIRED)
+
+
+
 add_library(danasim_config)
 
 target_sources(danasim_config

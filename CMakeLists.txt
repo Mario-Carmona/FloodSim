@@ -2,31 +2,59 @@
 cmake_minimum_required(VERSION 4.1.1)
 
 
-project(
-    DanaSim
-    VERSION 1.0.0
-    LANGUAGES CXX
-)
-
-
-# =========================================================
-# Opciones globales
-# =========================================================
-option(DANASIM_BUILD_APPS "Build Apps" OFF)
-option(DANASIM_BUILD_DOCS "Build Docs" OFF)
-option(DANASIM_BUILD_GUI "Build GUI executable" OFF)
-option(DANASIM_SILENT_DEFAULT "Silent logging by default" OFF)
-
-
-message(STATUS "Build Configuration:")
-message(STATUS "  - Build Apps: ${DANASIM_BUILD_APPS}")
-message(STATUS "  - Build Docs: ${DANASIM_BUILD_DOCS}")
-
-
-if(DANASIM_BUILD_APPS)
-    add_subdirectory(src)
+if(BUILD_APP)
+    set(ENABLE_INPUT_ADAPTERS ON)
+    set(ENABLE_OUTPUT_ADAPTERS ON)
+    set(ENABLE_STATE_UPDATER_ADAPTERS ON)
+    set(ENABLE_APP ON)
+    set(ENABLE_CORE ON)
 endif()
 
-if(DANASIM_BUILD_DOCS)
+if(BUILD_ALL_TESTS)
+    set(ENABLE_CORE ON)
+    set(ENABLE_STATE_UPDATER_ADAPTERS ON)
+endif()
 
+
+set(VCPKG_MANIFEST_FEATURES "")
+
+if(ENABLE_INPUT_ADAPTERS)
+    list(APPEND VCPKG_MANIFEST_FEATURES "input-adapters")
+endif()
+
+if(ENABLE_OUTPUT_ADAPTERS)
+    list(APPEND VCPKG_MANIFEST_FEATURES "output-adapters")
+endif()
+
+if(ENABLE_APP)
+    list(APPEND VCPKG_MANIFEST_FEATURES "app")
+endif()
+
+if(ENABLE_CORE)
+    list(APPEND VCPKG_MANIFEST_FEATURES "app-core")
+endif()
+
+if(BUILD_APP)
+    if(ENABLE_GUI)
+        list(APPEND VCPKG_MANIFEST_FEATURES "gui")
+    else()
+    
+    endif()
+endif()
+
+if(BUILD_TESTS)
+    list(APPEND VCPKG_MANIFEST_FEATURES "test")
+endif()
+
+
+
+project(DanaSim VERSION 1.0.0 LANGUAGES CXX)
+
+
+add_subdirectory(src)
+
+if(BUILD_TESTS)
+    enable_testing()
+
+    add_subdirectory(tests)
 endif()

@@ -14,7 +14,7 @@ namespace danasim {
     class Logger {
     public:
         // Inicialización global
-        static void init(const std::string& level, bool async, bool silent, const std::filesystem::path& logFile);
+        static void init(const std::string& level, bool async, bool silent, bool saveLogFile, const std::filesystem::path& outputPath);
         static void shutdown();
 
         // Obtener el logger crudo de spdlog (para máxima velocidad)

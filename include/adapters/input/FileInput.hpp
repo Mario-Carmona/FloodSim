@@ -16,7 +16,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "core/ports/InputPort.hpp"
+#include "ports/InputPort.hpp"
 
 namespace danasim {
 

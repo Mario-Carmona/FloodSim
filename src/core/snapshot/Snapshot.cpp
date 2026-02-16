@@ -1,7 +1,7 @@
 
 #include "core/snapshot/Snapshot.hpp"
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 
 namespace danasim {
 

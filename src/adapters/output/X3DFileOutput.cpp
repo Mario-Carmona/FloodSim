@@ -6,20 +6,23 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 
 namespace danasim {
 
-    X3DFileOutput::X3DFileOutput(const std::filesystem::path& outputDirectory)
-        : outputDirectory_(outputDirectory)
+    X3DFileOutput::X3DFileOutput()
     {
-        if (!std::filesystem::exists(outputDirectory_)) {
-            std::filesystem::create_directories(outputDirectory_);
-        }
+        
     }
 
-    void X3DFileOutput::run(SnapshotManager& snapshotManager, const std::filesystem::path& /* outputPath */)
+    void X3DFileOutput::run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath)
     {
+        std::filesystem::path outputDirectory = outputPath / "x3d_files";
+
+        if (!std::filesystem::exists(outputDirectory)) {
+            std::filesystem::create_directories(outputDirectory);
+        }
+
         StepType lastProcessedStep = -1; // Empezamos desde antes del paso 0
 
         while (true) {
@@ -40,7 +43,7 @@ namespace danasim {
 
                 // Serializamos y escribimos a disco
                 // X3DSnapshotSerializer serializer;
-                // serializer.serializeToFile(snapshot, outputDirectory_ / filename);
+                // serializer.serializeToFile(snapshot, outputDirectory / filename);
 
                 // Actualizamos el tracking
                 lastProcessedStep = snapshot.step();

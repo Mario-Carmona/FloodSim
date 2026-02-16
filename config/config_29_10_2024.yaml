@@ -1,15 +1,16 @@
 scenario:
+  outputDir: ../outputs
   name: scenario_29_10_2024
 
 logging:
   level: info
   async: true
   silent: false
-  file: simulation.log
+  saveLogFile: true
 
 input:
   type: file
-  path: ../../../data/data_29_10_2024
+  path: ../data/data_29_10_2024
 
 output:
   snapshot:
@@ -18,8 +19,8 @@ output:
     - type: image
 
 state_updater:
-  type: tensorflow
-  model_path: ../../../models/simulation_model_cpu.onnx
+  type: onnx
+  model_path: ../models/simulation_model_cpu.onnx
 
 simulation:
   time_step: 1.0

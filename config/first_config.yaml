@@ -1,15 +1,16 @@
 scenario:
+  outputDir: ../outputs
   name: second_data_1
 
 logging:
   level: debug
   async: false
   silent: false
-  file: simulation.log
+  saveLogFile: true
 
 input:
   type: file
-  path: ../../../data/first_data
+  path: ../data/first_data
 
 output:
   snapshot:
@@ -23,8 +24,8 @@ output:
       format: protobuf
 
 state_updater:
-  type: tensorflow
-  model_path: ../../../models
+  type: onnx
+  model_path: ../models/simulation_model_cpu.onnx
 
 simulation:
   time_step: 1.0

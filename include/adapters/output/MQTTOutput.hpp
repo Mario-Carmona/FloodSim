@@ -5,7 +5,7 @@
 #include <string>
 
 #include "app/config/Config.hpp"
-#include "core/ports/OutputPort.hpp"
+#include "ports/OutputPort.hpp"
 
 #include <mqtt/async_client.h>
 

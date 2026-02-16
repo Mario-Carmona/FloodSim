@@ -50,7 +50,7 @@ namespace danasim {
          * * @param configPath Path to the YAML configuration file.
          * @throw std::runtime_error If configuration loading fails.
          */
-        explicit Application(const std::string& configPath);
+        explicit Application(const std::filesystem::path& configPath);
 
         /**
          * @brief Destructor. Ensures all threads are stopped safely.
@@ -67,8 +67,6 @@ namespace danasim {
         int run();
 
     private:
-        const std::filesystem::path OUTPUT_BASE_PATH = std::filesystem::path("../../../outputs");
-
         /// The parsed application configuration.
         Config config_;
 

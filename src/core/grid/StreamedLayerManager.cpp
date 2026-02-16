@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include "app/logging/Logger.hpp"
+#include "logging/Logger.hpp"
 
 namespace danasim {
 
