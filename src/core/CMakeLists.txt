@@ -18,7 +18,7 @@ target_sources(danasim_core
         snapshot/SnapshotManager.cpp
         snapshot/Snapshot.cpp
         grid/MapGrid.cpp
-        grid/StreamedLayerManager.cpp
+        grid/DynamicLayerManager.cpp
 )
 
 target_include_directories(danasim_core

@@ -10,7 +10,7 @@ logging:
 
 input:
   type: file
-  path: ../data/data_29_10_2024_Raul
+  path: ../data/data_29_10_2024
 
 output:
   snapshot:

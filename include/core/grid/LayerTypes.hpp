@@ -37,20 +37,11 @@ namespace danasim {
     };
 
     /**
-     * @enum LayerCategory
-     * @brief semantic categorization of the layer.
-     */
-    enum class LayerCategory : uint8_t {
-        Static,     ///< Never changes during simulation (e.g., Elevation).
-        Dynamic     ///< Changes every time step (e.g., WaterDepth).
-    };
-
-    /**
      * @enum LayerRole
      * @brief Defines if the layer is loaded from disk or derived internally.
      */
     enum class LayerRole : uint8_t {
-        Principal,  ///< Data comes from an external source (File/API).
+        Main,  ///< Data comes from an external source (File/API).
         Secondary   ///< Data is derived/calculated internally.
     };
 
@@ -59,8 +50,9 @@ namespace danasim {
      * @brief Defines the I/O strategy for Principal layers.
      */
     enum class LayerSource : uint8_t {
-        InMemory,   ///< Loaded entirely into RAM at startup (e.g., GeoTIFF).
-        Streamed    ///< Loaded chunk-by-chunk/frame-by-frame (e.g., HDF5 time series).
+        Static,   ///< Loaded entirely into RAM at startup (e.g., GeoTIFF).
+        Dynamic,    ///< Loaded chunk-by-chunk/frame-by-frame (e.g., HDF5 time series).
+        Derived
     };
 
 } // namespace danasim

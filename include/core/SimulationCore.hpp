@@ -12,7 +12,7 @@
 #include "ports/InputPort.hpp"
 #include "ports/OutputPort.hpp"
 #include "core/grid/MapGrid.hpp"
-#include "core/grid/StreamedLayerManager.hpp"
+#include "core/grid/DynamicLayerManager.hpp"
 
 namespace danasim {
 
@@ -55,7 +55,7 @@ namespace danasim {
         SnapshotManager* snapshotManager_;
         InputPort* input_;
         std::vector<OutputPort*> outputs_;
-        StreamedLayerManager streamedLayerManager_;
+        DynamicLayerManager dynamicLayerManager_;
 
         // Simulation parameters
         float timeStep_;

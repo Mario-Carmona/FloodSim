@@ -1,0 +1,27 @@
+start_date: "2024-10-29 10:00:00"
+end_date: "2024-10-30 00:00:00"
+output_name: "data_new"
+output_dir: "./output"
+layers:
+  elevation:
+    folder_path: "../../data/data_29_10_2024/elevation"
+    filename: "elevation"
+
+  water_depth:
+
+  roughness:
+
+  rainfall:
+    simulation:
+      time_step: "01:00:00"
+    geography:
+      downgrade_factor: 5
+    interpolation:
+      variogram_model: "Spherical"
+      min_points_required: 5
+
+visualize:
+  enable: True
+  layers:
+    - "elevation"
+    - "rainfall" 

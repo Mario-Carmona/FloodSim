@@ -1,0 +1,172 @@
+\chapter{Methodology and Design}
+\label{chapter:methodology_and_design}
+
+\section{Theoretical model: Multilayer Cellular Automata ($m:n-CA^k$)}
+
+\subsection{Fundamentals of the Fonseca, Colls, and Casanovas model applied to fluids}
+
+\subsection{Definition of cellular space and Moore's neighborhood in the context of floods}
+
+
+\subsection{Formalization of the Global State ($EG$) and Tensor Transition Functions}
+
+
+
+
+\section{System Architecture Design}
+
+\subsection{The Simulator Core: State inference logic}
+
+\subsection{Hexagonal Architecture: Decoupling Using Ports and Adapters}
+
+\subsection{Advantages of the design for physical layer extensibility}
+
+
+
+
+
+\section{Data Structure and Tensor Model}
+
+\subsection{Representation of the system as a multi-channel tensor}
+
+The core of the simulator is designed around a multi-layered tensor structure that implements the $m:n-CA^k$ formalization. In this model, the global state ($EG$) of any cell at coordinates $(x, y)$ is determined by the combination of $m$ layers. In our implementation, these layers are represented as channels within a high-performance tensor, allowing the simulation core to perform state transitions using vectorized operations.
+
+\subsection{Layer Metadata Specification}
+
+To formalize the interaction between the Hexagonal Architecture and the tensor core, each layer $\mathcal{L}$ is defined by a set of features $\mathcal{F} = \{R, T, S\}$, where:
+
+\begin{description}
+    \item[Layer Role ($R$)] Defines if the layer is the main state variable or a secondary variable.
+    \begin{itemize}
+        \item \textit{Main}: The main variable being simulated ($k$ in $m:n-CA^k$).
+        \item \textit{Secondary}: Input data that informs the transition function.
+    \end{itemize}
+    
+    \item[Data Type ($T$)] The primitive type used in the C++ tensor implementation.
+    \begin{itemize}
+        \item \textit{Float}: Standard for hydraulic variables (depth, slope).
+        \item \textit{Integer}: Used for categorical masks or land-use IDs.
+    \end{itemize}
+
+    \item[Layer Source ($S$)] Determines the loading and updating logic in the Hexagonal Adapters.
+    \begin{itemize}
+        \item \textit{Static Raster}: Persistent GIS data loaded at initialization.
+        \item \textit{Temporal Raster}: External sequences (e.g., rainfall) updated during runtime.
+        \item \textit{Derived Layer}: Internally calculated from other layers (e.g., slope from elevation).
+    \end{itemize}
+\end{description}
+
+Before analyzing the specific definition of each data layer, it is essential to categorize them based on their physical nature and their management within the simulation engine. The following table summarizes the currently defined layers:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Layer} & \textbf{Data type} & \textbf{Role} & \textbf{Source} \\ \hline
+Elevation      & Float              & Secondary     & Static          \\ \hline
+Water Depth    & Float              & Main          & Static          \\ \hline
+Roughness      & Float              & Secondary     & Static          \\ \hline
+Rainfall       & Float              & Secondary     & Temporal        \\ \hline
+\end{tabular}
+\caption{Layer Metadata Specification}
+\label{tab:layer-metadata-specification}
+\end{table}
+
+\subsection{Definition of layers}
+
+In the following, we detail the characteristics and extraction methodology for each of the layers.
+
+\subsubsection{Elevation Layer}
+
+The Elevation Layer is the fundamental topographic descriptor of the simulation environment. 
+It represents the Digital Elevation Model (DEM), providing the vertical coordinate (altitude in meters) for 
+every cell in the cellular automata grid. Within the $m:n-CA^k$ framework, this layer acts as a 
+constant physical constraint that dictates the potential energy available for water movement.
+
+\paragraph{Characteristics}
+
+\begin{itemize}
+    \item \textbf{Layer Role}: Secondary. It provides environmental context but is not the primary evolving state.
+    \item \textbf{Data Type}: Float (32-bit). High precision is required to capture subtle topographic gradients.
+    \item \textbf{Layer Source}: Static Raster. The terrain is assumed to be invariant during the flood event.
+\end{itemize}
+
+\paragraph{Extraction Methodology}
+
+The extraction process handles the IDRISI32 raster format, which is characterized by a dual-file structure: the 
+data file (.rst) and the documentation/metadata file (.rdc).
+
+\subsubsection{Water Depth Layer}
+
+The Water Depth Layer is the cornerstone of the simulation, acting as the Main Layer ($k=1$) in the $m:n-CA^k$ 
+formalization. It represents the height of the water column (in meters) above the terrain for each cell. Unlike 
+environmental constraints, this layer constitutes the internal state of the cellular automaton that the Core 
+modifies at every time step ($\Delta t$).
+
+\paragraph{Characteristics}
+
+\begin{itemize}
+    \item \textbf{Layer Role}: Main. It is the main variable under study and the output of the transition function.
+    \item \textbf{Data Type}: Float (32-bit). Precision is vital for stability in shallow water equations and low-flow areas.
+    \item \textbf{Layer Source}: Static Raster (Initial Conditions). While the layer is dynamic during execution, its 
+    starting point is defined by a static input file representing the initial state or "hot start" conditions.
+\end{itemize}
+
+\paragraph{Extraction Methodology}
+
+Since this layer is treated as a Static Raster for initialization purposes, it follows the IDRISI32 extraction 
+pipeline. This allows the simulator to begin from a non-zero state (e.g., simulating a river that already has water 
+or continuing a previous simulation).
+
+\subsubsection{Roughness Layer}
+
+The Roughness Layer provides the spatial distribution of friction coefficients across the simulation grid. It is 
+a critical parameter in the Manning equation, which relates the flow velocity to the hydraulic radius, the slope, 
+and the surface roughness.
+
+\paragraph{Characteristics}
+
+\begin{itemize}
+    \item \textbf{Layer Role}: Secondary. It acts as a stationary parameter that influences the transition function 
+    but is not modified by the simulation.
+    \item \textbf{Data Type}: Float (32-bit). Manning coefficients are small decimal values (e.g., $0.013$ for 
+    concrete, $0.040$ for shrubland).
+    \item \textbf{Layer Source}: Static Raster. The land use characteristics are assumed to remain constant during the event.
+\end{itemize}
+
+\paragraph{Extraction Methodology}
+
+The data for this layer is stored in IDRISI32 format, ensuring compatibility with the other static inputs of the system.
+
+\subsubsection{Rainfall Layer}
+
+The Rainfall Layer defines the net precipitation intensity reaching the surface of each cell. Within the $m:n-CA^k$ 
+framework, it acts as a Secondary Layer that provides a time-dependent input ($R$) to the transition function. This 
+input is directly integrated into the mass balance equation of the Water Depth layer.
+
+\paragraph{Characteristics}
+
+\begin{itemize}
+    \item \textbf{Layer Role}: Secondary. It acts as an external forcing or "event" parameter.
+    \item \textbf{Data Type}: Float (32-bit). Represented in $mm/h$.
+    \item \textbf{Layer Source}: Time-Varying Raster (Temporal Source). The data is updated at specific intervals during the simulation.
+\end{itemize}
+
+\paragraph{Extraction Methodology}
+
+The methodology for populating this layer involves a complex transformation from raw meteorological data to a 
+structured tensor format.
+
+\begin{enumerate}
+    \item \textbf{Data Acquisition}: Precipitation data is sourced from sensor networks managed by Hydrographic 
+    Confederations (e.g., Automatic Hydrological Information Systems - SAIH). This data typically arrives as 
+    point-based time series from rain gauges or as radar-derived grids.
+    \item \textbf{Spatial Interpolation and DEM Alignment}: Since sensor data is often point-based, a spatial 
+    interpolation (such as Inverse Distance Weighting or Kriging) is applied to generate a continuous surface. 
+    The DEM is used here as a spatial reference to ensure the interpolated rainfall grid matches the simulation's 
+    bounding box and resolution. Additionally, topographic features from the DEM can be used to apply orographic 
+    corrections to the rainfall distribution.
+    \item \textbf{Temporal Packaging (HDF5)}: The processed grids are stored in HDF5 (Hierarchical Data Format 
+    version 5). This format allows the storage of massive multi-dimensional datasets. In our system, the HDF5 
+    file contains a 3D dataset where the dimensions are $(Time, X, Y)$.
+\end{enumerate}

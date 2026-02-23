@@ -1,0 +1,10 @@
+numpy
+h5py
+pyproj
+loguru
+rasterio
+requests
+pdfplumber
+gstools
+pyyaml
+matplotlib

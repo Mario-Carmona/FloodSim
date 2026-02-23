@@ -39,7 +39,6 @@ namespace danasim {
      */
     struct LayerDescriptor {
         std::string name;
-        LayerCategory category;
         LayerRole role;
         LayerDataType dataType;
         LayerSource source;

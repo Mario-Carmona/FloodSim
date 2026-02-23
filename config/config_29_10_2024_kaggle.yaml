@@ -1,6 +1,6 @@
 scenario:
   outputDir: ../outputs
-  name: scenario_29_10_2024_Raul
+  name: scenario_29_10_2024_kaggle
 
 logging:
   level: info
@@ -10,7 +10,7 @@ logging:
 
 input:
   type: file
-  path: /kaggle/input/sim-data/data_29_10_2024_Raul
+  path: /kaggle/input/sim-data/data_29_10_2024
 
 output:
   snapshot:

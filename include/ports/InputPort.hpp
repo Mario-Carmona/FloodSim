@@ -13,7 +13,7 @@
 #include <concepts>
 
 #include "core/grid/MapGrid.hpp"
-#include "core/grid/StreamedLayerManager.hpp"
+#include "core/grid/DynamicLayerManager.hpp"
 
 namespace danasim {
 
@@ -29,13 +29,13 @@ namespace danasim {
         virtual ~InputPort() = default;
 
         /**
-         * @brief Loads data into the simulation grid and initializes streamed layers.
+         * @brief Loads data into the simulation grid and initializes dynamic layers.
          *
          * @param[out] grid Mutable reference to the main simulation grid.
-         * @param[out] streamedLayerManager Manager for time-variant external data (e.g., HDF5 rain).
+         * @param[out] dynamicLayerManager Manager for time-variant external data (e.g., HDF5 rain).
          * @param[in] timeStep The simulation time step (dt) in seconds, used for unit conversion during load.
          */
-        virtual void load(MapGrid& grid, StreamedLayerManager& streamedLayerManager, float timeStep) = 0;
+        virtual void load(MapGrid& grid, DynamicLayerManager& dynamicLayerManager, float timeStep) = 0;
     };
 
 } // namespace danasim

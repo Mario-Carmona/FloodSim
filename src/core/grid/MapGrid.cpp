@@ -37,37 +37,33 @@ namespace danasim {
                 case LayerId::Elevation:
                     desc = {
                         "elevation", 
-                        LayerCategory::Static, 
-                        LayerRole::Principal, 
+                        LayerRole::Secondary,
                         LayerDataType::Float32,
-                        LayerSource::InMemory
+                        LayerSource::Static
                     };
                     break;
                 case LayerId::Rainfall:
                     desc = {
                         "rainfall",
-                        LayerCategory::Dynamic,
-                        LayerRole::Principal,
+                        LayerRole::Secondary,
                         LayerDataType::Float32,
-                        LayerSource::Streamed
+                        LayerSource::Dynamic
                     };
                     break;
                 case LayerId::Roughness:
                     desc = {
                         "roughness",
-                        LayerCategory::Static,
                         LayerRole::Secondary,
                         LayerDataType::Float32,
-                        LayerSource::InMemory
+                        LayerSource::Static
                     };
                     break;
                 case LayerId::WaterDepth:
                     desc = {
                         "water_depth",
-                        LayerCategory::Dynamic,
-                        LayerRole::Secondary,
+                        LayerRole::Main,
                         LayerDataType::Float32,
-                        LayerSource::InMemory
+                        LayerSource::Static
                     };
                     break;
                     // ... añade tus otros LayerId aquí ...
@@ -105,16 +101,16 @@ namespace danasim {
         for (size_t i = 0; i < buffer.size(); ++i) {
             const auto& desc = buffer[i];
 
-            if (desc.role == LayerRole::Secondary) {
+            if (desc.source == LayerSource::Derived) {
                 // We have entered the Secondary layers zone
                 secondaryStarted = true;
             }
-            else if (desc.role == LayerRole::Principal) {
+            else {
                 // If we find a Principal layer after starting Secondary layers, it's an error.
                 if (secondaryStarted) {
                     auto msg = fmt::format(
-                        "Layer Order Error: Layer '{}' (Principal) appears after a Secondary layer. "
-                        "Please reorder LayerId enum so all Principal layers come first.",
+                        "Layer Order Error: Layer '{}' (Non Derived) appears after a Derived layer. "
+                        "Please reorder LayerId enum so all Non Derived layers come first.",
                         desc.name
                     );
                     LOG_ERROR("{}", msg);

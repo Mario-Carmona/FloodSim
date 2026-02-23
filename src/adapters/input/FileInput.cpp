@@ -25,18 +25,6 @@
 namespace danasim {
 
     // -------------------------------------------------------------------------
-    // Custom Deleter for RAII GDAL Management
-    // -------------------------------------------------------------------------
-    struct GDALDatasetDeleter {
-        void operator()(GDALDataset* ds) const {
-            if (ds) {
-                GDALClose(ds);
-            }
-        }
-    };
-    using GDALDatasetUniquePtr = std::unique_ptr<GDALDataset, GDALDatasetDeleter>;
-
-    // -------------------------------------------------------------------------
     // Implementation
     // -------------------------------------------------------------------------
 
@@ -49,7 +37,7 @@ namespace danasim {
         LOG_INFO("FileInput initialized with root: {}", inputPath.string());
     }
 
-    void FileInput::load(MapGrid& grid, StreamedLayerManager& streamedLayerManager, float timeStep) {
+    void FileInput::load(MapGrid& grid, DynamicLayerManager& dynamicLayerManager, float timeStep) {
         LOG_INFO("Loading simulation layers...");
 
         std::filesystem::path root(inputPath_);
@@ -59,22 +47,21 @@ namespace danasim {
             const auto& desc = MapGrid::getDescriptor(layerId);
 
             try {
-                if (desc.role == LayerRole::Principal) {
+                if (desc.source == LayerSource::Derived) {
+                    initializeDerivedLayer(grid, layerId);
+                }
+                else {
                     // Calculate path: root / "layer_name" (e.g., ./data/elevation)
                     auto layerDir = root / desc.name;
 
-                    if (desc.source == LayerSource::InMemory) {
+                    if (desc.source == LayerSource::Static) {
                         LOG_DEBUG("Loading static layer '{}' from GDAL", desc.name);
                         loadLayerFromGDAL(grid, layerDir, layerId);
                     }
                     else {
-                        LOG_DEBUG("Configuring streamed layer '{}' from HDF5", desc.name);
-                        loadLayerFromHDF5(grid, streamedLayerManager, layerDir, timeStep, layerId);
+                        LOG_DEBUG("Configuring dynamic layer '{}' from HDF5", desc.name);
+                        loadLayerFromHDF5(grid, dynamicLayerManager, layerDir, timeStep, layerId);
                     }
-                }
-                else {
-                    // Secondary layers (derived data, scratch buffers)
-                    initializeSecondaryLayer(grid, layerId);
                 }
             }
             catch (const std::exception& ex) {
@@ -97,26 +84,27 @@ namespace danasim {
 
     void FileInput::loadLayerFromGDAL(MapGrid& grid, const std::filesystem::path& directory, LayerId layerId) {
         // 1. Locate the file (supports .rst or .tif logic via helper)
-        std::filesystem::path filePath = findFileWithExtension(directory, ".rst");
+        std::filesystem::path filePath = findFileWithExtension(directory, ".tif");
 
         // 2. Open Dataset (RAII)
-        GDALDatasetUniquePtr dataset(
-            (GDALDataset*)GDALOpen(filePath.string().c_str(), GA_ReadOnly)
-        );
+        GDALDataset* poDataset;
+        poDataset = (GDALDataset*)GDALOpen(filePath.string().c_str(), GA_ReadOnly);
 
-        if (!dataset) {
+        if (poDataset == NULL) {
             auto msg = fmt::format("GDAL failed to open file: {}", filePath.string());
             LOG_ERROR("{}", msg);
             throw std::runtime_error(msg);
         }
 
-        int width = dataset->GetRasterXSize();
-        int height = dataset->GetRasterYSize();
+        // 3. Obtener información general
+        int width = poDataset->GetRasterXSize();
+        int height = poDataset->GetRasterYSize();
+        int bandCount = poDataset->GetRasterCount();
 
         if (layerId == LayerId::Elevation) {
             // 3. Initialize Dimensions
             double geoTransform[6];
-            if (dataset->GetGeoTransform(geoTransform) == CE_None) {
+            if (poDataset->GetGeoTransform(geoTransform) == CE_None) {
                 float cellSize = static_cast<float>(geoTransform[1]);
 
                 float mapOriginX = static_cast<float>(geoTransform[0]);
@@ -125,7 +113,7 @@ namespace danasim {
                 grid.init(height, width, cellSize, mapOriginX, mapOriginY);
             }
             else {
-                std::string msg = "Not found IDRISI metada.";
+                std::string msg = "Not found CRS metada.";
                 LOG_ERROR("{}", msg);
                 throw std::runtime_error(msg);
             }
@@ -143,8 +131,8 @@ namespace danasim {
         }
 
         // 4. Fetch Raster Band
-        GDALRasterBand* band = dataset->GetRasterBand(1); // Bands are 1-indexed
-        if (!band) {
+        GDALRasterBand* poBand = poDataset->GetRasterBand(1); // Bands are 1-indexed
+        if (!poBand) {
             std::string msg = "File has no raster bands";
             LOG_ERROR("{}", msg);
             throw std::runtime_error(msg);
@@ -157,14 +145,14 @@ namespace danasim {
         if (MapGrid::getDescriptor(layerId).dataType == LayerDataType::Float32) {
             float* targetPtr = grid.getLayer<float>(layerId).data();
 
-            err = band->RasterIO(GF_Read, 0, 0, width, height,
+            err = poBand->RasterIO(GF_Read, 0, 0, width, height,
                 targetPtr, width, height,
                 GDT_Float32, 0, 0);
         }
         else {
             int8_t* targetPtr = grid.getLayer<int8_t>(layerId).data();
 
-            err = band->RasterIO(GF_Read, 0, 0, width, height,
+            err = poBand->RasterIO(GF_Read, 0, 0, width, height,
                 targetPtr, width, height,
                 GDT_Int8, 0, 0);
         }
@@ -174,36 +162,22 @@ namespace danasim {
             LOG_ERROR("{}", msg);
             throw std::runtime_error(msg);
         }
+
+        GDALClose(poDataset);
     }
 
-    void FileInput::loadLayerFromHDF5(MapGrid& grid, StreamedLayerManager& streamedLayerManager, const std::filesystem::path& directory, float timeStep, LayerId layerId) {
+    void FileInput::loadLayerFromHDF5(MapGrid& grid, DynamicLayerManager& dynamicLayerManager, const std::filesystem::path& directory, float timeStep, LayerId layerId) {
         std::filesystem::path filePath = findFileWithExtension(directory, ".h5");
 
         // Delegate to the manager logic
-        streamedLayerManager.initLayer(grid, filePath, timeStep, layerId);
+        dynamicLayerManager.initLayer(grid, filePath, timeStep, layerId);
 
         LOG_INFO("Registered HDF5 source: {}", filePath.string());
     }
 
-    void FileInput::initializeSecondaryLayer(MapGrid& grid, LayerId id) {
+    void FileInput::initializeDerivedLayer(MapGrid& grid, LayerId id) {
         // Logic for derived layers.
         switch (id) {
-        case LayerId::Roughness: {
-            LOG_INFO("Setting Roughness...");
-
-            float* roughnessData = grid.getLayer<float>(LayerId::Roughness).data();
-
-            std::fill(roughnessData, roughnessData + grid.cellCount(), 0.0f);
-            break;
-        }
-        case LayerId::WaterDepth: {
-            LOG_INFO("Setting WaterDepth...");
-
-            float* waterDepthData = grid.getLayer<float>(LayerId::WaterDepth).data();
-
-            std::fill(waterDepthData, waterDepthData + grid.cellCount(), 0.0f);
-            break;
-        }
         default:
             auto msg = fmt::format(
                 "There is no initialization logic for the secondary layer: {}",

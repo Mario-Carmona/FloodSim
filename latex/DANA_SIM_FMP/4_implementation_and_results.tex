@@ -1,0 +1,151 @@
+\chapter{Implementation and Results}
+\label{chapter:implementation_and_results}
+
+\section{Development Environment and Technologies}
+
+
+\section{Implementation of Hexagonal Architecture}
+
+
+
+Diagrama de Clases (Arquitectura Hexagonal)
+
+Por qué: Para mostrar cómo el Multi-Format Raster File Input Adapter implementa la interfaz (puerto) necesaria para que el Core pueda leer tanto IDRISI como HDF5.
+Qué debe mostrar: La relación de herencia o implementación entre el adaptador y el puerto.
+
+Resumen de Recomendaciones:
+1. Herramientas: Usa Draw.io para el Pipeline de Datos (es más visual y libre) y PlantUML para el diagrama de secuencia (es más riguroso para UML).
+
+2. Formatos: Exporta siempre a PDF si usas pdflatex. Esto mantendrá los esquemas vectorizados, permitiendo hacer zoom sin que se vean píxeles, lo cual es vital para la calidad de un TFM.
+
+3. Consistencia: Asegúrate de que los nombres de las clases en el esquema (ej. TemporalLayerManager) coincidan exactamente con los que usas en el texto y en el código.
+
+
+\subsection{Input}
+
+\subsubsection{Multi-Format Raster File Input Adapter}
+
+Supporting IDRISI and HDF5 formats. (Aquí explicamos que un solo adaptador gestiona ambos).
+
+\subsection{Output}
+
+\subsection{State Updater}
+
+\section{Implementation of the Simulation Core}
+
+\subsection{Algorithm for updating states using tensor operations}
+
+\subsection{Performance optimization and parallelism}
+
+\subsection{Tensor-based Grid Structure}
+
+\subsection{The TemporalLayerManager: Efficient Memory Handling for Dynamic Data}
+
+(Aquí documentamos la lógica de actualización por pasos)
+
+Diagrama de Secuencia UML (Lógica de Ejecución)
+
+Qué debe mostrar:
+
+- La línea de vida del Core (que avanza en el tiempo).
+
+- La línea de vida del TemporalLayerManager (que valida el tiempo).
+
+- La llamada al InputAdapter para leer el "hyperslab" del HDF5.
+
+- La actualización del Tensor en el Grid.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/sequence_rainfall_update.pdf}
+    \caption{UML Sequence Diagram: Rainfall tensor update via TemporalLayerManager.}
+    \label{fig:seq_update}
+\end{figure}
+
+\paragraph{Logic Workflow:} 
+\begin{enumerate}
+    \item \textbf{Subscription}: During initialization, the rainfall layer is registered in the 
+    TemporalLayerManager with a specific update frequency (e.g., every 600 simulation seconds).
+    \item \textbf{Step Validation}: In each iteration of the Core, the manager checks if the 
+    current step requires a data refresh.
+    \item \textbf{Update Request}: If an update is needed, the manager calls the update method.
+    \item \textbf{HDF5 Access}: The manager uses the HighFive functions to perform a Hyperslab selection.
+    \item \textbf{Tensor Update}: The buffer is moved into the specific channel of the Core's grid tensor.
+\end{enumerate}
+
+\section{Data Extraction and Ingestion Process (Data Pipeline)}
+
+\subsection{Elevation Layer}
+
+\subsection{Water Depth Layer}
+
+\subsection{Roughness Layer}
+
+\subsection{Rainfall Layer}
+
+The implementation of the rainfall layer follows a decoupled pipeline where data acquisition and spatial 
+normalization are performed offline using Python, while the real-time ingestion is managed by the C++ Core.
+
+\begin{figure}[htbp]
+    \centering
+    % Esquema del Pipeline de Datos (Diagrama de Flujo)
+    % Aquí iría tu export de Draw.io en PDF o PNG
+    % Qué debe mostrar:
+    %
+    %    - Las fuentes externas (APIs de sensores).
+    %
+    %    - Los scripts de Python como bloques de procesamiento.
+    %
+    %    - El archivo HDF5 como el "almacén" final que consume el simulador.
+    \includegraphics[width=0.9\textwidth]{figures/rainfall_pipeline.pdf} 
+    \caption{Rainfall Data Pipeline: From physical sensors to HDF5 serialization.}
+    \label{fig:rainfall_pipeline}
+\end{figure}
+
+\paragraph{A. Pre-processing Pipeline (Python ETL)} 
+
+Before the simulation begins, a series of Python scripts perform the \textbf{Extract, Transform, and Load (ETL)} 
+process. This approach is chosen to leverage Python's extensive geospatial libraries (such as Pandas, 
+Xarray, and Scipy).
+
+\begin{enumerate}
+    \item \textbf{Extraction}: The scripts interface with the API or data repositories of the Hydrographic 
+    Confederations to retrieve raw meteorological time-series from physical sensors.
+    \item \textbf{Transformation (Spatial Interpolation)}: Since rainfall sensors are point-based, the scripts 
+    apply a spatial interpolation algorithm (e.g., Inverse Distance Weighting). To ensure consistency, the 
+    simulation's DEM is used as a spatial mask; the interpolation is clipped and resampled to match the exact 
+    grid dimensions and resolution of the elevation layer.
+    \item \textbf{Loading (HDF5)}: The resulting temporal sequence of rasters is serialized into a single 
+    HDF5 file. The data is organized into a 3D dataset (time, x, y), optimized for chunked access.
+\end{enumerate}
+
+\noindent The following table details the scripts involved in the ETL (Extract, Transform, Load) process:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Script} & \textbf{Libraries} & \textbf{Core Responsibility} \\ \hline
+\texttt{rain\_fetcher.py}      & \texttt{requests, pandas}              & Automated retrieval of sensor time-series from Hydrographic Confederation APIs.          \\ \hline
+\texttt{spatial\_aligner.py}    & \texttt{gdal, scipy}              & Spatial interpolation of point-data and clipping to the DEM's extent/resolution.          \\ \hline
+\texttt{hdf5\_optimizer.py}      & \texttt{h5py, numpy}              & Serialization of the raster sequence into a chunked 3D HDF5 dataset ($T, X, Y$).         \\ \hline
+\end{tabular}
+\caption{Python scripts for Rainfall data pre-processing}
+\label{tab:python-scripts-rainfall-data-pre-processing}
+\end{table}
+
+\paragraph{B. Core Ingestion and Memory Management} 
+
+In the implementation phase, the TemporalLayerManager class acts as the orchestrator for all time-varying 
+data. This component ensures that the Core only allocates memory for the rainfall data that is currently 
+relevant to the simulation time $t$.
+
+\section{Testing and Validation}
+
+\subsection{Test scenario: Simulation of a DANA event}
+
+\subsection{Analysis of results and comparison with historical data or theoretical models}
+
+
+
+Pruebas, validación y los resultados de la simulación.

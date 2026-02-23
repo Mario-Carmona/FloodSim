@@ -2,7 +2,7 @@
  * @file FileInput.hpp
  * @brief Input adapter for loading GIS and Simulation data from files.
  *
- * Handles the reading of static rasters (via GDAL) and dynamic streamed data
+ * Handles the reading of static rasters (via GDAL) and dynamic data
  * (via HDF5), populating the MapGrid structures accordingly.
  *
  * @version 1.0
@@ -43,10 +43,10 @@ namespace danasim {
          * data from disk (Principal layers) or initialize derived data (Secondary layers).
          *
          * @param grid The main simulation state grid to populate.
-         * @param streamedLayerManager Manager for handling time-series (HDF5) data.
+         * @param dynamicLayerManager Manager for handling time-series (HDF5) data.
          * @param timeStep The simulation time step (used for HDF5 caching).
          */
-        void load(MapGrid& grid, StreamedLayerManager& streamedLayerManager, float timeStep) override;
+        void load(MapGrid& grid, DynamicLayerManager& dynamicLayerManager, float timeStep) override;
 
     private:
         /**
@@ -62,12 +62,12 @@ namespace danasim {
         /**
          * @brief Configures the HDF5 streamer for a specific layer.
          */
-        void loadLayerFromHDF5(MapGrid& grid, StreamedLayerManager& streamedLayerManager, const std::filesystem::path& directory, float timeStep, LayerId layerId);
+        void loadLayerFromHDF5(MapGrid& grid, DynamicLayerManager& dynamicLayerManager, const std::filesystem::path& directory, float timeStep, LayerId layerId);
         
         /**
          * @brief Initializes derived layers (e.g., empty buffers, calculated constants).
          */
-        void initializeSecondaryLayer(MapGrid& grid, LayerId id);
+        void initializeDerivedLayer(MapGrid& grid, LayerId id);
         
         // --- Helpers ---
 

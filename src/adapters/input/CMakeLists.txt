@@ -6,7 +6,7 @@ find_package(GDAL CONFIG REQUIRED)
 
 
 # 3. Entorno "Data"
-create_python_env("sim_data_scripts" OFF)
+create_python_env("data_pipeline_scripts" OFF)
 
 
 

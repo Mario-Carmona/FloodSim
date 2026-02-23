@@ -33,7 +33,7 @@ namespace danasim {
     {
         LOG_INFO("Simulation started");
         // Initialize State
-        input_->load(currentGrid_, streamedLayerManager_, timeStep_);
+        input_->load(currentGrid_, dynamicLayerManager_, timeStep_);
 
         for (auto& output : outputs_) {
             output->setGrid(currentGrid_);
@@ -51,7 +51,7 @@ namespace danasim {
         while (step < maxSteps_) {
             // --- PASO 1: CARGAR DATOS EXTERNOS ---
             // Esto lee del HDF5 y escribe en active_.layers_[RainIntensity]
-            streamedLayerManager_.updateAllLayers(currentGrid_, step, timeStep_);
+            dynamicLayerManager_.updateAllLayers(currentGrid_, step, timeStep_);
 
             auto start = std::chrono::high_resolution_clock::now();
 
