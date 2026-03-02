@@ -1,19 +1,474 @@
 \chapter{Methodology and Design}
 \label{chapter:methodology_and_design}
 
+\section{Proposed Analytical Framework and Resolution Strategy}
+
+To address the limitations identified in the current state-of-the-art—specifically computational latency, architectural 
+rigidity, and the difficulty of integrating heterogeneous data—this research proposes a multi-dimensional analytical 
+framework. The resolution strategy is built upon three fundamental pillars: the formalization of a multilayered discrete 
+space, the adoption of a "Data-as-Interface" philosophy, and the implementation of a decoupled software architecture.
+
+
+\subsection{The Multilayer Conceptualization: $m:n-CA^k$}
+
+The core of the proposed resolution lies in the adoption of the Multilayer Cellular Automata ($m:n-CA^k$) paradigm. Unlike 
+standard Cellular Automata, which operate on a single state per cell, the $m:n-CA^k$ framework allows for the simultaneous 
+representation of diverse physical and environmental variables across different computational planes.
+
+In this framework, the river basin is modeled as a stack of $n$ information layers (e.g., topography, soil saturation, 
+precipitation, and urban obstacles). This allows the system to handle the complexity of flash floods by defining interaction 
+rules between layers (inter-layer) as well as within the same layer (intra-layer). By treating these layers as channels of a 
+global tensor, the model can execute complex transitions—such as the infiltration of water from the surface layer to the soil 
+layer—without losing the computational efficiency inherent to discrete models.
+
+
+\subsection{The "Data-as-Interface" Strategy}
+
+A critical component of the resolution strategy is the "Data-as-Interface" (DaI) approach. This methodology posits that the 
+data structure itself should act as the contract between different system components. Following the principles of Society 5.0 
+and Open Models \parencite{FonsecaiCasas2026}, the proposed framework separates the formal specification of the model 
+(what the water does) from its technical implementation (how it is programmed).
+
+By using the IDRISI format and Hierarchical IDRISI Format (HIF), the framework ensures that both static GIS data and 
+dynamic real-time sensor inputs are ingested through a standardized pipeline. This solves the "data silo" problem and allows 
+the simulation engine to remain agnostic to the source of the information, whether it comes from historical databases or live 
+meteorological radar.
+
+
+\subsection{Architectural Resolution: Hexagonal Design}
+
+To solve the architectural rigidity found in monolithic simulation tools, this thesis proposes a Hexagonal Architecture (also 
+known as Ports and Adapters). The resolution strategy involves isolating the "Simulator Core"—which contains the $m:n-CA^k$ 
+transition logic—from external dependencies such as file systems, GIS libraries, and user interfaces.
+
+\begin{itemize}
+    \item \textbf{The Core}: Encapsulates the mathematical and physical logic of the cellular automata.
+    \item \textbf{The Ports}: Define the required inputs (e.g., rainfall layers) and outputs (e.g., inundation maps).
+    \item \textbf{The Adapters}: Handle the specific technical details of data conversion (e.g., Rasterio for GeoTIFFs or 
+    custom C++ loaders for HIF).
+\end{itemize}
+
+This decoupling ensures that the system is highly extensible. For instance, a new "Infiltration Layer" based on a different 
+physical formula can be added by simply creating a new adapter, without modifying the core simulation engine.
+
+
+\subsection{Computational Performance Strategy}
+
+Finally, the strategy addresses the latency problem by prioritizing "Performance by Design". The resolution involves 
+implementing the simulation engine in C++, utilizing advanced data structures that map the multilayer cellular automata 
+directly onto memory-efficient tensors. By representing the system as a multi-channel grid, the model can leverage 
+vectorized operations and parallelism, aiming to achieve simulation speeds that allow for multiple "what-if" scenario 
+runs within the decision-making window of a real-world emergency.
+
+
+\subsection{Summary of the Resolution Approach}
+
+In summary, the proposed methodology does not merely provide a new algorithm but a complete technical framework:
+
+\begin{enumerate}
+    \item \textbf{Analytically}, it uses $m:n-CA^k$ to manage environmental complexity. 
+    \item \textbf{Architecturally}, it uses Hexagonal Design to ensure flexibility and "Open Model" compliance.
+    \item \textbf{Technically}, it utilizes high-performance C++ and the IDRISI format to bridge the gap between GIS 
+    and real-time forecasting.
+\end{enumerate}
+
+This integrated approach provides the necessary foundation to build a Reactive Digital Twin capable of responding to 
+extreme events like the 2024 DANA with the speed and precision required by modern society.
+
+
+
+
+
+
+
 \section{Theoretical model: Multilayer Cellular Automata ($m:n-CA^k$)}
 
 \subsection{Fundamentals of the Fonseca, Colls, and Casanovas model applied to fluids}
 
 \subsection{Definition of cellular space and Moore's neighborhood in the context of floods}
 
-
 \subsection{Formalization of the Global State ($EG$) and Tensor Transition Functions}
 
 
 
 
-\section{System Architecture Design}
+
+
+
+
+\section{System Macro-Architecture}
+
+The system is designed following a Loose Coupling strategy between two distinct technological domains, effectively 
+separating "Data Engineering" (preparation) from "Computational Physics" (simulation). This decoupling is mediated 
+by a standardized File-Based Interface, ensuring that the high-level data processing in Python and the high-performance 
+execution in C++ remain independent yet perfectly synchronized.
+
+\subsection{The Data-as-Interface Strategy}
+
+Instead of integrating Python scripts directly into the C++ core via interpreters or APIs, the architecture utilizes 
+a strictly defined File-Based Interface. The Data Pipeline acts as a "Producer", generating a structured repository 
+of geographical and temporal data. The C++ Simulator acts as a "Consumer", ingesting these datasets through a dedicated 
+InputAdapter.
+
+The system is a unified environment based on the IDRISI standard. Static layers are stored as IDRISI Raster datasets 
+(.doc/.img), while spatiotemporal data is managed through a custom Hierarchical IDRISI Format (HIF).
+
+This strategy provides several key advantages:
+
+\begin{enumerate}
+    \item \textbf{Format Homogeneity}: By using a single underlying raster standard (IDRISI), the simulator's input 
+    logic is simplified, reducing the overhead of managing multiple third-party libraries like HDF5 in the C++ 
+    environment.
+    \item \textbf{Technological Specialization}: Python manages complex GIS operations—such as coordinate reference 
+    system (CRS) transformations and remote sensing API calls—while the C++ core focuses exclusively on the numerical 
+    efficiency of Cellular Automata rules.
+    \item \textbf{Immutability and Reproducibility}: Once the pipeline execution is finalized, the input artifacts 
+    are fixed. This allows researchers to audit the exact state of the environment before a simulation run, ensuring 
+    that results are deterministic and reproducible.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{chapter_3/system_architecture_overview}
+    
+    \caption{System architecture overview}
+    \label{fig:system_architecture_overview}
+\end{figure}
+
+
+
+
+
+
+
+
+\section{The Hierarchical IDRISI Format (HIF)}
+
+To manage spatiotemporal data (e.g., hourly rainfall or dynamic water levels) without relying on complex binary 
+containers like HDF5 or NetCDF, this project introduces the Hierarchical IDRISI Format (HIF). The HIF is a structural 
+specification designed to store 3D data cubes using the native 2D IDRISI raster standard as a building block.
+
+\subsection{Conceptual Structure}
+
+The HIF treats time-series data as a discrete sequence of temporal frames. Each frame is stored as an independent 
+IDRISI raster pair (.doc for metadata and .img for the data matrix), organized within a hierarchical directory tree. 
+This allows for "lazy loading" of simulation steps, where the engine only reads the specific frame required for the 
+current time-step $t$.
+
+\subsection{Components of an HIF Dataset}
+
+An HIF dataset consists of three primary elements:
+
+\begin{enumerate}
+    \item \textbf{Master Metadata (.hif)}: A global descriptor file that defines the spatial context (extent, resolution, 
+    and CRS) shared by all frames in the sequence. It serves as the entry point for the simulator.
+    \item \textbf{Temporal Attribute Manifest (attrs.json)}: A specialized metadata file that maps simulation time-steps 
+    to specific file paths. It contains the downgrade factors, ISO-8601 timestamps, and the ordered list of frame filenames.
+    \item \textbf{Frame Repository}: A collection of subdirectories, each containing the standard IDRISI .doc and .img 
+    files for a single point in time.
+\end{enumerate}
+
+By adopting this format, the system achieves a balance between the simplicity of ASCII-based/flat-binary rasters and 
+the requirement for organized, high-dimensional temporal data.
+
+\subsection{Physical Storage and Directory Topology}
+
+The physical realization of an HIF dataset is organized as a self-contained directory that encapsulates both the global 
+spatiotemporal metadata and the individual raster frames. This structure is designed to facilitate modular access: the 
+simulation engine can parse the top-level manifest to understand the temporal extent and subsequently perform random 
+access to specific time-steps without the need to scan the entire dataset. 
+
+This tree topology illustrates the resulting hierarchy after the Data Pipeline exports a dynamic layer (e.g., rainfall).
+
+\begin{figure}[htbp]
+    \centering
+    \footnotesize
+    \begin{forest}
+      for tree={
+        folder,   
+        font=\ttfamily,
+        grow'=0,
+      }
+    [output/rainfall/
+      [\file{rainfall.hif}]
+      [\file{attrs.json}]
+      [000000/
+        [\file{000000.doc}]
+        [\file{000000.img}]
+      ]
+      [000001/
+        [\file{000001.doc}]
+        [\file{000001.img}]
+      ]
+    ]
+    \end{forest}
+    \caption{Hierarchical IDRISI Format (HIF) internal directory structure visualized as a tree topology.}
+    \label{fig:hif_structure}
+\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+\section{Data Pipeline Design (Pre-processing)}
+
+The core of any flood simulation system lies in its ability to process vast amounts of geospatial 
+data accurately and efficiently. The Data Pipeline is designed as a centralized orchestrator 
+responsible for the ingestion, transformation, and provision of the physical parameters required 
+by the hydraulic model.
+
+The primary objective is to decouple data acquisition from the simulation logic. By doing so, the 
+system ensures that changes in data formats or sources do not affect the stability of the 
+simulator's core. This framework is built upon three fundamental pillars:
+
+\begin{enumerate}
+    \item \textbf{Integrity}: Ensuring that spatial coordinates and resolutions remain consistent 
+    across all data layers.
+    \item \textbf{Scalability}: Allowing the inclusion of new physical variables (e.g., soil 
+    moisture or infiltration) without redesigning the existing architecture.
+    \item \textbf{Automation}: Minimizing manual intervention during the preprocessing of raster 
+    datasets.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{chapter_3/high-level_system_context}
+    
+    \caption{High-Level System Context}
+    \label{fig:high-level_system_context}
+\end{figure}
+
+
+\subsection{Data Categorization: Static vs Dynamic Layers}
+
+To optimize processing and memory management, the methodology categorizes geospatial information 
+into two distinct types based on their temporal behavior during a simulation:
+
+\begin{itemize}
+    \item \textbf{Static Layers}: These represent physical characteristics that remain constant 
+    throughout the simulation event. Examples include the Digital Elevation Model (DEM) and Land 
+    Use (Roughness). These layers are processed once and serve as the immutable "canvas" of the 
+    terrain.
+    \item \textbf{Dynamic Layers}: Input data that informs the transition function.These involve 
+    variables that change over time, requiring a temporal dimension in their representation. 
+    Examples include Rainfall Intensity. The design must account for the sequential reading or 
+    generation of these files, ensuring that the simulator receives the correct "snapshot" for 
+    each time step.
+\end{itemize}
+
+This conceptual separation allows the pipeline to apply different I/O strategies for each type, 
+significantly improving the efficiency of the data flow.
+
+
+\subsection{Architectural Design Patterns}
+
+To achieve a balance between flexibility and rigorous data handling, the system architecture is 
+grounded in three fundamental software engineering patterns: Abstraction, Inheritance, and the 
+Registry Pattern.
+
+
+\subsubsection{Abstraction and Encapsulation}
+
+The methodology treats every geospatial data source as a specialized object rather than a simple 
+file path or a raw array. By abstracting the complexities of coordinate systems, pixel resolutions, 
+and file formats into dedicated classes, the pipeline creates a unified interface. This encapsulation 
+ensures that the rest of the simulator does not need to understand the internal structure of the data; 
+it only interacts with high-level methods to retrieve physical values.
+
+
+\subsubsection{Hierarchical Inheritance (Base Classes)}
+
+The design utilizes a hierarchical structure to manage the commonalities and differences between 
+data types.
+
+\begin{itemize}
+    \item \textbf{Base Components}: A set of abstract base classes defines the "contract" that all 
+    specific layers and Input/Output (I/O) handlers must fulfill.
+    \item \textbf{Specialization}: This allows the system to distinguish between the static nature 
+    of a Digital Elevation Model (DEM) and the time-varying nature of rainfall intensity, while 
+    still sharing the same underlying logic for spatial referencing and memory management.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{chapter_3/data_generator_hierarchy}
+    
+    \caption{Data Generator Hierarchy}
+    \label{fig:data_generator_hierarchy}
+\end{figure}
+
+
+\subsubsection{The Registry Pattern for Extensibility}
+
+One of the most critical requirements for the TFM is the ability to integrate new physical variables 
+(layers) without modifying the core orchestrator. To solve this, the methodology adopts a 
+\textbf{Registry Pattern}.
+
+In this approach, the Data Pipeline acts as a central hub that does not "know" about specific layers 
+(like Rainfall or Roughness) at compile-time. Instead, each new layer "registers" itself into a 
+dictionary-like structure. When the simulation starts, the pipeline simply iterates through this 
+registry to initialize the required components. This design achieves Low Coupling, as adding a fifth 
+or sixth layer only requires creating a new class that follows the established base contract, leaving 
+the main execution logic untouched.
+
+
+\subsubsection{Decoupling I/O from Logic}
+
+Finally, the architecture enforces a strict separation between Data Access (reading/writing files) and 
+Data Logic (processing the raster values). By isolating I/O operations into dedicated I/O Handlers, 
+the system becomes agnostic to the storage medium. If the project were to move from local IDRISI files 
+to a cloud-based database or a different file format (like NetCDF), only the I/O handler would need to 
+be updated, while the layer generation logic remains intact.
+
+
+\subsection{Data Flow Logic}
+
+The movement of data through the system is governed by a deterministic lifecycle, ensuring that the 
+simulation engine receives a spatially and temporally synchronized "snapshot" of the environment. This 
+flow is divided into four primary stages:
+
+
+\subsubsection{Configuration-Driven Discovery}
+
+The process begins with the ingestion of a centralized configuration manifest (typically in YAML format), 
+which serves as the "Control Plane" for the entire data pipeline. Unlike a discovery-based system, the pipeline 
+maintains a pre-defined registry of core physical layers (e.g., Elevation, Rainfall, Roughness) essential for 
+the simulation. The configuration file is utilized to parameterize these layers and define the global execution 
+context.
+
+This stage manages three critical data dimensions:
+
+\begin{enumerate}
+    \item \textbf{Global Simulation Metadata}: It establishes the temporal boundaries of the scenario (start and 
+    end timestamps) and the workspace topology (output directory and naming conventions). This ensures that all 
+    generated layers are synchronized within the same spatiotemporal window.
+    \item \textbf{Layer Parameterization}: For each architectural layer, the configuration provides specific 
+    execution parameters. This includes spatial resolutions, interpolation models (e.g., Variogram types for 
+    rainfall), and geographical constraints (bounding boxes). This allows the same pipeline logic to be reused 
+    across different study areas by simply adjusting the numerical constants in the config file.
+    \item \textbf{Visualization Manifest}: The pipeline identifies which layers require graphical rendering for 
+    research purposes. By defining a "visualize" list in the configuration, the system selectively triggers the 
+    visualization engine post-generation, optimizing execution time by avoiding unnecessary plots for background 
+    layers.
+\end{enumerate}
+
+By separating the layer definitions (hard-coded in the pipeline's logic for structural integrity) from their 
+operational parameters (externalized in the configuration), the system achieves a high degree of reproducibility 
+and scientific flexibility.
+
+\subsubsection{Spatial Synchronization and Metadata Validation}
+
+Before any numerical processing occurs, the pipeline performs a Spatial Integrity Check. Flood simulations 
+are highly sensitive to spatial misalignment. The flow logic enforces a "Master Grid" approach, where 
+secondary layers (such as rainfall or roughness) must be validated against the primary Elevation Layer (DEM).
+
+\begin{itemize}
+    \item \textbf{Coordinate Reference System (CRS) Alignment}: Ensuring all data layers use the same 
+    projection.
+    \item \textbf{Resolution Matching}: Verifying that pixel sizes are consistent across all rasters to avoid 
+    interpolation errors during the simulation.
+    \item \textbf{Extent Clipping}: Ensuring that all dynamic inputs cover the exact bounding box of the 
+    static terrain.
+\end{itemize}
+
+
+\subsubsection{Sequential Execution: The Static-Dynamic Split}
+
+The data flow logic branches based on the temporal nature of the data:
+
+\begin{enumerate}
+    \item \textbf{The Static Phase (Setup)}: The pipeline triggers the generation and storage of immutable 
+    layers (Elevation and Roughness). These are processed once and held in a "Ready-to-Simulate" state.
+    \item \textbf{The Dynamic Loop (Runtime)}: For variables like Rainfall, the pipeline enters a cyclic flow. 
+    For every simulation time step, the logic dictates a "Fetch-Transform-Provision" cycle, ensuring that the 
+    simulator always has access to the most recent temporal state without overloading the system's memory.
+\end{enumerate}
+
+
+\subsection{Validation and Logging Strategy}
+
+The robustness of the data pipeline is sustained by a dual-layer strategy: rigorous pre-execution validation 
+to ensure structural and spatial coherence, and comprehensive logging to provide full transparency during the 
+transformation processes.
+
+
+\subsubsection{Structural and Dependency Validation}
+
+Before processing any raster data, the system must validate the logical structure of the simulation request. 
+This is approached using Graph Theory principles.
+
+\begin{itemize}
+    \item \textbf{Directed Acyclic Graph (DAG)}: The dependencies between layers (e.g., Rainfall requiring an 
+    Elevation model for clipping) are treated as nodes and edges in a graph. The methodology requires a 
+    topological sort to ensure that no circular dependencies exist and that every component is initialized 
+    only when its requirements are met.
+    \item \textbf{Schema Enforcement}: The configuration files are validated against a predefined schema to 
+    ensure that essential parameters, such as coordinate reference systems or simulation timeframes, are 
+    present and logically consistent (e.g., start\_date must precede end\_date).
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{chapter_3/layer_dependencies}
+    
+    \caption{Layer Dependencies}
+    \label{fig:layer_dependencies}
+\end{figure}
+
+
+\subsubsection{Spatial Integrity and Physical Constraints}
+
+The core of the validation strategy lies in ensuring "Spatial Coherence". Since the hydraulic model operates 
+on a numerical grid, the pipeline enforces strict spatial constraints:
+
+\begin{itemize}
+    \item \textbf{Domain Consistency}: Validating that all input datasets overlap with the requested study area.
+    \item \textbf{Resolution Uniformity}: Detecting and flagging discrepancies in pixel size that could lead 
+    to significant calculation errors in the fluid dynamics solver.
+    \item \textbf{No-Data Handling}: A theoretical framework for "Nodata" values is established, ensuring that 
+    missing geographic information does not propagate as zero-values, which would lead to physical inaccuracies 
+    in the flood extent.
+\end{itemize}
+
+
+\subsubsection{Observability through Multi-Sink Logging}
+
+In long-running environmental simulations, observability is critical for both real-time monitoring and post-mortem 
+analysis. The methodology adopts a Multi-Sink Logging Pattern:
+
+\begin{enumerate}
+    \item \textbf{Transient Output (Standard Stream)}: Focused on high-level operational status (Success, Info, Error). 
+    It provides the user with immediate feedback on the pipeline's progress without cluttering the interface 
+    with technical debt.
+    \item \textbf{Persistent Output (File-based Log)}: A detailed, low-level record of every transformation, I/O 
+    operation, and minor warning. This serves as a "black box" for researchers to audit the data generation process.
+    \item \textbf{Severity Layering}: Messages are categorized by intensity (Trace, Debug, Info, Success, Warning, 
+    Error). This allows for granular filtering: while a researcher might only want to see successful milestones, 
+    a developer can access the "Trace" level to inspect the exact metadata of a IDRISI being processed.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{chapter_3/logging_architecture}
+    
+    \caption{Logging Architecture}
+    \label{fig:logging_architecture}
+\end{figure}
+
+
+
+
+
+
+
+
+\section{Simulation Engine Design}
 
 \subsection{The Simulator Core: State inference logic}
 
@@ -21,152 +476,8 @@
 
 \subsection{Advantages of the design for physical layer extensibility}
 
-
-
-
-
-\section{Data Structure and Tensor Model}
+\subsection{Data Structure and Tensor Model}
 
 \subsection{Representation of the system as a multi-channel tensor}
 
-The core of the simulator is designed around a multi-layered tensor structure that implements the $m:n-CA^k$ formalization. In this model, the global state ($EG$) of any cell at coordinates $(x, y)$ is determined by the combination of $m$ layers. In our implementation, these layers are represented as channels within a high-performance tensor, allowing the simulation core to perform state transitions using vectorized operations.
-
 \subsection{Layer Metadata Specification}
-
-To formalize the interaction between the Hexagonal Architecture and the tensor core, each layer $\mathcal{L}$ is defined by a set of features $\mathcal{F} = \{R, T, S\}$, where:
-
-\begin{description}
-    \item[Layer Role ($R$)] Defines if the layer is the main state variable or a secondary variable.
-    \begin{itemize}
-        \item \textit{Main}: The main variable being simulated ($k$ in $m:n-CA^k$).
-        \item \textit{Secondary}: Input data that informs the transition function.
-    \end{itemize}
-    
-    \item[Data Type ($T$)] The primitive type used in the C++ tensor implementation.
-    \begin{itemize}
-        \item \textit{Float}: Standard for hydraulic variables (depth, slope).
-        \item \textit{Integer}: Used for categorical masks or land-use IDs.
-    \end{itemize}
-
-    \item[Layer Source ($S$)] Determines the loading and updating logic in the Hexagonal Adapters.
-    \begin{itemize}
-        \item \textit{Static Raster}: Persistent GIS data loaded at initialization.
-        \item \textit{Temporal Raster}: External sequences (e.g., rainfall) updated during runtime.
-        \item \textit{Derived Layer}: Internally calculated from other layers (e.g., slope from elevation).
-    \end{itemize}
-\end{description}
-
-Before analyzing the specific definition of each data layer, it is essential to categorize them based on their physical nature and their management within the simulation engine. The following table summarizes the currently defined layers:
-
-\begin{table}[H]
-\centering
-\begin{tabular}{|c|c|c|c|}
-\hline
-\textbf{Layer} & \textbf{Data type} & \textbf{Role} & \textbf{Source} \\ \hline
-Elevation      & Float              & Secondary     & Static          \\ \hline
-Water Depth    & Float              & Main          & Static          \\ \hline
-Roughness      & Float              & Secondary     & Static          \\ \hline
-Rainfall       & Float              & Secondary     & Temporal        \\ \hline
-\end{tabular}
-\caption{Layer Metadata Specification}
-\label{tab:layer-metadata-specification}
-\end{table}
-
-\subsection{Definition of layers}
-
-In the following, we detail the characteristics and extraction methodology for each of the layers.
-
-\subsubsection{Elevation Layer}
-
-The Elevation Layer is the fundamental topographic descriptor of the simulation environment. 
-It represents the Digital Elevation Model (DEM), providing the vertical coordinate (altitude in meters) for 
-every cell in the cellular automata grid. Within the $m:n-CA^k$ framework, this layer acts as a 
-constant physical constraint that dictates the potential energy available for water movement.
-
-\paragraph{Characteristics}
-
-\begin{itemize}
-    \item \textbf{Layer Role}: Secondary. It provides environmental context but is not the primary evolving state.
-    \item \textbf{Data Type}: Float (32-bit). High precision is required to capture subtle topographic gradients.
-    \item \textbf{Layer Source}: Static Raster. The terrain is assumed to be invariant during the flood event.
-\end{itemize}
-
-\paragraph{Extraction Methodology}
-
-The extraction process handles the IDRISI32 raster format, which is characterized by a dual-file structure: the 
-data file (.rst) and the documentation/metadata file (.rdc).
-
-\subsubsection{Water Depth Layer}
-
-The Water Depth Layer is the cornerstone of the simulation, acting as the Main Layer ($k=1$) in the $m:n-CA^k$ 
-formalization. It represents the height of the water column (in meters) above the terrain for each cell. Unlike 
-environmental constraints, this layer constitutes the internal state of the cellular automaton that the Core 
-modifies at every time step ($\Delta t$).
-
-\paragraph{Characteristics}
-
-\begin{itemize}
-    \item \textbf{Layer Role}: Main. It is the main variable under study and the output of the transition function.
-    \item \textbf{Data Type}: Float (32-bit). Precision is vital for stability in shallow water equations and low-flow areas.
-    \item \textbf{Layer Source}: Static Raster (Initial Conditions). While the layer is dynamic during execution, its 
-    starting point is defined by a static input file representing the initial state or "hot start" conditions.
-\end{itemize}
-
-\paragraph{Extraction Methodology}
-
-Since this layer is treated as a Static Raster for initialization purposes, it follows the IDRISI32 extraction 
-pipeline. This allows the simulator to begin from a non-zero state (e.g., simulating a river that already has water 
-or continuing a previous simulation).
-
-\subsubsection{Roughness Layer}
-
-The Roughness Layer provides the spatial distribution of friction coefficients across the simulation grid. It is 
-a critical parameter in the Manning equation, which relates the flow velocity to the hydraulic radius, the slope, 
-and the surface roughness.
-
-\paragraph{Characteristics}
-
-\begin{itemize}
-    \item \textbf{Layer Role}: Secondary. It acts as a stationary parameter that influences the transition function 
-    but is not modified by the simulation.
-    \item \textbf{Data Type}: Float (32-bit). Manning coefficients are small decimal values (e.g., $0.013$ for 
-    concrete, $0.040$ for shrubland).
-    \item \textbf{Layer Source}: Static Raster. The land use characteristics are assumed to remain constant during the event.
-\end{itemize}
-
-\paragraph{Extraction Methodology}
-
-The data for this layer is stored in IDRISI32 format, ensuring compatibility with the other static inputs of the system.
-
-\subsubsection{Rainfall Layer}
-
-The Rainfall Layer defines the net precipitation intensity reaching the surface of each cell. Within the $m:n-CA^k$ 
-framework, it acts as a Secondary Layer that provides a time-dependent input ($R$) to the transition function. This 
-input is directly integrated into the mass balance equation of the Water Depth layer.
-
-\paragraph{Characteristics}
-
-\begin{itemize}
-    \item \textbf{Layer Role}: Secondary. It acts as an external forcing or "event" parameter.
-    \item \textbf{Data Type}: Float (32-bit). Represented in $mm/h$.
-    \item \textbf{Layer Source}: Time-Varying Raster (Temporal Source). The data is updated at specific intervals during the simulation.
-\end{itemize}
-
-\paragraph{Extraction Methodology}
-
-The methodology for populating this layer involves a complex transformation from raw meteorological data to a 
-structured tensor format.
-
-\begin{enumerate}
-    \item \textbf{Data Acquisition}: Precipitation data is sourced from sensor networks managed by Hydrographic 
-    Confederations (e.g., Automatic Hydrological Information Systems - SAIH). This data typically arrives as 
-    point-based time series from rain gauges or as radar-derived grids.
-    \item \textbf{Spatial Interpolation and DEM Alignment}: Since sensor data is often point-based, a spatial 
-    interpolation (such as Inverse Distance Weighting or Kriging) is applied to generate a continuous surface. 
-    The DEM is used here as a spatial reference to ensure the interpolated rainfall grid matches the simulation's 
-    bounding box and resolution. Additionally, topographic features from the DEM can be used to apply orographic 
-    corrections to the rainfall distribution.
-    \item \textbf{Temporal Packaging (HDF5)}: The processed grids are stored in HDF5 (Hierarchical Data Format 
-    version 5). This format allows the storage of massive multi-dimensional datasets. In our system, the HDF5 
-    file contains a 3D dataset where the dimensions are $(Time, X, Y)$.
-\end{enumerate}

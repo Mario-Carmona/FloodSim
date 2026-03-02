@@ -20,7 +20,7 @@ import gstools as gs
 from loguru import logger
 from typing import List, Tuple
 
-from data_io.static_io import StaticRaster
+from misc.types import StaticRaster
 from generators.layers.rainfall.types import RainDataPoint
 
 class KrigingInterpolator:

@@ -62,6 +62,7 @@ class SpatialContext:
         nodata_value (float): The value representing 'no data' or missing 
             pixels. Defaults to -9999.0.
         bounds (Bounds): The calculated spatial bounding box of the raster.
+        cell_size (float): The spatial resolution (pixel size) in map units.
     """
     crs: CRS
     transform: Affine
@@ -69,8 +70,12 @@ class SpatialContext:
     height: int
     nodata_value: float = -9999.0
     bounds: Bounds = field(init=False)
+    cell_size: float = field(init=False)
 
     def __post_init__(self) -> None:
+        # Assuming square pixels, transform.a represents pixel width
+        self.cell_size = self.transform.a
+
         """Calculates the bounding box based on dimensions and transform."""
         left, bottom, right, top = array_bounds(self.height, self.width, self.transform)
 
@@ -90,30 +95,25 @@ class StaticRaster:
     Attributes:
         data (np.ndarray): The 2D numpy array containing the raster values.
         spatial_context (SpatialContext): The spatial metadata for the raster.
-        cell_size (float): The spatial resolution (pixel size) in map units.
         x_coords (np.ndarray): The calculated X coordinates for the cell centers.
         y_coords (np.ndarray): The calculated Y coordinates for the cell centers.
     """
     data: np.ndarray
     spatial_context: SpatialContext
-    cell_size: float = field(init=False)
     x_coords: np.ndarray = field(init=False)
     y_coords: np.ndarray = field(init=False)
 
     def __post_init__(self) -> None:
         """Initializes derived spatial properties and coordinate grids."""
-        # Assuming square pixels, transform.a represents pixel width
-        self.cell_size = self.spatial_context.transform.a
-
         # Calculate coordinates for cell centers
         self.x_coords = np.linspace(
-            self.spatial_context.bounds.min_x + self.cell_size / 2, 
-            self.spatial_context.bounds.max_x - self.cell_size / 2, 
+            self.spatial_context.bounds.min_x + self.spatial_context.cell_size / 2, 
+            self.spatial_context.bounds.max_x - self.spatial_context.cell_size / 2, 
             self.spatial_context.width
         )
         self.y_coords = np.linspace(
-            self.spatial_context.bounds.max_y - self.cell_size / 2,
-            self.spatial_context.bounds.min_y + self.cell_size / 2, 
+            self.spatial_context.bounds.max_y - self.spatial_context.cell_size / 2,
+            self.spatial_context.bounds.min_y + self.spatial_context.cell_size / 2, 
             self.spatial_context.height
         )
 
@@ -136,8 +136,8 @@ class StaticRaster:
             raise ValueError(f"Coordinate ({x}, {y}) is out of bounds.")
 
         # Rasters are indexed with row 0 = North (Max Y)
-        row = int((bounds.max_y - y) / self.cell_size)
-        col = int((x - bounds.min_x) / self.cell_size)
+        row = int((bounds.max_y - y) / self.spatial_context.cell_size)
+        col = int((x - bounds.min_x) / self.spatial_context.cell_size)
 
         # Clamping to prevent index out of bounds on exact edges
         col = min(col, self.spatial_context.width - 1)

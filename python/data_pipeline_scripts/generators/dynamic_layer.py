@@ -13,7 +13,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from loguru import logger
 
-from data_io.dynamic_io import DynamicRasterIO
+from data_io.hierarchical_idrisi_io import HierarchicalIdrisiIO
 from generators.base import DataGenerator
 from misc.types import DynamicRaster
 
@@ -31,7 +31,11 @@ class DynamicLayerGenerator(DataGenerator):
             output_dir (Path): The target directory for the layer.
             layer (DynamicRaster): The spatiotemporal data layer to save.
         """
-        DynamicRasterIO.save(output_dir, self.name, layer)
+        HierarchicalIdrisiIO.save(
+            output_dir, self.name, 
+            layer.data, layer.timestamps,
+            layer.downgrade_factor, layer.spatial_context
+        )
 
     def _visualize_step(self, step: int, visualization_dir: Path, layer: DynamicRaster) -> None:
         """

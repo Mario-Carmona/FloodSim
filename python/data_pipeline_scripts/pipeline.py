@@ -15,7 +15,7 @@ from typing import Dict, List, Set, Any, Optional
 from loguru import logger
 
 from generators.base import DataGenerator
-from generators.layers.elevation import ElevationGenerator
+from generators.layers.elevation.elevation import ElevationGenerator
 from generators.layers.water_depth import WaterDepthGenerator
 from generators.layers.roughness import RoughnessGenerator
 from generators.layers.rainfall.rainfall import RainfallGenerator
@@ -78,8 +78,10 @@ class DataPipeline:
         logger.debug(f"Created output directory at: {self.output_dir}")
 
         # Configure log file
+        logs_dir = self.output_dir / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
         logger.add(
-            self.output_dir / "log.txt",
+            logs_dir / "log.txt",
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
             level="TRACE", 
             rotation="10 MB"

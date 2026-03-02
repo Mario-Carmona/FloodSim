@@ -4,8 +4,14 @@ output_name: "data_new"
 output_dir: "./output"
 layers:
   elevation:
-    folder_path: "../../data/data_29_10_2024/elevation"
-    filename: "elevation"
+    resolution: 5
+    bounding_box:
+      south_west:
+        lon: -0.78291248
+        lat: 39.32434531
+      north_east:
+        lon: -0.22811569
+        lat: 39.56367382
 
   water_depth:
 

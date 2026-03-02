@@ -8,7 +8,6 @@
 \usepackage{graphicx}
 \usepackage{setspace}        % spacing control
 \usepackage[english]{babel}
-\usepackage[utf8]{inputenc}  % encoding
 \usepackage{color}
 \usepackage{hhline}          % extended table lines
 \usepackage{multirow}
@@ -28,6 +27,19 @@
 \usepackage{geometry} % To adjust margins if the Gantt chart is too wide
 \usepackage{enumitem}
 \usepackage{caption}
+\usepackage{xcolor}
+\usepackage[edges]{forest}
+\usepackage{tikz}
+\usepackage{csquotes}
+\usepackage[backend=biber, style=apa]{biblatex} % Estilo APA, puedes usar 'numeric' o 'ieee'
+
+% --- BIBLIOGRAPHY ---
+\addbibresource{references.bib} % Nombre exacto de tu archivo exportado
+
+% --- FOREST ---
+% Definimos un comando para alinear los comentarios a una distancia fija (5.5cm)
+\newcommand{\file}[1]{\makebox[5.5cm][l]{#1}}
+\newcommand{\filedesc}[2]{\makebox[5.5cm][l]{#1}\textcolor{gray}{\# #2}}
 
 % --- HYPERREF SETTINGS ---
 \hypersetup{
@@ -97,6 +109,8 @@
 % =======================
 \begin{document}
 
+\graphicspath{{figs/}}
+
 % --- COVER PAGE ---
 \input{0_title.tex}
 \newpage
@@ -133,8 +147,7 @@
 
 % --- BIBLIOGRAPHY ---
 \addcontentsline{toc}{chapter}{Bibliography}
-\bibliographystyle{plain}
-\bibliography{references}
+\printbibliography
 
 % =======================
 \end{document}

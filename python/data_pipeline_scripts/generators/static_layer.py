@@ -13,7 +13,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from loguru import logger
 
-from data_io.static_io import StaticRasterIO
+from data_io.idrisi_io import IdrisiIO
 from generators.base import DataGenerator
 from misc.types import StaticRaster
 
@@ -31,7 +31,7 @@ class StaticLayerGenerator(DataGenerator):
             output_dir (Path): The target directory for the layer.
             layer (StaticRaster): The data layer to save.
         """
-        StaticRasterIO.save(output_dir, self.name, layer)
+        IdrisiIO.save(output_dir, self.name, layer.data, layer.spatial_context)
 
     def _visualize(self, output_dir: Path, layer: StaticRaster) -> None:
         """

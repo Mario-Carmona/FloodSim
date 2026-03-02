@@ -1,0 +1,66 @@
+@startuml
+' Configuration for a clean academic style
+skinparam monochrome true
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 150
+
+actor User
+participant "main.py" as Main
+participant "pipeline\n:DataPipeline" as Pipeline
+participant "elevation\n:ElevationGenerator" as Elevation
+participant "roughness\n:RoughnessGenerator" as Roughness
+
+User -> Main : python main.py config.yaml
+activate Main
+
+Main -> Pipeline : __init__(cfg_path)
+activate Pipeline
+Pipeline --> Main : pipeline
+deactivate Pipeline
+
+Main -> Pipeline : run()
+activate Pipeline
+
+Pipeline -> Pipeline : execution_order = _get_execution_order()
+note right: e.g., ['elevation', 'roughness', ...]
+
+== 1. Base Layer Processing (Independent) ==
+Pipeline -> Elevation : run(dependent_layers={}, start_date, ...)
+activate Elevation
+
+' The run() method from base.py calls its own abstract methods
+Elevation -> Elevation : _generate(dependent_layers, ...)
+activate Elevation
+Elevation --> Elevation : layer_data (StaticRaster)
+deactivate Elevation
+
+Elevation -> Elevation : _save(output_dir, layer_data)
+Elevation -> Elevation : _visualize(output_dir, layer_data)
+
+Elevation --> Pipeline : layers_output['elevation'] = StaticRaster
+deactivate Elevation
+
+== 2. Dependent Layer Processing ==
+Pipeline -> Roughness : run(dependent_layers={'elevation': StaticRaster}, ...)
+activate Roughness
+
+Roughness -> Roughness : _generate(dependent_layers, ...)
+activate Roughness
+Roughness --> Roughness : layer_data (StaticRaster)
+deactivate Roughness
+
+Roughness -> Roughness : _save(output_dir, layer_data)
+Roughness -> Roughness : _visualize(output_dir, layer_data)
+
+Roughness --> Pipeline : layers_output['roughness'] = StaticRaster
+deactivate Roughness
+
+' Execution End
+Pipeline -> Pipeline : logger.success("Data Pipeline completed successfully!")
+Pipeline --> Main : return
+deactivate Pipeline
+
+Main --> User : exit(0)
+deactivate Main
+@enduml
