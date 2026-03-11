@@ -10,6 +10,7 @@
 #pragma once
 
 #include <cstdint>
+#include <chrono>
 
 #include "core/grid/MapGrid.hpp"
 #include "Types.hpp"
@@ -28,7 +29,7 @@ namespace danasim {
         Snapshot() = default;
         virtual ~Snapshot() = default;
 
-        void set(StepType step, float time, const MapGrid& grid);
+        void set(std::chrono::sys_seconds time, const MapGrid& grid);
         void set(size_t size);
         void swap(Snapshot& other) noexcept;
 
@@ -36,14 +37,12 @@ namespace danasim {
 
         float* data() noexcept;
 
-        [[nodiscard]] StepType step() const noexcept { return step_; }
-        [[nodiscard]] float time() const noexcept { return time_; }
+        [[nodiscard]] std::chrono::sys_seconds time() const noexcept { return time_; }
 
         [[nodiscard]] const std::vector<float>& waterDepth() const noexcept { return waterDepth_; }
 
     private:
-        StepType step_;
-        float time_;
+        std::chrono::sys_seconds time_;
 
         std::vector<float> waterDepth_;
     };

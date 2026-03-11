@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\x12\rdanasim.proto\"\xa6\x01\n\x0fSimulationFrame\x12\x12\n\nstep_index\x18\x01 \x01(\x03\x12\x17\n\x0fsimulation_time\x18\x02 \x01(\x02\x12\x13\n\x0b\x63hunk_index\x18\x03 \x01(\x05\x12\x14\n\x0ctotal_chunks\x18\x04 \x01(\x05\x12\x15\n\ris_last_chunk\x18\x05 \x01(\x08\x12\x11\n\tchanged_x\x18\x06 \x03(\x03\x12\x11\n\tchanged_y\x18\x07 \x03(\x03\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\x12\rdanasim.proto\"\x92\x01\n\x0fSimulationFrame\x12\x17\n\x0fsimulation_time\x18\x01 \x01(\t\x12\x13\n\x0b\x63hunk_index\x18\x02 \x01(\x05\x12\x14\n\x0ctotal_chunks\x18\x03 \x01(\x05\x12\x15\n\ris_last_chunk\x18\x04 \x01(\x08\x12\x11\n\tchanged_x\x18\x05 \x03(\x03\x12\x11\n\tchanged_y\x18\x06 \x03(\x03\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,5 +32,5 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'messages_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_SIMULATIONFRAME']._serialized_start=34
-  _globals['_SIMULATIONFRAME']._serialized_end=200
+  _globals['_SIMULATIONFRAME']._serialized_end=180
 # @@protoc_insertion_point(module_scope)

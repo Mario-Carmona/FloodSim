@@ -12,8 +12,7 @@
 #include <memory>
 #include <concepts>
 
-#include "core/grid/MapGrid.hpp"
-#include "core/grid/DynamicLayerManager.hpp"
+#include "adapters/input/readers/Reader.hpp"
 
 namespace danasim {
 
@@ -28,14 +27,7 @@ namespace danasim {
     public:
         virtual ~InputPort() = default;
 
-        /**
-         * @brief Loads data into the simulation grid and initializes dynamic layers.
-         *
-         * @param[out] grid Mutable reference to the main simulation grid.
-         * @param[out] dynamicLayerManager Manager for time-variant external data (e.g., HDF5 rain).
-         * @param[in] timeStep The simulation time step (dt) in seconds, used for unit conversion during load.
-         */
-        virtual void load(MapGrid& grid, DynamicLayerManager& dynamicLayerManager, float timeStep) = 0;
+        virtual std::unique_ptr<Reader> generateReader(std::string name, bool isStatic) = 0;
     };
 
 } // namespace danasim

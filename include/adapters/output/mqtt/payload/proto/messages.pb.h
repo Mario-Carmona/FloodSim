@@ -217,15 +217,14 @@ class SimulationFrame final : public ::google::protobuf::Message
 
   // accessors -------------------------------------------------------
   enum : int {
-    kChangedXFieldNumber = 6,
-    kChangedYFieldNumber = 7,
-    kStepIndexFieldNumber = 1,
-    kSimulationTimeFieldNumber = 2,
-    kChunkIndexFieldNumber = 3,
-    kTotalChunksFieldNumber = 4,
-    kIsLastChunkFieldNumber = 5,
+    kChangedXFieldNumber = 5,
+    kChangedYFieldNumber = 6,
+    kSimulationTimeFieldNumber = 1,
+    kChunkIndexFieldNumber = 2,
+    kTotalChunksFieldNumber = 3,
+    kIsLastChunkFieldNumber = 4,
   };
-  // repeated int64 changed_x = 6;
+  // repeated int64 changed_x = 5;
   int changed_x_size() const;
   private:
   int _internal_changed_x_size() const;
@@ -243,7 +242,7 @@ class SimulationFrame final : public ::google::protobuf::Message
   ::google::protobuf::RepeatedField<::int64_t>* _internal_mutable_changed_x();
 
   public:
-  // repeated int64 changed_y = 7;
+  // repeated int64 changed_y = 6;
   int changed_y_size() const;
   private:
   int _internal_changed_y_size() const;
@@ -261,27 +260,23 @@ class SimulationFrame final : public ::google::protobuf::Message
   ::google::protobuf::RepeatedField<::int64_t>* _internal_mutable_changed_y();
 
   public:
-  // int64 step_index = 1;
-  void clear_step_index() ;
-  ::int64_t step_index() const;
-  void set_step_index(::int64_t value);
-
-  private:
-  ::int64_t _internal_step_index() const;
-  void _internal_set_step_index(::int64_t value);
-
-  public:
-  // float simulation_time = 2;
+  // string simulation_time = 1;
   void clear_simulation_time() ;
-  float simulation_time() const;
-  void set_simulation_time(float value);
+  const std::string& simulation_time() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_simulation_time(Arg_&& arg, Args_... args);
+  std::string* mutable_simulation_time();
+  PROTOBUF_NODISCARD std::string* release_simulation_time();
+  void set_allocated_simulation_time(std::string* value);
 
   private:
-  float _internal_simulation_time() const;
-  void _internal_set_simulation_time(float value);
+  const std::string& _internal_simulation_time() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_simulation_time(
+      const std::string& value);
+  std::string* _internal_mutable_simulation_time();
 
   public:
-  // int32 chunk_index = 3;
+  // int32 chunk_index = 2;
   void clear_chunk_index() ;
   ::int32_t chunk_index() const;
   void set_chunk_index(::int32_t value);
@@ -291,7 +286,7 @@ class SimulationFrame final : public ::google::protobuf::Message
   void _internal_set_chunk_index(::int32_t value);
 
   public:
-  // int32 total_chunks = 4;
+  // int32 total_chunks = 3;
   void clear_total_chunks() ;
   ::int32_t total_chunks() const;
   void set_total_chunks(::int32_t value);
@@ -301,7 +296,7 @@ class SimulationFrame final : public ::google::protobuf::Message
   void _internal_set_total_chunks(::int32_t value);
 
   public:
-  // bool is_last_chunk = 5;
+  // bool is_last_chunk = 4;
   void clear_is_last_chunk() ;
   bool is_last_chunk() const;
   void set_is_last_chunk(bool value);
@@ -316,8 +311,8 @@ class SimulationFrame final : public ::google::protobuf::Message
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<
-      3, 7, 0,
-      0, 2>
+      3, 6, 0,
+      53, 2>
       _table_;
 
   friend class ::google::protobuf::MessageLite;
@@ -338,8 +333,7 @@ class SimulationFrame final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _changed_x_cached_byte_size_;
     ::google::protobuf::RepeatedField<::int64_t> changed_y_;
     ::google::protobuf::internal::CachedSize _changed_y_cached_byte_size_;
-    ::int64_t step_index_;
-    float simulation_time_;
+    ::google::protobuf::internal::ArenaStringPtr simulation_time_;
     ::int32_t chunk_index_;
     ::int32_t total_chunks_;
     bool is_last_chunk_;
@@ -366,51 +360,55 @@ class SimulationFrame final : public ::google::protobuf::Message
 
 // SimulationFrame
 
-// int64 step_index = 1;
-inline void SimulationFrame::clear_step_index() {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.step_index_ = ::int64_t{0};
-}
-inline ::int64_t SimulationFrame::step_index() const {
-  // @@protoc_insertion_point(field_get:danasim.proto.SimulationFrame.step_index)
-  return _internal_step_index();
-}
-inline void SimulationFrame::set_step_index(::int64_t value) {
-  _internal_set_step_index(value);
-  // @@protoc_insertion_point(field_set:danasim.proto.SimulationFrame.step_index)
-}
-inline ::int64_t SimulationFrame::_internal_step_index() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.step_index_;
-}
-inline void SimulationFrame::_internal_set_step_index(::int64_t value) {
-  ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.step_index_ = value;
-}
-
-// float simulation_time = 2;
+// string simulation_time = 1;
 inline void SimulationFrame::clear_simulation_time() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.simulation_time_ = 0;
+  _impl_.simulation_time_.ClearToEmpty();
 }
-inline float SimulationFrame::simulation_time() const {
+inline const std::string& SimulationFrame::simulation_time() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
   // @@protoc_insertion_point(field_get:danasim.proto.SimulationFrame.simulation_time)
   return _internal_simulation_time();
 }
-inline void SimulationFrame::set_simulation_time(float value) {
-  _internal_set_simulation_time(value);
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void SimulationFrame::set_simulation_time(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.simulation_time_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
   // @@protoc_insertion_point(field_set:danasim.proto.SimulationFrame.simulation_time)
 }
-inline float SimulationFrame::_internal_simulation_time() const {
-  ::google::protobuf::internal::TSanRead(&_impl_);
-  return _impl_.simulation_time_;
+inline std::string* SimulationFrame::mutable_simulation_time() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_simulation_time();
+  // @@protoc_insertion_point(field_mutable:danasim.proto.SimulationFrame.simulation_time)
+  return _s;
 }
-inline void SimulationFrame::_internal_set_simulation_time(float value) {
+inline const std::string& SimulationFrame::_internal_simulation_time() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.simulation_time_.Get();
+}
+inline void SimulationFrame::_internal_set_simulation_time(const std::string& value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
-  _impl_.simulation_time_ = value;
+  _impl_.simulation_time_.Set(value, GetArena());
+}
+inline std::string* SimulationFrame::_internal_mutable_simulation_time() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.simulation_time_.Mutable( GetArena());
+}
+inline std::string* SimulationFrame::release_simulation_time() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:danasim.proto.SimulationFrame.simulation_time)
+  return _impl_.simulation_time_.Release();
+}
+inline void SimulationFrame::set_allocated_simulation_time(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.simulation_time_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.simulation_time_.IsDefault()) {
+    _impl_.simulation_time_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:danasim.proto.SimulationFrame.simulation_time)
 }
 
-// int32 chunk_index = 3;
+// int32 chunk_index = 2;
 inline void SimulationFrame::clear_chunk_index() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.chunk_index_ = 0;
@@ -432,7 +430,7 @@ inline void SimulationFrame::_internal_set_chunk_index(::int32_t value) {
   _impl_.chunk_index_ = value;
 }
 
-// int32 total_chunks = 4;
+// int32 total_chunks = 3;
 inline void SimulationFrame::clear_total_chunks() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.total_chunks_ = 0;
@@ -454,7 +452,7 @@ inline void SimulationFrame::_internal_set_total_chunks(::int32_t value) {
   _impl_.total_chunks_ = value;
 }
 
-// bool is_last_chunk = 5;
+// bool is_last_chunk = 4;
 inline void SimulationFrame::clear_is_last_chunk() {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.is_last_chunk_ = false;
@@ -476,7 +474,7 @@ inline void SimulationFrame::_internal_set_is_last_chunk(bool value) {
   _impl_.is_last_chunk_ = value;
 }
 
-// repeated int64 changed_x = 6;
+// repeated int64 changed_x = 5;
 inline int SimulationFrame::_internal_changed_x_size() const {
   return _internal_changed_x().size();
 }
@@ -521,7 +519,7 @@ inline ::google::protobuf::RepeatedField<::int64_t>* SimulationFrame::_internal_
   return &_impl_.changed_x_;
 }
 
-// repeated int64 changed_y = 7;
+// repeated int64 changed_y = 6;
 inline int SimulationFrame::_internal_changed_y_size() const {
   return _internal_changed_y().size();
 }

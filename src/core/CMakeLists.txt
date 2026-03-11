@@ -3,9 +3,7 @@
 # magic-enum
 find_package(magic_enum CONFIG REQUIRED)
 
-# HighFive
-find_package(HighFive CONFIG REQUIRED)
-
+find_package(GeographicLib CONFIG REQUIRED)
 
 
 
@@ -18,7 +16,6 @@ target_sources(danasim_core
         snapshot/SnapshotManager.cpp
         snapshot/Snapshot.cpp
         grid/MapGrid.cpp
-        grid/DynamicLayerManager.cpp
 )
 
 target_include_directories(danasim_core
@@ -30,5 +27,5 @@ target_link_libraries(danasim_core
     PUBLIC 
         danasim_options
         magic_enum::magic_enum
-        HighFive
+        ${GeographicLib_LIBRARIES}
 )

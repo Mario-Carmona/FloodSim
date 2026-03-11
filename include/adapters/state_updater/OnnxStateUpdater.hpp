@@ -17,7 +17,7 @@ namespace danasim {
         ~OnnxStateUpdater() = default;
 
         // Método para enviar datos estáticos (Elevación, Rugosidad, dt, dx) una sola vez
-        void initialize(MapGrid& grid, float step_time) override;
+        void initialize(MapGrid& grid, std::chrono::seconds stepTime) override;
 
         void run() override;
 

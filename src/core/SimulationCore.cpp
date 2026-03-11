@@ -2,6 +2,9 @@
 #include "core/SimulationCore.hpp"
 
 #include <cmath>
+#include <fmt/chrono.h>
+#include <algorithm>
+#include <GeographicLib/UTMUPS.hpp>
 
 #include "logging/Logger.hpp"
 #include "core/snapshot/Snapshot.hpp"
@@ -11,47 +14,51 @@ namespace danasim {
 
     SimulationCore::SimulationCore(
         StateUpdaterPort* stateUpdater,
-        InputPort* input,
+        const std::unordered_map<std::string, InputPort*>& layerInputSource,
         std::vector<OutputPort*> outputs,
         SnapshotManager* snapshotManager,
         const SimulationConfig& config,
         const std::string& scenarioName
     )
         : stateUpdater_(stateUpdater)
-        , input_(input)
+        , layerInputSource_(layerInputSource)
         , outputs_(outputs)
         , snapshotManager_(snapshotManager)
+        , startTimestamp_(config.startTimestamp)
         , timeStep_(config.timeStep)
-        , totalTime_(config.totalTime)
+        , simulationDuration_(config.duration)
         , scenarioName_(scenarioName)
-        , view_({ .minX = config.viewMinX, .maxX = config.viewMaxX, .minY = config.viewMinY, .maxY = config.viewMaxY })
+        , currentGrid_(timeStep_)
+        , view_(config.viewBox)
     {
-        maxSteps_ = static_cast<StepType>(std::ceil(totalTime_ / timeStep_));
+        
     }
 
     void SimulationCore::run()
     {
         LOG_INFO("Simulation started");
+
+        std::chrono::sys_seconds currentTime = startTimestamp_;
+        std::chrono::sys_seconds finishTimestamp = currentTime + simulationDuration_;
+
         // Initialize State
-        input_->load(currentGrid_, dynamicLayerManager_, timeStep_);
+        currentGrid_.load(layerInputSource_, currentTime);
 
         for (auto& output : outputs_) {
             output->setGrid(currentGrid_);
         }
 
-        calculateViewGrid();
+        calculateGridView();
 
         stateUpdater_->initialize(currentGrid_, timeStep_);
 
-        StepType step = 0;
-
         // Publicar estado inicial (t=0)
-        publishCurrentState(step);
+        publishCurrentState(currentTime);
 
-        while (step < maxSteps_) {
+        while (currentTime < finishTimestamp) {
             // --- PASO 1: CARGAR DATOS EXTERNOS ---
             // Esto lee del HDF5 y escribe en active_.layers_[RainIntensity]
-            dynamicLayerManager_.updateAllLayers(currentGrid_, step, timeStep_);
+            currentGrid_.updateDynamicLayers(currentTime);
 
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -63,31 +70,26 @@ namespace danasim {
             std::chrono::duration<double> elapsed = end - start;
             LOG_INFO("TF Graph Execution time: {}s", elapsed.count());
             
-            step += snapshotManager_->everyNSteps();
+            currentTime += (snapshotManager_->everyNSteps() * timeStep_);
 
             // --- PASO 3: OUTPUT ---
-            publishCurrentState(step);
-        }
-
-        // Caso borde: Si el último paso no coincidió con snapshotManager_->everyNSteps(), forzamos publicación final
-        if (step % snapshotManager_->everyNSteps() != 0) {
-            publishCurrentState(step);
+            publishCurrentState(currentTime);
         }
 
         LOG_INFO("Simulation finished");
     }
 
-    void SimulationCore::publishCurrentState(StepType s) {
+    void SimulationCore::publishCurrentState(std::chrono::sys_seconds time) {
         // 1. Esperar a que los consumidores liberen el buffer anterior
         snapshotManager_->waitForReady();
 
-        if (s == 0) {
-            currentSnapshot_.set(s, s * timeStep_, currentGrid_);
+        if (time == startTimestamp_) {
+            currentSnapshot_.set(time, currentGrid_);
             previousSnapshot_.set(currentSnapshot_.size());
         }
         else {
             std::swap(currentSnapshot_, previousSnapshot_);
-            currentSnapshot_.set(s, s * timeStep_, currentGrid_);
+            currentSnapshot_.set(time, currentGrid_);
         }
 
         calculateViewChanges();
@@ -95,15 +97,35 @@ namespace danasim {
         // 3. Publicar
         snapshotManager_->publish(&currentSnapshot_, &changes_);
 
-        LOG_INFO("Publish snapshot at step {}", s);
+        LOG_INFO("Publish snapshot at time {:%FT%T}", time);
     }
 
-    void SimulationCore::calculateViewGrid() {
-        viewGridIndex_.minX = static_cast<GridIndexType>(std::floor((view_.minX - currentGrid_.mapOriginX()) / currentGrid_.cellSize()));
-        viewGridIndex_.maxX = static_cast<GridIndexType>(std::ceil((view_.maxX - currentGrid_.mapOriginX()) / currentGrid_.cellSize()));
+    void SimulationCore::calculateGridView() {
+        if (view_.useFullGrid) {
+            gridIndexView_.minCol = 0u;
+            gridIndexView_.maxCol = currentGrid_.cols();
 
-        viewGridIndex_.minY = static_cast<GridIndexType>(std::floor((currentGrid_.mapOriginY() - view_.maxY) / currentGrid_.cellSize()));
-        viewGridIndex_.maxY = static_cast<GridIndexType>(std::ceil((currentGrid_.mapOriginY() - view_.minY) / currentGrid_.cellSize()));
+            gridIndexView_.minRow = 0u;
+            gridIndexView_.maxRow = currentGrid_.rows();
+        }
+        else {
+            GridViewBox gridView{
+                .southWest = transformViewPoint(view_.southWest, currentGrid_.crs()),
+                .northEast = transformViewPoint(view_.northEast, currentGrid_.crs())
+            };
+
+            gridIndexView_.minCol = static_cast<GridIndexType>(std::floor((gridView.southWest.x - currentGrid_.mapOriginX()) / currentGrid_.cellSize()));
+            gridIndexView_.maxCol = static_cast<GridIndexType>(std::ceil((gridView.northEast.x - currentGrid_.mapOriginX()) / currentGrid_.cellSize()));
+
+            gridIndexView_.minCol = std::clamp(gridIndexView_.minCol, static_cast<GridIndexType>(0), currentGrid_.cols());
+            gridIndexView_.maxCol = std::clamp(gridIndexView_.maxCol, static_cast<GridIndexType>(0), currentGrid_.cols());
+
+            gridIndexView_.minRow = static_cast<GridIndexType>(std::floor((currentGrid_.mapOriginY() - gridView.northEast.y) / currentGrid_.cellSize()));
+            gridIndexView_.maxRow = static_cast<GridIndexType>(std::ceil((currentGrid_.mapOriginY() - gridView.southWest.y) / currentGrid_.cellSize()));
+
+            gridIndexView_.minRow = std::clamp(gridIndexView_.minRow, static_cast<GridIndexType>(0), currentGrid_.rows());
+            gridIndexView_.maxRow = std::clamp(gridIndexView_.maxRow, static_cast<GridIndexType>(0), currentGrid_.rows());
+        }
     }
 
     void SimulationCore::calculateViewChanges() {
@@ -116,20 +138,19 @@ namespace danasim {
         std::vector<ThreadResult> results(num_threads);
 
         // Calculamos cuántas filas le tocan a cada hilo (del total de filas visibles)
-        int total_view_rows = viewGridIndex_.maxY - viewGridIndex_.minY;
-        int rows_per_thread = total_view_rows / num_threads;
-        int remainder = total_view_rows % num_threads;
+        GridIndexType total_view_rows = gridIndexView_.maxRow - gridIndexView_.minRow;
+        GridIndexType rows_per_thread = total_view_rows / num_threads;
+        GridIndexType remainder = total_view_rows % num_threads;
 
-        GridIndexType current_start_row = viewGridIndex_.minY;
+        GridIndexType current_start_row = gridIndexView_.minRow;
 
         // 4. Lanzar Hilos (Fork)
         for (unsigned int i = 0; i < num_threads; ++i) {
-            int count = rows_per_thread + (i < remainder ? 1 : 0);
+            GridIndexType count = rows_per_thread + (i < remainder ? 1 : 0);
             GridIndexType end_row = current_start_row + count;
 
             if (count > 0) {
-                threads.emplace_back(&SimulationCore::process_chunk, this,
-                    i,
+                threads.emplace_back(&SimulationCore::processChunk, this,
                     current_start_row,
                     end_row,
                     std::ref(results[i])
@@ -162,10 +183,10 @@ namespace danasim {
         }
     }
 
-    void SimulationCore::process_chunk(int thread_id, GridIndexType start_row, GridIndexType end_row, ThreadResult& result) {
+    void SimulationCore::processChunk(GridIndexType start_row, GridIndexType end_row, ThreadResult& result) {
         // Pre-reservamos memoria local para evitar reallocs constantes
         // Estimamos un 5% de cambios para no desperdiciar RAM
-        size_t estimated_changes = (end_row - start_row) * (viewGridIndex_.maxX - viewGridIndex_.minX) * 0.05;
+        size_t estimated_changes = static_cast<size_t>((end_row - start_row) * (gridIndexView_.maxCol - gridIndexView_.minCol) * 0.05);
         result.local_x.reserve(estimated_changes);
         result.local_y.reserve(estimated_changes);
 
@@ -177,7 +198,7 @@ namespace danasim {
             const float* prev_row = previousSnapshot_.data() + row_offset;
 
             // Parte 2: DENTRO de la vista (Comparar + Copiar + Detectar)
-            for (GridIndexType x = viewGridIndex_.minX; x < viewGridIndex_.maxX; ++x) {
+            for (GridIndexType x = gridIndexView_.minCol; x < gridIndexView_.maxCol; ++x) {
                 bool now_danger = (curr_row[x] > DANGER_THRESHOLD);
                 bool was_danger = (prev_row[x] > DANGER_THRESHOLD);
 
@@ -187,6 +208,77 @@ namespace danasim {
                 }
             }
         }
+    }
+
+    std::optional<UTMZoneInfo> SimulationCore::parseUTMZoneFromEPSG(const std::string& epsgString) const {
+        // 1. Extraer solo la parte numérica (ignorar "EPSG:" si está presente)
+        size_t colonPos = epsgString.find(':');
+        std::string numPart = (colonPos != std::string::npos) ?
+            epsgString.substr(colonPos + 1) : epsgString;
+
+        int epsgCode;
+        try {
+            epsgCode = std::stoi(numPart);
+        }
+        catch (...) {
+            return std::nullopt; // No es un número válido
+        }
+
+        // 2. Extraer la zona (los dos últimos dígitos)
+        int zone = epsgCode % 100;
+
+        // Validación básica de zona UTM
+        if (zone < 1 || zone > 60) {
+            return std::nullopt;
+        }
+
+        // 3. Determinar el sistema y hemisferio
+        int baseCode = epsgCode - zone; // Ej: 25830 - 30 = 25800
+
+        switch (baseCode) {
+        case 32600: // WGS 84 North
+        case 25800: // ETRS89 North (Europa)
+        case 23000: // ED50 North (Europa)
+            return UTMZoneInfo{ zone, true };
+
+        case 32700: // WGS 84 South
+            return UTMZoneInfo{ zone, false };
+
+        default:
+            // Es un código EPSG válido numéricamente, pero no es de un bloque UTM reconocido
+            return std::nullopt;
+        }
+    }
+
+    GridViewBox::Point SimulationCore::transformViewPoint(ViewBox::Point sourcePoint, const std::string& targetCRS) const {
+        
+        auto utmInfo = parseUTMZoneFromEPSG(targetCRS);
+        if (!utmInfo.has_value()) {
+            throw std::runtime_error("El CRS destino (" + targetCRS + ") no es un sistema UTM soportado matemáticamente.");
+        }
+
+        int computedZone;
+        bool computedNorthp;
+
+        GridViewBox::Point gridViewPoint;
+
+        try {
+            // Le pasamos la zona extraída dinámicamente del string (ej. 30)
+            GeographicLib::UTMUPS::Forward(sourcePoint.lat, sourcePoint.lon, computedZone, computedNorthp, gridViewPoint.x, gridViewPoint.y, utmInfo->zone);
+
+            // Verificamos que la coordenada real cae en el hemisferio que el EPSG espera
+            if (computedNorthp != utmInfo->isNorth) {
+                // Nota: En algunos casos limítrofes (cerca del ecuador) esto podría flexibilizarse,
+                // pero estrictamente hablando, si el EPSG pide Norte y cae en Sur, hay una discrepancia.
+                throw std::runtime_error("Las coordenadas caen en el hemisferio incorrecto para este EPSG.");
+            }
+
+        }
+        catch (const GeographicLib::GeographicErr& e) {
+            throw std::runtime_error(std::string("Error en GeographicLib: ") + e.what());
+        }
+
+        return gridViewPoint;
     }
 
 } // namespace danasim

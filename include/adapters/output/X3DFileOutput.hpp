@@ -11,9 +11,9 @@ namespace danasim {
     /**
      * @brief Writes simulation snapshots to X3D files.
      */
-    class X3DFileOutput : public OutputPort {
+    class X3dFileOutput : public OutputPort {
     public:
-        explicit X3DFileOutput();
+        explicit X3dFileOutput();
 
         void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 

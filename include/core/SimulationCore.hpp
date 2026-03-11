@@ -4,6 +4,9 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <string_view>
+#include <stdexcept>
+#include <optional>
 
 #include "app/config/Config.hpp"
 #include "core/snapshot/SnapshotManager.hpp"
@@ -12,22 +15,30 @@
 #include "ports/InputPort.hpp"
 #include "ports/OutputPort.hpp"
 #include "core/grid/MapGrid.hpp"
-#include "core/grid/DynamicLayerManager.hpp"
 
 namespace danasim {
 
-    struct ViewRect {
-        float minX;
-        float maxX;
-        float minY;
-        float maxY;
+    struct GridViewBox {
+
+        struct Point {
+            double x;
+            double y;
+        };
+
+        Point southWest;
+        Point northEast;
     };
 
-    struct ViewGridIndexRect {
-        GridIndexType minX;
-        GridIndexType maxX;
-        GridIndexType minY;
-        GridIndexType maxY;
+    struct GridIndexViewBox {
+        GridIndexType minCol;
+        GridIndexType maxCol;
+        GridIndexType minRow;
+        GridIndexType maxRow;
+    };
+
+    struct UTMZoneInfo {
+        int zone;
+        bool isNorth;
     };
 
     /**
@@ -37,7 +48,7 @@ namespace danasim {
     public:
         SimulationCore(
             StateUpdaterPort* stateUpdater,
-            InputPort* input,
+            const std::unordered_map<std::string, InputPort*>& layerInputSource,
             std::vector<OutputPort*> outputs,
             SnapshotManager* snapshotManager,
             const SimulationConfig& config,
@@ -53,14 +64,13 @@ namespace danasim {
         // Dependencies
         StateUpdaterPort* stateUpdater_;
         SnapshotManager* snapshotManager_;
-        InputPort* input_;
+        std::unordered_map<std::string, InputPort*> layerInputSource_;
         std::vector<OutputPort*> outputs_;
-        DynamicLayerManager dynamicLayerManager_;
 
         // Simulation parameters
-        float timeStep_;
-        float totalTime_;
-        StepType maxSteps_;
+        std::chrono::sys_seconds startTimestamp_;
+        std::chrono::seconds simulationDuration_;
+        std::chrono::seconds timeStep_;
 
         // Identification
         std::string scenarioName_;
@@ -68,9 +78,9 @@ namespace danasim {
         // Simulation state (mutable)
         MapGrid currentGrid_;
 
-        ViewRect view_;
+        ViewBox view_;
 
-        ViewGridIndexRect viewGridIndex_;
+        GridIndexViewBox gridIndexView_;
 
         Snapshot currentSnapshot_;
         Snapshot previousSnapshot_;
@@ -83,14 +93,17 @@ namespace danasim {
             std::vector<GridIndexType> local_y;
         };
 
-        void process_chunk(int thread_id, GridIndexType start_row, GridIndexType end_row, ThreadResult& result);
+        void processChunk(GridIndexType start_row, GridIndexType end_row, ThreadResult& result);
 
+        GridViewBox::Point transformViewPoint(ViewBox::Point sourcePoint, const std::string& targetCRS) const;
 
-        void calculateViewGrid();
+        void calculateGridView();
 
         void calculateViewChanges();
 
-        void publishCurrentState(StepType s);
+        void publishCurrentState(std::chrono::sys_seconds time);
+
+        std::optional<UTMZoneInfo> parseUTMZoneFromEPSG(const std::string& epsgString) const;
     };
 
 } // namespace danasim

@@ -24,7 +24,7 @@
       "description": "Input adapters",
       "dependencies": [
         {
-          "name": "gdal",
+          "name": "nlohmann-json",
           "default-features": false,
           "features": []
         }
@@ -69,7 +69,7 @@
           "features": []
         },
         {
-          "name": "highfive",
+          "name": "geographiclib",
           "default-features": false,
           "features": []
         }

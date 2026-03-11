@@ -9,8 +9,20 @@ logging:
   saveLogFile: true
 
 input:
-  type: file
-  path: ../data/data_29_10_2024
+  sources:
+    - type: file
+      static_format: IDRISI
+      dynamic_format: HIF
+      path: ../data/data_29_10_2024
+  layers:
+    - name: elevation
+      source: file
+    - name: water_depth
+      source: file
+    - name: roughness
+      source: file
+    - name: rainfall
+      source: file
 
 output:
   snapshot:
@@ -28,9 +40,14 @@ state_updater:
   model_path: ../models/simulation_model_cpu.onnx
 
 simulation:
-  time_step: 5.0
-  total_time: 28800.0
-  view_min_x: 700000.0
-  view_max_x: 740000.0
-  view_min_y: 4365000.0
-  view_max_y: 4375000.0
+  start_timestamp: 2024-10-29T10:00:00
+  time_step: 00:00:01
+  duration: 08:00:00
+  view_box: 
+    use_full_grid: true
+    south_west:
+      lon: -0.78291248
+      lat: 39.32434531
+    north_east:
+      lon: -0.22811569
+      lat: 39.56367382

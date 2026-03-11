@@ -9,9 +9,12 @@
 #include <string_view>
 #include <filesystem>
 #include <fmt/core.h>
+#include <magic_enum/magic_enum.hpp>
 
 #include "logging/Logger.hpp"
 #include "misc/Paths.hpp"
+#include "misc/Time.hpp"
+#include "core/grid/LayerTypes.hpp"
 
 namespace danasim {
 
@@ -35,8 +38,8 @@ namespace danasim {
         T parseEnum(std::string_view value) = delete;
 
         template <>
-        InputConfigType parseEnum<InputConfigType>(std::string_view value) {
-            if (value == "file") return InputConfigType::FILE;
+        InputConfig::InputSourceConfigEntryType parseEnum<InputConfig::InputSourceConfigEntryType>(std::string_view value) {
+            if (value == "file") return InputConfig::InputSourceConfigEntryType::FILE;
             throw ConfigurationException("Invalid input type: " + std::string(value));
         }
 
@@ -49,8 +52,8 @@ namespace danasim {
         }
 
         template <>
-        OutputConfig::MQTTOutputConfigEntry::PayloadFormat parseEnum<OutputConfig::MQTTOutputConfigEntry::PayloadFormat>(std::string_view value) {
-            if (value == "protobuf") return OutputConfig::MQTTOutputConfigEntry::PayloadFormat::PROTOBUF;
+        OutputConfig::MqttOutputConfigEntry::PayloadFormat parseEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(std::string_view value) {
+            if (value == "protobuf") return OutputConfig::MqttOutputConfigEntry::PayloadFormat::PROTOBUF;
             throw ConfigurationException("Invalid MQTT payload format: " + std::string(value));
         }
 
@@ -127,16 +130,45 @@ namespace danasim {
         {
             const auto node = requireNode(root, "input");
 
-            InputConfigType type = parseEnum<InputConfigType>(extract<std::string>(node, "type"));
 
-            switch (type) {
-            case InputConfigType::FILE: {
-                config.input = FileInputConfig{
-                    .path = (configFolder / extract<std::string>(node, "path")).lexically_normal()
-                };
-                break;
+            const auto sourcesNode = requireNode(node, "sources");
+
+            for (const auto& srcNode : sourcesNode) {
+                std::string typeStr = extract<std::string>(srcNode, "type");
+
+                auto type = parseEnum<InputConfig::InputSourceConfigEntryType>(typeStr);
+
+                switch (type) {
+                case InputConfig::InputSourceConfigEntryType::FILE: {
+                    config.input.sources[typeStr] = InputConfig::FileInputSourceConfigEntry {
+                        .staticFormat = extract<std::string>(srcNode, "static_format"),
+                        .dynamicFormat = extract<std::string>(srcNode, "dynamic_format"),
+                        .path = (configFolder / extract<std::string>(srcNode, "path")).lexically_normal()
+                    };
+                    break;
+                }
+                }
             }
+
+            validate(!config.input.sources.empty(), "At least one source must be defined");
+
+
+            const auto layersNode = requireNode(node, "layers");
+
+            std::set<std::string> definedLayers;
+
+            for (const auto& lyNode : layersNode) {
+                config.input.layers.emplace_back(InputConfig::InputLayerConfigEntry{
+                    .name = extract<std::string>(lyNode, "name"),
+                    .source = extract<std::string>(lyNode, "source")
+                });
+
+                definedLayers.insert(config.input.layers.back().name);
             }
+
+            validate(config.input.layers.size() == definedLayers.size(), "Has definido alguna capa por duplicado");
+
+            validate(magic_enum::enum_count<LayerId>() == definedLayers.size(), "No has definido todas las capas");
         }
 
         // -----------------------------
@@ -159,16 +191,16 @@ namespace danasim {
 
                 switch (type) {
                 case OutputConfig::OutputConfigEntryType::X3D_FILE: {
-                    config.output.outputs.emplace_back(OutputConfig::X3DFileOutputConfigEntry{});
+                    config.output.outputs.emplace_back(OutputConfig::X3dFileOutputConfigEntry{});
                     break;
                 }
                 case OutputConfig::OutputConfigEntryType::MQTT: {
-                    config.output.outputs.emplace_back(OutputConfig::MQTTOutputConfigEntry{
+                    config.output.outputs.emplace_back(OutputConfig::MqttOutputConfigEntry{
                         .address = extract<std::string>(outNode, "address"),
                         .topic = extract<std::string>(outNode, "topic"),
                         .clientId = extract<std::string>(outNode, "client_id"),
                         .qos = extract<int>(outNode, "qos"),
-                        .payloadFormat = parseEnum<OutputConfig::MQTTOutputConfigEntry::PayloadFormat>(extract<std::string>(outNode, "format"))
+                        .payloadFormat = parseEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(extract<std::string>(outNode, "format"))
                         });
                     break;
                 }
@@ -188,16 +220,34 @@ namespace danasim {
         {
             const auto node = requireNode(root, "simulation");
 
-            config.simulation.timeStep = extract<float>(node, "time_step");
-            config.simulation.totalTime = extract<float>(node, "total_time");
+            config.simulation.startTimestamp = parseTimestampString(extract<std::string>(node, "start_timestamp"));
+            config.simulation.timeStep = parseDurationString(extract<std::string>(node, "time_step"));
+            config.simulation.duration = parseDurationString(extract<std::string>(node, "duration"));
 
-            config.simulation.viewMinX = extract<float>(node, "view_min_x");
-            config.simulation.viewMaxX = extract<float>(node, "view_max_x");
-            config.simulation.viewMinY = extract<float>(node, "view_min_y");
-            config.simulation.viewMaxY = extract<float>(node, "view_max_y");
+            {
+                const auto viewNode = requireNode(node, "view_box");
 
-            validate(config.simulation.timeStep > 0.0f, "simulation.time_step must be > 0");
-            validate(config.simulation.totalTime >= 0.0f, "simulation.total_time must be >= 0");
+                config.simulation.viewBox.useFullGrid = extract<bool>(viewNode, "use_full_grid");
+
+                if (!config.simulation.viewBox.useFullGrid) {
+                    {
+                        const auto southWestNode = requireNode(viewNode, "south_west");
+
+                        config.simulation.viewBox.southWest.lon = extract<float>(southWestNode, "lon");
+                        config.simulation.viewBox.southWest.lat = extract<float>(southWestNode, "lat");
+                    }
+
+                    {
+                        const auto northEastNode = requireNode(viewNode, "north_east");
+
+                        config.simulation.viewBox.northEast.lon = extract<float>(northEastNode, "lon");
+                        config.simulation.viewBox.northEast.lat = extract<float>(northEastNode, "lat");
+                    }
+                }
+            }
+
+            validate(config.simulation.timeStep > config.simulation.timeStep.zero(), "simulation.time_step must be > 0s");
+            validate(config.simulation.duration > config.simulation.duration.zero(), "simulation.duration must be > 0s");
         }
 
         // -----------------------------

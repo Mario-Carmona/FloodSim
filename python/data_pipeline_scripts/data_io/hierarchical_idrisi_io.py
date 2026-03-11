@@ -100,10 +100,6 @@ class HierarchicalIdrisiIO:
             downgrade_factor (int): The spatial resolution reduction factor applied 
                 to the data.
             spatial_context (SpatialContext): The spatial metadata for the dataset.
-            
-        Raises:
-            ValueError: If the length of timestamps does not match the temporal 
-                dimension of the data array.
         """
         # Ensure the root output directory exists before writing any files
         folder_path.mkdir(parents=True, exist_ok=True)
@@ -116,20 +112,13 @@ class HierarchicalIdrisiIO:
         num_steps = data.shape[0]
         filenames = []
 
-        if len(timestamps) != num_steps:
-            logger.warning("Number of timestamps does not match the data's temporal dimension.")
-
         # 2. Save each temporal frame as an individual 2D IDRISI raster
         for t in range(num_steps):
             frame_name = f"{t:06d}"
             frame_data = data[t]
 
-            # Create a dedicated subdirectory for the frame
-            frame_path = folder_path / frame_name
-            frame_path.mkdir(parents=True, exist_ok=True)
-
             # Delegate the saving of the 2D slice to the standard IdrisiIO handler
-            IdrisiIO.save(frame_path, frame_name, frame_data, spatial_context)
+            IdrisiIO.save(folder_path, frame_name, frame_data, spatial_context, save_metadata = False)
 
             filenames.append(frame_name)
         

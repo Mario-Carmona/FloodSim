@@ -16,6 +16,8 @@
 #include <vector>
 #include <filesystem>
 #include <variant>
+#include <unordered_map>
+#include <chrono>
 
 #include "Types.hpp"
 
@@ -25,24 +27,29 @@ namespace danasim {
     // Input Configuration
     // -------------------------------------------------------------------------
 
-    /**
-     * @enum InputConfigType
-     * @brief Supported input source types.
-     */
-    enum class InputConfigType {
-        FILE
-    };
+    struct InputConfig {
+        enum class InputSourceConfigEntryType {
+            FILE
+        };
 
-    /**
-     * @struct FileInputConfig
-     * @brief Configuration for file-based inputs.
-     */
-    struct FileInputConfig {
-        std::filesystem::path path; ///< Path to the input file.
-    };
+        struct FileInputSourceConfigEntry {
+            std::string staticFormat;
+            std::string dynamicFormat;
+            std::filesystem::path path; ///< Path to the input file.
+        };
 
-    /// Variant holding the active input configuration.
-    using InputConfig = std::variant<FileInputConfig>;
+        using InputSourceConfigEntry = std::variant<FileInputSourceConfigEntry>;
+
+
+        struct InputLayerConfigEntry {
+            std::string name;
+            std::string source;
+        };
+
+
+        std::unordered_map<std::string, InputSourceConfigEntry> sources;
+        std::vector<InputLayerConfigEntry> layers;
+    };
 
     // -------------------------------------------------------------------------
     // Output Configuration
@@ -59,11 +66,11 @@ namespace danasim {
             IMAGE
         };
 
-        struct X3DFileOutputConfigEntry {
+        struct X3dFileOutputConfigEntry {
             // Placeholder for future X3D config
         };
 
-        struct MQTTOutputConfigEntry {
+        struct MqttOutputConfigEntry {
 
             enum class PayloadFormat {
                 PROTOBUF
@@ -81,7 +88,7 @@ namespace danasim {
         };
 
         /// Variant for polymorphic output types.
-        using OutputConfigEntry = std::variant<X3DFileOutputConfigEntry, MQTTOutputConfigEntry, ImageOutputConfigEntry>;
+        using OutputConfigEntry = std::variant<X3dFileOutputConfigEntry, MqttOutputConfigEntry, ImageOutputConfigEntry>;
 
         /**
          * @struct SnapshotConfig
@@ -113,13 +120,23 @@ namespace danasim {
     // General Settings
     // -------------------------------------------------------------------------
 
+    struct ViewBox {
+
+        struct Point {
+            double lon;
+            double lat;
+        };
+        
+        bool useFullGrid;
+        Point southWest;
+        Point northEast;
+    };
+
     struct SimulationConfig {
-        float timeStep = 0.1f;    ///< Simulation step delta in seconds.
-        float totalTime = 0.0f;   ///< Total duration in seconds.
-        float viewMinX; 
-        float viewMaxX;
-        float viewMinY;
-        float viewMaxY;
+        std::chrono::sys_seconds startTimestamp;
+        std::chrono::seconds timeStep;    ///< Simulation step delta in seconds.
+        std::chrono::seconds duration;   ///< Total duration in seconds.
+        ViewBox viewBox;
     };
 
     struct ScenarioConfig {

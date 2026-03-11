@@ -33,8 +33,9 @@ inline constexpr SimulationFrame::Impl_::Impl_(
         _changed_x_cached_byte_size_{0},
         changed_y_{},
         _changed_y_cached_byte_size_{0},
-        step_index_{::int64_t{0}},
-        simulation_time_{0},
+        simulation_time_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         chunk_index_{0},
         total_chunks_{0},
         is_last_chunk_{false},
@@ -76,7 +77,6 @@ const ::uint32_t
         ~0u,  // no _inlined_string_donated_
         ~0u,  // no _split_
         ~0u,  // no sizeof(Split)
-        PROTOBUF_FIELD_OFFSET(::danasim::proto::SimulationFrame, _impl_.step_index_),
         PROTOBUF_FIELD_OFFSET(::danasim::proto::SimulationFrame, _impl_.simulation_time_),
         PROTOBUF_FIELD_OFFSET(::danasim::proto::SimulationFrame, _impl_.chunk_index_),
         PROTOBUF_FIELD_OFFSET(::danasim::proto::SimulationFrame, _impl_.total_chunks_),
@@ -94,18 +94,17 @@ static const ::_pb::Message* const file_default_instances[] = {
 };
 const char descriptor_table_protodef_messages_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n\016messages.proto\022\rdanasim.proto\"\246\001\n\017Simu"
-    "lationFrame\022\022\n\nstep_index\030\001 \001(\003\022\027\n\017simul"
-    "ation_time\030\002 \001(\002\022\023\n\013chunk_index\030\003 \001(\005\022\024\n"
-    "\014total_chunks\030\004 \001(\005\022\025\n\ris_last_chunk\030\005 \001"
-    "(\010\022\021\n\tchanged_x\030\006 \003(\003\022\021\n\tchanged_y\030\007 \003(\003"
-    "b\006proto3"
+    "\n\016messages.proto\022\rdanasim.proto\"\222\001\n\017Simu"
+    "lationFrame\022\027\n\017simulation_time\030\001 \001(\t\022\023\n\013"
+    "chunk_index\030\002 \001(\005\022\024\n\014total_chunks\030\003 \001(\005\022"
+    "\025\n\ris_last_chunk\030\004 \001(\010\022\021\n\tchanged_x\030\005 \003("
+    "\003\022\021\n\tchanged_y\030\006 \003(\003b\006proto3"
 };
 static ::absl::once_flag descriptor_table_messages_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_messages_2eproto = {
     false,
     false,
-    208,
+    188,
     descriptor_table_protodef_messages_2eproto,
     "messages.proto",
     &descriptor_table_messages_2eproto_once,
@@ -142,6 +141,7 @@ inline PROTOBUF_NDEBUG_INLINE SimulationFrame::Impl_::Impl_(
         _changed_x_cached_byte_size_{0},
         changed_y_{visibility, arena, from.changed_y_},
         _changed_y_cached_byte_size_{0},
+        simulation_time_(arena, from.simulation_time_),
         _cached_size_{0} {}
 
 SimulationFrame::SimulationFrame(
@@ -158,11 +158,11 @@ SimulationFrame::SimulationFrame(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
   ::memcpy(reinterpret_cast<char *>(&_impl_) +
-               offsetof(Impl_, step_index_),
+               offsetof(Impl_, chunk_index_),
            reinterpret_cast<const char *>(&from._impl_) +
-               offsetof(Impl_, step_index_),
+               offsetof(Impl_, chunk_index_),
            offsetof(Impl_, is_last_chunk_) -
-               offsetof(Impl_, step_index_) +
+               offsetof(Impl_, chunk_index_) +
                sizeof(Impl_::is_last_chunk_));
 
   // @@protoc_insertion_point(copy_constructor:danasim.proto.SimulationFrame)
@@ -174,15 +174,16 @@ inline PROTOBUF_NDEBUG_INLINE SimulationFrame::Impl_::Impl_(
         _changed_x_cached_byte_size_{0},
         changed_y_{visibility, arena},
         _changed_y_cached_byte_size_{0},
+        simulation_time_(arena),
         _cached_size_{0} {}
 
 inline void SimulationFrame::SharedCtor(::_pb::Arena* arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
   ::memset(reinterpret_cast<char *>(&_impl_) +
-               offsetof(Impl_, step_index_),
+               offsetof(Impl_, chunk_index_),
            0,
            offsetof(Impl_, is_last_chunk_) -
-               offsetof(Impl_, step_index_) +
+               offsetof(Impl_, chunk_index_) +
                sizeof(Impl_::is_last_chunk_));
 }
 SimulationFrame::~SimulationFrame() {
@@ -193,6 +194,7 @@ inline void SimulationFrame::SharedDtor(MessageLite& self) {
   SimulationFrame& this_ = static_cast<SimulationFrame&>(self);
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.simulation_time_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -212,7 +214,7 @@ constexpr auto SimulationFrame::InternalNewImpl_() {
                   ::google::protobuf::Message::internal_visibility()),
   });
   if (arena_bits.has_value()) {
-    return ::google::protobuf::internal::MessageCreator::ZeroInit(
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
         sizeof(SimulationFrame), alignof(SimulationFrame), *arena_bits);
   } else {
     return ::google::protobuf::internal::MessageCreator(&SimulationFrame::PlacementNew_,
@@ -248,15 +250,15 @@ const ::google::protobuf::internal::ClassData* SimulationFrame::GetClassData() c
   return _class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 7, 0, 0, 2> SimulationFrame::_table_ = {
+const ::_pbi::TcParseTable<3, 6, 0, 53, 2> SimulationFrame::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    7, 56,  // max_field_number, fast_idx_mask
+    6, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967168,  // skipmap
+    4294967232,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    7,  // num_field_entries
+    6,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     _class_data_.base(),
@@ -267,54 +269,52 @@ const ::_pbi::TcParseTable<3, 7, 0, 0, 2> SimulationFrame::_table_ = {
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
     {::_pbi::TcParser::MiniParse, {}},
-    // int64 step_index = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(SimulationFrame, _impl_.step_index_), 63>(),
-     {8, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.step_index_)}},
-    // float simulation_time = 2;
-    {::_pbi::TcParser::FastF32S1,
-     {21, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.simulation_time_)}},
-    // int32 chunk_index = 3;
+    // string simulation_time = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.simulation_time_)}},
+    // int32 chunk_index = 2;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SimulationFrame, _impl_.chunk_index_), 63>(),
-     {24, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.chunk_index_)}},
-    // int32 total_chunks = 4;
+     {16, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.chunk_index_)}},
+    // int32 total_chunks = 3;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(SimulationFrame, _impl_.total_chunks_), 63>(),
-     {32, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.total_chunks_)}},
-    // bool is_last_chunk = 5;
+     {24, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.total_chunks_)}},
+    // bool is_last_chunk = 4;
     {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(SimulationFrame, _impl_.is_last_chunk_), 63>(),
-     {40, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.is_last_chunk_)}},
-    // repeated int64 changed_x = 6;
+     {32, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.is_last_chunk_)}},
+    // repeated int64 changed_x = 5;
     {::_pbi::TcParser::FastV64P1,
-     {50, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.changed_x_)}},
-    // repeated int64 changed_y = 7;
+     {42, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.changed_x_)}},
+    // repeated int64 changed_y = 6;
     {::_pbi::TcParser::FastV64P1,
-     {58, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.changed_y_)}},
+     {50, 63, 0, PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.changed_y_)}},
+    {::_pbi::TcParser::MiniParse, {}},
   }}, {{
     65535, 65535
   }}, {{
-    // int64 step_index = 1;
-    {PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.step_index_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kInt64)},
-    // float simulation_time = 2;
+    // string simulation_time = 1;
     {PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.simulation_time_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
-    // int32 chunk_index = 3;
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int32 chunk_index = 2;
     {PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.chunk_index_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
-    // int32 total_chunks = 4;
+    // int32 total_chunks = 3;
     {PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.total_chunks_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
-    // bool is_last_chunk = 5;
+    // bool is_last_chunk = 4;
     {PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.is_last_chunk_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kBool)},
-    // repeated int64 changed_x = 6;
+    // repeated int64 changed_x = 5;
     {PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.changed_x_), 0, 0,
     (0 | ::_fl::kFcRepeated | ::_fl::kPackedInt64)},
-    // repeated int64 changed_y = 7;
+    // repeated int64 changed_y = 6;
     {PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.changed_y_), 0, 0,
     (0 | ::_fl::kFcRepeated | ::_fl::kPackedInt64)},
   }},
   // no aux_entries
   {{
+    "\35\17\0\0\0\0\0\0"
+    "danasim.proto.SimulationFrame"
+    "simulation_time"
   }},
 };
 
@@ -327,9 +327,10 @@ PROTOBUF_NOINLINE void SimulationFrame::Clear() {
 
   _impl_.changed_x_.Clear();
   _impl_.changed_y_.Clear();
-  ::memset(&_impl_.step_index_, 0, static_cast<::size_t>(
+  _impl_.simulation_time_.ClearToEmpty();
+  ::memset(&_impl_.chunk_index_, 0, static_cast<::size_t>(
       reinterpret_cast<char*>(&_impl_.is_last_chunk_) -
-      reinterpret_cast<char*>(&_impl_.step_index_)) + sizeof(_impl_.is_last_chunk_));
+      reinterpret_cast<char*>(&_impl_.chunk_index_)) + sizeof(_impl_.is_last_chunk_));
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
@@ -348,56 +349,50 @@ PROTOBUF_NOINLINE void SimulationFrame::Clear() {
           ::uint32_t cached_has_bits = 0;
           (void)cached_has_bits;
 
-          // int64 step_index = 1;
-          if (this_._internal_step_index() != 0) {
-            target = ::google::protobuf::internal::WireFormatLite::
-                WriteInt64ToArrayWithField<1>(
-                    stream, this_._internal_step_index(), target);
+          // string simulation_time = 1;
+          if (!this_._internal_simulation_time().empty()) {
+            const std::string& _s = this_._internal_simulation_time();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "danasim.proto.SimulationFrame.simulation_time");
+            target = stream->WriteStringMaybeAliased(1, _s, target);
           }
 
-          // float simulation_time = 2;
-          if (::absl::bit_cast<::uint32_t>(this_._internal_simulation_time()) != 0) {
-            target = stream->EnsureSpace(target);
-            target = ::_pbi::WireFormatLite::WriteFloatToArray(
-                2, this_._internal_simulation_time(), target);
-          }
-
-          // int32 chunk_index = 3;
+          // int32 chunk_index = 2;
           if (this_._internal_chunk_index() != 0) {
             target = ::google::protobuf::internal::WireFormatLite::
-                WriteInt32ToArrayWithField<3>(
+                WriteInt32ToArrayWithField<2>(
                     stream, this_._internal_chunk_index(), target);
           }
 
-          // int32 total_chunks = 4;
+          // int32 total_chunks = 3;
           if (this_._internal_total_chunks() != 0) {
             target = ::google::protobuf::internal::WireFormatLite::
-                WriteInt32ToArrayWithField<4>(
+                WriteInt32ToArrayWithField<3>(
                     stream, this_._internal_total_chunks(), target);
           }
 
-          // bool is_last_chunk = 5;
+          // bool is_last_chunk = 4;
           if (this_._internal_is_last_chunk() != 0) {
             target = stream->EnsureSpace(target);
             target = ::_pbi::WireFormatLite::WriteBoolToArray(
-                5, this_._internal_is_last_chunk(), target);
+                4, this_._internal_is_last_chunk(), target);
           }
 
-          // repeated int64 changed_x = 6;
+          // repeated int64 changed_x = 5;
           {
             int byte_size = this_._impl_._changed_x_cached_byte_size_.Get();
             if (byte_size > 0) {
               target = stream->WriteInt64Packed(
-                  6, this_._internal_changed_x(), byte_size, target);
+                  5, this_._internal_changed_x(), byte_size, target);
             }
           }
 
-          // repeated int64 changed_y = 7;
+          // repeated int64 changed_y = 6;
           {
             int byte_size = this_._impl_._changed_y_cached_byte_size_.Get();
             if (byte_size > 0) {
               target = stream->WriteInt64Packed(
-                  7, this_._internal_changed_y(), byte_size, target);
+                  6, this_._internal_changed_y(), byte_size, target);
             }
           }
 
@@ -426,14 +421,14 @@ PROTOBUF_NOINLINE void SimulationFrame::Clear() {
 
           ::_pbi::Prefetch5LinesFrom7Lines(&this_);
            {
-            // repeated int64 changed_x = 6;
+            // repeated int64 changed_x = 5;
             {
               total_size +=
                   ::_pbi::WireFormatLite::Int64SizeWithPackedTagSize(
                       this_._internal_changed_x(), 1,
                       this_._impl_._changed_x_cached_byte_size_);
             }
-            // repeated int64 changed_y = 7;
+            // repeated int64 changed_y = 6;
             {
               total_size +=
                   ::_pbi::WireFormatLite::Int64SizeWithPackedTagSize(
@@ -442,26 +437,22 @@ PROTOBUF_NOINLINE void SimulationFrame::Clear() {
             }
           }
            {
-            // int64 step_index = 1;
-            if (this_._internal_step_index() != 0) {
-              total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
-                  this_._internal_step_index());
+            // string simulation_time = 1;
+            if (!this_._internal_simulation_time().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_simulation_time());
             }
-            // float simulation_time = 2;
-            if (::absl::bit_cast<::uint32_t>(this_._internal_simulation_time()) != 0) {
-              total_size += 5;
-            }
-            // int32 chunk_index = 3;
+            // int32 chunk_index = 2;
             if (this_._internal_chunk_index() != 0) {
               total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
                   this_._internal_chunk_index());
             }
-            // int32 total_chunks = 4;
+            // int32 total_chunks = 3;
             if (this_._internal_total_chunks() != 0) {
               total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
                   this_._internal_total_chunks());
             }
-            // bool is_last_chunk = 5;
+            // bool is_last_chunk = 4;
             if (this_._internal_is_last_chunk() != 0) {
               total_size += 2;
             }
@@ -480,11 +471,8 @@ void SimulationFrame::MergeImpl(::google::protobuf::MessageLite& to_msg, const :
 
   _this->_internal_mutable_changed_x()->MergeFrom(from._internal_changed_x());
   _this->_internal_mutable_changed_y()->MergeFrom(from._internal_changed_y());
-  if (from._internal_step_index() != 0) {
-    _this->_impl_.step_index_ = from._impl_.step_index_;
-  }
-  if (::absl::bit_cast<::uint32_t>(from._internal_simulation_time()) != 0) {
-    _this->_impl_.simulation_time_ = from._impl_.simulation_time_;
+  if (!from._internal_simulation_time().empty()) {
+    _this->_internal_set_simulation_time(from._internal_simulation_time());
   }
   if (from._internal_chunk_index() != 0) {
     _this->_impl_.chunk_index_ = from._impl_.chunk_index_;
@@ -508,15 +496,18 @@ void SimulationFrame::CopyFrom(const SimulationFrame& from) {
 
 void SimulationFrame::InternalSwap(SimulationFrame* PROTOBUF_RESTRICT other) {
   using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   _impl_.changed_x_.InternalSwap(&other->_impl_.changed_x_);
   _impl_.changed_y_.InternalSwap(&other->_impl_.changed_y_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.simulation_time_, &other->_impl_.simulation_time_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.is_last_chunk_)
       + sizeof(SimulationFrame::_impl_.is_last_chunk_)
-      - PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.step_index_)>(
-          reinterpret_cast<char*>(&_impl_.step_index_),
-          reinterpret_cast<char*>(&other->_impl_.step_index_));
+      - PROTOBUF_FIELD_OFFSET(SimulationFrame, _impl_.chunk_index_)>(
+          reinterpret_cast<char*>(&_impl_.chunk_index_),
+          reinterpret_cast<char*>(&other->_impl_.chunk_index_));
 }
 
 ::google::protobuf::Metadata SimulationFrame::GetMetadata() const {

@@ -37,7 +37,7 @@ namespace danasim {
          * @return std::unique_ptr<InputPort> The created input adapter.
          * @throw std::runtime_error If the configuration type is not supported.
          */
-        static std::unique_ptr<InputPort> create(const InputConfig& config);
+        static std::unique_ptr<InputPort> create(const InputConfig::InputSourceConfigEntry& config);
     };
 
 } // namespace danasim

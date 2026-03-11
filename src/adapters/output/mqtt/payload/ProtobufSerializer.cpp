@@ -3,6 +3,9 @@
 
 #include "adapters/output/mqtt/payload/proto/messages.pb.h"
 
+#include <fmt/core.h>
+#include <fmt/chrono.h>
+
 #include "logging/Logger.hpp"
 
 namespace danasim {
@@ -11,8 +14,7 @@ namespace danasim {
         // 1. Crear el mensaje Protobuf
         danasim::proto::SimulationFrame frame;
 
-        frame.set_step_index(snapshot.step());
-        frame.set_simulation_time(snapshot.time());
+        frame.set_simulation_time(fmt::format("{:%FT%T}", snapshot.time()));
 
         frame.set_chunk_index(chunkIndex);
         frame.set_total_chunks(totalChunks);

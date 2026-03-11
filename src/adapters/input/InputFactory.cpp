@@ -5,6 +5,7 @@
 
 #include "adapters/input/InputFactory.hpp"
 
+#include <memory>
 #include <variant>
 #include <stdexcept>
 #include <fmt/core.h>
@@ -33,17 +34,17 @@ namespace danasim {
         overloaded(Ts...) -> overloaded<Ts...>;
     }
 
-    std::unique_ptr<InputPort> InputFactory::create(const InputConfig& config)
+    std::unique_ptr<InputPort> InputFactory::create(const InputConfig::InputSourceConfigEntry& config)
     {
         // std::visit dispatches the call to the lambda matching the active variant type.
         return std::visit(overloaded{
 
             // 1. Handle File Input
-            [](const FileInputConfig& cfg) -> std::unique_ptr<InputPort> {
+            [](const InputConfig::FileInputSourceConfigEntry& cfg) -> std::unique_ptr<InputPort> {
                 LOG_DEBUG("Factory creating FileInput source from: {}", cfg.path.string());
 
                 // std::make_unique is optimized for memory allocation
-                return std::make_unique<FileInput>(cfg.path);
+                return std::make_unique<FileInput>(cfg.path, cfg.staticFormat, cfg.dynamicFormat);
             },
 
             // 2. Fallback for unhandled types (Safety Net)

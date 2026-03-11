@@ -52,7 +52,7 @@ namespace danasim {
         cvOutputs_.notify_all();
     }
 
-    std::pair<std::pair<const Snapshot&, const ChangeList&>, std::unique_ptr<SnapshotReadGuard>> SnapshotManager::waitForSnapshot(StepType lastStep) {
+    std::pair<std::pair<const Snapshot&, const ChangeList&>, std::unique_ptr<SnapshotReadGuard>> SnapshotManager::waitForSnapshot(std::chrono::system_clock::time_point lastStep) {
         std::unique_lock<std::mutex> lock(mutex_);
 
         cvOutputs_.wait(lock, [this, lastStep] {
@@ -60,7 +60,7 @@ namespace danasim {
             if (currentSnapshot_ == nullptr) return false; // Esperar si no hay datos
 
             // Lógica normal: solo avanzamos si hay un paso nuevo
-            return currentSnapshot_->step() > lastStep;
+            return currentSnapshot_->time() > lastStep;
             });
 
         // Si estamos parando, retornamos null

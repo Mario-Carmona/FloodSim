@@ -48,15 +48,15 @@ namespace danasim {
         }
     }
     
-    void OnnxStateUpdater::initialize(MapGrid& grid, float step_time) {
-        dt_ = step_time;
+    void OnnxStateUpdater::initialize(MapGrid& grid, std::chrono::seconds stepTime) {
+        dt_ = static_cast<float>(stepTime.count());
         dx_ = grid.cellSize();
         
         // 1. Obtener punteros RAW (Zero-Copy)
-        float* water_ptr = grid.getLayerDataRaw<float>(LayerId::WaterDepth);
-        float* elev_ptr = grid.getLayerDataRaw<float>(LayerId::Elevation);
-        float* rough_ptr = grid.getLayerDataRaw<float>(LayerId::Roughness);
-        float* rainfall_ptr = grid.getLayerDataRaw<float>(LayerId::Rainfall);
+        float* water_ptr = grid.getLayer<float>(LayerId::WaterDepth)->getData().data();
+        float* elev_ptr = grid.getLayer<float>(LayerId::Elevation)->getData().data();
+        float* rough_ptr = grid.getLayer<float>(LayerId::Roughness)->getData().data();
+        float* rainfall_ptr = grid.getLayer<float>(LayerId::Rainfall)->getData().data();
 
         // 2. Definir dimensiones
         int64_t rows = static_cast<int64_t>(grid.rows());

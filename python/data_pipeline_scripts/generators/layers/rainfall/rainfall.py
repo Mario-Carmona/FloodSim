@@ -151,13 +151,15 @@ class RainfallGenerator(DynamicLayerGenerator):
         logger.info(f"Starting temporal interpolation loop ({num_steps} frames)...")
 
         for step in range(num_steps):
-            current_time = start_date + (time_step * step)
-            layer.timestamps.append(current_time)
+            step_start_time = start_date + (time_step * step)
+            step_end_time = start_date + (time_step * (step + 1))
+
+            layer.timestamps.append(step_start_time)
 
             # Filter gauges that have active readings strictly within this time window
             active_points = []
             for p in rain_data:
-                if p.start_timestamp <= current_time < p.end_timestamp:
+                if (p.start_timestamp <= step_start_time < p.end_timestamp) and (p.start_timestamp < step_end_time <= p.end_timestamp):
                     active_points.append(
                         RainDataPoint(position=p.station.position, value=p.mm_per_hour)
                     )
@@ -169,8 +171,10 @@ class RainfallGenerator(DynamicLayerGenerator):
 
                 step_min = np.min(layer.data[step, :, :])
                 step_max = np.max(layer.data[step, :, :])
-                logger.info(f"Frame [{step:03d}] {current_time} | Max Intensity: {step_max:.4f} mm/h | Interpolated from {len(active_points)} points")
+                logger.info(f"Frame [{step:03d}] {step_start_time} | Max Intensity: {step_max:.4f} mm/h | Interpolated from {len(active_points)} points")
             else:
-                logger.warning(f"Frame [{step:03d}] {current_time} | Not enough active stations ({len(active_points)} < {min_points}). Defaulting to 0 mm/h.")
+                logger.warning(f"Frame [{step:03d}] {step_start_time} | Not enough active stations ({len(active_points)} < {min_points}). Defaulting to 0 mm/h.")
+
+        layer.timestamps.append(start_date + (time_step * num_steps))
 
         return layer

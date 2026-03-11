@@ -1,21 +1,22 @@
 
-#include "adapters/output/X3DFileOutput.hpp"
+#include "adapters/output/X3dFileOutput.hpp"
 
 #include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
+#include <fmt/chrono.h>
 
 #include "logging/Logger.hpp"
 
 namespace danasim {
 
-    X3DFileOutput::X3DFileOutput()
+    X3dFileOutput::X3dFileOutput()
     {
         
     }
 
-    void X3DFileOutput::run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath)
+    void X3dFileOutput::run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath)
     {
         std::filesystem::path outputDirectory = outputPath / "x3d_files";
 
@@ -23,7 +24,7 @@ namespace danasim {
             std::filesystem::create_directories(outputDirectory);
         }
 
-        StepType lastProcessedStep = -1; // Empezamos desde antes del paso 0
+        std::chrono::system_clock::time_point lastProcessedStep = std::chrono::system_clock::time_point::min();
 
         while (true) {
             try {
@@ -39,14 +40,14 @@ namespace danasim {
                 }
 
                 // 2. Procesamiento
-                std::string filename = "step_" + std::to_string(snapshot.step()) + ".html";
+                std::string filename = fmt::format("step_{:%FT%T}.html", snapshot.time());
 
                 // Serializamos y escribimos a disco
                 // X3DSnapshotSerializer serializer;
                 // serializer.serializeToFile(snapshot, outputDirectory / filename);
 
                 // Actualizamos el tracking
-                lastProcessedStep = snapshot.step();
+                lastProcessedStep = snapshot.time();
 
                 // Logger opcional para debug (puede ser ruidoso si hay muchos pasos)
                 // Logger::instance().info("[X3DOutput] Saved " + filename);
@@ -61,7 +62,7 @@ namespace danasim {
         }
     }
 
-    void X3DFileOutput::setGrid(const MapGrid& grid) {
+    void X3dFileOutput::setGrid(const MapGrid& grid) {
 
     }
 

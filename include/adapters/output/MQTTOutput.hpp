@@ -17,15 +17,15 @@ namespace danasim {
     /**
      * @brief Publishes snapshots to an MQTT broker.
      */
-    class MQTTOutput : public OutputPort {
+    class MqttOutput : public OutputPort {
     public:
-        MQTTOutput(const std::string& address,
+        MqttOutput(const std::string& address,
             const std::string& topic,
             const std::string& clientId,
             int qos,
-            OutputConfig::MQTTOutputConfigEntry::PayloadFormat payloadFormat);
+            OutputConfig::MqttOutputConfigEntry::PayloadFormat payloadFormat);
 
-        ~MQTTOutput();
+        ~MqttOutput();
 
         void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 
@@ -35,7 +35,7 @@ namespace danasim {
 
     private:
         [[nodiscard]] // Warns if the returned pointer is ignored (C++17/20)
-        static std::unique_ptr<PayloadSerializer> createPayloadSerializer(const OutputConfig::MQTTOutputConfigEntry::PayloadFormat& format);
+        static std::unique_ptr<PayloadSerializer> createPayloadSerializer(const OutputConfig::MqttOutputConfigEntry::PayloadFormat& format);
 
         void connect();
         void publishInChunks(const Snapshot& snapshot, const ChangeList& changes);

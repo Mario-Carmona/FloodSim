@@ -133,7 +133,7 @@ class IdrisiIO:
             f.write(doc_content)
 
     @staticmethod
-    def save(folder_path: Path, filename: str, data: np.ndarray, spatial_context: SpatialContext) -> None:
+    def save(folder_path: Path, filename: str, data: np.ndarray, spatial_context: SpatialContext, save_metadata: bool = True) -> None:
         """
         Saves a raster array and its spatial context to IDRISI ASCII format.
 
@@ -145,16 +145,18 @@ class IdrisiIO:
             filename (str): The base name for the generated files (without extension).
             data (np.ndarray): The 2D numpy array containing the raster values.
             spatial_context (SpatialContext): The spatial metadata for the raster.
+            save_metadata (bool): Indicates whether an additional file should be generated with the spatial context metadata.
         """
         # Ensure output directory exists to prevent FileNotFoundError
         folder_path.mkdir(parents=True, exist_ok=True)
 
-        doc_path = folder_path / f"{filename}.doc"
         img_path = folder_path / f"{filename}.img"
 
         logger.info(f"Saving IDRISI raster to: {folder_path / filename}")
 
-        IdrisiIO._write_doc(doc_path, data, spatial_context)
+        if(save_metadata):
+            doc_path = folder_path / f"{filename}.doc"
+            IdrisiIO._write_doc(doc_path, data, spatial_context)
 
         # Determine appropriate format specifier based on data type hierarchy
         fmt = '%f' if np.issubdtype(data.dtype, np.floating) else '%d'

@@ -10,76 +10,30 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "core/grid/StaticLayer.hpp"
+#include "core/grid/DynamicLayer.hpp"
+
 namespace danasim {
 
-    // -------------------------------------------------------------------------
-    // Static Initialization
-    // -------------------------------------------------------------------------
+    MapGrid::MapGrid(std::chrono::seconds timeStep)
+        : timeStep_(timeStep)
+    {
+        layers_[static_cast<size_t>(LayerId::Elevation)] = std::make_unique<StaticLayer<float>>("elevation", LayerRole::Secondary);
+        layers_[static_cast<size_t>(LayerId::WaterDepth)] = std::make_unique<StaticLayer<float>>("water_depth", LayerRole::Main);
+        layers_[static_cast<size_t>(LayerId::Roughness)] = std::make_unique<StaticLayer<float>>("roughness", LayerRole::Secondary);
+        layers_[static_cast<size_t>(LayerId::Rainfall)] = std::make_unique<DynamicLayer<float>>("rainfall", LayerRole::Secondary);
 
-    // We initialize the descriptors array once at startup.
-    const std::array<LayerDescriptor, magic_enum::enum_count<LayerId>()> MapGrid::descriptors_ = MapGrid::initializeDescriptors();
-
-    std::array<LayerDescriptor, magic_enum::enum_count<LayerId>()> MapGrid::initializeDescriptors() {
-        std::array<LayerDescriptor, magic_enum::enum_count<LayerId>()> buffer;
-
-        // ---------------------------------------------------------------------
-        // 1. DESCRIPTOR ASSIGNMENT
-        // ---------------------------------------------------------------------
-        // We iterate over every value defined in the LayerId enum to fill the descriptors.
-
-        for (auto& value : magic_enum::enum_values<LayerId>()) {
-            size_t index = static_cast<size_t>(value);
-
-            // Default initialization
-            LayerDescriptor desc{};
-
-            switch (value) {
-                case LayerId::Elevation:
-                    desc = {
-                        "elevation", 
-                        LayerRole::Secondary,
-                        LayerDataType::Float32,
-                        LayerSource::Static
-                    };
-                    break;
-                case LayerId::Rainfall:
-                    desc = {
-                        "rainfall",
-                        LayerRole::Secondary,
-                        LayerDataType::Float32,
-                        LayerSource::Dynamic
-                    };
-                    break;
-                case LayerId::Roughness:
-                    desc = {
-                        "roughness",
-                        LayerRole::Secondary,
-                        LayerDataType::Float32,
-                        LayerSource::Static
-                    };
-                    break;
-                case LayerId::WaterDepth:
-                    desc = {
-                        "water_depth",
-                        LayerRole::Main,
-                        LayerDataType::Float32,
-                        LayerSource::Static
-                    };
-                    break;
-                    // ... añade tus otros LayerId aquí ...
-
-                default:
-                    // Critical safety catch for new enum values without descriptors
-                    auto msg = fmt::format(
-                        "LayerId '{}' is missing a descriptor definition in MapGrid::initializeDescriptors()",
-                        magic_enum::enum_name(value)
-                    );
-                    LOG_ERROR("{}", msg);
-                    throw std::logic_error(msg);
+        for (LayerId layer : magic_enum::enum_values<LayerId>()) {
+            if (layers_[static_cast<size_t>(layer)] == nullptr) {
+                auto msg = fmt::format(
+                    "La capa {} no ha sido cargada.",
+                    magic_enum::enum_name(layer)
+                );
+                LOG_ERROR("{}", msg);
+                throw std::runtime_error(msg);
             }
-
-            buffer[index] = desc;
         }
+
 
         // ---------------------------------------------------------------------
         // 2. ORDER VALIDATION
@@ -96,78 +50,126 @@ namespace danasim {
 
         // RULE 2: Strict Grouping (Principal layers must appear before Secondary layers).
         // This optimizes memory access patterns and input loading loops.
-        bool secondaryStarted = false;
+        bool derivedStarted = false;
 
-        for (size_t i = 0; i < buffer.size(); ++i) {
-            const auto& desc = buffer[i];
-
-            if (desc.source == LayerSource::Derived) {
+        for (LayerId layer : magic_enum::enum_values<LayerId>()) {
+            if (getLayer(layer)->isDerived()) {
                 // We have entered the Secondary layers zone
-                secondaryStarted = true;
+                derivedStarted = true;
             }
             else {
                 // If we find a Principal layer after starting Secondary layers, it's an error.
-                if (secondaryStarted) {
+                if (derivedStarted) {
                     auto msg = fmt::format(
                         "Layer Order Error: Layer '{}' (Non Derived) appears after a Derived layer. "
                         "Please reorder LayerId enum so all Non Derived layers come first.",
-                        desc.name
+                        layers_[static_cast<size_t>(layer)]->getName()
                     );
                     LOG_ERROR("{}", msg);
                     throw std::logic_error(msg);
                 }
             }
         }
-
-        return buffer;
     }
 
-    const LayerDescriptor& MapGrid::getDescriptor(LayerId id) {
-        return descriptors_[static_cast<size_t>(id)];
+    void MapGrid::load(const std::unordered_map<std::string, InputPort*>& layerInputSource, std::chrono::system_clock::time_point currentTime) {
+        LOG_INFO("Loading simulation layers...");
+
+        std::string baseLayer = layers_[0]->getName();
+
+        GridMetadata metadata = layerInputSource.at(baseLayer)->generateReader(baseLayer, getLayer(magic_enum::enum_value<LayerId>(0))->isStatic())->readMetadata();
+
+        for (auto layerId : magic_enum::enum_values<LayerId>()) {
+            try {
+                getLayer(layerId)->init(metadata);
+
+                if (getLayer(layerId)->isDerived()) {
+                    initializeDerivedLayer(layerId);
+                }
+                else {
+                    getLayer(layerId)->setReader(
+                        layerInputSource.at(baseLayer)->generateReader(
+                            getLayer(layerId)->getName(),
+                            getLayer(layerId)->isStatic()
+                        ),
+                        currentTime
+                    );
+
+                    normalizeUnits(layerId);
+                }
+            }
+            catch (const std::exception& ex) {
+                // Enhance exception with context before re-throwing
+                auto msg = fmt::format("Failed to load layer '{}': {}", getLayer(layerId)->getName(), ex.what());
+                LOG_ERROR("{}", msg);
+                throw std::runtime_error(msg);
+            }
+        }
     }
 
-    // -------------------------------------------------------------------------
-    // Class Implementation
-    // -------------------------------------------------------------------------
-
-    void MapGrid::init(GridIndexType rows, GridIndexType cols, float cellSize, float mapOriginX, float mapOriginY) {
-
-        // 1. Sanity Check: Ensure valid dimensions to prevent math errors later
-        if (rows == 0 || cols == 0) {
-            auto msg = fmt::format("MapGrid initialization failed: Invalid dimensions {}x{}.", cols, rows);
+    void MapGrid::initializeDerivedLayer(LayerId id) {
+        // Logic for derived layers.
+        switch (id) {
+        default: {
+            auto msg = fmt::format(
+                "There is no initialization logic for the secondary layer: {}",
+                magic_enum::enum_name(id)
+            );
             LOG_ERROR("{}", msg);
-            throw std::invalid_argument(msg);
+            throw std::runtime_error(msg);
+            break;
         }
+        }
+    }
 
-        // 2. Set Grid Metadata
-        rows_ = rows;
-        cols_ = cols;
-        cellCount_ = rows_ * cols_;
-        cellSize_ = cellSize;
+    void MapGrid::updateDynamicLayers(std::chrono::system_clock::time_point currentTime) {
+        for (auto layerId : magic_enum::enum_values<LayerId>()) {
+            if (!getLayer(layerId)->isStatic()) {
+                getLayer(layerId)->update(currentTime);
 
-        mapOriginX_ = mapOriginX;
-        mapOriginY_ = mapOriginY;
-
-        // 4. Allocate Memory for Layers
-        // We iterate through all defined LayerIds using magic_enum to ensure
-        // complete coverage. Vectors are re-allocated to the new cellCount.
-        for (auto& layerId : magic_enum::enum_values<LayerId>()) {
-            size_t index = static_cast<size_t>(layerId);
-            const auto& desc = descriptors_[index];
-
-            // Access the variant storage at this index
-            auto& storage = layers_[index];
-
-            // Initialize the variant based on the specific data type required 
-            // by the layer descriptor (Float vs Int8).
-            // Using std::vector constructor (size, value) to zero-initialize.
-            if (desc.dataType == LayerDataType::Float32) {
-                storage = std::vector<float>(cellCount_, 0.0f);
-            }
-            else if (desc.dataType == LayerDataType::Int8) {
-                storage = std::vector<int8_t>(cellCount_, static_cast<int8_t>(0));
+                normalizeUnits(layerId);
             }
         }
+    }
+
+    void MapGrid::normalizeUnits(LayerId id) {
+        switch (id) {
+        case LayerId::Rainfall: {
+            constexpr float MM_TO_M_FACTOR = 0.001f;
+            constexpr float HOUR_TO_SEC_INV = 1.0f / 3600.0f;
+
+            // 1. Obtenemos el puntero base
+            LayerBase* baseLayer = getLayer(id);
+
+            // 2. Casteamos a Layer<float> para poder acceder a getData()
+            if (auto* floatLayer = dynamic_cast<Layer<float>*>(baseLayer)) {
+
+                auto& data = floatLayer->getData(); // Ahora sí tenemos acceso al vector
+
+                // 1. Extraemos el valor numérico de chrono y lo pasamos a float.
+                // Lo hacemos FUERA del std::transform para que no se calcule 
+                // repetidamente por cada celda de la malla.
+                float timeStepSecs = static_cast<float>(timeStep_.count());
+
+                std::transform(data.begin(), data.end(), data.begin(),
+                    [MM_TO_M_FACTOR, HOUR_TO_SEC_INV, timeStepSecs](float val) {
+                        return (val * MM_TO_M_FACTOR) * (timeStepSecs * HOUR_TO_SEC_INV);
+                    });
+            }
+            else {
+                LOG_ERROR("La capa Rainfall no es de tipo float");
+            }
+            break;
+        }
+        }
+    }
+
+    LayerBase* MapGrid::getLayer(LayerId id) {
+        return layers_[static_cast<size_t>(id)].get();
+    }
+
+    const LayerBase* MapGrid::getLayer(LayerId id) const {
+        return layers_[static_cast<size_t>(id)].get();
     }
 
 } // namespace danasim

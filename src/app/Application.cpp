@@ -101,7 +101,17 @@ namespace danasim {
             // 1. Input Module Initialization
             // -------------------------------------------------
             LOG_INFO("Initializing input factory");
-            auto input = InputFactory::create(config_.input);
+            std::unordered_map<std::string, std::unique_ptr<InputPort>> inputSources;
+
+            for (const auto& [type, srcConfig] : config_.input.sources) {
+                inputSources[type] = InputFactory::create(srcConfig);
+            }
+
+            std::unordered_map<std::string, InputPort*> layerInputSource;
+
+            for (auto lyConfig : config_.input.layers) {
+                layerInputSource[lyConfig.name] = inputSources[lyConfig.source].get();
+            }
 
             // -------------------------------------------------
             // 2. Output Modules Initialization
@@ -138,7 +148,7 @@ namespace danasim {
             // Note: SimulationCore takes ownership of stateUpdater
             core_ = std::make_unique<SimulationCore>(
                 stateUpdater.get(),
-                input.get(),
+                layerInputSource,
                 outputsPtr,
                 snapshotManager_.get(),
                 config_.simulation,

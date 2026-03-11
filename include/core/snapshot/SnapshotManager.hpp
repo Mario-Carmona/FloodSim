@@ -51,7 +51,7 @@ namespace danasim {
         
         // Output: Espera datos. Retorna un par {Snapshot, Guard}
         // El Guard llamará a signalDone automáticamente al destruirse.
-        std::pair<std::pair<const Snapshot&, const ChangeList&>, std::unique_ptr<SnapshotReadGuard>> waitForSnapshot(StepType lastStep);
+        std::pair<std::pair<const Snapshot&, const ChangeList&>, std::unique_ptr<SnapshotReadGuard>> waitForSnapshot(std::chrono::system_clock::time_point lastStep);
         
         void stop();
         bool isRunning() const noexcept { return running_; }

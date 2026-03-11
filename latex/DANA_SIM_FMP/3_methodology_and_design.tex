@@ -164,8 +164,8 @@ An HIF dataset consists of three primary elements:
     and CRS) shared by all frames in the sequence. It serves as the entry point for the simulator.
     \item \textbf{Temporal Attribute Manifest (attrs.json)}: A specialized metadata file that maps simulation time-steps 
     to specific file paths. It contains the downgrade factors, ISO-8601 timestamps, and the ordered list of frame filenames.
-    \item \textbf{Frame Repository}: A collection of subdirectories, each containing the standard IDRISI .doc and .img 
-    files for a single point in time.
+    \item \textbf{Frame Repository}: A flat collection of .img files, each representing a single point in time, without 
+    accompanying .doc files.
 \end{enumerate}
 
 By adopting this format, the system achieves a balance between the simplicity of ASCII-based/flat-binary rasters and 
@@ -192,14 +192,9 @@ This tree topology illustrates the resulting hierarchy after the Data Pipeline e
     [output/rainfall/
       [\file{rainfall.hif}]
       [\file{attrs.json}]
-      [000000/
-        [\file{000000.doc}]
-        [\file{000000.img}]
-      ]
-      [000001/
-        [\file{000001.doc}]
-        [\file{000001.img}]
-      ]
+      [\file{000000.img}]
+      [\file{000001.img}]
+      [\file{...}]
     ]
     \end{forest}
     \caption{Hierarchical IDRISI Format (HIF) internal directory structure visualized as a tree topology.}

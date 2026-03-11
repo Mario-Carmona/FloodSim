@@ -150,9 +150,8 @@ decomposes 3D data cubes ($Time \times Y \times X$) into a structured repository
     physical file path. This allows the simulator to perform "Temporal Seeking"—reading only the specific frames required 
     for a given time-step without loading the entire dataset into memory.
     \item \textbf{Atomic Frame Persistence}: The save() method orchestrates a loop over the temporal dimension of the 
-    data cube. For each time-step $t$, it creates a zero-padded subdirectory (e.g., 000001/) and delegates the 
-    serialization of the 2D slice to the IdrisiIO handler. This ensures that every individual frame is a valid, independent 
-    IDRISI dataset.
+    data cube. For each time-step $t$, it delegates the serialization of the 2D slice to the IdrisiIO handler. This 
+    ensures that every individual frame is a valid, independent IDRISI dataset.
     \item \textbf{Format Uniformity}: By leveraging the same underlying logic for both static and dynamic layers, the 
     I/O subsystem minimizes the dependency on third-party libraries (like h5py or NetCDF4), simplifying the deployment 
     of the C++ simulation core.
@@ -536,16 +535,12 @@ C++ simulation core, which expects files in specific locations:
       [rainfall/
         [\filedesc{rainfall.hif}{3D Rainfall cube (HIF)}]
         [\file{attrs.json}]
-        [000000/
-          [\file{000000.doc}]
-          [\file{000000.img}]
-        ]
-        [000001/
-          [\file{000001.doc}]
-          [\file{000001.img}]
-        ]
+        [\file{000000.img}]
+        [\file{000001.img}]
+        [\file{...}]
         [visualization/
           [\filedesc{rainfall\_frame\_001.png}{Temporal snapshots}]
+          [\file{...}]
         ]
       ]
       [water\_depth/

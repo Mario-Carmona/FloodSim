@@ -1,5 +1,5 @@
 
-#include "adapters/output/MQTTOutput.hpp"
+#include "adapters/output/MqttOutput.hpp"
 
 #include <stdexcept>
 
@@ -8,10 +8,10 @@
 
 namespace danasim {
 
-    std::unique_ptr<PayloadSerializer> MQTTOutput::createPayloadSerializer(const OutputConfig::MQTTOutputConfigEntry::PayloadFormat& format)
+    std::unique_ptr<PayloadSerializer> MqttOutput::createPayloadSerializer(const OutputConfig::MqttOutputConfigEntry::PayloadFormat& format)
     {
         switch (format) {
-        case OutputConfig::MQTTOutputConfigEntry::PayloadFormat::PROTOBUF: {
+        case OutputConfig::MqttOutputConfigEntry::PayloadFormat::PROTOBUF: {
             LOG_DEBUG("Instantiating Protobuf snapshot serializer.");
             return std::make_unique<ProtobufSerializer>();
         }
@@ -29,29 +29,29 @@ namespace danasim {
     }
 
 
-    MQTTOutput::MQTTOutput(const std::string& address, const std::string& topic,
-        const std::string& clientId, int qos, OutputConfig::MQTTOutputConfigEntry::PayloadFormat payloadFormat)
+    MqttOutput::MqttOutput(const std::string& address, const std::string& topic,
+        const std::string& clientId, int qos, OutputConfig::MqttOutputConfigEntry::PayloadFormat payloadFormat)
         : topic_(topic)
         , client_(address, clientId)
         , qos_(qos)
         , payloadSerializer_(std::move(createPayloadSerializer(payloadFormat)))
     {
         if (!payloadSerializer_) {
-            throw std::runtime_error("MQTTOutput: payload serializer is null");
+            throw std::runtime_error("MqttOutput: payload serializer is null");
         }
 
         connect();
     }
 
-    MQTTOutput::~MQTTOutput() {
+    MqttOutput::~MqttOutput() {
         if (client_.is_connected()) {
             client_.disconnect()->wait();
         }
     }
 
-    void MQTTOutput::run(SnapshotManager& snapshotManager, const std::filesystem::path& /* outputPath */)
+    void MqttOutput::run(SnapshotManager& snapshotManager, const std::filesystem::path& /* outputPath */)
     {
-        StepType lastProcessedStep = -1;
+        std::chrono::system_clock::time_point lastProcessedStep = std::chrono::system_clock::time_point::min();
 
         while (true) {
             try {
@@ -73,7 +73,7 @@ namespace danasim {
                 LOG_INFO("Publish Completed | Num. Changes: {}", changes.x.size());
 
                 // Actualizamos tracking
-                lastProcessedStep = snapshot.step();
+                lastProcessedStep = snapshot.time();
 
                 // AL FINAL DEL SCOPE: 'guard' se destruye -> llama a signalDone()
             }
@@ -85,11 +85,11 @@ namespace danasim {
         }
     }
 
-    void MQTTOutput::setGrid(const MapGrid& grid) {
+    void MqttOutput::setGrid(const MapGrid& grid) {
 
     }
 
-    void MQTTOutput::connect()
+    void MqttOutput::connect()
     {
         try {
             mqtt::connect_options connOpts;
@@ -108,7 +108,7 @@ namespace danasim {
         }
     }
 
-    void MQTTOutput::publishInChunks(const Snapshot& snapshot, const ChangeList& changes) {
+    void MqttOutput::publishInChunks(const Snapshot& snapshot, const ChangeList& changes) {
         if (changes.x.empty()) return;
 
         // Define un tamaño de fragmento (ej. 5000 coordenadas por mensaje)

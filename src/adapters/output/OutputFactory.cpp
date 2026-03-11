@@ -14,8 +14,8 @@
 #include "app/config/Config.hpp"
 
 // Include concrete implementations
-#include "adapters/output/X3DFileOutput.hpp"
-#include "adapters/output/MQTTOutput.hpp"
+#include "adapters/output/X3dFileOutput.hpp"
+#include "adapters/output/MqttOutput.hpp"
 #include "adapters/output/ImageOutput.hpp"
 
 namespace danasim {
@@ -45,16 +45,16 @@ namespace danasim {
             outputs.push_back(std::visit(overloaded{
 
                 // 1. X3D File Output
-                [](const OutputConfig::X3DFileOutputConfigEntry&) -> std::unique_ptr<OutputPort> {
+                [](const OutputConfig::X3dFileOutputConfigEntry&) -> std::unique_ptr<OutputPort> {
                     LOG_DEBUG("Initializing X3D Output");
-                    return std::make_unique<X3DFileOutput>();
+                    return std::make_unique<X3dFileOutput>();
                 },
 
                 // 2. MQTT Output
-                [](const OutputConfig::MQTTOutputConfigEntry& arg) -> std::unique_ptr<OutputPort> {
+                [](const OutputConfig::MqttOutputConfigEntry& arg) -> std::unique_ptr<OutputPort> {
                     LOG_DEBUG("Initializing MQTT Output: {} (Topic: {})", arg.address, arg.topic);
 
-                    return std::make_unique<MQTTOutput>(
+                    return std::make_unique<MqttOutput>(
                         arg.address,
                         arg.topic,
                         arg.clientId,

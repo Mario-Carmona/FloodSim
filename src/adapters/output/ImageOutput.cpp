@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 #include <limits>
+#include <fmt/chrono.h>
 
 #include "app/config/Config.hpp"
 #include "core/common/SimulationConstants.hpp"
@@ -42,7 +43,7 @@ namespace danasim {
             std::filesystem::create_directories(imagesOutputPath);
         }
 
-        StepType lastProcessedStep = -1;
+        std::chrono::system_clock::time_point lastProcessedStep = std::chrono::system_clock::time_point::min();
 
         while (true) {
             try {
@@ -64,7 +65,7 @@ namespace danasim {
                 saveSnapshotAsImage(snapshot, changes, imagesOutputPath);
 
                 // Actualizamos tracking
-                lastProcessedStep = snapshot.step();
+                lastProcessedStep = snapshot.time();
 
                 // AL FINAL DEL SCOPE: 'guard' se destruye -> llama a signalDone()
             }
@@ -80,9 +81,9 @@ namespace danasim {
         rows_ = static_cast<int>(grid.rows());
         cols_ = static_cast<int>(grid.cols());
 
-        elevation_ = grid.getLayer<float>(LayerId::Elevation).data();
+        elevation_ = grid.getLayer<float>(LayerId::Elevation)->getData().data();
 
-        const auto& elevData = grid.getLayer<float>(LayerId::Elevation);
+        const auto& elevData = grid.getLayer<float>(LayerId::Elevation)->getData();
         layerConfigs_[LayerId::Elevation].maxVal = *std::max_element(elevData.begin(), elevData.end());
     }
 
@@ -189,7 +190,7 @@ namespace danasim {
         int cols = canvas.cols - sidebarWidth;
 
         // A. TÍTULO
-        std::string title = fmt::format("Step: {} - Time: {:.2f}s", snapshot.step(), snapshot.time());
+        std::string title = fmt::format("Time: {:%FT%T}", snapshot.time());
         int fontFace = cv::FONT_HERSHEY_DUPLEX;
         double fontScale = baseScale * 1.2;
         cv::Size textSize = cv::getTextSize(title, fontFace, fontScale, thickness, nullptr);
@@ -310,7 +311,8 @@ namespace danasim {
         drawUI(finalCanvas, snapshot, baseScale, thickness, marginTitle, sidebarWidth);
 
         // Guardar Imagen Principal
-        std::string filename = fmt::format("Combined_{:06d}.png", snapshot.step());
+        std::string filename = fmt::format("Combined_{:%FT%T}.png", snapshot.time());
+        std::replace(filename.begin(), filename.end(), ':', '-');
 
         if (cv::imwrite((imagesOutputPath / filename).string(), finalCanvas)) {
             LOG_INFO("Saved image: {}", filename);
@@ -347,7 +349,8 @@ namespace danasim {
         cv::putText(changesImg, changesLabel, { 20, 40 }, cv::FONT_HERSHEY_SIMPLEX, 0.8, { 0, 0, 255 }, 2);
 
         // Construir nombre de archivo (_changes.png)
-        std::string changesFilename = fmt::format("Changes_{:06d}.png", snapshot.step());
+        std::string changesFilename = fmt::format("Changes_{:%FT%T}.png", snapshot.time());
+        std::replace(changesFilename.begin(), changesFilename.end(), ':', '-');
 
         if (cv::imwrite((imagesOutputPath / changesFilename).string(), changesImg)) {
             // Opcional: Descomentar si quieres confirmación de escritura

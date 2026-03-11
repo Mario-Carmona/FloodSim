@@ -9,8 +9,4 @@
 
 
 
-- Usar siempre IDRISI32, tanto para Static como para Dynamic.
-
-
-
 - Este es un articulo de Nature de la DANA: https://www.nature.com/articles/s41467-026-68929-9

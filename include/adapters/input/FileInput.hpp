@@ -34,52 +34,17 @@ namespace danasim {
          * @param inputPath The root directory containing the scenario data.
          * @throw std::runtime_error If GDAL drivers cannot be registered.
          */
-        explicit FileInput(const std::filesystem::path& inputPath);
+        explicit FileInput(const std::filesystem::path& inputPath, const std::string& staticFormat, const std::string& dynamicFormat);
 
-        /**
-         * @brief Loads all configured layers into the simulation grid.
-         *
-         * Iterates through the LayerId enumeration, determining whether to load
-         * data from disk (Principal layers) or initialize derived data (Secondary layers).
-         *
-         * @param grid The main simulation state grid to populate.
-         * @param dynamicLayerManager Manager for handling time-series (HDF5) data.
-         * @param timeStep The simulation time step (used for HDF5 caching).
-         */
-        void load(MapGrid& grid, DynamicLayerManager& dynamicLayerManager, float timeStep) override;
+        virtual ~FileInput() = default;
+
+        std::unique_ptr<Reader> generateReader(std::string name, bool isStatic) override;
 
     private:
-        /**
-         * @brief Loads a static raster layer using GDAL.
-         * * Performs a bulk read of the raster band for maximum performance.
-         *
-         * @param grid The target map grid.
-         * @param directory The directory containing the raster file.
-         * @param layerId The specific layer ID being loaded.
-         */
-        void loadLayerFromGDAL(MapGrid& grid, const std::filesystem::path& directory, LayerId layerId);
-
-        /**
-         * @brief Configures the HDF5 streamer for a specific layer.
-         */
-        void loadLayerFromHDF5(MapGrid& grid, DynamicLayerManager& dynamicLayerManager, const std::filesystem::path& directory, float timeStep, LayerId layerId);
-        
-        /**
-         * @brief Initializes derived layers (e.g., empty buffers, calculated constants).
-         */
-        void initializeDerivedLayer(MapGrid& grid, LayerId id);
-        
-        // --- Helpers ---
-
-        /**
-         * @brief Scans a directory for a specific file extension.
-         * @return The full path to the first matching file found.
-         * @throw std::runtime_error If the file is missing or the directory is invalid.
-         */
-        [[nodiscard]]
-        std::filesystem::path findFileWithExtension(const std::filesystem::path& directory, std::string_view extension);
-    
         std::filesystem::path inputPath_;
+
+        std::string staticFormat_;
+        std::string dynamicFormat_;
     };
 
 } // namespace danasim
