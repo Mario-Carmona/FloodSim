@@ -5,37 +5,37 @@
 
 \subsection{Data Engineering Layer: Python Ecosystem}
 
-\begin{itemize}
-    \item Justificación del uso de Python para procesos ETL (Extract, Transform, Load) de datos SIG.
-    \item Gestión de dependencias y entornos virtuales para la reproducibilidad del pipeline.
-\end{itemize}
+% \begin{itemize}
+%     \item Justificación del uso de Python para procesos ETL (Extract, Transform, Load) de datos SIG.
+%     \item Gestión de dependencias y entornos virtuales para la reproducibilidad del pipeline.
+% \end{itemize}
 
 \subsection{High-Performance Simulation Layer: C++ Environment}
 
-\begin{itemize}
-    \item Criterios de elección de C++ para la implementación del autómata celular.
-    \item Estándares de compilación y optimización de memoria para el procesamiento de grandes tensores.
-\end{itemize}
+% \begin{itemize}
+%     \item Criterios de elección de C++ para la implementación del autómata celular.
+%     \item Estándares de compilación y optimización de memoria para el procesamiento de grandes tensores.
+% \end{itemize}
 
 \subsection{Geospatial Abstraction Libraries (Rasterio)}
 
-\begin{itemize}
-    \item Motor de lectura/escritura de archivos IDRISI.
-    \item Uso de Rasterio para la manipulación "Pythonic" de metadatos espaciales y transformaciones afines.
-\end{itemize}
+% \begin{itemize}
+%     \item Motor de lectura/escritura de archivos IDRISI.
+%     \item Uso de Rasterio para la manipulación "Pythonic" de metadatos espaciales y transformaciones afines.
+% \end{itemize}
 
 \subsection{Spatio-temporal Data Management using HIF}
 
-\begin{itemize}
-    \item Implementación de la librería HIF para el almacenamiento de cubos de datos 3D comprimidos.
-\end{itemize}
+% \begin{itemize}
+%     \item Implementación de la librería HIF para el almacenamiento de cubos de datos 3D comprimidos.
+% \end{itemize}
 
 \subsection{Diagnostic and Observability Infrastructure}
 
-\begin{itemize}
-    \item Configuración de Loguru para el rastreo de ejecuciones en el Pipeline.
-    \item Sistema de logging nativo en C++ para la telemetría del simulador.
-\end{itemize}
+% \begin{itemize}
+%     \item Configuración de Loguru para el rastreo de ejecuciones en el Pipeline.
+%     \item Sistema de logging nativo en C++ para la telemetría del simulador.
+% \end{itemize}
 
 
 
@@ -579,17 +579,17 @@ of simulation runs.
 \subsection{Implementation of Hexagonal Architecture}
 
 
-Diagrama de Clases (Arquitectura Hexagonal)
+% Diagrama de Clases (Arquitectura Hexagonal)
 
-Por qué: Para mostrar cómo el Multi-Format Raster File Input Adapter implementa la interfaz (puerto) necesaria para que el Core pueda leer tanto IDRISI como HDF5.
-Qué debe mostrar: La relación de herencia o implementación entre el adaptador y el puerto.
+% Por qué: Para mostrar cómo el Multi-Format Raster File Input Adapter implementa la interfaz (puerto) necesaria para que el Core pueda leer tanto IDRISI como HDF5.
+% Qué debe mostrar: La relación de herencia o implementación entre el adaptador y el puerto.
 
-Resumen de Recomendaciones:
-1. Herramientas: Usa Draw.io para el Pipeline de Datos (es más visual y libre) y PlantUML para el diagrama de secuencia (es más riguroso para UML).
+% Resumen de Recomendaciones:
+% 1. Herramientas: Usa Draw.io para el Pipeline de Datos (es más visual y libre) y PlantUML para el diagrama de secuencia (es más riguroso para UML).
 
-2. Formatos: Exporta siempre a PDF si usas pdflatex. Esto mantendrá los esquemas vectorizados, permitiendo hacer zoom sin que se vean píxeles, lo cual es vital para la calidad de un TFM.
+% 2. Formatos: Exporta siempre a PDF si usas pdflatex. Esto mantendrá los esquemas vectorizados, permitiendo hacer zoom sin que se vean píxeles, lo cual es vital para la calidad de un TFM.
 
-3. Consistencia: Asegúrate de que los nombres de las clases en el esquema (ej. TemporalLayerManager) coincidan exactamente con los que usas en el texto y en el código.
+% 3. Consistencia: Asegúrate de que los nombres de las clases en el esquema (ej. TemporalLayerManager) coincidan exactamente con los que usas en el texto y en el código.
 
 
 \subsubsection{Input}
@@ -597,7 +597,7 @@ Resumen de Recomendaciones:
 
 \paragraph{Multi-Format Raster File Input Adapter}
 
-Supporting IDRISI and HIF formats. (Aquí explicamos que un solo adaptador gestiona ambos).
+% Supporting IDRISI and HIF formats. (Aquí explicamos que un solo adaptador gestiona ambos).
 
 
 \subsubsection{Output}
@@ -617,31 +617,31 @@ Supporting IDRISI and HIF formats. (Aquí explicamos que un solo adaptador gesti
 
 \subsection{The TemporalLayerManager: Efficient Memory Handling for Dynamic Data}
 
-(Aquí documentamos la lógica de actualización por pasos)
+% (Aquí documentamos la lógica de actualización por pasos)
 
-Diagrama de Secuencia UML (Lógica de Ejecución)
+% Diagrama de Secuencia UML (Lógica de Ejecución)
 
-Qué debe mostrar:
+% Qué debe mostrar:
 
-- La línea de vida del Core (que avanza en el tiempo).
+% - La línea de vida del Core (que avanza en el tiempo).
 
-- La línea de vida del TemporalLayerManager (que valida el tiempo).
+% - La línea de vida del TemporalLayerManager (que valida el tiempo).
 
-- La llamada al InputAdapter para leer el "hyperslab" del HDF5.
+% - La llamada al InputAdapter para leer el "hyperslab" del HDF5.
 
-- La actualización del Tensor en el Grid.
+% - La actualización del Tensor en el Grid.
 
 
-\paragraph{Logic Workflow:} 
-\begin{enumerate}
-    \item \textbf{Subscription}: During initialization, the rainfall layer is registered in the 
-    TemporalLayerManager with a specific update frequency (e.g., every 600 simulation seconds).
-    \item \textbf{Step Validation}: In each iteration of the Core, the manager checks if the 
-    current step requires a data refresh.
-    \item \textbf{Update Request}: If an update is needed, the manager calls the update method.
-    \item \textbf{HDF5 Access}: The manager uses the HighFive functions to perform a Hyperslab selection.
-    \item \textbf{Tensor Update}: The buffer is moved into the specific channel of the Core's grid tensor.
-\end{enumerate}
+% \paragraph{Logic Workflow:} 
+% \begin{enumerate}
+%     \item \textbf{Subscription}: During initialization, the rainfall layer is registered in the 
+%     TemporalLayerManager with a specific update frequency (e.g., every 600 simulation seconds).
+%     \item \textbf{Step Validation}: In each iteration of the Core, the manager checks if the 
+%     current step requires a data refresh.
+%     \item \textbf{Update Request}: If an update is needed, the manager calls the update method.
+%     \item \textbf{HDF5 Access}: The manager uses the HighFive functions to perform a Hyperslab selection.
+%     \item \textbf{Tensor Update}: The buffer is moved into the specific channel of the Core's grid tensor.
+% \end{enumerate}
 
 
 

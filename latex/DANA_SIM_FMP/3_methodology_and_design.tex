@@ -83,11 +83,64 @@ extreme events like the 2024 DANA with the speed and precision required by moder
 
 \section{Theoretical model: Multilayer Cellular Automata ($m:n-CA^k$)}
 
-\subsection{Fundamentals of the Fonseca, Colls, and Casanovas model applied to fluids}
+\subsection{Conceptual Foundation: The $m:n-CA^k$ Paradigm}
 
-\subsection{Definition of cellular space and Moore's neighborhood in the context of floods}
+To model the complex dynamics of flash floods, this research utilizes the Multilayer Cellular Automata ($m:n-CA^k$) framework 
+as formalized by \cite{Fonseca2011}. Traditional CA models are often limited by a single state per cell; however, the 
+$m:n-CA^k$ generalization allows for a multidimensional representation of the environment.
 
-\subsection{Formalization of the Global State ($EG$) and Tensor Transition Functions}
+In this model, the landscape is discretized into a grid where each cell is not a scalar value but a vector of states across 
+$m$ layers. The parameter $k$ represents the number of main layers—those whose state is updated by a transition function in 
+each time step—while the remaining $m-k$ layers provide the static or external environmental context.
+
+\begin{itemize}
+    \item \textbf{Layer State ($E_m$)}: The state of a specific layer $m$ at a position $(x_1, \dots, x_n)$ is defined by 
+    the function $E_m[x_1, \dots, x_n]$.
+    \item \textbf{Global State ($EG$)}: The global state of the automaton at a given georeferenced position is determined 
+    by the combination of states across all layers:
+
+    $$\Psi(E_1[x_1, \dots, x_n], \dots, E_m[x_1, \dots, x_n]) = EG[x_1, \dots, x_n]$$
+
+\end{itemize}
+
+
+\subsection{Layer Specification and Computational Space}
+
+Following the $m:n-CA^k$ notation, this model is configured as follows:
+
+\begin{itemize}
+    \item \textbf{Main Layers ($k=1$)}: The only dynamic variable is the Water Depth ($H$). Its evolution is governed by 
+    the conservation of mass and the hydraulic gradient.
+    \item \textbf{Secondary Layers}: These layers act as parameters for the transition rules. They include Elevation ($Z$), 
+    Manning’s Roughness ($n$), and Rainfall Intensity ($R$).
+    \item \textbf{Neighborhood ($V$)}: The model employs a Moore neighborhood, considering the 8 adjacent cells. This allows 
+    for an isotropic distribution of flow, essential for capturing the divergent nature of flash floods in complex topographies.
+\end{itemize}
+
+
+\subsection{Specific Transition Equations}
+
+The state of the main layer $H$ at time $t+1$ for a cell $(i, j)$ is determined by the transition function $\Delta$, derived from the physical logic of water balance and potential energy minimization:
+
+\begin{enumerate}
+    \item \textbf{Mass Accumulation (Rainfall)}: Initially, the water depth is increased by the net precipitation over the time step $\Delta t$:
+
+    $$H_{temp} = H_t + (R \cdot \Delta t)$$
+
+    \item \textbf{Hydraulic Head and Flux Calculation}: The flow is driven by the difference in the Hydraulic Head ($\eta = H + Z$) between the central cell and its neighbors. For each neighbor $n \in V_{Moore}$, the potential outflow $q_{out, n}$ is calculated:
+
+    $$q_{out, n} = \max(0, \eta_{central} - \eta_{n}) \cdot \Gamma$$
+
+    Where $\Gamma$ is a transfer coefficient derived from the cell size ($\Delta x$) and roughness.
+    \item \textbf{Mass Conservation Scaling}: To maintain stability and prevent negative water depths, the total potential outflow is scaled if it exceeds the available water:
+    
+    $$\sigma = \min\left(1.0, \frac{H_{temp}}{\sum q_{out, n} + \epsilon}\right)$$
+    $$q_{real\_out, n} = q_{out, n} \cdot \sigma$$
+    
+    \item \textbf{Final State Update}: The new water depth is the result of the local balance between rainfall, total outflows to neighbors, and inflows received from neighbors:
+
+    $$H_{t+1} = H_{temp} - \sum_{n=1}^{8} q_{real\_out, n} + \sum_{n=1}^{8} q_{in, n}$$
+\end{enumerate}
 
 
 
