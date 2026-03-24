@@ -1,11 +1,13 @@
 start_date: "2024-10-29 10:00:00"
 end_date: "2024-10-30 00:00:00"
-output_name: "data_new"
-output_dir: "./output"
+output_name: "data_new_7"
+output_dir: "./outputs"
 layers:
-  elevation:
+  topography:
     resolution: 5
+    target_crs: 25830
     bounding_box:
+      crs: 4326
       south_west:
         lon: -0.78291248
         lat: 39.32434531
@@ -13,9 +15,11 @@ layers:
         lon: -0.22811569
         lat: 39.56367382
 
-  water_depth:
+  land_cover:
 
-  roughness:
+  topo_bathy:
+
+  water_depth:
 
   rainfall:
     simulation:
@@ -29,5 +33,7 @@ layers:
 visualize:
   enable: True
   layers:
-    - "elevation"
+    - "land_cover" 
+    - "topo_bathy" 
+    - "water_depth" 
     - "rainfall" 

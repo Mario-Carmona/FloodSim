@@ -32,7 +32,7 @@ namespace danasim {
         std::vector<Ort::Value> output_tensors_;
 
         // Nombres de los nodos del grafo (Deben coincidir con export_model.py)
-        const std::vector<const char*> input_names_ = { "water_depth", "elevation", "roughness", "rainfall", "dt", "dx", "steps" };
+        const std::vector<const char*> input_names_ = { "water_depth", "topo_bathy", "land_cover", "rainfall", "dt", "dx" };
         const std::vector<const char*> output_names_ = { "Identity:0" }; // tf2onnx suele llamar al return 'output_0' o el nombre del nodo
 
         // Buffer de salida temporal (necesario porque ONNX no garantiza In-Place seguro en todos los ops)

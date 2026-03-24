@@ -2,7 +2,7 @@
 This module contains the core DataPipeline class for the flood simulator.
 
 It manages the topological execution of various geographical and meteorological
-data generators (elevation, water depth, rainfall, etc.) ensuring that all
+data generators (topography, water depth, rainfall, etc.) ensuring that all
 dependencies between layers are respected during the simulation data preparation.
 """
 
@@ -15,9 +15,10 @@ from typing import Dict, List, Set, Any, Optional
 from loguru import logger
 
 from generators.base import DataGenerator
-from generators.layers.elevation.elevation import ElevationGenerator
+from generators.layers.topography import TopographyGenerator
+from generators.layers.topo_bathy import TopoBathyGenerator
 from generators.layers.water_depth import WaterDepthGenerator
-from generators.layers.roughness import RoughnessGenerator
+from generators.layers.land_cover import LandCoverGenerator
 from generators.layers.rainfall.rainfall import RainfallGenerator
 
 
@@ -30,7 +31,6 @@ class DataPipeline:
     topological order.
 
     Attributes:
-        MAIN_LAYER_NAME (str): The core layer that most other layers depend on.
         generators (Dict[str, DataGenerator]): A registry of instantiated layer generators.
         dependencies (Dict[str, Set[str]]): An adjacency list representing layer dependencies.
         cfg_dir (Path): The directory containing the configuration file.
@@ -40,8 +40,6 @@ class DataPipeline:
         end_date (datetime): The end date for the simulation data.
         layers_to_visualize (List[str]): A list of layer names that should be visualized.
     """
-    
-    MAIN_LAYER_NAME: str = "elevation"
 
     def __init__(self, cfg_path: Path) -> None:
         """
@@ -57,10 +55,11 @@ class DataPipeline:
         self.dependencies: Dict[str, Set[str]] = {}
 
         # Register available layers
-        self._add_layer(ElevationGenerator())
-        self._add_layer(WaterDepthGenerator())
-        self._add_layer(RoughnessGenerator())
-        self._add_layer(RainfallGenerator(), depends_on={"elevation"})
+        self._add_layer(TopographyGenerator(save_layer = False))
+        self._add_layer(LandCoverGenerator(save_layer = True), depends_on={"topography"})
+        self._add_layer(TopoBathyGenerator(save_layer = True), depends_on={"topography", "land_cover"})
+        self._add_layer(WaterDepthGenerator(save_layer = True), depends_on={"topography", "topo_bathy"})
+        self._add_layer(RainfallGenerator(save_layer = True), depends_on={"topography"})
 
         self.cfg_dir: Path = cfg_path.parent
         self.cfg: Dict[str, Any] = self._load_config(cfg_path)
@@ -70,16 +69,15 @@ class DataPipeline:
         output_name = self.cfg.get("output_name", "default_output")
         self.output_dir: Path = (self.cfg_dir / output_base).resolve() / output_name
 
-        if self.output_dir.exists():
-            logger.error(f"Output folder already exists: {self.output_dir}")
-            raise FileExistsError(f"Output folder already exists: {self.output_dir}")
+        logs_dir = self.output_dir / "logs"
 
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"Created output directory at: {self.output_dir}")
+        if not self.output_dir.exists():
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"Created output directory at: {self.output_dir}")
+
+            logs_dir.mkdir(parents=True, exist_ok=True)
 
         # Configure log file
-        logs_dir = self.output_dir / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
         logger.add(
             logs_dir / "log.txt",
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
@@ -132,10 +130,6 @@ class DataPipeline:
         self.dependencies[layer_name] = set()
         self.dependencies[layer_name].update(depends_on)
 
-        # Implicit dependency on the main layer
-        if layer_name != self.MAIN_LAYER_NAME:
-            self.dependencies[layer_name].add(self.MAIN_LAYER_NAME)
-
     def _get_execution_order(self) -> List[str]:
         """
         Calculates the exact execution order of the layers using Topological Sorting.
@@ -160,18 +154,13 @@ class DataPipeline:
         Raises:
             ValueError: If the main layer is missing from the pipeline.
         """
-        # 1. Security Check
-        if self.MAIN_LAYER_NAME not in self.generators:
-            logger.critical(f"Missing core layer '{self.MAIN_LAYER_NAME}' in pipeline.")
-            raise ValueError(f"Missing core layer '{self.MAIN_LAYER_NAME}' in the pipeline.")
-
         layers_output: Dict[str, Any] = {}
 
-        # 2. Retrieve execution order
+        # 1. Retrieve execution order
         execution_order = self._get_execution_order()
         logger.info(f"Pipeline execution order resolved: {execution_order}")
         
-        # 3. Execute layer by layer
+        # 2. Execute layer by layer
         for layer_name in execution_order:
             logger.info(f"Processing layer: {layer_name}")
 

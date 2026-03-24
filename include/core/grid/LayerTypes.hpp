@@ -29,9 +29,9 @@ namespace danasim {
      * @brief Unique identifier for every specific layer in the system.
      */
     enum class LayerId : uint8_t {
-        Elevation,
+        TopoBathy,
         Rainfall,
-        Roughness,
+        LandCover,
         WaterDepth
         // Add new layers here
     };

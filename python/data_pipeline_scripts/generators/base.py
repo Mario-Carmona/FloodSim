@@ -12,8 +12,7 @@ from typing import Any, Dict
 
 from loguru import logger
 
-# Adjusted import to reflect the user's project structure
-from misc.types import SpatialContext, VisualConfig
+from utils.types import VisualConfig
 
 
 class DataGenerator(ABC):
@@ -24,20 +23,32 @@ class DataGenerator(ABC):
     visualizing environmental data layers.
 
     Attributes:
-        name (str): The unique identifier/name of the data layer.
-        visual_config (VisualConfig): The configuration settings for visualization.
+        _name (str): The unique identifier/name of the data layer.
+        _save_layer (bool): Flag determining whether the generated data layer should be physically saved to disk.
+        _visual_config (VisualConfig): The configuration settings for visualization.
     """
 
-    def __init__(self, name: str, visual_config: VisualConfig) -> None:
+    def __init__(self, name: str, save_layer: bool, visual_config: VisualConfig) -> None:
         """
         Initializes the DataGenerator.
 
         Args:
-            name (str): The name of the layer (e.g., 'elevation', 'rainfall').
+            name (str): The name of the layer (e.g., 'topography', 'rainfall').
+            save_layer (bool): A boolean flag indicating if the generated data layer should be persisted to disk.
             visual_config (VisualConfig): Configuration for plotting the layer.
         """
-        self.name = name
-        self.visual_config = visual_config
+        self._name = name
+        self._save_layer = save_layer
+        self._visual_config = visual_config
+
+    @property
+    def name(self) -> str:
+        """Gets the unique identifier or name of the data layer.
+
+        Returns:
+            str: The name of the layer (e.g., 'topography', 'rainfall').
+        """
+        return self._name
 
     def run(
         self, 
@@ -67,28 +78,53 @@ class DataGenerator(ABC):
         Returns:
             Any: The generated data layer object (e.g., StaticRaster, DynamicRaster).
         """
-        logger.info(f"Starting execution lifecycle for layer: '{self.name}'")
-        
-        # 1. Prepare directory structure
-        layer_output_dir = output_dir / self.name
-        layer_output_dir.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"Output directory ready at: {layer_output_dir}")
+        logger.info(f"Starting execution lifecycle for layer: '{self._name}'")
     
-        # 2. Generate data
-        logger.debug(f"[{self.name}] Generating data...")
-        layer = self._generate(dependent_layers, start_date, end_date, cfg, cfg_dir)
+        layer_output_dir = output_dir / self._name
 
-        # 3. Save data
-        logger.debug(f"[{self.name}] Saving data to disk...")
-        self._save(layer_output_dir, layer)
+        if layer_output_dir.exists():
+            # Read data
+            layer = self._read(layer_output_dir)
+        else:
+            # Generate data
+            logger.debug(f"[{self._name}] Generating data...")
+            layer = self._generate(dependent_layers, start_date, end_date, cfg, cfg_dir)
 
-        # 4. Visualize if required
+            # Save data
+            if self._save_layer:
+                # Prepare directory structure
+                layer_output_dir.mkdir(parents=True, exist_ok=True)
+                logger.debug(f"Output directory ready at: {layer_output_dir}")
+
+                logger.debug(f"[{self._name}] Saving data to disk...")
+                self._save(layer_output_dir, layer)
+
+        # Visualize if required
         if visualization:
-            logger.debug(f"[{self.name}] Generating visualization...")
+            logger.debug(f"[{self._name}] Generating visualization...")
             self._visualize(layer_output_dir, layer)
 
-        logger.success(f"Layer '{self.name}' processed successfully.")
+        logger.success(f"Layer '{self._name}' processed successfully.")
         return layer
+
+    @abstractmethod
+    def _read(self, output_dir: Path) -> Any:
+        """Loads previously generated layer data from disk.
+
+        This method is called if the output directory for the layer already 
+        exists. It bypasses the generation step and loads the cached data 
+        directly into memory. 
+
+        Must be implemented by subclasses.
+
+        Args:
+            output_dir (Path): The directory path where the layer's data 
+                files are stored.
+
+        Returns:
+            Any: The loaded data layer object (e.g., StaticRaster or DynamicRaster).
+        """
+        pass
 
     @abstractmethod
     def _generate(

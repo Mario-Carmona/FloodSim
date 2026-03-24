@@ -7,21 +7,38 @@ data (e.g., elevation, roughness) using matplotlib.
 
 from pathlib import Path
 
+from typing import Any
 import matplotlib
 # Configure non-interactive backend before importing pyplot to prevent GUI crashes
 matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 from loguru import logger
+import rasterio
 
-from data_io.idrisi_io import IdrisiIO
+from drivers.idrisi_io import IdrisiIO
 from generators.base import DataGenerator
-from misc.types import StaticRaster
+from utils.types import StaticRaster
 
 
 class StaticLayerGenerator(DataGenerator):
     """
     Generator extension specifically for handling static 2D raster layers.
     """
+
+    def _read(self, output_dir: Path) -> StaticRaster:
+        """Loads a previously saved static raster layer from disk.
+
+        Uses the IdrisiIO driver to read the raster data and its spatial 
+        context from the specified output directory.
+
+        Args:
+            output_dir (Path): The directory path where the layer's data files 
+                are stored.
+
+        Returns:
+            StaticRaster: The loaded static data layer.
+        """
+        return IdrisiIO.read(output_dir, self._name)
 
     def _save(self, output_dir: Path, layer: StaticRaster) -> None:
         """
@@ -31,7 +48,7 @@ class StaticLayerGenerator(DataGenerator):
             output_dir (Path): The target directory for the layer.
             layer (StaticRaster): The data layer to save.
         """
-        IdrisiIO.save(output_dir, self.name, layer.data, layer.spatial_context)
+        IdrisiIO.save(output_dir, self._name, layer.data, layer.spatial_context)
 
     def _visualize(self, output_dir: Path, layer: StaticRaster) -> None:
         """
@@ -44,25 +61,25 @@ class StaticLayerGenerator(DataGenerator):
         visualization_dir = output_dir / "visualization"
         visualization_dir.mkdir(parents=True, exist_ok=True)
 
-        filename = visualization_dir / f"{self.name}.png"
-        logger.debug(f"Generating visualization plot for '{self.name}'...")
+        filename = visualization_dir / f"{self._name}.png"
+        logger.debug(f"Generating visualization plot for '{self._name}'...")
         
-        plt.figure(figsize=self.visual_config.figsize)
+        plt.figure(figsize=self._visual_config.figsize)
 
         plt.imshow(
             layer.data, 
-            cmap=self.visual_config.cmap, 
+            cmap=self._visual_config.cmap, 
             extent=[
                 layer.spatial_context.bounds.min_x, layer.spatial_context.bounds.max_x,
                 layer.spatial_context.bounds.min_y, layer.spatial_context.bounds.max_y
             ]
         )
-        plt.colorbar(label=f"{self.name.capitalize()} ({self.visual_config.cbar_unit})")
-        plt.title(self.name.capitalize())
+        plt.colorbar(label=f"{self._name.capitalize()} ({self._visual_config.cbar_unit})")
+        plt.title(self._name.capitalize())
 
         # Extract CRS Name
         crs = layer.spatial_context.crs
-        if crs and crs.is_epsg_code:
+        if crs and crs.to_epsg() is not None:
             crs_name = f"EPSG:{crs.to_epsg()}"
         elif crs:
             crs_text = crs.to_wkt()
@@ -105,7 +122,25 @@ class StaticLayerGenerator(DataGenerator):
         # Compress the plot slightly upwards to leave room for the textbox
         plt.tight_layout(rect=[0, 0.15, 1, 1])
         
-        plt.savefig(filename, dpi=self.visual_config.dpi)
+        plt.savefig(filename, dpi=self._visual_config.dpi)
         plt.close()
-        
-        logger.success(f"Visualization saved successfully: {filename}")
+
+
+        profile = {
+            'driver': 'GTiff',
+            'height': layer.spatial_context.height,
+            'width': layer.spatial_context.width,
+            'count': 1,
+            'dtype': layer.data.dtype.name,
+            'crs': layer.spatial_context.crs,
+            'transform': layer.spatial_context.transform,
+            'nodata': layer.spatial_context.nodata_value,
+            'compress': 'deflate',
+            'tiled': True
+        }
+
+        with rasterio.open(visualization_dir / f"{self._name}.tif", 'w', **profile) as dst:
+            dst.write(layer.data, 1)
+
+            
+        logger.success(f"Visualization saved successfully for '{self._name}'")

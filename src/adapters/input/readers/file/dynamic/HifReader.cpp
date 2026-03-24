@@ -14,8 +14,8 @@ namespace danasim {
     HifReader::HifReader(const std::filesystem::path& dataPath, const std::string& dataFilename)
         : FileDynamicReader(dataPath, dataFilename)
     {
-        std::ifstream attrs(dataPath_ / "attrs.json");
-        nlohmann::json data = nlohmann::json::parse(attrs);
+        std::ifstream json_metadata(dataPath_ / (dataFilename + "_metadata.json"));
+        nlohmann::json data = nlohmann::json::parse(json_metadata);
 
         steps_ = data["steps"];
         downgradeFactor_ = data["downgrade_factor"];

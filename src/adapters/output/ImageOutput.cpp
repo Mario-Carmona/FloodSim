@@ -13,8 +13,8 @@
 namespace danasim {
 
     ImageOutput::ImageOutput() {
-        layerConfigs_[LayerId::Elevation] = Config{
-            .units = "Elevation (m)",
+        layerConfigs_[LayerId::TopoBathy] = Config{
+            .units = "TopoBathy (m)",
             .minVal = 0.0,
             .maxVal = 1000.0,  // Placeholder, se calcula dinámicamente
             .colormap = cv::COLORMAP_BONE,
@@ -81,10 +81,11 @@ namespace danasim {
         rows_ = static_cast<int>(grid.rows());
         cols_ = static_cast<int>(grid.cols());
 
-        elevation_ = grid.getLayer<float>(LayerId::Elevation)->getData().data();
+        topo_bathy_ = grid.getLayer<float>(LayerId::TopoBathy)->getData().data();
 
-        const auto& elevData = grid.getLayer<float>(LayerId::Elevation)->getData();
-        layerConfigs_[LayerId::Elevation].maxVal = *std::max_element(elevData.begin(), elevData.end());
+        const auto& elevData = grid.getLayer<float>(LayerId::TopoBathy)->getData();
+        layerConfigs_[LayerId::TopoBathy].minVal = *std::min_element(elevData.begin(), elevData.end());
+        layerConfigs_[LayerId::TopoBathy].maxVal = *std::max_element(elevData.begin(), elevData.end());
     }
 
     // Función auxiliar para crear la paleta Geográfica (Verde -> Marrón -> Blanco)
@@ -129,10 +130,10 @@ namespace danasim {
     // =========================================================================
     cv::Mat ImageOutput::createTerrainBackground(const Snapshot& snapshot, bool useColorMap) {
         // Creamos Mat envolviendo los datos (sin copia inicial)
-        cv::Mat rawElev(rows_, cols_, CV_32F, const_cast<float*>(elevation_));
+        cv::Mat rawElev(rows_, cols_, CV_32F, const_cast<float*>(topo_bathy_));
 
         // Configuración
-        const auto& cfg = layerConfigs_[LayerId::Elevation];
+        const auto& cfg = layerConfigs_[LayerId::TopoBathy];
 
         // 1. Normalizar Elevación (0-255)
         cv::Mat normElev;
@@ -246,7 +247,7 @@ namespace danasim {
             paintBarLabel(canvas, cfg.minVal, textX, yPos + barH, labelScale, fontFace, thickness);
         };
 
-        paintBar(0, layerConfigs_[LayerId::Elevation], "Elevation");
+        paintBar(0, layerConfigs_[LayerId::TopoBathy], "TopoBathy");
         paintBar(halfSide, layerConfigs_[LayerId::WaterDepth], "Water");
     }
 

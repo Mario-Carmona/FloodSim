@@ -18,9 +18,9 @@ namespace danasim {
     MapGrid::MapGrid(std::chrono::seconds timeStep)
         : timeStep_(timeStep)
     {
-        layers_[static_cast<size_t>(LayerId::Elevation)] = std::make_unique<StaticLayer<float>>("elevation", LayerRole::Secondary);
+        layers_[static_cast<size_t>(LayerId::TopoBathy)] = std::make_unique<StaticLayer<float>>("topo_bathy", LayerRole::Secondary);
         layers_[static_cast<size_t>(LayerId::WaterDepth)] = std::make_unique<StaticLayer<float>>("water_depth", LayerRole::Main);
-        layers_[static_cast<size_t>(LayerId::Roughness)] = std::make_unique<StaticLayer<float>>("roughness", LayerRole::Secondary);
+        layers_[static_cast<size_t>(LayerId::LandCover)] = std::make_unique<StaticLayer<int8_t>>("land_cover", LayerRole::Secondary);
         layers_[static_cast<size_t>(LayerId::Rainfall)] = std::make_unique<DynamicLayer<float>>("rainfall", LayerRole::Secondary);
 
         for (LayerId layer : magic_enum::enum_values<LayerId>()) {
@@ -40,10 +40,10 @@ namespace danasim {
         // ---------------------------------------------------------------------
         // These rules enforce the internal logic required by the Simulation Core.
 
-        // RULE 1: The first layer (index 0) MUST be Elevation.
+        // RULE 1: The first layer (index 0) MUST be TopoBathy.
         // This is often required for base topology calculations.
-        if (static_cast<LayerId>(0) != LayerId::Elevation) {
-            std::string msg = "Layer Order Error: The first layer in LayerId enum MUST be 'Elevation'.";
+        if (static_cast<LayerId>(0) != LayerId::TopoBathy) {
+            std::string msg = "Layer Order Error: The first layer in LayerId enum MUST be 'TopoBathy'.";
             LOG_ERROR("{}", msg);
             throw std::logic_error(msg);
         }

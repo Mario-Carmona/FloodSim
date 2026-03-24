@@ -15,8 +15,7 @@ from affine import Affine
 from loguru import logger
 
 from generators.dynamic_layer import DynamicLayerGenerator
-from misc.types import VisualConfig, SpatialContext
-from misc.types import StaticRaster, DynamicRaster
+from utils.types import StaticRaster, DynamicRaster, VisualConfig, SpatialContext
 from generators.layers.rainfall.extraction.manager import RainDataManager
 from generators.layers.rainfall.interpolation.kriging import KrigingInterpolator
 from generators.layers.rainfall.types import RainDataPoint
@@ -27,11 +26,25 @@ class RainfallGenerator(DynamicLayerGenerator):
     Handles the generation of dynamic precipitation maps over the simulation period.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, save_layer: bool) -> None:
+        """Initializes the rainfall spatiotemporal layer generator.
+
+        Sets up the base `DynamicLayerGenerator` properties, assigning the 
+        unique identifier 'rainfall' to this layer. It also defines the visual 
+        configuration tailored for precipitation data, using a standard 'jet' 
+        colormap and millimeters per hour ('mm/h') as the colorbar unit for 
+        subsequent frame-by-frame plotting.
+
+        Args:
+            save_layer (bool): Flag determining whether the generated dynamic 
+                rainfall data cube (and its discrete frames) should be 
+                physically saved to disk.
         """
-        Initializes the rainfall generator with visual settings for mm/h intensity.
-        """
-        super().__init__("rainfall", VisualConfig(cbar_unit="mm/h", cmap="jet"))
+        super().__init__(
+            name="rainfall", 
+            save_layer=save_layer, 
+            visual_config=VisualConfig(cbar_unit="mm/h", cmap="jet")
+        )
 
     def _downsample_dem(self, layer: StaticRaster, factor: int) -> StaticRaster:
         """
@@ -98,7 +111,7 @@ class RainfallGenerator(DynamicLayerGenerator):
         6.  Applies spatial interpolation (Kriging) to estimate rainfall across the entire grid.
 
         Args:
-            dependent_layers (Dict[str, Any]): Must contain the base 'elevation' StaticRaster.
+            dependent_layers (Dict[str, Any]): Must contain the base 'topography' StaticRaster.
             start_date (datetime): Simulation start boundary.
             end_date (datetime): Simulation end boundary.
             cfg (Dict[str, Any]): Specific settings for interpolation and time steps.
@@ -111,18 +124,18 @@ class RainfallGenerator(DynamicLayerGenerator):
         logger.info("Extracting meteorological rain data from sources...")
         manager = RainDataManager()
         rain_data = manager.fetch_all(
-            dependent_layers['elevation'].spatial_context.bounds, 
+            dependent_layers['topography'].spatial_context.bounds, 
             start_date, 
             end_date, 
-            dependent_layers['elevation'].spatial_context.crs
+            dependent_layers['topography'].spatial_context.crs
         )
 
         # --- 2. DEM Optimization ---
         downgrade_factor = cfg.get('geography', {}).get('downgrade_factor', 1)
         if downgrade_factor > 1:
-            dem = self._downsample_dem(dependent_layers['elevation'], downgrade_factor)
+            dem = self._downsample_dem(dependent_layers['topography'], downgrade_factor)
         else:
-            dem = dependent_layers['elevation']
+            dem = dependent_layers['topography']
 
         # --- 3. Simulation Setup ---
         # Parse the simulation time step configured in the YAML (e.g., "01:00:00")

@@ -11,7 +11,7 @@ from typing import List
 from loguru import logger
 from pyproj import CRS
 
-from misc.types import Bounds
+from utils.types import Bounds
 from generators.layers.rainfall.extraction.base import BaseFetcher
 from generators.layers.rainfall.extraction.sources.saih_jucar.saih_jucar import SAIHJucarFetcher
 from generators.layers.rainfall.types import StationRainData

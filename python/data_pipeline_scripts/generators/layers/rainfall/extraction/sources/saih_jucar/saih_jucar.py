@@ -22,7 +22,7 @@ from pyproj import CRS
 
 from generators.layers.rainfall.extraction.base import BaseFetcher
 from generators.layers.rainfall.types import StationMetadata, StationRainData
-from misc.types import Position
+from utils.types import Position
 
 
 @dataclass

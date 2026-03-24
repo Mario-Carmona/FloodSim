@@ -59,8 +59,7 @@ class SpatialContext:
             coordinates to spatial coordinates.
         width (int): The number of columns (pixels) in the raster.
         height (int): The number of rows (pixels) in the raster.
-        nodata_value (float): The value representing 'no data' or missing 
-            pixels. Defaults to -9999.0.
+        nodata_value (float): The value representing 'no data' or missing pixels.
         bounds (Bounds): The calculated spatial bounding box of the raster.
         cell_size (float): The spatial resolution (pixel size) in map units.
     """
@@ -68,7 +67,7 @@ class SpatialContext:
     transform: Affine
     width: int
     height: int
-    nodata_value: float = -9999.0
+    nodata_value: float = field(init=False)
     bounds: Bounds = field(init=False)
     cell_size: float = field(init=False)
 
@@ -117,6 +116,11 @@ class StaticRaster:
             self.spatial_context.height
         )
 
+        if self.data.dtype == np.int8:
+            self.spatial_context.nodata_value = -128.0
+        else:
+            self.spatial_context.nodata_value = -9999.0
+
     def get_data_value(self, x: float, y: float) -> float:
         """
         Retrieves the raster value (e.g., elevation) for a specific spatial coordinate.
@@ -162,6 +166,12 @@ class DynamicRaster:
     timestamps: List[datetime]
     downgrade_factor: int
     spatial_context: SpatialContext
+
+    def __post_init__(self) -> None:
+        if self.data.dtype == np.int8:
+            self.spatial_context.nodata_value = -128.0
+        else:
+            self.spatial_context.nodata_value = -9999.0
 
 
 @dataclass

@@ -39,7 +39,7 @@ namespace danasim {
         int rows_;
         int cols_;
 
-        const float* elevation_;
+        const float* topo_bathy_;
 
 
         void saveSnapshotAsImage(const Snapshot& snapshot, const ChangeList& changes, const std::filesystem::path& imagesOutputPath);

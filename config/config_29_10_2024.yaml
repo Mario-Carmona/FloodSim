@@ -15,11 +15,11 @@ input:
       dynamic_format: HIF
       path: ../data/data_29_10_2024
   layers:
-    - name: elevation
+    - name: topo_bathy
       source: file
     - name: water_depth
       source: file
-    - name: roughness
+    - name: land_cover
       source: file
     - name: rainfall
       source: file
@@ -32,7 +32,7 @@ output:
 
 state_updater:
   type: onnx
-  model_path: ../models/simulation_model_cpu.onnx
+  model_path: ../exported_models/first_model_cpu.onnx
 
 simulation:
   start_timestamp: 2024-10-29T10:00:00

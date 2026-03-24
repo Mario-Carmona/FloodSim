@@ -8,7 +8,7 @@ and their associated precipitation measurements over time.
 from dataclasses import dataclass
 from datetime import datetime
 
-from misc.types import Position
+from utils.types import Position
 
 
 @dataclass

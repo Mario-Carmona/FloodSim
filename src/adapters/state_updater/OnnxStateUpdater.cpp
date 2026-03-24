@@ -54,8 +54,8 @@ namespace danasim {
         
         // 1. Obtener punteros RAW (Zero-Copy)
         float* water_ptr = grid.getLayer<float>(LayerId::WaterDepth)->getData().data();
-        float* elev_ptr = grid.getLayer<float>(LayerId::Elevation)->getData().data();
-        float* rough_ptr = grid.getLayer<float>(LayerId::Roughness)->getData().data();
+        float* topo_bathy_ptr = grid.getLayer<float>(LayerId::TopoBathy)->getData().data();
+        int8_t* land_cover_ptr = grid.getLayer<int8_t>(LayerId::LandCover)->getData().data();
         float* rainfall_ptr = grid.getLayer<float>(LayerId::Rainfall)->getData().data();
 
         // 2. Definir dimensiones
@@ -74,13 +74,13 @@ namespace danasim {
         input_tensors_.push_back(Ort::Value::CreateTensor<float>(
             memory_info_, water_ptr, tensor_size, shape.data(), shape.size()));
 
-        // Input 1: Elevation
+        // Input 1: TopoBathy
         input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, elev_ptr, tensor_size, shape.data(), shape.size()));
+            memory_info_, topo_bathy_ptr, tensor_size, shape.data(), shape.size()));
 
-        // Input 2: Roughness
-        input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, rough_ptr, tensor_size, shape.data(), shape.size()));
+        // Input 2: Land cover
+        input_tensors_.push_back(Ort::Value::CreateTensor<int8_t>(
+            memory_info_, land_cover_ptr, tensor_size, shape.data(), shape.size()));
 
         input_tensors_.push_back(Ort::Value::CreateTensor<float>(
             memory_info_, rainfall_ptr, tensor_size, shape.data(), shape.size()));

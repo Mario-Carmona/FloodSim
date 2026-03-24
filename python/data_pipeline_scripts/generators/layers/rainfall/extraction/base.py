@@ -13,7 +13,7 @@ from typing import List
 from loguru import logger
 from pyproj import CRS, Transformer
 
-from misc.types import Bounds
+from utils.types import Bounds
 from generators.layers.rainfall.types import StationMetadata, StationRainData
 
 

@@ -55,7 +55,7 @@ compile_commands.json
 lock.info
 
 # Python export models
-/models
+/exported_models
 
 # Python compiled files
 __pycache__
