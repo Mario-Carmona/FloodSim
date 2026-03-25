@@ -24,20 +24,31 @@ namespace danasim {
     private:
         // ONNX Runtime Environment
         Ort::Env env_;
-        Ort::Session session_{ nullptr };
+        Ort::Session init_session_{ nullptr };
+        Ort::Session run_session_{ nullptr };
         Ort::MemoryInfo memory_info_{ nullptr };
+
+        Ort::RunOptions init_options_{ nullptr };
         Ort::RunOptions run_options_{ nullptr };
 
-        std::vector<Ort::Value> input_tensors_;
-        std::vector<Ort::Value> output_tensors_;
+        std::vector<Ort::Value> init_input_tensors_;
+        std::vector<Ort::Value> init_output_tensors_;
+
+        std::vector<Ort::Value> run_input_tensors_;
+        std::vector<Ort::Value> run_output_tensors_;
 
         // Nombres de los nodos del grafo (Deben coincidir con export_model.py)
-        const std::vector<const char*> input_names_ = { "water_depth", "topo_bathy", "land_cover", "rainfall", "dt", "dx" };
-        const std::vector<const char*> output_names_ = { "Identity:0" }; // tf2onnx suele llamar al return 'output_0' o el nombre del nodo
+        const std::vector<const char*> init_input_names_ = { "land_cover", "dt", "dx" };
+        const std::vector<const char*> init_output_names_ = { "k_spatial" };
+
+        const std::vector<const char*> run_input_names_ = { "water_depth", "topo_bathy", "k_spatial", "rainfall" };
+        const std::vector<const char*> run_output_names_ = { "new_water_depth" }; // tf2onnx suele llamar al return 'output_0' o el nombre del nodo
 
         // Buffer de salida temporal (necesario porque ONNX no garantiza In-Place seguro en todos los ops)
         float dt_;
         float dx_;
+
+        std::vector<float> k_spatial;
     };
 
 } // namespace danasim

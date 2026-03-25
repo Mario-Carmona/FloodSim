@@ -37,7 +37,7 @@ output:
 
 state_updater:
   type: onnx
-  model_path: ../exported_models/first_model_cpu.onnx
+  model_path: ../exported_models/first_model_cpu
 
 simulation:
   start_timestamp: 2024-10-29T10:00:00

@@ -14,7 +14,7 @@ namespace danasim {
 
     ImageOutput::ImageOutput() {
         layerConfigs_[LayerId::TopoBathy] = Config{
-            .units = "TopoBathy (m)",
+            .units = "Elevation (m)",
             .minVal = 0.0,
             .maxVal = 1000.0,  // Placeholder, se calcula dinámicamente
             .colormap = cv::COLORMAP_BONE,
@@ -23,7 +23,7 @@ namespace danasim {
         };
 
         layerConfigs_[LayerId::WaterDepth] = Config{
-            .units = "Depth (m)",
+            .units = "Water Depth (m)",
             .minVal = 0.0,
             .maxVal = 10.0,
             .colormap = cv::COLORMAP_JET,
@@ -271,6 +271,8 @@ namespace danasim {
         cv::Mat combinedImg = maquetteTerrain.clone();
 
         // Pintar Agua
+        layerConfigs_[LayerId::WaterDepth].maxVal = *std::max_element(snapshot.waterDepth().begin(), snapshot.waterDepth().end());
+
         const auto& wCfg = layerConfigs_[LayerId::WaterDepth];
 
         cv::Mat rawWater(rows_, cols_, CV_32F, const_cast<float*>(snapshot.waterDepth().data()));

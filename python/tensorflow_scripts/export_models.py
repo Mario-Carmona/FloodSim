@@ -60,16 +60,6 @@ def export_all_models(source_dir, output_dir):
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Firma común para la exportación (ajusta si cada modelo tiene uno distinto)
-    spec = (
-        tf.TensorSpec((None, None, None, 1), tf.float32, name="water_depth"),
-        tf.TensorSpec((None, None, None, 1), tf.float32, name="topo_bathy"),
-        tf.TensorSpec((None, None, None, 1), tf.int8,   name="land_cover"),
-        tf.TensorSpec((None, None, None, 1), tf.float32, name="rainfall"),
-        tf.TensorSpec((), tf.float32, name="dt"),
-        tf.TensorSpec((), tf.float32, name="dx")
-    )
-
     # Buscar todos los archivos .py en el directorio fuente
     search_pattern = os.path.join(source_dir, "*.py")
 
@@ -79,7 +69,9 @@ def export_all_models(source_dir, output_dir):
             continue
 
         model_name = os.path.splitext(filename)[0]
-        output_path = os.path.join(output_dir, f"{model_name}.onnx")
+        output_path = os.path.join(output_dir, model_name)
+
+        os.makedirs(output_path, exist_ok=True)
         
         print(f"\nProcesando archivo: {filename}...")
 
@@ -103,16 +95,32 @@ def export_all_models(source_dir, output_dir):
         try:
             model_instance = model_class()
             
-            # Asumimos que todos los modelos usan el método `run`
-            model_proto, _ = tf2onnx.convert.from_function(
-                function=model_instance.run,
-                input_signature=spec,
+            model_init, _ = tf2onnx.convert.from_function(
+                function=model_instance.precompute,
+                input_signature=[
+                    tf.TensorSpec((1, None, None, 1), tf.int8,   name="land_cover"),
+                    tf.TensorSpec((), tf.float32, name="dt"),
+                    tf.TensorSpec((), tf.float32, name="dx")
+                ],
                 opset=15,
-                output_path=output_path
+                output_path=os.path.join(output_path, f"init_model.onnx")
+            )
+            
+            model_run, _ = tf2onnx.convert.from_function(
+                function=model_instance.run,
+                input_signature=[
+                    tf.TensorSpec((1, None, None, 1), tf.float32, name="water_depth"),
+                    tf.TensorSpec((1, None, None, 1), tf.float32, name="topo_bathy"),
+                    tf.TensorSpec((1, None, None, 1), tf.float32, name="k_spatial"),
+                    tf.TensorSpec((1, None, None, 1), tf.float32, name="rainfall")
+                ],
+                opset=15,
+                output_path=os.path.join(output_path, f"run_model.onnx")
             )
             
             print(f"Exportación completada para {model_name}")
-            inspect_onnx_model(model_proto, model_name)
+            inspect_onnx_model(model_init, model_name)
+            inspect_onnx_model(model_run, model_name)
             
         except AttributeError:
             print(f"Error: La clase '{model_class.__name__}' no tiene el método 'run'.")

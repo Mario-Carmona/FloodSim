@@ -36,11 +36,15 @@ namespace danasim {
             // Mantener la memoria reservada entre ejecuciones
             session_options.EnableCpuMemArena();
             session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+            session_options.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
+            session_options.EnableMemPattern();
 
             // Cargar modelo
-            session_ = Ort::Session(env_, modelPath.c_str(), session_options);
+            init_session_ = Ort::Session(env_, (modelPath / "init_model.onnx").c_str(), session_options);
+            LOG_INFO("ONNX Model loaded successfully from: {}", (modelPath / "init_model.onnx").string());
 
-            LOG_INFO("ONNX Model loaded successfully from: {}", modelPath.string());
+            run_session_ = Ort::Session(env_, (modelPath / "run_model.onnx").c_str(), session_options);
+            LOG_INFO("ONNX Model loaded successfully from: {}", (modelPath / "run_model.onnx").string());
         }
         catch (const Ort::Exception& e) {
             LOG_ERROR("Failed to load ONNX model: {}", e.what());
@@ -51,6 +55,9 @@ namespace danasim {
     void OnnxStateUpdater::initialize(MapGrid& grid, std::chrono::seconds stepTime) {
         dt_ = static_cast<float>(stepTime.count());
         dx_ = grid.cellSize();
+
+        k_spatial.resize(grid.getLayer<float>(LayerId::TopoBathy)->getData().size(), 0.0f);
+        float* k_spatial_ptr = k_spatial.data();
         
         // 1. Obtener punteros RAW (Zero-Copy)
         float* water_ptr = grid.getLayer<float>(LayerId::WaterDepth)->getData().data();
@@ -68,46 +75,79 @@ namespace danasim {
         // 3. Crear Tensores envolviendo la memoria existente
         std::vector<int64_t> scalar_shape = {}; // Escalar
 
-        input_tensors_.reserve(7);
+
+
+        init_input_tensors_.reserve(1);
+
+        init_input_tensors_.push_back(Ort::Value::CreateTensor<int8_t>(
+            memory_info_, land_cover_ptr, tensor_size, shape.data(), shape.size()));
+
+        init_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
+            memory_info_, &dt_, 1, scalar_shape.data(), scalar_shape.size()));
+
+        init_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
+            memory_info_, &dx_, 1, scalar_shape.data(), scalar_shape.size()));
+
+        init_output_tensors_.push_back(Ort::Value::CreateTensor<float>(
+            memory_info_, k_spatial_ptr, tensor_size, shape.data(), shape.size()
+        ));
+
+
+
+
+        run_input_tensors_.reserve(7);
 
         // Input 0: Water (Read-Only desde la perspectiva de entrada)
-        input_tensors_.push_back(Ort::Value::CreateTensor<float>(
+        run_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
             memory_info_, water_ptr, tensor_size, shape.data(), shape.size()));
 
         // Input 1: TopoBathy
-        input_tensors_.push_back(Ort::Value::CreateTensor<float>(
+        run_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
             memory_info_, topo_bathy_ptr, tensor_size, shape.data(), shape.size()));
 
         // Input 2: Land cover
-        input_tensors_.push_back(Ort::Value::CreateTensor<int8_t>(
-            memory_info_, land_cover_ptr, tensor_size, shape.data(), shape.size()));
+        run_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
+            memory_info_, k_spatial_ptr, tensor_size, shape.data(), shape.size()));
 
-        input_tensors_.push_back(Ort::Value::CreateTensor<float>(
+        run_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
             memory_info_, rainfall_ptr, tensor_size, shape.data(), shape.size()));
-
-        input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, &dt_, 1, scalar_shape.data(), scalar_shape.size()));
-
-        input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, &dx_, 1, scalar_shape.data(), scalar_shape.size()));
 
 
         // 4. Preparar Salida
-        output_tensors_.push_back(Ort::Value::CreateTensor<float>(
+        run_output_tensors_.push_back(Ort::Value::CreateTensor<float>(
             memory_info_, water_ptr, tensor_size, shape.data(), shape.size()
         ));
+
+
+
+
+
+        try {
+            init_session_.Run(
+                init_options_,
+                init_input_names_.data(),
+                init_input_tensors_.data(),
+                init_input_tensors_.size(),
+                init_output_names_.data(),
+                init_output_tensors_.data(),
+                init_output_tensors_.size()
+            );
+        }
+        catch (const Ort::Exception& e) {
+            LOG_ERROR("ONNX Inference Error: {}", e.what());
+        }
     }
 
     void OnnxStateUpdater::run() {
         try {
-            session_.Run(
+            run_session_.Run(
                 run_options_,
-                input_names_.data(),
-                input_tensors_.data(),
-                input_tensors_.size(),
-                output_names_.data(),
-                output_tensors_.data(),
-                output_tensors_.size()
+                run_input_names_.data(),
+                run_input_tensors_.data(),
+                run_input_tensors_.size(),
+                run_output_names_.data(),
+                run_output_tensors_.data(),
+                run_output_tensors_.size()
             );
         }
         catch (const Ort::Exception& e) {
