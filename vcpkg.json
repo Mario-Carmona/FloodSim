@@ -39,7 +39,7 @@
           "features": [ "png", "jpeg" ]
         },
         {
-          "name": "protobuf",
+          "name": "nlohmann-json",
           "default-features": false,
           "features": []
         },
