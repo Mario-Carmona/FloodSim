@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-#include "adapters/output/mqtt/payload/ProtobufSerializer.hpp"
+#include "adapters/output/mqtt/payload/JsonSerializer.hpp"
 #include "logging/Logger.hpp"
 
 namespace danasim {
@@ -13,7 +13,7 @@ namespace danasim {
         switch (format) {
         case OutputConfig::MqttOutputConfigEntry::PayloadFormat::PROTOBUF: {
             LOG_DEBUG("Instantiating Protobuf snapshot serializer.");
-            return std::make_unique<ProtobufSerializer>();
+            return std::make_unique<JsonSerializer>();
         }
 
         // Future formats (e.g., JSON, FLATBUFFERS) would be added here.

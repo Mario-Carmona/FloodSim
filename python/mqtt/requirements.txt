@@ -3,9 +3,5 @@
 # pero aquí ya podrías usar la 2.0 si quisieras reescribir los callbacks.
 paho-mqtt>=1.6.1,<2.0.0
 
-# COMPATIBILIDAD EXACTA CON C++
-# Ahora sí podemos forzar la misma versión que en tu simulador.
-protobuf==5.29.5
-
 numpy
 matplotlib
