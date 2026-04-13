@@ -55,7 +55,7 @@ namespace danasim {
      * Values below this threshold are treated as dry to prevent floating-point
      * underflow errors and to optimize the solver by skipping negligible amounts of water.
      */
-    static constexpr float WATER_EPSILON = 1e-3f;
+    static constexpr float DRY_TOLERANCE = 0.001f;
 
     static constexpr float DANGER_THRESHOLD = 0.3f; // meters
 

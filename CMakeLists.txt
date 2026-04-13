@@ -51,10 +51,16 @@ endif()
 project(DanaSim VERSION 1.0.0 LANGUAGES CXX)
 
 
-add_subdirectory(src)
+if(BUILD_APP OR BUILD_TESTS)
+    add_subdirectory(src)
+endif()
 
 if(BUILD_TESTS)
     enable_testing()
 
     add_subdirectory(tests)
+endif()
+
+if(BUILD_PYTHON_ENVS)
+    add_subdirectory(python)
 endif()

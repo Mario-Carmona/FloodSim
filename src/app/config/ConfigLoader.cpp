@@ -38,12 +38,6 @@ namespace danasim {
         T parseEnum(std::string_view value) = delete;
 
         template <>
-        InputConfig::InputSourceConfigEntryType parseEnum<InputConfig::InputSourceConfigEntryType>(std::string_view value) {
-            if (value == "file") return InputConfig::InputSourceConfigEntryType::FILE;
-            throw ConfigurationException("Invalid input type: " + std::string(value));
-        }
-
-        template <>
         OutputConfig::OutputConfigEntryType parseEnum<OutputConfig::OutputConfigEntryType>(std::string_view value) {
             if (value == "x3d_file") return OutputConfig::OutputConfigEntryType::X3D_FILE;
             if (value == "mqtt")     return OutputConfig::OutputConfigEntryType::MQTT;
@@ -130,45 +124,23 @@ namespace danasim {
         {
             const auto node = requireNode(root, "input");
 
+            {
+                const auto fileNode = requireNode(node, "file");
 
-            const auto sourcesNode = requireNode(node, "sources");
-
-            for (const auto& srcNode : sourcesNode) {
-                std::string typeStr = extract<std::string>(srcNode, "type");
-
-                auto type = parseEnum<InputConfig::InputSourceConfigEntryType>(typeStr);
-
-                switch (type) {
-                case InputConfig::InputSourceConfigEntryType::FILE: {
-                    config.input.sources[typeStr] = InputConfig::FileInputSourceConfigEntry {
-                        .staticFormat = extract<std::string>(srcNode, "static_format"),
-                        .dynamicFormat = extract<std::string>(srcNode, "dynamic_format"),
-                        .path = (configFolder / extract<std::string>(srcNode, "path")).lexically_normal()
-                    };
-                    break;
-                }
-                }
+                config.input.file = InputConfig::FileInputSourceConfig{
+                    .staticFormat = extract<std::string>(fileNode, "static_format"),
+                    .dynamicFormat = extract<std::string>(fileNode, "dynamic_format"),
+                    .path = (configFolder / extract<std::string>(fileNode, "path")).lexically_normal()
+                };
             }
 
-            validate(!config.input.sources.empty(), "At least one source must be defined");
+            {
+                const auto scalarsNode = requireNode(node, "scalars");
 
-
-            const auto layersNode = requireNode(node, "layers");
-
-            std::set<std::string> definedLayers;
-
-            for (const auto& lyNode : layersNode) {
-                config.input.layers.emplace_back(InputConfig::InputLayerConfigEntry{
-                    .name = extract<std::string>(lyNode, "name"),
-                    .source = extract<std::string>(lyNode, "source")
-                });
-
-                definedLayers.insert(config.input.layers.back().name);
+                for (const auto& sclNode : scalarsNode) {
+                    config.input.scalars[extract<std::string>(sclNode, "name")] = extract<std::string>(sclNode, "value");
+                }
             }
-
-            validate(config.input.layers.size() == definedLayers.size(), "Has definido alguna capa por duplicado");
-
-            validate(magic_enum::enum_count<LayerId>() == definedLayers.size(), "No has definido todas las capas");
         }
 
         // -----------------------------
@@ -289,7 +261,8 @@ namespace danasim {
             switch (type) {
             case StateUpdaterConfigType::ONNX: {
                 config.stateUpdater = OnnxStateUpdaterConfig{
-                    .modelPath = (configFolder / extract<std::string>(node, "model_path")).lexically_normal()
+                    .modelPath = (configFolder / extract<std::string>(node, "model_path")).lexically_normal(),
+					.tensorDim = extract<int64_t>(node, "tensor_dim")
                 };
                 break;
             }

@@ -14,21 +14,24 @@ namespace danasim {
 
     SimulationCore::SimulationCore(
         StateUpdaterPort* stateUpdater,
-        const std::unordered_map<std::string, InputPort*>& layerInputSource,
+        InputPort* mainInputSource,
+        const std::unordered_map<std::string, InputPort*>& layersAlternativeInputSource,
+        const std::unordered_map<std::string, std::string>& scalarsConfig,
         std::vector<OutputPort*> outputs,
         SnapshotManager* snapshotManager,
         const SimulationConfig& config,
         const std::string& scenarioName
     )
         : stateUpdater_(stateUpdater)
-        , layerInputSource_(layerInputSource)
+        , mainInputSource_(mainInputSource)
+        , layersAlternativeInputSource_(layersAlternativeInputSource)
+        , scalarsConfig_(scalarsConfig)
         , outputs_(outputs)
         , snapshotManager_(snapshotManager)
         , startTimestamp_(config.startTimestamp)
         , timeStep_(config.timeStep)
         , simulationDuration_(config.duration)
         , scenarioName_(scenarioName)
-        , currentGrid_(timeStep_)
         , view_(config.viewBox)
     {
         
@@ -42,7 +45,7 @@ namespace danasim {
         std::chrono::sys_seconds finishTimestamp = currentTime + simulationDuration_;
 
         // Initialize State
-        currentGrid_.load(layerInputSource_, currentTime);
+        currentGrid_.load(stateUpdater_->getModelParamsInfo(), mainInputSource_, layersAlternativeInputSource_, scalarsConfig_, timeStep_, currentTime);
 
         for (auto& output : outputs_) {
             output->setGrid(currentGrid_);
@@ -50,7 +53,7 @@ namespace danasim {
 
         calculateGridView();
 
-        stateUpdater_->initialize(currentGrid_, timeStep_);
+        stateUpdater_->initialize(currentGrid_);
 
         // Publicar estado inicial (t=0)
         publishCurrentState(currentTime);
@@ -63,7 +66,7 @@ namespace danasim {
             auto start = std::chrono::high_resolution_clock::now();
 
             for (StepType i = 0; i < snapshotManager_->everyNSteps(); ++i) {
-                stateUpdater_->run();
+                stateUpdater_->step(currentGrid_);
             }
 
             auto end = std::chrono::high_resolution_clock::now();

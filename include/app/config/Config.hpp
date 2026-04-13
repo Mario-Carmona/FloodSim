@@ -28,27 +28,15 @@ namespace danasim {
     // -------------------------------------------------------------------------
 
     struct InputConfig {
-        enum class InputSourceConfigEntryType {
-            FILE
-        };
-
-        struct FileInputSourceConfigEntry {
+        struct FileInputSourceConfig {
             std::string staticFormat;
             std::string dynamicFormat;
             std::filesystem::path path; ///< Path to the input file.
         };
 
-        using InputSourceConfigEntry = std::variant<FileInputSourceConfigEntry>;
 
-
-        struct InputLayerConfigEntry {
-            std::string name;
-            std::string source;
-        };
-
-
-        std::unordered_map<std::string, InputSourceConfigEntry> sources;
-        std::vector<InputLayerConfigEntry> layers;
+        FileInputSourceConfig file;
+        std::unordered_map<std::string, std::string> scalars;
     };
 
     // -------------------------------------------------------------------------
@@ -112,6 +100,7 @@ namespace danasim {
 
     struct OnnxStateUpdaterConfig {
         std::filesystem::path modelPath;
+        int64_t tensorDim;
     };
 
     using StateUpdaterConfig = std::variant<OnnxStateUpdaterConfig>;

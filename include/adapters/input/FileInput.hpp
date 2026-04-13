@@ -38,7 +38,9 @@ namespace danasim {
 
         virtual ~FileInput() = default;
 
-        std::unique_ptr<Reader> generateReader(std::string name, bool isStatic) override;
+        std::unique_ptr<Reader> generateReader(std::string name, bool isStatic) const override;
+
+        bool isStaticLayer(const std::string& name) const override;
 
     private:
         std::filesystem::path inputPath_;

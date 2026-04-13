@@ -7,6 +7,8 @@ namespace danasim {
 
     class IdrisiReader : public FileStaticReader {
     public:
+        static bool isStaticLayer(const std::filesystem::path& dataPath, const std::string& dataFilename);
+
         IdrisiReader(const std::filesystem::path& dataPath, const std::string& dataFilename);
         virtual ~IdrisiReader() = default;
 

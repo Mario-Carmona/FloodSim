@@ -10,8 +10,17 @@
       "name": "common-configure-options",
       "hidden": true,
       "description": "Base preset defining common cache variables shared by all presets.",
-      "binaryDir": "${sourceDir}/build/${presetName}",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "app",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "Defines settings for building project executables.",
       "cacheVariables": {
+        "BUILD_APP": "ON",
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_CXX_EXTENSIONS": "OFF",
@@ -80,17 +89,6 @@
       }
     },
     {
-      "name": "app",
-      "hidden": true,
-      "inherits": [
-        "common-configure-options"
-      ],
-      "description": "Defines settings for building project executables.",
-      "cacheVariables": {
-        "BUILD_APP": "ON"
-      }
-    },
-    {
       "name": "windows",
       "hidden": true,
       "inherits": [
@@ -107,6 +105,30 @@
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-windows",
         "VCPKG_HOST_TRIPLET": "x64-windows"
+      }
+    },
+    {
+      "name": "linux",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "Linux-specific preset using Ninja and static vcpkg triplets.",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "generator": "Ninja",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "VCPKG_HOST_TRIPLET": "x64-linux",
+        "CMAKE_C_COMPILER": "/usr/bin/gcc-12",
+        "CMAKE_CXX_COMPILER": "/usr/bin/g++-12"
+      },
+      "environment": {
+        "CC": "/usr/bin/gcc-12",
+        "CXX": "/usr/bin/g++-12"
       }
     },
     {
@@ -138,30 +160,6 @@
         "rel-with-deb-info"
       ],
       "description": ""
-    },
-    {
-      "name": "linux",
-      "hidden": true,
-      "inherits": [
-        "common-configure-options"
-      ],
-      "description": "Linux-specific preset using Ninja and static vcpkg triplets.",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
-      "generator": "Ninja",
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-linux",
-        "VCPKG_HOST_TRIPLET": "x64-linux",
-        "CMAKE_C_COMPILER": "/usr/bin/gcc-12",
-        "CMAKE_CXX_COMPILER": "/usr/bin/g++-12"
-      },
-      "environment": {
-        "CC": "/usr/bin/gcc-12",
-        "CXX": "/usr/bin/g++-12"
-      }
     },
     {
       "name": "linux-cli-debug",
@@ -196,6 +194,50 @@
       "description": "",
       "cacheVariables": {
         "ENABLE_STATE_UPDATER_ADAPTERS": "ON"
+      }
+    },
+    {
+      "name": "python-envs",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_PYTHON_ENVS": "ON"
+      }
+    },
+    {
+      "name": "python-data",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "data_pipeline",
+        "ISOLATE_ENVIRONMENT": "OFF"
+      }
+    },
+    {
+      "name": "python-models",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "models",
+        "ISOLATE_ENVIRONMENT": "ON"
+      }
+    },
+    {
+      "name": "python-mqtt",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "mqtt",
+        "ISOLATE_ENVIRONMENT": "OFF"
       }
     }
   ],
@@ -237,6 +279,21 @@
       "name": "windows-tests-state-updater",
       "configurePreset": "windows-tests-state-updater",
       "configuration": "Debug"
+    },
+    {
+      "name": "python-data",
+      "configurePreset": "python-data",
+      "configuration": "Release"
+    },
+    {
+      "name": "python-models",
+      "configurePreset": "python-models",
+      "configuration": "Release"
+    },
+    {
+      "name": "python-mqtt",
+      "configurePreset": "python-mqtt",
+      "configuration": "Release"
     }
   ],
   "packagePresets": [
@@ -372,6 +429,45 @@
         {
           "type": "build",
           "name": "windows-tests-state-updater"
+        }
+      ]
+    },
+    {
+      "name": "python-data",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "python-data"
+        },
+        {
+          "type": "build",
+          "name": "python-data"
+        }
+      ]
+    },
+    {
+      "name": "python-models",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "python-models"
+        },
+        {
+          "type": "build",
+          "name": "python-models"
+        }
+      ]
+    },
+    {
+      "name": "python-mqtt",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "python-mqtt"
+        },
+        {
+          "type": "build",
+          "name": "python-mqtt"
         }
       ]
     }

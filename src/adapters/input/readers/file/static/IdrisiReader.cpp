@@ -11,6 +11,10 @@
 
 namespace danasim {
 
+    bool IdrisiReader::isStaticLayer(const std::filesystem::path& dataPath, const std::string& dataFilename) {
+        return std::filesystem::exists(dataPath / (dataFilename + ".img"));
+    }
+
     IdrisiReader::IdrisiReader(const std::filesystem::path& dataPath, const std::string& dataFilename)
         : FileStaticReader(dataPath, dataFilename)
     {

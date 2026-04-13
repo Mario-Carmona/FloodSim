@@ -6,13 +6,19 @@
 #include <cstring>
 #include <stdexcept>
 #include <thread>
+#include <algorithm>
+#include <set>
+#include <omp.h>
+
+#include "core/common/SimulationConstants.hpp"
 
 #include "logging/Logger.hpp"
 
 namespace danasim {
 
-    OnnxStateUpdater::OnnxStateUpdater(const std::filesystem::path& modelPath) 
-        : env_(ORT_LOGGING_LEVEL_WARNING, "DanasimSim")
+    OnnxStateUpdater::OnnxStateUpdater(const std::filesystem::path& modelPath, int64_t tensorDim)
+        : tensorDim_(tensorDim), haloSize_(1), tileSize_(tensorDim_ - (2 * haloSize_))
+        , env_(ORT_LOGGING_LEVEL_WARNING, "FloodSim")
         , memory_info_(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault))
     {
         try {
@@ -39,119 +45,487 @@ namespace danasim {
             session_options.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
             session_options.EnableMemPattern();
 
-            // Cargar modelo
-            init_session_ = Ort::Session(env_, (modelPath / "init_model.onnx").c_str(), session_options);
-            LOG_INFO("ONNX Model loaded successfully from: {}", (modelPath / "init_model.onnx").string());
 
-            run_session_ = Ort::Session(env_, (modelPath / "run_model.onnx").c_str(), session_options);
-            LOG_INFO("ONNX Model loaded successfully from: {}", (modelPath / "run_model.onnx").string());
+            // Cargar modelo
+            preprocess_session_ = Ort::Session(env_, (modelPath / "preprocess_model.onnx").c_str(), session_options);
+            LOG_INFO("ONNX Model loaded successfully from: {}", (modelPath / "preprocess_model.onnx").string());
+
+            step_session_ = Ort::Session(env_, (modelPath / "step_model.onnx").c_str(), session_options);
+            LOG_INFO("ONNX Model loaded successfully from: {}", (modelPath / "step_model.onnx").string());
+
+
+
+            std::ifstream file((modelPath / "metadata.json").c_str());
+            if (!file.is_open()) {
+                LOG_ERROR("Error: No se pudo abrir el archivo metadata.json");
+            }
+
+            // 2. Parsear el JSON
+            nlohmann::json j;
+            file >> j;
+
+
+            preprocessModel_ = parseModelGraphInfo(j["preprocess"]);
+
+            stepModel_ = parseModelGraphInfo(j["step"]);
+
+
+            std::set<std::string> preprocessInputParams;
+            for (const auto& item : preprocessModel_.inputs) {
+                preprocessInputParams.insert(item.id_name);
+            }
+
+            std::set<std::string> preprocessOutputParams;
+            for (const auto& item : preprocessModel_.outputs) {
+                preprocessOutputParams.insert(item.id_name);
+            }
+
+            std::set<std::string> stepInputParams;
+            for (const auto& item : stepModel_.inputs) {
+                stepInputParams.insert(item.id_name);
+            }
+
+
+            for (const auto& item : preprocessModel_.inputs) {
+                if (item.isScalar) {
+                    paramsInfo_.scalars.push_back({
+                        .name = item.id_name,
+                        .dataType = item.type,
+                        .loadRequired = true
+                    });
+                }
+                else {
+                    paramsInfo_.layers.push_back({
+                        .name = item.id_name,
+                        .dataType = item.type,
+                        .loadRequired = true
+                    });
+                }
+            }
+
+            for (const auto& item : preprocessModel_.outputs) {
+                if (!preprocessInputParams.contains(item.id_name)) {
+                    if (item.isScalar) {
+                        paramsInfo_.scalars.push_back({
+                            .name = item.id_name,
+                            .dataType = item.type,
+                            .loadRequired = true
+                            });
+                    }
+                    else {
+                        paramsInfo_.layers.push_back({
+                            .name = item.id_name,
+                            .dataType = item.type,
+                            .loadRequired = false
+                            });
+                    }
+                }
+            }
+
+            for (const auto& item : stepModel_.inputs) {
+                if (!preprocessInputParams.contains(item.id_name) && !preprocessOutputParams.contains(item.id_name)) {
+                    if (item.isScalar) {
+                        paramsInfo_.scalars.push_back({
+                            .name = item.id_name,
+                            .dataType = item.type,
+                            .loadRequired = true
+                            });
+                    }
+                    else {
+                        paramsInfo_.layers.push_back({
+                            .name = item.id_name,
+                            .dataType = item.type,
+                            .loadRequired = (!preprocessOutputParams.contains(item.id_name))
+                            });
+                    }
+                } 
+            }
+
+            for (const auto& item : stepModel_.outputs) {
+                if (!preprocessInputParams.contains(item.id_name) && !preprocessOutputParams.contains(item.id_name) && !stepInputParams.contains(item.id_name)) {
+                    if (item.isScalar) {
+                        paramsInfo_.scalars.push_back({
+                            .name = item.id_name,
+                            .dataType = item.type,
+                            .loadRequired = true
+                            });
+                    }
+                    else {
+                        paramsInfo_.layers.push_back({
+                            .name = item.id_name,
+                            .dataType = item.type,
+                            .loadRequired = false
+                            });
+                    }
+                }
+            }
+
+            paramsInfo_.layers.push_back({
+                .name = "rainfall",
+                .dataType = DataType::FLOAT32,
+                .loadRequired = true
+            });
         }
         catch (const Ort::Exception& e) {
             LOG_ERROR("Failed to load ONNX model: {}", e.what());
             throw;
         }
     }
-    
-    void OnnxStateUpdater::initialize(MapGrid& grid, std::chrono::seconds stepTime) {
-        dt_ = static_cast<float>(stepTime.count());
-        dx_ = grid.cellSize();
 
-        k_spatial.resize(grid.getLayer<float>(LayerId::TopoBathy)->getData().size(), 0.0f);
-        float* k_spatial_ptr = k_spatial.data();
-        
-        // 1. Obtener punteros RAW (Zero-Copy)
-        float* water_ptr = grid.getLayer<float>(LayerId::WaterDepth)->getData().data();
-        float* topo_bathy_ptr = grid.getLayer<float>(LayerId::TopoBathy)->getData().data();
-        int8_t* land_cover_ptr = grid.getLayer<int8_t>(LayerId::LandCover)->getData().data();
-        float* rainfall_ptr = grid.getLayer<float>(LayerId::Rainfall)->getData().data();
-
-        // 2. Definir dimensiones
-        int64_t rows = static_cast<int64_t>(grid.rows());
-        int64_t cols = static_cast<int64_t>(grid.cols());
-        // Shape TF: [Batch=1, Height, Width, Channels=1]
-        std::vector<int64_t> shape = { 1, rows, cols, 1 };
-        size_t tensor_size = 1 * rows * cols * 1;
-
-        // 3. Crear Tensores envolviendo la memoria existente
-        std::vector<int64_t> scalar_shape = {}; // Escalar
-
-
-
-        init_input_tensors_.reserve(1);
-
-        init_input_tensors_.push_back(Ort::Value::CreateTensor<int8_t>(
-            memory_info_, land_cover_ptr, tensor_size, shape.data(), shape.size()));
-
-        init_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, &dt_, 1, scalar_shape.data(), scalar_shape.size()));
-
-        init_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, &dx_, 1, scalar_shape.data(), scalar_shape.size()));
-
-        init_output_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, k_spatial_ptr, tensor_size, shape.data(), shape.size()
-        ));
-
-
-
-
-        run_input_tensors_.reserve(7);
-
-        // Input 0: Water (Read-Only desde la perspectiva de entrada)
-        run_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, water_ptr, tensor_size, shape.data(), shape.size()));
-
-        // Input 1: TopoBathy
-        run_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, topo_bathy_ptr, tensor_size, shape.data(), shape.size()));
-
-        // Input 2: Land cover
-        run_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, k_spatial_ptr, tensor_size, shape.data(), shape.size()));
-
-        run_input_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, rainfall_ptr, tensor_size, shape.data(), shape.size()));
-
-
-        // 4. Preparar Salida
-        run_output_tensors_.push_back(Ort::Value::CreateTensor<float>(
-            memory_info_, water_ptr, tensor_size, shape.data(), shape.size()
-        ));
-
-
-
-
+    void OnnxStateUpdater::runModel(Ort::Session& session, MapGrid& grid, const Ort::RunOptions& options, 
+            const ModelGraphInfo& graphInfo, const std::vector<int64_t>& tensor_shape, bool useDynamicBoundingBox,
+            const std::vector<Tile>& active_tiles) {
 
         try {
-            init_session_.Run(
-                init_options_,
-                init_input_names_.data(),
-                init_input_tensors_.data(),
-                init_input_tensors_.size(),
-                init_output_names_.data(),
-                init_output_tensors_.data(),
-                init_output_tensors_.size()
-            );
+            size_t tensor_size = 1;
+            for (int64_t item : tensor_shape) {
+                tensor_size *= item;
+            }
+
+
+            ScratchpadBase* firstScratchpad = layersScratchpad.begin()->second.get();
+
+            if (tensor_size > firstScratchpad->size()) {
+                size_t new_size;
+
+                if (firstScratchpad->size() == 0) {
+                    new_size = std::min(
+                        static_cast<size_t>(tensor_size * 1.5f), // Crecimiento del 50%
+                        max_tensor_elements_                    // El techo absoluto (ej. 47M)
+					);
+                }
+                else {
+                    size_t new_size = std::min(
+                        static_cast<size_t>(firstScratchpad->size() * 1.5f), // Crecimiento del 50%
+                        max_tensor_elements_                        // El techo absoluto (ej. 47M)
+                    );
+                }
+
+                for (const auto& [name, scratchpad] : layersScratchpad) {
+                    scratchpad->resize(new_size);
+                }
+            }
+
+
+            if (useDynamicBoundingBox) {
+                for (const auto& item : graphInfo.inputs) {
+                    if (!item.isScalar) {
+                        grid.getLayer(item.id_name)->extractTilesData(layersScratchpad[item.id_name].get(), active_tiles, grid.cols(), grid.rows(),
+                            haloSize_, tensorDim_, tensorDim_);
+                    } 
+                }
+            }
+
+
+            Ort::IoBinding io_binding(session);
+
+            for (const auto& item : graphInfo.inputs) {
+                io_binding.BindInput(
+                    item.model_name.c_str(), 
+                    configureTensor(
+                        item, grid, tensor_shape, tensor_size, useDynamicBoundingBox
+                    )
+                );
+            }
+
+
+
+            for (const auto& item : graphInfo.outputs) {
+                io_binding.BindOutput(
+                    item.model_name.c_str(),
+                    configureTensor(
+                        item, grid, tensor_shape, tensor_size, useDynamicBoundingBox
+                    )
+                );
+            }
+
+
+
+
+            session.Run(options, io_binding);
+
+
+
+            if (useDynamicBoundingBox) {
+                for (const auto& item : graphInfo.outputs) {
+                    if (!item.isScalar) {
+                        grid.getLayer(item.id_name)->updateTilesData(layersScratchpad[item.id_name].get(), active_tiles, grid.cols(),
+                            haloSize_, tensorDim_, tensorDim_);
+                    }
+                }
+            }
         }
         catch (const Ort::Exception& e) {
             LOG_ERROR("ONNX Inference Error: {}", e.what());
         }
     }
 
-    void OnnxStateUpdater::run() {
+    void OnnxStateUpdater::initialize(MapGrid& grid) {
+        int64_t num_tiles_x = (grid.cols() + tileSize_ - 1) / tileSize_;
+        int64_t num_tiles_y = (grid.rows() + tileSize_ - 1) / tileSize_;
+
+        int64_t max_active_tiles = num_tiles_x * num_tiles_y;
+
+        // 3. Tamaño máximo en elementos (floats/int8) para el peor caso
+        max_tensor_elements_ = max_active_tiles * tensorDim_ * tensorDim_;
+
+
+        for (const auto& item : stepModel_.inputs) {
+            if (!item.isScalar) {
+                layersScratchpad[item.id_name] = grid.getLayer(item.id_name)->generateScratchpad();
+            }
+        }
+
+        for (const auto& item : stepModel_.outputs) {
+            if (!item.isScalar) {
+                if (layersScratchpad.find(item.id_name) == layersScratchpad.end()) {
+                    layersScratchpad[item.id_name] = grid.getLayer(item.id_name)->generateScratchpad();
+                }
+            }
+        }
+
+
+        int64_t rows = static_cast<int64_t>(grid.rows());
+        int64_t cols = static_cast<int64_t>(grid.cols());
+
+        std::vector<int64_t> tensor_shape = { rows, cols };
+
+        std::vector<Tile> active_tiles;
+        
+        Ort::RunOptions preprocess_options{ nullptr };
+
+        runModel(preprocess_session_, grid, preprocess_options, preprocessModel_, tensor_shape, false, active_tiles);
+
+        std::set<std::string> stepInputParams;
+        for (const auto& item : stepModel_.inputs) {
+            stepInputParams.insert(item.id_name);
+        }
+
+        for (const auto& item : preprocessModel_.inputs) {
+            if (!stepInputParams.contains(item.id_name)) {
+                grid.getLayer(item.id_name)->clear();
+            }
+        }
+
+
+
+        std::vector<float>* water_depth = &grid.getLayer<float>("water_depth")->getData();
+        std::vector<int8_t>* cell_state = &grid.getLayer<int8_t>("cell_state")->getData();
+
+        #pragma omp parallel for
+        for (int i = 0; i < grid.getMetadata().cellCount; ++i) {
+            // 1. Suma vectorizada (cada hilo procesa un trozo del mapa)
+
+            if (water_depth->at(i) > DRY_TOLERANCE) {
+                cell_state->at(i) = STATE_DYNAMIC;
+            }
+            else {
+                cell_state->at(i) = STATE_EMPTY;
+            }
+        }
+    }
+
+    std::vector<Tile> OnnxStateUpdater::getActiveTiles(MapGrid& grid) {
+        const float DRY_TOLERANCE = 0.001f;
+
+        int64_t cols = grid.cols();
+        int64_t rows = grid.rows();
+
+        int64_t num_tiles_x = (cols + tileSize_ - 1) / tileSize_;
+        int64_t num_tiles_y = (rows + tileSize_ - 1) / tileSize_;
+
+        const float* water_depth = grid.getLayer<float>("water_depth")->getData().data();
+        const float* rainfall = grid.getLayer<float>("rainfall")->getData().data();
+        const int8_t* cell_state = grid.getLayer<int8_t>("cell_state")->getData().data();
+
+        std::vector<Tile> active_tiles;
+
+        // Recorremos la cuadrícula de bloques
+        // 2. Paralelización:
+        // - collapse(2): Une los bucles X e Y en uno solo para distribuir mejor el trabajo.
+        // - schedule(dynamic): Como algunos bloques se descartan rápido (secos) y otros tardan un poco más en escanearse, esto equilibra la carga entre los hilos dinámicamente.
+        for (int64_t ty = 0; ty < num_tiles_y; ++ty) {
+            for (int64_t tx = 0; tx < num_tiles_x; ++tx) {
+
+                int64_t start_x = tx * tileSize_;
+                int64_t start_y = ty * tileSize_;
+
+                // Ajustamos el tamaño si el tile está en el borde del mapa y se sale
+                int64_t width = std::min(tileSize_, cols - start_x);
+                int64_t height = std::min(tileSize_, rows - start_y);
+
+                bool tile_is_active = false;
+
+                // Escaneamos las celdas DENTRO de este bloque para ver si se activa
+                for (int64_t y = 0; y < height && !tile_is_active; ++y) {
+                    // La multiplicación se hace una sola vez por fila
+                    int64_t row_start_idx = ((start_y + y) * cols) + start_x;
+
+                    // Punteros directos a la fila para esta iteración
+                    const int8_t* state_row = cell_state + row_start_idx;
+                    const float* water_row = water_depth + row_start_idx;
+                    const float* rain_row = rainfall + row_start_idx;
+
+                    for (int64_t x = 0; x < width && !tile_is_active; ++x) {
+                        // Acceso secuencial puramente lineal (¡Al compilador y a la Caché L1 les encanta esto!)
+                        if (state_row[x] == 2 || (rain_row[x] > 0.0f && water_row[x] > DRY_TOLERANCE)) {
+                            tile_is_active = true;
+                        }
+                    }
+                }
+
+                if (tile_is_active) {
+                    // width y height ya están ajustados para no salir de los bordes (ej. 50x128)
+                    active_tiles.push_back({ start_x, start_y, width, height });
+                }
+            }
+        }
+
+        return active_tiles;
+    }
+
+    void OnnxStateUpdater::step(MapGrid& grid) {
         try {
-            run_session_.Run(
-                run_options_,
-                run_input_names_.data(),
-                run_input_tensors_.data(),
-                run_input_tensors_.size(),
-                run_output_names_.data(),
-                run_output_tensors_.data(),
-                run_output_tensors_.size()
-            );
+            std::vector<int64_t> tensor_shape;
+
+            std::vector<Tile> active_tiles;
+
+            auto* water_depth_layer = grid.getLayer<float>("water_depth");
+            auto* rainfall_layer = grid.getLayer<float>("rainfall");
+
+            float* wd_ptr = water_depth_layer->getData().data();
+            const float* rain_ptr = rainfall_layer->getData().data();
+            int64_t total_cells = grid.rows() * grid.cols();
+
+            #pragma omp parallel for
+            for (int64_t i = 0; i < total_cells; ++i) {
+                wd_ptr[i] += rain_ptr[i];
+            }
+
+            // 2. Obtener los bloques activos
+            active_tiles = getActiveTiles(grid);
+            int64_t batch_size = active_tiles.size();
+
+            // Si no hay agua moviéndose ni lloviendo, nos saltamos la inferencia de ONNX
+            if (batch_size == 0) {
+                LOG_INFO("No active water detected. Skipping ONNX inference.");
+                return;
+            }
+
+            LOG_INFO("Active tiles (Batch Size) for ONNX: {}", batch_size);
+
+            tensor_shape = { batch_size, tensorDim_, tensorDim_ };
+
+
+            Ort::RunOptions step_options { nullptr };
+
+            runModel(step_session_, grid, step_options, stepModel_, tensor_shape, true, active_tiles);
         }
         catch (const Ort::Exception& e) {
             LOG_ERROR("ONNX Inference Error: {}", e.what());
+        }
+    }
+
+    TensorInfo OnnxStateUpdater::parseTensorInfo(const nlohmann::json& tensorJson, bool outputTensor) {
+        TensorInfo tensor;
+
+        tensor.model_name = tensorJson["name"].get<std::string>();
+
+        if (outputTensor) {
+            size_t pos = tensor.model_name.find(":out");
+
+            if (pos != std::string::npos) {
+                tensor.id_name = tensor.model_name.substr(0, pos);
+            }
+            else {
+				throw std::runtime_error("Error: El nombre del tensor de salida '" + tensor.model_name + "' no tiene el formato esperado (debería contener ':out').");
+            }
+        }
+        else {
+            tensor.id_name = tensor.model_name;
+        }
+
+        if (tensorJson["type"] == "FLOAT") {
+            tensor.type = DataType::FLOAT32;
+        }
+        else if (tensorJson["type"] == "INT8") {
+            tensor.type = DataType::INT8;
+        }
+        else {
+            throw std::runtime_error("Error: El tipo de tensor ONNX '" + std::string(tensorJson["type"]) + "' no está soportado o no tiene un mapeo en C++.");
+        }
+
+        tensor.isScalar = (tensorJson["shape"].size() == 0);
+
+        return tensor;
+    }
+
+    ModelGraphInfo OnnxStateUpdater::parseModelGraphInfo(const nlohmann::json& graphJson) {
+        ModelGraphInfo graphInfo;
+
+        if (graphJson.contains("inputs")) {
+            for (const auto& item : graphJson["inputs"]) {
+                graphInfo.inputs.push_back(parseTensorInfo(item, false));
+            }
+        }
+
+        if (graphJson.contains("outputs")) {
+            for (const auto& item : graphJson["outputs"]) {
+                graphInfo.outputs.push_back(parseTensorInfo(item, true));
+            }
+        }
+
+        return graphInfo;
+    }
+
+    Ort::Value OnnxStateUpdater::configureTensor(const TensorInfo& info, MapGrid& grid, const std::vector<int64_t>& tensor_shape, size_t tensor_size, bool useDynamicBoundingBox) {
+        if (info.isScalar) {
+            std::vector<int64_t> scalar_shape = {};
+
+            switch (info.type) {
+            case DataType::FLOAT32:
+                return Ort::Value::CreateTensor<float>(memory_info_, &grid.getScalar<float>(info.id_name)->getValue(), 1, scalar_shape.data(), scalar_shape.size());
+                break;
+            case DataType::INT8:
+                return Ort::Value::CreateTensor<int8_t>(memory_info_, &grid.getScalar<int8_t>(info.id_name)->getValue(), 1, scalar_shape.data(), scalar_shape.size());
+                break;
+            }
+        }
+        else {
+            switch (info.type) {
+            case DataType::FLOAT32:
+                float* floatLayerDataPrt;
+
+                if (useDynamicBoundingBox) {
+                    floatLayerDataPrt = dynamic_cast<Scratchpad<float>*>(layersScratchpad[info.id_name].get())->getData().data();
+                }
+                else {
+                    floatLayerDataPrt = grid.getLayer<float>(info.id_name)->getData().data();
+                }
+
+                return Ort::Value::CreateTensor<float>(
+                    memory_info_, 
+                    floatLayerDataPrt,
+                    tensor_size, tensor_shape.data(), tensor_shape.size()
+                );
+                break;
+            case DataType::INT8:
+                int8_t* int8LayerDataPrt;
+
+                if (useDynamicBoundingBox) {
+                    int8LayerDataPrt = dynamic_cast<Scratchpad<int8_t>*>(layersScratchpad[info.id_name].get())->getData().data();
+                }
+                else {
+                    int8LayerDataPrt = grid.getLayer<int8_t>(info.id_name)->getData().data();
+                }
+
+                return Ort::Value::CreateTensor<int8_t>(
+                    memory_info_, 
+                    int8LayerDataPrt,
+                    tensor_size, tensor_shape.data(), tensor_shape.size()
+                );
+                break;
+            }
         }
     }
 

@@ -31,19 +31,31 @@
 
 #include "logging/Logger.hpp"
 #include "core/grid/LayerTypes.hpp"
+#include "core/grid/ScalarTypes.hpp"
 #include "Types.hpp"
 #include "ports/InputPort.hpp"
 #include "core/grid/Layer.hpp"
+#include "core/grid/Scalar.hpp"
+#include "app/config/Config.hpp"
+#include "core/grid/StaticLayer.hpp"
+#include "core/grid/DynamicLayer.hpp"
 
 namespace danasim {
 
-    /**
-     * @struct LayerDescriptor
-     * @brief Metadata defining the properties of a specific layer.
-     */
-    struct LayerDescriptor {
+    enum class DataType {
+        FLOAT32,
+        INT8
+    };
+
+    struct ModelParam {
         std::string name;
-        LayerRole role;
+        DataType dataType;
+        bool loadRequired;
+    };
+
+    struct ModelParamsInfo {
+        std::vector<ModelParam> layers;
+        std::vector<ModelParam> scalars;
     };
 
     /**
@@ -52,46 +64,94 @@ namespace danasim {
      */
     class MapGrid {
     public:
-        MapGrid(std::chrono::seconds timeStep);
+        MapGrid();
         ~MapGrid() = default;
 
-        void load(const std::unordered_map<std::string, InputPort*>& layerInputSource, std::chrono::system_clock::time_point currentTime);
+        void load(
+            const ModelParamsInfo& paramsInfo, InputPort* mainInputSource,
+            const std::unordered_map<std::string, InputPort*>& layersAlternativeInputSource,
+            const std::unordered_map<std::string, std::string>& scalarsConfig,
+            std::chrono::seconds timeStep, std::chrono::system_clock::time_point currentTime
+        );
 
         void updateDynamicLayers(std::chrono::system_clock::time_point currentTime);
 
-        LayerBase* getLayer(LayerId id);
-        const LayerBase* getLayer(LayerId id) const;
+
+        LayerBase* getLayer(const std::string& name) {
+            return layers_.at(name).get();
+        }
+
+        const LayerBase* getLayer(const std::string& name) const {
+            return layers_.at(name).get();
+        }
+
 
         template <typename T>
-        Layer<T>* getLayer(LayerId id) {
-            // Llamamos al getter normal y hacemos el casteo internamente
-            return dynamic_cast<Layer<T>*>(getLayer(id));
+        Layer<T>* getLayer(const std::string& name) {
+            return dynamic_cast<Layer<T>*>(layers_.at(name).get());
         }
 
         template <typename T>
-        const Layer<T>* getLayer(LayerId id) const {
-            return dynamic_cast<const Layer<T>*>(getLayer(id));
+        const Layer<T>* getLayer(const std::string& name) const {
+            return dynamic_cast<const Layer<T>*>(layers_.at(name).get());
+        }
+
+
+        ScalarBase* getScalar(const std::string& name) {
+            return scalars_.at(name).get();
+        }
+
+        const ScalarBase* getScalar(const std::string& name) const {
+            return scalars_.at(name).get();
+        }
+
+        template <typename T>
+        Scalar<T>* getScalar(const std::string& name) {
+            return dynamic_cast<Scalar<T>*>(scalars_.at(name).get());
+        }
+
+        template <typename T>
+        const Scalar<T>* getScalar(const std::string& name) const {
+            return dynamic_cast<const Scalar<T>*>(scalars_.at(name).get());
         }
 
         // --- Getters ---
 
-        [[nodiscard]] GridIndexType rows() const noexcept { return layers_[0]->getMetadata().height; }
-        [[nodiscard]] GridIndexType cols() const noexcept { return layers_[0]->getMetadata().width; }
-        [[nodiscard]] float cellSize() const noexcept { return layers_[0]->getMetadata().cellSize; }
-        [[nodiscard]] std::string crs() const noexcept { return layers_[0]->getMetadata().crs; }
-        [[nodiscard]] double mapOriginX() const noexcept { return layers_[0]->getMetadata().minX; }
-        [[nodiscard]] double mapOriginY() const noexcept { return layers_[0]->getMetadata().maxY; }
+        const GridMetadata& getMetadata() const { return metadata_; }
+
+        [[nodiscard]] GridIndexType rows() const noexcept { return metadata_.height; }
+        [[nodiscard]] GridIndexType cols() const noexcept { return metadata_.width; }
+        [[nodiscard]] float cellSize() const noexcept { return metadata_.cellSize; }
+        [[nodiscard]] std::string crs() const noexcept { return metadata_.crs; }
+        [[nodiscard]] double mapOriginX() const noexcept { return metadata_.minX; }
+        [[nodiscard]] double mapOriginY() const noexcept { return metadata_.maxY; }
 
     private:
-        std::chrono::seconds timeStep_;
-
         // Storage for all layers defined in the enum
-        std::array<std::unique_ptr<LayerBase>, magic_enum::enum_count<LayerId>()> layers_{};
+        std::unordered_map<std::string, std::unique_ptr<LayerBase>> layers_;
+
+        std::unordered_map<std::string, std::unique_ptr<ScalarBase>> scalars_;
+
+        GridMetadata metadata_;
 
 
-        void initializeDerivedLayer(LayerId id);
+        template <typename T>
+        void addLayer(const std::string& name, bool isStaticLayer) {
+            if (isStaticLayer) {
+                layers_[name] = std::make_unique<StaticLayer<T>>(name);
+            }
+            else {
+                layers_[name] = std::make_unique<DynamicLayer<T>>(name);
+            }
+        }
 
-        void normalizeUnits(LayerId id);
+        template <typename T>
+        void addScalar(const std::string& name) {
+            scalars_[name] = std::make_unique<Scalar<T>>(name);
+        }
+
+
+        void normalizeUnits(const std::string& name);
     };
 
 } // namespace danasim

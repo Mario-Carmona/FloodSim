@@ -47,7 +47,7 @@ namespace danasim {
                 }
 
                 LOG_DEBUG("Initializing Onnx State Updater using model: {}", cfg.modelPath.string());
-                return std::make_unique<OnnxStateUpdater>(cfg.modelPath);
+                return std::make_unique<OnnxStateUpdater>(cfg.modelPath, cfg.tensorDim);
             },
 
             // Catch-all for unhandled types

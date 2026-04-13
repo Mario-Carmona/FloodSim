@@ -8,13 +8,6 @@ find_package(PahoMqttCpp CONFIG REQUIRED)
 
 
 
-
-# 2. Entorno "Monitor" (MQTT + Protobuf Moderno)
-create_python_env("mqtt_scripts" OFF)
-
-
-
-
 add_subdirectory(mqtt)
 
 add_library(danasim_output_adapters)

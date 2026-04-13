@@ -25,34 +25,12 @@ namespace danasim {
     };
 
     /**
-     * @enum LayerId
-     * @brief Unique identifier for every specific layer in the system.
-     */
-    enum class LayerId : uint8_t {
-        TopoBathy,
-        Rainfall,
-        LandCover,
-        WaterDepth
-        // Add new layers here
-    };
-
-    /**
-     * @enum LayerRole
-     * @brief Defines if the layer is loaded from disk or derived internally.
-     */
-    enum class LayerRole : uint8_t {
-        Main,  ///< Data comes from an external source (File/API).
-        Secondary   ///< Data is derived/calculated internally.
-    };
-
-    /**
      * @enum LayerSource
      * @brief Defines the I/O strategy for Principal layers.
      */
     enum class LayerSource : uint8_t {
-        Static,   ///< Loaded entirely into RAM at startup (e.g., GeoTIFF).
-        Dynamic,    ///< Loaded chunk-by-chunk/frame-by-frame (e.g., HDF5 time series).
-        Derived
+        Static, ///< Loaded entirely into RAM at startup (e.g., GeoTIFF).
+        Dynamic ///< Loaded chunk-by-chunk/frame-by-frame (e.g., HDF5 time series).
     };
 
 } // namespace danasim

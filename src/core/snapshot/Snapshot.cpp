@@ -8,7 +8,7 @@ namespace danasim {
     void Snapshot::set(std::chrono::sys_seconds time, const MapGrid& grid) {
         time_ = time;
 
-        const auto& waterDepthGrid = grid.getLayer<float>(LayerId::WaterDepth)->getData();
+        const auto& waterDepthGrid = grid.getLayer<float>("water_depth")->getData();
 
         if (waterDepth_.empty()) {
             waterDepth_.resize(waterDepthGrid.size(), 0.0f);

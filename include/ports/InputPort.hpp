@@ -27,7 +27,9 @@ namespace danasim {
     public:
         virtual ~InputPort() = default;
 
-        virtual std::unique_ptr<Reader> generateReader(std::string name, bool isStatic) = 0;
+        virtual std::unique_ptr<Reader> generateReader(std::string name, bool isStatic) const = 0;
+
+        virtual bool isStaticLayer(const std::string& name) const = 0;
     };
 
 } // namespace danasim

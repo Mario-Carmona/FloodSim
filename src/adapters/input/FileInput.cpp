@@ -17,6 +17,7 @@
 #include "core/grid/LayerTypes.hpp"
 #include "core/common/SimulationConstants.hpp"
 #include "core/grid/MapGrid.hpp"
+#include "adapters/input/readers/file/static/FileStaticReader.hpp"
 #include "adapters/input/readers/file/static/FileStaticReaderFactory.hpp"
 #include "adapters/input/readers/file/dynamic/FileDynamicReaderFactory.hpp"
 
@@ -32,13 +33,17 @@ namespace danasim {
         LOG_INFO("FileInput initialized with root: {}", inputPath.string());
     }
 
-    std::unique_ptr<Reader> FileInput::generateReader(std::string name, bool isStatic) {
+    std::unique_ptr<Reader> FileInput::generateReader(std::string name, bool isStatic) const {
         if (isStatic) {
             return std::move(FileStaticReaderFactory::create(staticFormat_, inputPath_ / name, name));
         }
         else {
             return std::move(FileDynamicReaderFactory::create(dynamicFormat_, inputPath_ / name, name));
         }
+    }
+
+    bool FileInput::isStaticLayer(const std::string& name) const {
+        return FileStaticReader::isStaticLayer(inputPath_ / name, name, staticFormat_);
     }
 
 } // namespace danasim

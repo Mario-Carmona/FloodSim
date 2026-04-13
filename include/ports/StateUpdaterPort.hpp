@@ -28,9 +28,11 @@ namespace danasim {
     public:
         virtual ~StateUpdaterPort() = default;
 
-        virtual void initialize(MapGrid& grid, std::chrono::seconds stepTime) = 0;
+        virtual void initialize(MapGrid& grid) = 0;
 
-        virtual void run() = 0;
+        virtual void step(MapGrid& grid) = 0;
+
+        virtual const ModelParamsInfo& getModelParamsInfo() const = 0;
     };
 
 } // namespace danasim

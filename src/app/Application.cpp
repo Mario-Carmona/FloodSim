@@ -20,7 +20,6 @@
 #endif
 
 #include "app/config/ConfigLoader.hpp"
-#include "adapters/input/InputFactory.hpp"
 #include "adapters/output/OutputFactory.hpp"
 #include "adapters/state_updater/StateUpdaterFactory.hpp"
 #include "logging/Logger.hpp"
@@ -28,6 +27,8 @@
 #include "core/snapshot/SnapshotManager.hpp"
 #include "core/SimulationCore.hpp"
 #include "ports/OutputPort.hpp"
+#include "core/grid/Scalar.hpp"
+#include "adapters/input/FileInput.hpp"
 
 namespace danasim {
 
@@ -101,17 +102,14 @@ namespace danasim {
             // 1. Input Module Initialization
             // -------------------------------------------------
             LOG_INFO("Initializing input factory");
-            std::unordered_map<std::string, std::unique_ptr<InputPort>> inputSources;
 
-            for (const auto& [type, srcConfig] : config_.input.sources) {
-                inputSources[type] = InputFactory::create(srcConfig);
-            }
+            std::unique_ptr<InputPort> mainInputSource = std::make_unique<FileInput>(
+                config_.input.file.path, 
+                config_.input.file.staticFormat, 
+                config_.input.file.dynamicFormat
+            );
 
-            std::unordered_map<std::string, InputPort*> layerInputSource;
-
-            for (auto lyConfig : config_.input.layers) {
-                layerInputSource[lyConfig.name] = inputSources[lyConfig.source].get();
-            }
+            std::unordered_map<std::string, InputPort*> layersAlternativeInputSource;
 
             // -------------------------------------------------
             // 2. Output Modules Initialization
@@ -148,7 +146,9 @@ namespace danasim {
             // Note: SimulationCore takes ownership of stateUpdater
             core_ = std::make_unique<SimulationCore>(
                 stateUpdater.get(),
-                layerInputSource,
+                mainInputSource.get(),
+                layersAlternativeInputSource,
+                config_.input.scalars,
                 outputsPtr,
                 snapshotManager_.get(),
                 config_.simulation,

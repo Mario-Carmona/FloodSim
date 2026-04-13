@@ -14,6 +14,10 @@ namespace danasim {
             IDRISI
         };
 
+
+        static bool isStaticLayer(const std::filesystem::path& dataPath, const std::string& dataFilename, const std::string& formatStr);
+
+
         FileStaticReader(const std::filesystem::path& dataPath, const std::string& dataFilename);
         virtual ~FileStaticReader() = default;
 

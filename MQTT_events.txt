@@ -1,0 +1,206 @@
+===========================================================
+= Handshake =
+=============
+
+
+1. Evento de Búsqueda (System_Ping)
+
+- Cuándo se envía: Cuando el Core (C++) arranca, antes de tocar ningún archivo del DEM, publica este mensaje y se queda 
+a la espera.
+
+- Payload JSON:
+
+{
+  "process": "System_Ping",
+  "source": "Core_C++",
+  "timestamp_utc": "2026-04-10T15:36:20"
+}
+
+
+
+2. Evento de Respuesta (System_Pong)
+
+- Cuándo se envía: El Visualizador en Python, que debe estar arrancado y suscrito a ese topic, recibe el ping e inmediatamente 
+responde confirmando que está vivo y listo para recibir instrucciones.
+
+- Payload JSON:
+
+{
+  "process": "System_Pong",
+  "source": "Visualizador_Python_X3D"
+}
+
+
+
+3. Last Will and Testament (LWT)
+
+- Cuándo se envía: Cuando el simulador se cuelga.
+
+- Python Code:
+
+import paho.mqtt.client as mqtt
+import json
+
+# 1. Crear el cliente MQTT para el visualizador
+client = mqtt.Client(client_id="Visualizador_Python_X3D")
+
+# 2. Definir el mensaje LWT (Última voluntad)
+topic_lwt = "simulador/sistema/control"
+mensaje_lwt = json.dumps({
+    "process": "System_Disconnected",
+    "source": "Visualizador_Python_X3D"
+})
+
+# 3. Configurar el LWT en el cliente ANTES de conectar
+# qos=1 asegura que el mensaje llegue al menos una vez
+# retain=True hace que el broker guarde el mensaje para quien se conecte después
+client.will_set(topic_lwt, payload=mensaje_lwt, qos=1, retain=True)
+
+# 4. Ahora sí, conectarse al servidor Mosquitto (usando tu IP segura de la VPN)
+client.connect("100.x.x.x", 1883, 60)
+
+
+
+===========================================================
+= Inicialización =
+==================
+
+
+
+1. Evento de Configuración Global (InitMap_Config)
+
+Antes de enviar un solo dato topográfico, el Core debe decirle al visualizador a qué se enfrenta. Esto permite 
+a Python pre-asignar memoria y configurar la cámara, la iluminación y la escala del entorno X3D.
+
+- Cuándo se envía: Es el primer mensaje absoluto de la simulación.
+
+- Payload JSON:
+
+{
+  "process": "InitMap_Config",
+  "map": {
+    "size_x": 9000,
+    "size_y": 5000,
+    "chunk_size": 100,             // Tamaño de cada bloque (ej. 100x100 celdas)
+    "cell_resolution_m": 5.0       // Cuántos metros reales representa cada celda
+  },
+  "metadata": {
+    "sim_start_time": "2026-04-10T12:00:00", // Hora virtual en la que arranca la riada
+    "time_step_s": 1.0                       // Cuántos segundos de simulación pasan por cada iteración del Core
+  },
+  "georeference": {
+    "lat": 36.8381,     // Por si luego quieres superponer mapas reales o texturas
+    "lon": -2.4597
+  }
+}
+
+
+
+2. Evento de Envío de Bloques (InitAgent)
+
+Fijar valores iniciales.
+
+- Cuándo se envía: Tras publicar la configuración general. El Core itera sobre su matriz de 9000x5000 y va 
+publicando los fragmentos.
+
+- Payload JSON:
+
+{
+  "process": "InitAgent_Layer",
+  "data_path": "data/data_29_10_2024/water_depth"  // Subruta dentro del repositorio donde tanto el Core como el Visualizador leeren los datos iniciales de la capa
+}
+
+
+
+3. Eventos Adicionales Clave para la Sincronización. Fin de Inicialización (Init_EOF)
+
+- Cuándo se envía: Emitido por el Core en C++ cuando termina de enviar eventos de inicialización.
+
+- Payload JSON:
+
+{
+  "process": "Init_EOF",
+  "total_chunks_sent": 4500
+}
+
+
+===========================================================
+= Actualización =
+=================
+
+
+
+1. Evento de Cambios en Capa (EYE_SetState_Layer)
+
+- Cuándo se envía: Cuando el core quiere actualizar parámetros de cierta capa. Se aplican los cambios sin delay en el Visualizador.
+
+- Payload JSON:
+
+{
+  "process": "EYE_SetState_Layer",
+  "id": "CellState",
+  "changes": {
+    "coord": {"x": 0, "y": 0, "z": 0}
+    "cells": {
+        "345": {
+            "state": "FLOODED",
+            "height": 10.0
+        },
+        "1024": {
+            "state": "OBSTACLE_DESTROYED",
+            "height": 10.0
+        }
+     }
+  }
+}
+
+
+
+2. Evento de Cambios en Objeto (EYE_SetState)
+
+- Cuándo se envía: Cuando el core quiere actualizar parámetros de cierto objeto. Se aplican los cambios sin delay en el Visualizador.
+
+- Payload JSON:
+
+{
+  "process": "EYE_SetState",
+  "id": "Object",
+  "changes": {
+    "coord": {"x": 123, "y": 456, "z": 0},
+    "state": "OPEN"
+  }
+}
+
+
+
+===========================================================
+= Finalización =
+================
+
+1. Evento de Finalización (Sim_End)
+
+- Cuando el caudal vuelve a la normalidad o el escenario de estudio ha concluido, el Core debe avisar para cerrar el 
+ciclo de manera limpia.
+
+- Payload JSON:
+
+{
+  "process": "Sim_End",
+  "sim_time_total": 3600.0
+}
+
+
+
+
+
+####################################################
+####################################################
+####################################################
+
+
+- Añadir la paleta de colores dentro de la carpeta de datos del escenario. (Formato del archivo por definir, dentro se 
+asociará cada etiqueta de estado a un color. El Core se debe encargar de interpolar los valores a su estado correspondiente).
+
+- Cambiar Protobuf a JSON como codificador de MQTT.
+
+- Poner como nombre de topic {nombre de escenaro creado por el Core}/events.

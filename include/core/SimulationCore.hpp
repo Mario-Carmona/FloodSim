@@ -48,7 +48,9 @@ namespace danasim {
     public:
         SimulationCore(
             StateUpdaterPort* stateUpdater,
-            const std::unordered_map<std::string, InputPort*>& layerInputSource,
+            InputPort* mainInputSource,
+            const std::unordered_map<std::string, InputPort*>& layersAlternativeInputSource,
+            const std::unordered_map<std::string, std::string>& scalarsConfig,
             std::vector<OutputPort*> outputs,
             SnapshotManager* snapshotManager,
             const SimulationConfig& config,
@@ -64,7 +66,9 @@ namespace danasim {
         // Dependencies
         StateUpdaterPort* stateUpdater_;
         SnapshotManager* snapshotManager_;
-        std::unordered_map<std::string, InputPort*> layerInputSource_;
+        InputPort* mainInputSource_;
+        std::unordered_map<std::string, InputPort*> layersAlternativeInputSource_;
+        std::unordered_map<std::string, std::string> scalarsConfig_;
         std::vector<OutputPort*> outputs_;
 
         // Simulation parameters

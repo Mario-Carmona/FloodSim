@@ -1,11 +1,4 @@
 
-
-
-# 3. Entorno "Data"
-create_python_env("data_pipeline_scripts" OFF)
-
-
-
 add_subdirectory(readers)
 
 
@@ -14,7 +7,6 @@ add_library(danasim_input_adapters)
 target_sources(danasim_input_adapters
     PRIVATE
         FileInput.cpp
-        InputFactory.cpp
 )
 
 target_include_directories(danasim_input_adapters

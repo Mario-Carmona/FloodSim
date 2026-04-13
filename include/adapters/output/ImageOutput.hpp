@@ -48,7 +48,7 @@ namespace danasim {
 
         void drawUI(cv::Mat& canvas, const Snapshot& snapshot, double baseScale, int thickness, int marginTitle, int sidebarWidth);
         
-        std::unordered_map<LayerId, Config> layerConfigs_;
+        std::unordered_map<std::string, Config> layerConfigs_;
     };
 
 } // namespace danasim

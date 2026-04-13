@@ -13,7 +13,7 @@
 namespace danasim {
 
     ImageOutput::ImageOutput() {
-        layerConfigs_[LayerId::TopoBathy] = Config{
+        layerConfigs_["topo_bathy"] = Config{
             .units = "Elevation (m)",
             .minVal = 0.0,
             .maxVal = 1000.0,  // Placeholder, se calcula dinámicamente
@@ -22,7 +22,7 @@ namespace danasim {
             .maskZero = false
         };
 
-        layerConfigs_[LayerId::WaterDepth] = Config{
+        layerConfigs_["water_depth"] = Config{
             .units = "Water Depth (m)",
             .minVal = 0.0,
             .maxVal = 10.0,
@@ -81,11 +81,11 @@ namespace danasim {
         rows_ = static_cast<int>(grid.rows());
         cols_ = static_cast<int>(grid.cols());
 
-        topo_bathy_ = grid.getLayer<float>(LayerId::TopoBathy)->getData().data();
+        topo_bathy_ = grid.getLayer<float>("topo_bathy")->getData().data();
 
-        const auto& elevData = grid.getLayer<float>(LayerId::TopoBathy)->getData();
-        layerConfigs_[LayerId::TopoBathy].minVal = *std::min_element(elevData.begin(), elevData.end());
-        layerConfigs_[LayerId::TopoBathy].maxVal = *std::max_element(elevData.begin(), elevData.end());
+        const auto& elevData = grid.getLayer<float>("topo_bathy")->getData();
+        layerConfigs_["topo_bathy"].minVal = *std::min_element(elevData.begin(), elevData.end());
+        layerConfigs_["topo_bathy"].maxVal = *std::max_element(elevData.begin(), elevData.end());
     }
 
     // Función auxiliar para crear la paleta Geográfica (Verde -> Marrón -> Blanco)
@@ -133,7 +133,7 @@ namespace danasim {
         cv::Mat rawElev(rows_, cols_, CV_32F, const_cast<float*>(topo_bathy_));
 
         // Configuración
-        const auto& cfg = layerConfigs_[LayerId::TopoBathy];
+        const auto& cfg = layerConfigs_["topo_bathy"];
 
         // 1. Normalizar Elevación (0-255)
         cv::Mat normElev;
@@ -247,8 +247,8 @@ namespace danasim {
             paintBarLabel(canvas, cfg.minVal, textX, yPos + barH, labelScale, fontFace, thickness);
         };
 
-        paintBar(0, layerConfigs_[LayerId::TopoBathy], "TopoBathy");
-        paintBar(halfSide, layerConfigs_[LayerId::WaterDepth], "Water");
+        paintBar(0, layerConfigs_["topo_bathy"], "TopoBathy");
+        paintBar(halfSide, layerConfigs_["water_depth"], "Water");
     }
 
     // =========================================================================
@@ -271,9 +271,9 @@ namespace danasim {
         cv::Mat combinedImg = maquetteTerrain.clone();
 
         // Pintar Agua
-        layerConfigs_[LayerId::WaterDepth].maxVal = *std::max_element(snapshot.waterDepth().begin(), snapshot.waterDepth().end());
+        layerConfigs_["water_depth"].maxVal = *std::max_element(snapshot.waterDepth().begin(), snapshot.waterDepth().end());
 
-        const auto& wCfg = layerConfigs_[LayerId::WaterDepth];
+        const auto& wCfg = layerConfigs_["water_depth"];
 
         cv::Mat rawWater(rows_, cols_, CV_32F, const_cast<float*>(snapshot.waterDepth().data()));
         cv::Mat normWater;
@@ -292,7 +292,7 @@ namespace danasim {
             const float* depthPtr = wPtr + (r * cols_);
 
             for (int c = 0; c < cols_; ++c) {
-                if (depthPtr[c] > WATER_EPSILON) {
+                if (depthPtr[c] > DRY_TOLERANCE) {
                     // Mezcla Alpha: 0.7 Agua + 0.3 Terreno
                     cv::Vec3b wCol = srcWaterPtr[c];
                     cv::Vec3b tCol = dstPtr[c];

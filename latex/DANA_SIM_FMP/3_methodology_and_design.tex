@@ -81,66 +81,165 @@ extreme events like the 2024 DANA with the speed and precision required by moder
 
 
 
-\section{Theoretical model: Multilayer Cellular Automata ($m:n-CA^k$)}
 
-\subsection{Conceptual Foundation: The $m:n-CA^k$ Paradigm}
+\section{Theoretical Framework: Model Definition $m:n-CA^k$}
 
-To model the complex dynamics of flash floods, this research utilizes the Multilayer Cellular Automata ($m:n-CA^k$) framework 
-as formalized by \cite{Fonseca2011}. Traditional CA models are often limited by a single state per cell; however, the 
-$m:n-CA^k$ generalization allows for a multidimensional representation of the environment.
+The flood simulation model is formalized using an extension of the Cellular Automata (CA) theory, known as $m:n-CA^k$ 
+\parencite{Fonseca2011}. This architecture enables the integration of multiple layers of spatial and 
+temporal information with different dimensions into a single cellular computational framework.
 
-In this model, the landscape is discretized into a grid where each cell is not a scalar value but a vector of states across 
-$m$ layers. The parameter $k$ represents the number of main layers—those whose state is updated by a transition function in 
-each time step—while the remaining $m-k$ layers provide the static or external environmental context.
+Furthermore, aligning with recent computational advancements, the model leverages tensorial data structures to provide a 
+more accurate, flexible, and computationally efficient framework. This tensor-based approach allows for the 
+modeling of continuous spatial domains and continuous cell states within the CA, simplifying the integration of complex 
+geographical information \parencite{Fonseca2025}. 
 
+Mathematically, the hydrodynamic cellular automaton is defined as a tuple:
+
+$$A = \langle R, E, V, N, \Psi \rangle$$
+
+Where:
 \begin{itemize}
-    \item \textbf{Layer State ($E_m$)}: The state of a specific layer $m$ at a position $(x_1, \dots, x_n)$ is defined by 
-    the function $E_m[x_1, \dots, x_n]$.
-    \item \textbf{Global State ($EG$)}: The global state of the automaton at a given georeferenced position is determined 
-    by the combination of states across all layers:
-
-    $$\Psi(E_1[x_1, \dots, x_n], \dots, E_m[x_1, \dots, x_n]) = EG[x_1, \dots, x_n]$$
-
+    \item $R$ is the $m$-dimensional cell space.
+    \item $E$ is the set of $n$ layers that define the global state and the physical environment of the system.
+    \item $V$ represents the vicinity function.
+    \item $N$ represents the nucleus function.
+    \item $\Psi$ is the combination or evolution function that governs the fluid dynamics.
 \end{itemize}
 
 
-\subsection{Layer Specification and Computational Space}
+\subsection{Cell Space ($R$) and Layer Definition ($E$)}
 
-Following the $m:n-CA^k$ notation, this model is configured as follows:
+The simulation space $R$ is defined on a regular two-dimensional grid $R \subset \mathbb{Z}^2$, where each cell is 
+identified by its spatial coordinates $(i, j)$. The physical size of each cell is determined by the spatial resolution 
+$\Delta x$.
 
-\begin{itemize}
-    \item \textbf{Main Layers ($k=1$)}: The only dynamic variable is the Water Depth ($H$). Its evolution is governed by 
-    the conservation of mass and the hydraulic gradient.
-    \item \textbf{Secondary Layers}: These layers act as parameters for the transition rules. They include Elevation ($Z$), 
-    Manning’s Roughness ($n$), and Rainfall Intensity ($R$).
-    \item \textbf{Neighborhood ($V$)}: The model employs a Moore neighborhood, considering the 8 adjacent cells. This allows 
-    for an isotropic distribution of flow, essential for capturing the divergent nature of flash floods in complex topographies.
-\end{itemize}
-
-
-\subsection{Specific Transition Equations}
-
-The state of the main layer $H$ at time $t+1$ for a cell $(i, j)$ is determined by the transition function $\Delta$, derived from the physical logic of water balance and potential energy minimization:
+The system consists of a set $E = \{E_1, E_2, E_3, E_4\}$ of $n=4$ layers. One of the fundamental characteristics of the 
+$m:n-CA^k$ model is that the layers may differ in their geometric and temporal dimensions. Through these tensor representations, 
+they are defined as follows:
 
 \begin{enumerate}
-    \item \textbf{Mass Accumulation (Rainfall)}: Initially, the water depth is increased by the net precipitation over the time step $\Delta t$:
-
-    $$H_{temp} = H_t + (R \cdot \Delta t)$$
-
-    \item \textbf{Hydraulic Head and Flux Calculation}: The flow is driven by the difference in the Hydraulic Head ($\eta = H + Z$) between the central cell and its neighbors. For each neighbor $n \in V_{Moore}$, the potential outflow $q_{out, n}$ is calculated:
-
-    $$q_{out, n} = \max(0, \eta_{central} - \eta_{n}) \cdot \Gamma$$
-
-    Where $\Gamma$ is a transfer coefficient derived from the cell size ($\Delta x$) and roughness.
-    \item \textbf{Mass Conservation Scaling}: To maintain stability and prevent negative water depths, the total potential outflow is scaled if it exceeds the available water:
-    
-    $$\sigma = \min\left(1.0, \frac{H_{temp}}{\sum q_{out, n} + \epsilon}\right)$$
-    $$q_{real\_out, n} = q_{out, n} \cdot \sigma$$
-    
-    \item \textbf{Final State Update}: The new water depth is the result of the local balance between rainfall, total outflows to neighbors, and inflows received from neighbors:
-
-    $$H_{t+1} = H_{temp} - \sum_{n=1}^{8} q_{real\_out, n} + \sum_{n=1}^{8} q_{in, n}$$
+    \item $E_1$: Topobathymetry ($Z_{topo-bathy}$). A static 2D layer of dimension $X \times Y$. It combines the Digital 
+    Elevation Model (DEM) with the bathymetry of the watercourses, providing the absolute elevation of the riverbed: 
+    $E_1 \subset \mathbb{R}^{X \times Y}$.
+    \item $E_2$: Land Cover (LC). A static 2D layer of size $X \times Y$. It identifies land uses, which are algebraically 
+    mapped to Manning roughness coefficients ($\mu_{soil}$) via a state transfer function: 
+    $E_2 \subset \mathbb{N}^{X \times Y} \xrightarrow{f} \mathbb{R}^{X \times Y}$.
+    \item $E_3$: Water Depth ($WD$). A 2D dynamic layer of dimension $X \times Y$. It represents the main state of the cell 
+    at time $t$, storing the water depth in meters: $E_3 \subset \mathbb{R}^{X \times Y}$.
+    \item $E_4$: Rainfall ($RF$). A 3D dynamic layer of dimension $X \times Y \times T$, explicitly incorporating the time 
+    domain to provide the rainfall rate for each step $\Delta t$: $E_4 \subset \mathbb{R}^{X \times Y \times T}$.
 \end{enumerate}
+
+
+\subsection{Vicinity Function ($V$) and Nucleus Function ($N$)}
+
+The \textbf{Vicinity Function} ($V$) determines the subset of adjacent cells that influence the calculation of the future state of a 
+given cell. A Moore neighborhood with radius $r=1$ is adopted, defining a set of 8 adjacent cells connected orthogonally and 
+diagonally.
+
+$$V(i,j) = \{ (i+u, j+v) \in R \mid \max(|u|, |v|) \le 1 \}$$
+
+The \textbf{Nucleus Function} ($N$) is projected onto the central cell itself to update layer $E_3$, mapping the spatial 
+modifications through local rules: $N(i,j) = \{ (i,j) \}$.
+
+
+\subsection{Combination / Evolution Function ($\Psi$)}
+
+The evolution function $\Psi: E^t \rightarrow E^{t+1}$ governs the transformation of the system from time $t$ to time $t+1$. 
+In this proposed framework, the fluid dynamics computation is divided into two sequential phases: Meteorological Forcing and 
+Hydrodynamic Routing.
+
+
+\subsubsection{Phase 1: Meteorological Forcing}
+
+At the start of iteration $t$, the water volume in the cell is updated by incorporating the contribution from the 3D rainfall 
+layer ($E_4$). The intermediate state of the water depth, denoted $WD_{i,j}^*$, is calculated as:
+
+$$WD_{i,j}^* = WD_{i,j}^t + RF(i,j,t)$$
+
+
+\subsubsection{Phase 2: Kinematics, Viscosity, and Physical Limiters}
+
+Instead of computing momentum conservation via dynamic forces, the evolution core utilizes a multi-physics Kinematic Wave 
+approach combined with explicit spatial and temporal volume limiters. This formulation acts as a numerical safeguard against 
+instabilities, ensuring accurate solutions when modeling shallow water flows over complex topographies, bottom discontinuities, 
+and transient dry-bottom areas \parencite{Aleksyuk2017}.
+
+For each cell in the neighborhood $k \in V(i,j)$, the water surface elevation ($WSE$) is evaluated as $WSE = E_1 + WD^*$. The 
+hydraulic gradient $S_k$ towards each valid neighbor ($\Delta WSE_k > 0$) is calculated dividing the elevation drop by the 
+directional distance $L_k$ ($\Delta x$ for orthogonal, $\Delta x\sqrt{2}$ for diagonal). The model identifies the maximum local 
+slope $S_{max} = \max(S_k)$.
+
+To accommodate fluids with varying rheological properties, the core evaluates the effective fluid velocity ($v_{approx}$) by 
+continuously solving two competing flow regimes:
+
+\begin{itemize}
+    \item \textbf{Turbulent Regime:} Governs light, low-viscosity fluids (such as pure water). To this end, it is assumed that 
+    the flow reaches its terminal velocity almost instantaneously. For the estimation of the kinematic velocity, the model adopts 
+    the distributed uniform flow formulation proposed by \parencite{Bates2000} for raster-based flood inundation simulation. 
+    Adapting the Manning's equation employed by the authors, and assuming the shallow water approximation where the hydraulic 
+    radius is equivalent to the flow depth ($WD^*$), the velocity is defined as a function of the surface roughness coefficient 
+    ($\mu_{soil}$) and the local slope gradient ($S_{max}$):
+    $$v_{turb} = \frac{1}{\mu_{soil}} \cdot (WD^*)^{2/3} \cdot \sqrt{S_{max}}$$
+    
+    \item \textbf{Laminar/Viscous Regime:} Dictates the behavior of dense or non-Newtonian flows (such as mud or debris), driven 
+    by fluid density ($\rho$) and dynamic viscosity ($\mu_{fluid}$):
+    $$v_{lam} = \frac{\rho \cdot g \cdot (WD^*)^2 \cdot S_{max}}{3 \cdot \mu_{fluid}}$$
+\end{itemize}
+
+The automaton dictates that the fluid will travel at the lowest of the two velocities, naturally bounding the flow based on its 
+dominant physical state:
+$$v_{approx} = \min(v_{turb}, v_{lam})$$
+
+Consequently, the theoretical outflow volume ($V_{theor}$) over the time step $\Delta t$ is calculated through the flow 
+cross-section, and distributed into directional outflow volumes ($\Delta V_{theor \rightarrow k}$) applying Multiple Flow 
+Direction (MFD) weights $W_k$:
+
+$$V_{theor} = v_{approx} \cdot (WD^* \cdot \Delta x) \cdot \Delta t$$
+$$\Delta V_{theor \rightarrow k} = V_{theor} \cdot \left( \frac{S_k}{\sum_{n \in V} S_n} \right)$$
+
+To ensure strict mass conservation and prevent the inversion of hydraulic gradients (checkerboard instability), two sequential 
+limiters are enforced before state updating:
+
+\begin{enumerate}
+    \item \textbf{Spatial Shield (Level Equalization):} The central cell is restricted from dropping its water level beyond half 
+    the maximum elevation difference with its lowest neighbor:
+    $$\Delta V_{spatial} = \frac{\max(\Delta WSE) \cdot \Delta x^2}{2}$$
+
+    \item \textbf{Temporal Shield (Volumetric CFL Condition):} In traditional Computational Fluid Dynamics (CFD), the 
+    Courant-Friedrichs-Lewy (CFL) condition is strictly enforced by constraining the time step ($\Delta t$) or limiting the 
+    maximum velocity to ensure that a fluid wave does not traverse a distance greater than the grid resolution:
+    $$v \le \frac{\Delta x}{\Delta t}$$
+    
+    Dynamically altering the global time step in parallel tensor executions is computationally inefficient. Instead, the 
+    proposed model enforces the CFL condition volumetrically. By rearranging the classical kinematic condition 
+    ($v \cdot \Delta t \le \Delta x$) and multiplying both sides by the flow cross-sectional area ($WD^* \cdot \Delta x$), 
+    the inequality is transformed:
+    $$(v \cdot \Delta t) \cdot (WD^* \cdot \Delta x) \le \Delta x \cdot (WD^* \cdot \Delta x)$$
+    
+    This mathematically maps to the model's volumetric routing variables, ensuring that the theoretical intended outflow 
+    ($V_{theor}$) does not exceed the absolute total water volume present within the cell ($V_{cell} = WD^* \cdot \Delta x^2$). 
+    Consequently, the effectively available volume ($V_{avail}$) is strictly bound by this physical fluid mass and the 
+    aforementioned spatial restriction:
+    $$V_{avail} = \min(WD^* \cdot \Delta x^2, \Delta V_{theor})$$
+\end{enumerate}
+
+A strict scale factor $\alpha$ is derived. If the intended routing volume exceeds the available constraints, all directional flows 
+are scaled down proportionally:
+
+$$\alpha = \frac{\min\left(\sum \Delta V_{theor \rightarrow k}, V_{avail}\right)}{\sum \Delta V_{theor \rightarrow k}}$$
+$$\Delta V_{out \rightarrow k} = \Delta V_{theor \rightarrow k} \cdot \alpha$$
+
+Finally, the main state variable ($E_3 \equiv WD$) is updated for $t+1$ by translating volumetric transfers ($m^3$) into vertical 
+water column variations ($m$). A floating-point precision filter ($\epsilon = 10^{-5}$) is applied to avoid microscopic residual 
+accumulations:
+
+$$WD_{i,j}^{t+1} = \max\left(WD_{i,j}^* - \sum_{k \in V} \frac{\Delta V_{out \rightarrow k}}{\Delta x^2} + \sum_{k \in V} \frac{\Delta V_{in \leftarrow k}}{\Delta x^2}, \ 0\right)$$
+
+This integrated tensorial update rigorously preserves volumetric continuity while seamlessly handling the wet-dry interface evolution.
+
+
+
 
 
 

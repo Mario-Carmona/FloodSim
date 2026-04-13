@@ -1,7 +1,4 @@
 
-include(${CMAKE_SOURCE_DIR}/cmake/python.cmake)
-
-
 # =========================================================
 # DEFINICIÓN DE OPCIONES GLOBALES (INTERFACE TARGET)
 # =========================================================
@@ -12,6 +9,9 @@ find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
 find_package(unofficial-whereami CONFIG REQUIRED)
+
+find_package(OpenMP REQUIRED)
+
 
 
 add_library(danasim_options INTERFACE)
@@ -34,6 +34,7 @@ target_link_libraries(danasim_options
         fmt::fmt
         spdlog::spdlog_header_only
         unofficial::whereami::whereami
+        OpenMP::OpenMP_CXX
 )
 
 if(WIN32)
@@ -44,11 +45,11 @@ if(WIN32)
 
     target_compile_options(danasim_options INTERFACE
         # DEBUG
-        $<$<CONFIG:Debug>:/Od /Zi /RTC1 /W4 /utf-8>
+        $<$<CONFIG:Debug>:/Od /Zi /RTC1 /W4 /utf-8 /openmp:llvm>
         # RELEASE
-        $<$<CONFIG:Release>:/O2 /DNDEBUG /GL /W4 /utf-8>
+        $<$<CONFIG:Release>:/O2 /DNDEBUG /GL /W4 /utf-8 /openmp:llvm>
         # RELWITHDEBINFO
-        $<$<CONFIG:RelWithDebInfo>:/O2 /Zi /Zo /DNDEBUG /GL /W4 /utf-8>
+        $<$<CONFIG:RelWithDebInfo>:/O2 /Zi /Zo /DNDEBUG /GL /W4 /utf-8 /openmp:llvm>
     )
     
     # 2. Opciones de LINKER (Solo MSVC suele necesitar esto para LTCG)
