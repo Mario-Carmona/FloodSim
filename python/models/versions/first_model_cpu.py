@@ -261,14 +261,11 @@ class FloodModelCA(tf.Module):
         )
 
         # Cell States update for potential rendering or visualization
-        has_water = wd_next > 0.001
         is_moving = (total_outflow > 1e-5) | (total_inflow > 1e-5)
         
-        state_tensor = tf.where(has_water, 
-                                tf.where(is_moving, tf.constant(2, dtype=tf.int8), tf.constant(1, dtype=tf.int8)), 
-                                tf.constant(0, dtype=tf.int8))
+        wd_mov_state = tf.where(is_moving, tf.constant(1, dtype=tf.int8), tf.constant(0, dtype=tf.int8))
 
         return {
             "water_depth:out": wd_next,
-            "cell_state:out": state_tensor
+            "water_movement_state:out": wd_mov_state
         }

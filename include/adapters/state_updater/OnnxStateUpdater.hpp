@@ -70,6 +70,8 @@ namespace danasim {
         Ort::Value configureTensor(const TensorInfo& info, MapGrid& grid, const std::vector<int64_t>& tensor_shape, size_t tensor_size, bool useDynamicBoundingBox);
     
         TensorInfo parseTensorInfo(const nlohmann::json& tensorJson, bool outputTensor);
+
+        int8_t classifyRisk(float depth) const;
     };
 
 

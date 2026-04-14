@@ -165,11 +165,28 @@ namespace danasim {
                 .dataType = DataType::FLOAT32,
                 .loadRequired = true
             });
+
+            paramsInfo_.layers.push_back({
+                .name = "flood_risk",
+                .dataType = DataType::INT8,
+                .loadRequired = false
+            });
         }
         catch (const Ort::Exception& e) {
             LOG_ERROR("Failed to load ONNX model: {}", e.what());
             throw;
         }
+    }
+
+    int8_t OnnxStateUpdater::classifyRisk(float depth) const {
+        // Recorremos el enum automáticamente
+        for (std::size_t i = 0; i < magic_enum::enum_count<FloodRisk>(); ++i) {
+            if (depth <= risk_thresholds[i]) {
+                // Convertimos el índice de vuelta a nuestro tipo Enum de forma segura
+                return i;
+            }
+        }
+        return magic_enum::enum_count<FloodRisk>() - 1; // Fallback de seguridad
     }
 
     void OnnxStateUpdater::runModel(Ort::Session& session, MapGrid& grid, const Ort::RunOptions& options, 
@@ -309,18 +326,19 @@ namespace danasim {
 
 
 
-        std::vector<float>* water_depth = &grid.getLayer<float>("water_depth")->getData();
-        std::vector<int8_t>* cell_state = &grid.getLayer<int8_t>("cell_state")->getData();
+        const std::vector<float>& water_depth = grid.getLayer<float>("water_depth")->getData();
+        std::vector<int8_t>& flood_risk = grid.getLayer<int8_t>("flood_risk")->getData();
+        std::vector<int8_t>& water_movement_state = grid.getLayer<int8_t>("water_movement_state")->getData();
 
         #pragma omp parallel for
         for (int i = 0; i < grid.getMetadata().cellCount; ++i) {
-            // 1. Suma vectorizada (cada hilo procesa un trozo del mapa)
+            flood_risk[i] = classifyRisk(water_depth[i]);
 
-            if (water_depth->at(i) > DRY_TOLERANCE) {
-                cell_state->at(i) = STATE_DYNAMIC;
+            if (flood_risk[i] > static_cast<int8_t>(FloodRisk::DRY)) {
+                water_movement_state[i] = static_cast<int8_t>(WaterMovementState::DYNAMIC_STATE);
             }
             else {
-                cell_state->at(i) = STATE_EMPTY;
+                water_movement_state[i] = static_cast<int8_t>(WaterMovementState::STATIC_STATE);
             }
         }
     }
@@ -334,9 +352,9 @@ namespace danasim {
         int64_t num_tiles_x = (cols + tileSize_ - 1) / tileSize_;
         int64_t num_tiles_y = (rows + tileSize_ - 1) / tileSize_;
 
-        const float* water_depth = grid.getLayer<float>("water_depth")->getData().data();
+        const int8_t* flood_risk = grid.getLayer<int8_t>("flood_risk")->getData().data();
         const float* rainfall = grid.getLayer<float>("rainfall")->getData().data();
-        const int8_t* cell_state = grid.getLayer<int8_t>("cell_state")->getData().data();
+        const int8_t* water_movement_state = grid.getLayer<int8_t>("water_movement_state")->getData().data();
 
         std::vector<Tile> active_tiles;
 
@@ -362,13 +380,13 @@ namespace danasim {
                     int64_t row_start_idx = ((start_y + y) * cols) + start_x;
 
                     // Punteros directos a la fila para esta iteración
-                    const int8_t* state_row = cell_state + row_start_idx;
-                    const float* water_row = water_depth + row_start_idx;
+                    const int8_t* water_movement_row = water_movement_state + row_start_idx;
+                    const int8_t* flood_risk_row = flood_risk + row_start_idx;
                     const float* rain_row = rainfall + row_start_idx;
 
                     for (int64_t x = 0; x < width && !tile_is_active; ++x) {
                         // Acceso secuencial puramente lineal (¡Al compilador y a la Caché L1 les encanta esto!)
-                        if (state_row[x] == 2 || (rain_row[x] > 0.0f && water_row[x] > DRY_TOLERANCE)) {
+                        if (water_movement_row[x] == static_cast<int8_t>(WaterMovementState::DYNAMIC_STATE) || (rain_row[x] > 0.0f && flood_risk_row[x] > static_cast<int8_t>(FloodRisk::DRY))) {
                             tile_is_active = true;
                         }
                     }
@@ -393,6 +411,7 @@ namespace danasim {
             auto* water_depth_layer = grid.getLayer<float>("water_depth");
             auto* rainfall_layer = grid.getLayer<float>("rainfall");
 
+            std::vector<int8_t>& flood_risk = grid.getLayer<int8_t>("flood_risk")->getData();
             float* wd_ptr = water_depth_layer->getData().data();
             const float* rain_ptr = rainfall_layer->getData().data();
             int64_t total_cells = grid.rows() * grid.cols();
@@ -400,6 +419,10 @@ namespace danasim {
             #pragma omp parallel for
             for (int64_t i = 0; i < total_cells; ++i) {
                 wd_ptr[i] += rain_ptr[i];
+
+                if (rain_ptr[i] > 0.0f) {
+                    flood_risk[i] = classifyRisk(wd_ptr[i]);
+                }
             }
 
             // 2. Obtener los bloques activos
@@ -420,6 +443,26 @@ namespace danasim {
             Ort::RunOptions step_options { nullptr };
 
             runModel(step_session_, grid, step_options, stepModel_, tensor_shape, true, active_tiles);
+
+
+            
+            #pragma omp parallel for
+            for (int64_t b = 0; b < static_cast<int64_t>(active_tiles.size()); ++b) {
+                const auto& tile = active_tiles[b];
+
+                // ATENCIÓN: Solo iteramos sobre el CORE. Ignoramos el Halo por completo.
+                for (int64_t core_y = 0; core_y < tile.core_height; ++core_y) {
+
+                    int64_t global_y = tile.core_start_y + core_y;
+
+                    int64_t globalOffset = (global_y * grid.cols()) + tile.core_start_x;
+
+                    for (int64_t i = 0; i < tile.core_width; i++) {
+                        int64_t elem = globalOffset + i;
+                        flood_risk[elem] = classifyRisk(wd_ptr[elem]);
+                    }
+                }
+            }
         }
         catch (const Ort::Exception& e) {
             LOG_ERROR("ONNX Inference Error: {}", e.what());
