@@ -27,6 +27,11 @@ def main():
     parser.add_argument("--qos", type=int, default=1)
     parser.add_argument("--wait-pong", type=float, default=5.0)
     parser.add_argument("--cells", type=int, default=30, help="Number of test cells to publish")
+    parser.add_argument(
+        "--init-layer-path",
+        default="data_29_10_2024/water_depth",
+        help="Path sent in InitAgent_Layer data_path",
+    )
     args = parser.parse_args()
 
     topics = build_topics(args.scenario)
@@ -90,6 +95,26 @@ def main():
         }
         client.publish(topics["events"], payload=json.dumps(init_map), qos=args.qos)
         print(f"Published InitMap_Config to: {topics['events']}")
+
+        init_layer = {
+            "process": "InitAgent_Layer",
+            "source": "Test_Publisher",
+            "scenario": args.scenario,
+            "timestamp_utc": utc_now_iso(),
+            "data_path": args.init_layer_path,
+        }
+        client.publish(topics["events"], payload=json.dumps(init_layer), qos=args.qos)
+        print(f"Published InitAgent_Layer to: {topics['events']}")
+
+        init_eof = {
+            "process": "Init_EOF",
+            "source": "Test_Publisher",
+            "scenario": args.scenario,
+            "timestamp_utc": utc_now_iso(),
+            "total_chunks_sent": 1,
+        }
+        client.publish(topics["events"], payload=json.dumps(init_eof), qos=args.qos)
+        print(f"Published Init_EOF to: {topics['events']}")
 
         cells = []
         for i in range(args.cells):

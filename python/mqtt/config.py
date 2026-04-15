@@ -16,6 +16,9 @@ COLOR_PALETTE_FILE = Path(
 	os.getenv("DANASIM_COLOR_PALETTE", str(PROJECT_ROOT / "data_29_10_2024" / "color_palette.json"))
 )
 COLOR_PALETTE_LAYER = os.getenv("DANASIM_COLOR_LAYER", "flood_risk")
+DEFAULT_DATA_ROOT = Path(os.getenv("DANASIM_DATA_ROOT", str(PROJECT_ROOT)))
+PALETTE_MAX_VALUE = int(os.getenv("DANASIM_PALETTE_MAX", "5"))
+RENDER_ON_INIT_EOF = os.getenv("DANASIM_RENDER_ON_INIT_EOF", "1") == "1"
 
 # Fallback mapping when events provide textual state names instead of numeric values.
 STATE_TO_VALUE = {

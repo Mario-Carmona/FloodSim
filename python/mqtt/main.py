@@ -1,5 +1,4 @@
 
-import time
 import logging
 import queue
 import os
@@ -50,11 +49,34 @@ def main():
             payload = item.get("payload", {})
             process = payload.get("process")
 
-            if process == "EYE_SetState_Layer":
+            if process == "InitMap_Config":
+                ok = simulation.apply_init_map_config(payload)
+                if ok:
+                    logging.info("InitMap_Config aplicado. Grid %sx%s", simulation.grid.shape[1], simulation.grid.shape[0])
+                else:
+                    logging.error("InitMap_Config inválido")
+            elif process == "InitAgent_Layer":
+                ok = simulation.apply_init_agent_layer(payload)
+                if ok:
+                    logging.info(
+                        "InitAgent_Layer aplicado. Capas init recibidas: %s",
+                        simulation.initialization["init_layers_received"],
+                    )
+                else:
+                    logging.error("No se pudo aplicar InitAgent_Layer")
+            elif process == "Init_EOF":
+                simulation.mark_init_eof(payload)
+                if config.RENDER_ON_INIT_EOF:
+                    viewer.save_snapshot(simulation.grid)
+                    print("Inicializacion completada. Snapshot inicial guardado.")
+            elif process == "EYE_SetState_Layer":
                 simulation.update_from_layer_event(payload)
                 viewer.save_snapshot(simulation.grid)
                 print("Evento EYE_SetState_Layer procesado y renderizado.")
-            elif process in {"InitMap_Config", "InitAgent_Layer", "Init_EOF", "Sim_End", "System_Disconnected"}:
+            elif process == "Sim_End":
+                logging.info("Evento recibido: Sim_End")
+                viewer.save_snapshot(simulation.grid)
+            elif process == "System_Disconnected":
                 logging.info("Evento recibido: %s", process)
             else:
                 logging.debug("Evento ignorado (no soportado todavía): %s", process)

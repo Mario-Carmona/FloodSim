@@ -3,6 +3,7 @@ import numpy as np
 import logging
 import os
 import sys
+from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,7 +20,80 @@ class SimulationGrid:
         # Store palette levels as uint8 values.
         self.grid = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.uint8)
         self.has_new_data = False
+        self.map_config = {
+            "size_x": config.MAP_SIZE,
+            "size_y": config.MAP_SIZE,
+            "chunk_size": None,
+            "cell_resolution_m": None,
+        }
+        self.initialization = {
+            "map_config_received": False,
+            "init_layers_received": 0,
+            "init_complete": False,
+        }
         self._logger = logging.getLogger(__name__)
+
+    def apply_init_map_config(self, event: dict) -> bool:
+        map_cfg = event.get("map", {})
+        size_x = int(map_cfg.get("size_x", self.grid.shape[1]))
+        size_y = int(map_cfg.get("size_y", self.grid.shape[0]))
+
+        if size_x <= 0 or size_y <= 0:
+            self._logger.error("Invalid InitMap_Config sizes: size_x=%s size_y=%s", size_x, size_y)
+            return False
+
+        if self.grid.shape != (size_y, size_x):
+            self._logger.info("Reallocating grid to %sx%s from InitMap_Config", size_x, size_y)
+            self.grid = np.zeros((size_y, size_x), dtype=np.uint8)
+
+        self.map_config.update(
+            {
+                "size_x": size_x,
+                "size_y": size_y,
+                "chunk_size": map_cfg.get("chunk_size"),
+                "cell_resolution_m": map_cfg.get("cell_resolution_m"),
+            }
+        )
+        self.initialization["map_config_received"] = True
+        return True
+
+    def apply_init_agent_layer(self, event: dict) -> bool:
+        data_path = event.get("data_path")
+        if not data_path:
+            self._logger.warning("InitAgent_Layer received without data_path")
+            return False
+
+        layer = self._load_layer_from_data_path(data_path)
+        if layer is None:
+            self._logger.error("Could not load init layer from data_path: %s", data_path)
+            return False
+
+        if layer.shape != self.grid.shape:
+            self._logger.warning(
+                "Init layer shape %s does not match grid %s. Resizing by crop/pad.",
+                layer.shape,
+                self.grid.shape,
+            )
+            resized = np.zeros_like(self.grid)
+            h = min(layer.shape[0], self.grid.shape[0])
+            w = min(layer.shape[1], self.grid.shape[1])
+            resized[:h, :w] = layer[:h, :w]
+            layer = resized
+
+        self.grid = layer
+        self.has_new_data = True
+        self.initialization["init_layers_received"] += 1
+        return True
+
+    def mark_init_eof(self, event: dict):
+        self.initialization["init_complete"] = True
+        total_chunks_sent = event.get("total_chunks_sent")
+        if total_chunks_sent is not None:
+            self._logger.info(
+                "Initialization completed. total_chunks_sent=%s, init_layers_received=%s",
+                total_chunks_sent,
+                self.initialization["init_layers_received"],
+            )
 
     def update_from_deltas(self, x_coords: list, y_coords: list, step_index: int):
         """
@@ -37,7 +111,8 @@ class SimulationGrid:
         # --- Validation Logic ---
         # Checks for out-of-bounds coordinates to prevent silent crashes.
         # This preserves the safety checks from the original script.
-        if np.any(cols >= config.MAP_SIZE) or np.any(rows >= config.MAP_SIZE):
+        max_y, max_x = self.grid.shape
+        if np.any(cols >= max_x) or np.any(rows >= max_y):
             self._logger.error(
                 f"FATAL ERROR: Coordinates out of bounds in step {step_index}. "
                 f"Max X: {np.max(cols)}, Max Y: {np.max(rows)}"
@@ -112,7 +187,8 @@ class SimulationGrid:
         cols_arr = np.array(cols)
         rows_arr = np.array(rows)
 
-        if np.any(cols_arr >= config.MAP_SIZE) or np.any(rows_arr >= config.MAP_SIZE):
+        max_y, max_x = self.grid.shape
+        if np.any(cols_arr >= max_x) or np.any(rows_arr >= max_y):
             self._logger.error(
                 "Coordinates out of bounds in layer event. Max X: %s, Max Y: %s",
                 int(np.max(cols_arr)),
@@ -142,3 +218,81 @@ class SimulationGrid:
             return config.STATE_TO_VALUE.get(state.upper(), 1)
 
         return 1
+
+    def _load_layer_from_data_path(self, data_path: str):
+        path_obj = Path(data_path)
+        candidates = []
+
+        if path_obj.is_absolute():
+            candidates.append(path_obj)
+        else:
+            candidates.append((config.DEFAULT_DATA_ROOT / path_obj).resolve())
+            # Compatibility for payloads that start with data/ but repository stores data_29_10_2024/.
+            if str(path_obj).startswith("data/"):
+                candidates.append((config.DEFAULT_DATA_ROOT / str(path_obj).replace("data/", "", 1)).resolve())
+
+        for base in candidates:
+            layer = self._load_layer_candidate(base)
+            if layer is not None:
+                return layer
+
+        return None
+
+    def _load_layer_candidate(self, base: Path):
+        # Accept folder paths like .../water_depth and explicit file paths.
+        if base.is_dir():
+            stem = base.name
+            img_file = base / f"{stem}.img"
+            if img_file.exists():
+                return self._load_img_as_levels(img_file)
+
+            npy_file = base / f"{stem}.npy"
+            if npy_file.exists():
+                return self._to_palette_levels(np.load(npy_file))
+
+            csv_file = base / f"{stem}.csv"
+            if csv_file.exists():
+                return self._to_palette_levels(np.loadtxt(csv_file, delimiter=","))
+            return None
+
+        if base.is_file():
+            suffix = base.suffix.lower()
+            if suffix == ".img":
+                return self._load_img_as_levels(base)
+            if suffix == ".npy":
+                return self._to_palette_levels(np.load(base))
+            if suffix == ".csv":
+                return self._to_palette_levels(np.loadtxt(base, delimiter=","))
+
+        return None
+
+    def _load_img_as_levels(self, img_file: Path):
+        try:
+            raw = np.loadtxt(img_file)
+            return self._to_palette_levels(raw)
+        except Exception as exc:
+            self._logger.error("Failed to load IDRISI img file %s: %s", img_file, exc)
+            return None
+
+    def _to_palette_levels(self, raw):
+        arr = np.array(raw, dtype=float)
+        max_level = max(1, int(config.PALETTE_MAX_VALUE))
+
+        finite_mask = np.isfinite(arr)
+        if not np.any(finite_mask):
+            return np.zeros_like(arr, dtype=np.uint8)
+
+        finite_values = arr[finite_mask]
+        min_val = float(np.min(finite_values))
+        max_val = float(np.max(finite_values))
+
+        # Fast path when values already look like palette indices.
+        if min_val >= 0.0 and max_val <= max_level and np.all(np.mod(finite_values, 1) == 0):
+            return arr.astype(np.uint8)
+
+        scaled = np.zeros_like(arr, dtype=float)
+        if max_val > min_val:
+            scaled[finite_mask] = (arr[finite_mask] - min_val) / (max_val - min_val)
+        scaled = np.clip(scaled, 0.0, 1.0)
+        levels = np.rint(scaled * max_level).astype(np.uint8)
+        return levels
