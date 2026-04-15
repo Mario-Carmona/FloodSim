@@ -34,6 +34,8 @@ def main():
     viewer = GridVisualizer(output_folder="sim_outputs")
 
     last_render_time = time.monotonic()
+    running = True
+    ended_by_sim_end = False
 
     def render_if_needed(force: bool = False):
         nonlocal last_render_time
@@ -54,7 +56,7 @@ def main():
     print(f"Monitor iniciado para escenario '{config.SCENARIO_NAME}'. Esperando mensajes...")
 
     try:
-        while True:
+        while running:
             try:
                 item = msg_queue.get(timeout=config.IDLE_SLEEP_SECONDS)
             except queue.Empty:
@@ -105,6 +107,9 @@ def main():
             elif process == "Sim_End":
                 logging.info("Evento recibido: Sim_End")
                 render_if_needed(force=True)
+                ended_by_sim_end = True
+                simulation.initialization["init_complete"] = True
+                running = False
             elif process == "System_Disconnected":
                 logging.info("Evento recibido: %s", process)
             else:
@@ -117,7 +122,8 @@ def main():
     except KeyboardInterrupt:
         print("\nSaliendo...")
     finally:
-        render_if_needed(force=True)
+        if not ended_by_sim_end:
+            render_if_needed(force=True)
         mqtt_client.disconnect()
 
 if __name__ == "__main__":
