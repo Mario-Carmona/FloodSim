@@ -57,6 +57,21 @@ class SimulationGrid:
         self.initialization["map_config_received"] = True
         return True
 
+    def apply_event(self, event: dict) -> bool:
+        """Dispatch a supported MQTT event into the grid state.
+
+        Returns True when the event modified the grid.
+        """
+        process = event.get("process")
+
+        if process == "EYE_SetState_Layer":
+            return self.update_from_layer_event(event)
+
+        if process == "EYE_SetState":
+            return self.update_from_object_event(event)
+
+        return False
+
     def apply_init_agent_layer(self, event: dict) -> bool:
         data_path = event.get("data_path")
         if not data_path:
@@ -141,7 +156,7 @@ class SimulationGrid:
         self.has_new_data = False
         return self.grid
 
-    def update_from_layer_event(self, event: dict):
+    def update_from_layer_event(self, event: dict) -> bool:
         """Apply layer changes from a JSON EYE_SetState_Layer event.
 
         Supported shape:
@@ -162,7 +177,7 @@ class SimulationGrid:
             cells = list(cells.values())
 
         if not isinstance(cells, list) or not cells:
-            return
+            return False
 
         rows = []
         cols = []
@@ -182,7 +197,7 @@ class SimulationGrid:
             values.append(int(cell_value))
 
         if not rows:
-            return
+            return False
 
         cols_arr = np.array(cols)
         rows_arr = np.array(rows)
@@ -194,15 +209,48 @@ class SimulationGrid:
                 int(np.max(cols_arr)),
                 int(np.max(rows_arr)),
             )
-            return
+            return False
 
         if np.any(cols_arr < 0) or np.any(rows_arr < 0):
             self._logger.error("Negative coordinates received in layer event.")
-            return
+            return False
 
         value_arr = np.array(values, dtype=np.uint8)
         self.grid[rows_arr, cols_arr] = value_arr
         self.has_new_data = True
+        return True
+
+    def update_from_object_event(self, event: dict) -> bool:
+        """Apply a single-object update from an EYE_SetState event."""
+        changes = event.get("changes", {})
+        coord = changes.get("coord", {})
+        x = coord.get("x")
+        y = coord.get("y")
+
+        if x is None or y is None:
+            self._logger.warning("EYE_SetState received without coord")
+            return False
+
+        x = int(x)
+        y = int(y)
+        max_y, max_x = self.grid.shape
+        if x < 0 or y < 0 or x >= max_x or y >= max_y:
+            self._logger.error("EYE_SetState coord out of bounds: x=%s y=%s", x, y)
+            return False
+
+        value = self._resolve_cell_value({
+            "value": changes.get("value"),
+            "level": changes.get("level"),
+            "state": changes.get("state"),
+            "depth_level": changes.get("depth_level"),
+            "risk_level": changes.get("risk_level"),
+        })
+        if value is None:
+            value = 1
+
+        self.grid[y, x] = np.uint8(value)
+        self.has_new_data = True
+        return True
 
     def _resolve_cell_value(self, cell: dict):
         """Resolve a numeric palette value from different cell payload variants."""

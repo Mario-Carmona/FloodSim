@@ -68,11 +68,20 @@ def main():
                 simulation.mark_init_eof(payload)
                 if config.RENDER_ON_INIT_EOF:
                     viewer.save_snapshot(simulation.grid)
+                    simulation.consume_data()
                     print("Inicializacion completada. Snapshot inicial guardado.")
             elif process == "EYE_SetState_Layer":
-                simulation.update_from_layer_event(payload)
-                viewer.save_snapshot(simulation.grid)
-                print("Evento EYE_SetState_Layer procesado y renderizado.")
+                changed = simulation.apply_event(payload)
+                if changed:
+                    viewer.save_snapshot(simulation.grid)
+                    simulation.consume_data()
+                    print("Evento EYE_SetState_Layer procesado y renderizado.")
+            elif process == "EYE_SetState":
+                changed = simulation.apply_event(payload)
+                if changed:
+                    viewer.save_snapshot(simulation.grid)
+                    simulation.consume_data()
+                    print("Evento EYE_SetState procesado y renderizado.")
             elif process == "Sim_End":
                 logging.info("Evento recibido: Sim_End")
                 viewer.save_snapshot(simulation.grid)

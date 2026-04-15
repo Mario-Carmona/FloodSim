@@ -22,6 +22,8 @@ class GridVisualizer:
         self.frame_count = 0
         self.vmin = 0
         self.vmax = 1
+        self._last_grid_hash = None
+        self._last_saved_step = None
         
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
@@ -54,6 +56,10 @@ class GridVisualizer:
         """
         if step_index is None:
             step_index = self.frame_count
+
+        current_hash = hash(grid_data.tobytes())
+        if self._last_grid_hash == current_hash and self._last_saved_step == step_index:
+            return
         
         filename = os.path.join(self.output_folder, f"sim_{step_index:05d}.png")
         
@@ -67,6 +73,8 @@ class GridVisualizer:
         )
         
         self.frame_count += 1
+        self._last_grid_hash = current_hash
+        self._last_saved_step = step_index
         # Opcional: imprimir solo cada X frames para no ensuciar la consola
         if config.DEBUG_MODE:
              print(f"Imagen guardada: {filename}")
