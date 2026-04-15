@@ -3,6 +3,7 @@ import logging
 import queue
 import os
 import sys
+import time
 
 if __package__ in (None, ""):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -32,16 +33,38 @@ def main():
 
     viewer = GridVisualizer(output_folder="sim_outputs")
 
+    last_render_time = time.monotonic()
+
+    def render_if_needed(force: bool = False):
+        nonlocal last_render_time
+        if not simulation.initialization["init_complete"] and not force:
+            return
+
+        if not simulation.has_new_data and not force:
+            return
+
+        now = time.monotonic()
+        if not force and (now - last_render_time) < config.REFRESH_RATE_SECONDS:
+            return
+
+        viewer.save_snapshot(simulation.grid)
+        simulation.consume_data()
+        last_render_time = now
+
     print(f"Monitor iniciado para escenario '{config.SCENARIO_NAME}'. Esperando mensajes...")
 
     try:
         while True:
-            item = msg_queue.get()
+            try:
+                item = msg_queue.get(timeout=config.IDLE_SLEEP_SECONDS)
+            except queue.Empty:
+                render_if_needed()
+                continue
 
             if isinstance(item, tuple) and len(item) == 3:
                 x, y, step = item
                 simulation.update_from_deltas(x, y, step)
-                viewer.save_snapshot(simulation.grid, step_index=step)
+                render_if_needed(force=True)
                 print(f"Frame {step} procesado y guardado.")
                 msg_queue.task_done()
                 continue
@@ -67,24 +90,21 @@ def main():
             elif process == "Init_EOF":
                 simulation.mark_init_eof(payload)
                 if config.RENDER_ON_INIT_EOF:
-                    viewer.save_snapshot(simulation.grid)
-                    simulation.consume_data()
+                    render_if_needed(force=True)
                     print("Inicializacion completada. Snapshot inicial guardado.")
             elif process == "EYE_SetState_Layer":
                 changed = simulation.apply_event(payload)
                 if changed:
-                    viewer.save_snapshot(simulation.grid)
-                    simulation.consume_data()
-                    print("Evento EYE_SetState_Layer procesado y renderizado.")
+                    render_if_needed()
+                    print("Evento EYE_SetState_Layer procesado.")
             elif process == "EYE_SetState":
                 changed = simulation.apply_event(payload)
                 if changed:
-                    viewer.save_snapshot(simulation.grid)
-                    simulation.consume_data()
-                    print("Evento EYE_SetState procesado y renderizado.")
+                    render_if_needed()
+                    print("Evento EYE_SetState procesado.")
             elif process == "Sim_End":
                 logging.info("Evento recibido: Sim_End")
-                viewer.save_snapshot(simulation.grid)
+                render_if_needed(force=True)
             elif process == "System_Disconnected":
                 logging.info("Evento recibido: %s", process)
             else:
@@ -92,9 +112,12 @@ def main():
 
             msg_queue.task_done()
 
+            render_if_needed()
+
     except KeyboardInterrupt:
         print("\nSaliendo...")
     finally:
+        render_if_needed(force=True)
         mqtt_client.disconnect()
 
 if __name__ == "__main__":

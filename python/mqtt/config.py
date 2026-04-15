@@ -60,6 +60,6 @@ def utc_now_iso() -> str:
 	return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 # Visualization settings
-REFRESH_RATE_SECONDS = 0.1  # Interval for UI updates
+REFRESH_RATE_SECONDS = float(os.getenv("DANASIM_REFRESH_RATE_SECONDS", "0.25"))  # Interval for UI updates
 IDLE_SLEEP_SECONDS = 0.1    # CPU saver when no data is arriving
 DEBUG_MODE = True
