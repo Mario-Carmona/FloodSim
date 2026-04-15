@@ -1,7 +1,14 @@
 
 import numpy as np
 import logging
-import mqtt_scripts.config
+import os
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import config
+else:
+    from . import config
 
 class SimulationGrid:
     """
@@ -9,9 +16,8 @@ class SimulationGrid:
     """
 
     def __init__(self):
-        # Initialize the grid as a 20x20 matrix of int8 (0 or 1).
-        # Optimized for memory usage (int8 takes 1 byte per cell).
-        self.grid = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.int8)
+        # Store palette levels as uint8 values.
+        self.grid = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.uint8)
         self.has_new_data = False
         self._logger = logging.getLogger(__name__)
 
@@ -59,3 +65,80 @@ class SimulationGrid:
         """
         self.has_new_data = False
         return self.grid
+
+    def update_from_layer_event(self, event: dict):
+        """Apply layer changes from a JSON EYE_SetState_Layer event.
+
+        Supported shape:
+        {
+          "changes": {
+            "cells": [
+              {"x": 1, "y": 2, "state": "FLOODED"},
+              ...
+            ]
+          }
+        }
+        """
+        changes = event.get("changes", {})
+        cells = changes.get("cells", [])
+
+        # Some producers may use a dict keyed by id. Convert to value list.
+        if isinstance(cells, dict):
+            cells = list(cells.values())
+
+        if not isinstance(cells, list) or not cells:
+            return
+
+        rows = []
+        cols = []
+        values = []
+        for cell in cells:
+            x = cell.get("x")
+            y = cell.get("y")
+            if x is None or y is None:
+                continue
+
+            cell_value = self._resolve_cell_value(cell)
+            if cell_value is None:
+                continue
+
+            cols.append(int(x))
+            rows.append(int(y))
+            values.append(int(cell_value))
+
+        if not rows:
+            return
+
+        cols_arr = np.array(cols)
+        rows_arr = np.array(rows)
+
+        if np.any(cols_arr >= config.MAP_SIZE) or np.any(rows_arr >= config.MAP_SIZE):
+            self._logger.error(
+                "Coordinates out of bounds in layer event. Max X: %s, Max Y: %s",
+                int(np.max(cols_arr)),
+                int(np.max(rows_arr)),
+            )
+            return
+
+        if np.any(cols_arr < 0) or np.any(rows_arr < 0):
+            self._logger.error("Negative coordinates received in layer event.")
+            return
+
+        value_arr = np.array(values, dtype=np.uint8)
+        self.grid[rows_arr, cols_arr] = value_arr
+        self.has_new_data = True
+
+    def _resolve_cell_value(self, cell: dict):
+        """Resolve a numeric palette value from different cell payload variants."""
+        for numeric_key in ("value", "level", "depth_level", "risk_level"):
+            if numeric_key in cell:
+                try:
+                    return int(cell[numeric_key])
+                except (TypeError, ValueError):
+                    return None
+
+        state = cell.get("state")
+        if isinstance(state, str):
+            return config.STATE_TO_VALUE.get(state.upper(), 1)
+
+        return 1

@@ -1,61 +1,102 @@
+import json
+import logging
+import os
+import sys
 
 import paho.mqtt.client as mqtt
-import logging
-from mqtt_scripts.libs import messages_pb2  # Assumes libs/messages_pb2.py exists
-import mqtt_scripts.config
+
+if __package__ in (None, ""):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import config
+else:
+    from . import config
+
 
 class MQTTMonitorClient:
-    """
-    Handles MQTT connections and deserializes incoming Protobuf messages.
-    """
+    """Handle MQTT connections and route incoming JSON events to a queue."""
 
     def __init__(self, msg_queue):
-        self.queue = msg_queue  # <--- GUARDAMOS LA COLA
+        self.queue = msg_queue
         self._logger = logging.getLogger(__name__)
-    
-        # Configuración del cliente (Paho < 2.0.0)
-        self.client = mqtt.Client(
-            client_id=config.CLIENT_ID,
-            clean_session=True
-        )
 
-        # Attach event callbacks
+        self.client = mqtt.Client(client_id=config.CLIENT_ID, clean_session=True)
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
 
+        # LWT for unexpected visualizer shutdowns.
+        lwt_payload = json.dumps(
+            {
+                "process": "System_Disconnected",
+                "source": "Visualizer_Python_X3D",
+                "scenario": config.SCENARIO_NAME,
+                "timestamp_utc": config.utc_now_iso(),
+            }
+        )
+        self.client.will_set(config.TOPIC_SYSTEM, payload=lwt_payload, qos=config.QOS_HANDSHAKE, retain=True)
+
     def connect(self):
         try:
-            self.client.connect(config.BROKER_ADDRESS, config.BROKER_PORT, 60)
-            self.client.loop_start()  # Run the network loop in a background thread
-            self._logger.info(f"Connecting to broker at {config.BROKER_ADDRESS}...")
-        except Exception as e:
-            self._logger.critical(f"Failed to connect to MQTT broker: {e}")
+            self.client.connect(config.BROKER_ADDRESS, config.BROKER_PORT, config.KEEPALIVE_SECONDS)
+            self.client.loop_start()
+            self._logger.info(
+                "Connecting to broker at %s:%s for scenario '%s'...",
+                config.BROKER_ADDRESS,
+                config.BROKER_PORT,
+                config.SCENARIO_NAME,
+            )
+        except Exception as exc:
+            self._logger.critical("Failed to connect to MQTT broker: %s", exc)
+            raise
 
     def disconnect(self):
         self.client.loop_stop()
         self.client.disconnect()
         self._logger.info("Disconnected from MQTT broker.")
 
+    def publish_ping(self):
+        payload = {
+            "process": "System_Ping",
+            "source": "Visualizer_Python_X3D",
+            "scenario": config.SCENARIO_NAME,
+            "timestamp_utc": config.utc_now_iso(),
+        }
+        self.client.publish(config.TOPIC_HANDSHAKE_PING, payload=json.dumps(payload), qos=config.QOS_HANDSHAKE)
+        self._logger.info("Published System_Ping to %s", config.TOPIC_HANDSHAKE_PING)
+
     def _on_connect(self, client, userdata, flags, rc):
-        if rc == 0:
-            self._logger.info("Successfully connected to Broker.")
-            client.subscribe(config.TOPIC_UPDATES)
-        else:
-            self._logger.error(f"Connection failed with code: {rc}")
+        if rc != 0:
+            self._logger.error("Connection failed with code: %s", rc)
+            return
+
+        self._logger.info("Successfully connected to broker.")
+        client.subscribe(config.TOPIC_EVENTS, qos=config.QOS_EVENTS)
+        client.subscribe(config.TOPIC_HANDSHAKE_PING, qos=config.QOS_HANDSHAKE)
+
+        self._logger.info("Subscribed to events topic: %s", config.TOPIC_EVENTS)
+        self._logger.info("Subscribed to handshake ping topic: %s", config.TOPIC_HANDSHAKE_PING)
 
     def _on_message(self, client, userdata, msg):
         try:
-            # ... logs y parsing del frame igual ...
-            frame = messages_pb2.SimulationFrame()
-            frame.ParseFromString(msg.payload)
+            payload = json.loads(msg.payload.decode("utf-8"))
+        except Exception as exc:
+            self._logger.error("Invalid JSON payload on topic %s: %s", msg.topic, exc)
+            return
 
-            # --- CAMBIO IMPORTANTE ---
-            # NO actualizamos el modelo aquí.
-            # Solo empaquetamos los datos y los metemos en la cola.
-            packet = (list(frame.changed_x), list(frame.changed_y), frame.step_index)
-        
-            self.queue.put(packet) # <--- ENVIAMOS A LA COLA
-            # -------------------------
+        process = payload.get("process")
 
-        except Exception as e:
-            self._logger.error(f"Error processing message: {e}", exc_info=True)
+        if msg.topic == config.TOPIC_HANDSHAKE_PING and process == "System_Ping":
+            self._reply_pong()
+            return
+
+        # Forward non-handshake payloads so higher layers can react.
+        self.queue.put({"topic": msg.topic, "payload": payload})
+
+    def _reply_pong(self):
+        payload = {
+            "process": "System_Pong",
+            "source": "Visualizer_Python_X3D",
+            "scenario": config.SCENARIO_NAME,
+            "timestamp_utc": config.utc_now_iso(),
+        }
+        self.client.publish(config.TOPIC_HANDSHAKE_PONG, payload=json.dumps(payload), qos=config.QOS_HANDSHAKE)
+        self._logger.info("Published System_Pong to %s", config.TOPIC_HANDSHAKE_PONG)

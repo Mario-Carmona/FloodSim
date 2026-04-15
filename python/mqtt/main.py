@@ -2,12 +2,21 @@
 import time
 import logging
 import queue
-import mqtt_scripts.config # Ya no importamos matplotlib aquí
+import os
+import sys
 
-# Import our new modules
-from mqtt_scripts.data_model import SimulationGrid
-from mqtt_scripts.network import MQTTMonitorClient
-from mqtt_scripts.visualizer import GridVisualizer
+if __package__ in (None, ""):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import config
+    from data_model import SimulationGrid
+    from network import MQTTMonitorClient
+    from visualizer import GridVisualizer
+else:
+    from . import config
+    from .data_model import SimulationGrid
+    from .network import MQTTMonitorClient
+    from .visualizer import GridVisualizer
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,40 +24,42 @@ logging.basicConfig(
 )
 
 def main():
-    # 1. Crear la Cola (El puente entre hilos)
-    msg_queue = queue.Queue()  # <--- NUEVO
+    msg_queue = queue.Queue()
 
-    # 2. Inicializar Data Model
     simulation = SimulationGrid()
 
-    # 3. Inicializar Red (Pasándole la COLA, no la simulación)
-    mqtt_client = MQTTMonitorClient(msg_queue) # <--- CAMBIO
+    mqtt_client = MQTTMonitorClient(msg_queue)
     mqtt_client.connect()
 
-    # 4. Inicializar Visualizador
     viewer = GridVisualizer(output_folder="sim_outputs")
-    
-    print("Monitor iniciado. Esperando mensajes...")
+
+    print(f"Monitor iniciado para escenario '{config.SCENARIO_NAME}'. Esperando mensajes...")
 
     try:
         while True:
-            # --- ESTE ES EL BUCLE SINCRONIZADO ---
-            
-            # A. Sacar mensaje de la cola. 
-            # El programa se DETIENE aquí hasta que llega algo.
-            x, y, step = msg_queue.get() 
-            
-            # B. Actualizar el modelo
-            simulation.update_from_deltas(x, y, step)
-            
-            # C. Guardar la imagen (Bloqueante)
-            # Hasta que esto no termine, no volvemos arriba a por otro mensaje
-            viewer.save_snapshot(simulation.grid, step_index=step)
-            
-            # D. Marcar como completado
+            item = msg_queue.get()
+
+            if isinstance(item, tuple) and len(item) == 3:
+                x, y, step = item
+                simulation.update_from_deltas(x, y, step)
+                viewer.save_snapshot(simulation.grid, step_index=step)
+                print(f"Frame {step} procesado y guardado.")
+                msg_queue.task_done()
+                continue
+
+            payload = item.get("payload", {})
+            process = payload.get("process")
+
+            if process == "EYE_SetState_Layer":
+                simulation.update_from_layer_event(payload)
+                viewer.save_snapshot(simulation.grid)
+                print("Evento EYE_SetState_Layer procesado y renderizado.")
+            elif process in {"InitMap_Config", "InitAgent_Layer", "Init_EOF", "Sim_End", "System_Disconnected"}:
+                logging.info("Evento recibido: %s", process)
+            else:
+                logging.debug("Evento ignorado (no soportado todavía): %s", process)
+
             msg_queue.task_done()
-            
-            print(f"Frame {step} procesado y guardado.")
 
     except KeyboardInterrupt:
         print("\nSaliendo...")
