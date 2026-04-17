@@ -89,6 +89,8 @@ def main():
                     )
                 else:
                     logging.error("No se pudo aplicar InitAgent_Layer")
+            elif process == "InitAgent_EOF":
+                simulation.mark_init_agent_eof(payload)
             elif process == "Init_EOF":
                 simulation.mark_init_eof(payload)
                 if config.RENDER_ON_INIT_EOF:

@@ -29,6 +29,7 @@ class SimulationGrid:
         self.initialization = {
             "map_config_received": False,
             "init_layers_received": 0,
+            "init_agent_complete": False,
             "init_complete": False,
         }
         self._logger = logging.getLogger(__name__)
@@ -74,13 +75,26 @@ class SimulationGrid:
 
     def apply_init_agent_layer(self, event: dict) -> bool:
         data_path = event.get("data_path")
-        if not data_path:
-            self._logger.warning("InitAgent_Layer received without data_path")
+        data_filename = event.get("data_filename")
+        layer_id = event.get("id")
+
+        if not data_path or not data_filename or not layer_id:
+            self._logger.error(
+                "InitAgent_Layer requires data_path, data_filename and id. "
+                "Received data_path=%s data_filename=%s id=%s",
+                data_path,
+                data_filename,
+                layer_id,
+            )
             return False
 
-        layer = self._load_layer_from_data_path(data_path)
+        layer = self._load_layer_from_data_path(data_path, data_filename)
         if layer is None:
-            self._logger.error("Could not load init layer from data_path: %s", data_path)
+            self._logger.error(
+                "Could not load init layer from data_path=%s data_filename=%s",
+                data_path,
+                data_filename,
+            )
             return False
 
         if layer.shape != self.grid.shape:
@@ -98,7 +112,13 @@ class SimulationGrid:
         self.grid = layer
         self.has_new_data = True
         self.initialization["init_layers_received"] += 1
+        if layer_id:
+            self._logger.info("Init layer applied for id='%s'", layer_id)
         return True
+
+    def mark_init_agent_eof(self, event: dict):
+        self.initialization["init_agent_complete"] = True
+        self._logger.info("InitAgent_EOF recibido. Fin de carga de capas base.")
 
     def mark_init_eof(self, event: dict):
         self.initialization["init_complete"] = True
@@ -267,7 +287,7 @@ class SimulationGrid:
 
         return 1
 
-    def _load_layer_from_data_path(self, data_path: str):
+    def _load_layer_from_data_path(self, data_path: str, data_filename: str):
         path_obj = Path(data_path)
         candidates = []
 
@@ -275,21 +295,18 @@ class SimulationGrid:
             candidates.append(path_obj)
         else:
             candidates.append((config.DEFAULT_DATA_ROOT / path_obj).resolve())
-            # Compatibility for payloads that start with data/ but repository stores data_29_10_2024/.
-            if str(path_obj).startswith("data/"):
-                candidates.append((config.DEFAULT_DATA_ROOT / str(path_obj).replace("data/", "", 1)).resolve())
 
         for base in candidates:
-            layer = self._load_layer_candidate(base)
+            layer = self._load_layer_candidate(base, data_filename)
             if layer is not None:
                 return layer
 
         return None
 
-    def _load_layer_candidate(self, base: Path):
+    def _load_layer_candidate(self, base: Path, data_filename: str):
         # Accept folder paths like .../water_depth and explicit file paths.
         if base.is_dir():
-            stem = base.name
+            stem = data_filename or base.name
             img_file = base / f"{stem}.img"
             if img_file.exists():
                 return self._load_img_as_levels(img_file)

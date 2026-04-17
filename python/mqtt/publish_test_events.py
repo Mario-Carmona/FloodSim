@@ -29,9 +29,11 @@ def main():
     parser.add_argument("--cells", type=int, default=30, help="Number of test cells to publish")
     parser.add_argument(
         "--init-layer-path",
-        default="data_29_10_2024/water_depth",
+        default="data/data_29_10_2024/water_depth",
         help="Path sent in InitAgent_Layer data_path",
     )
+    parser.add_argument("--init-layer-filename", default="water_depth")
+    parser.add_argument("--init-layer-id", default="water_depth")
     args = parser.parse_args()
 
     topics = build_topics(args.scenario)
@@ -102,9 +104,38 @@ def main():
             "scenario": args.scenario,
             "timestamp_utc": utc_now_iso(),
             "data_path": args.init_layer_path,
+            "data_filename": args.init_layer_filename,
+            "id": args.init_layer_id,
         }
         client.publish(topics["events"], payload=json.dumps(init_layer), qos=args.qos)
         print(f"Published InitAgent_Layer to: {topics['events']}")
+
+        init_agent_eof = {
+            "process": "InitAgent_EOF",
+            "source": "Test_Publisher",
+            "scenario": args.scenario,
+            "timestamp_utc": utc_now_iso(),
+        }
+        client.publish(topics["events"], payload=json.dumps(init_agent_eof), qos=args.qos)
+        print(f"Published InitAgent_EOF to: {topics['events']}")
+
+        # Initial color payload sent before Init_EOF, as agreed.
+        initial_color = {
+            "process": "EYE_SetState_Layer",
+            "source": "Test_Publisher",
+            "scenario": args.scenario,
+            "timestamp_utc": utc_now_iso(),
+            "id": "water_depth",
+            "changes": {
+                "cells": [
+                    {"x": 0, "y": 0, "value": 4},
+                    {"x": 1, "y": 0, "value": 3},
+                    {"x": 2, "y": 0, "value": 2},
+                ]
+            },
+        }
+        client.publish(topics["events"], payload=json.dumps(initial_color), qos=args.qos)
+        print(f"Published initial color payload to: {topics['events']}")
 
         init_eof = {
             "process": "Init_EOF",
