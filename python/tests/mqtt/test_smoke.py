@@ -80,14 +80,30 @@ def run() -> int:
                 "process": "EYE_SetState_Layer",
                 "changes": {
                     "cells": [
-                        {"x": 0, "y": 0, "value": 5},
-                        {"x": 1, "y": 1, "state": "LOW_DEPTH"},
+                        # Test 1: state como string
+                        {"x": 0, "y": 0, "state": "FLOODED"},
+                        # Test 2: state como entero
+                        {"x": 1, "y": 0, "state": 5},
+                        # Test 3: value como fallback tradicional
+                        {"x": 2, "y": 0, "value": 2},
                     ]
                 },
             }
         )
         if not changed:
             print("SMOKE FAIL: EYE_SetState_Layer did not modify state")
+            return 1
+            
+        # Comprobar que los valores aplicados a la matriz son correctos:
+        # Nota: grid en numpy se accede con [y, x]
+        if simulation.grid[0, 0] != 3:  # FLOODED -> 3
+            print(f"SMOKE FAIL: Expected grid[0, 0] to be 3 (FLOODED), got {simulation.grid[0, 0]}")
+            return 1
+        if simulation.grid[0, 1] != 5:  # state -> 5
+            print(f"SMOKE FAIL: Expected grid[0, 1] to be 5, got {simulation.grid[0, 1]}")
+            return 1
+        if simulation.grid[0, 2] != 2:  # value -> 2
+            print(f"SMOKE FAIL: Expected grid[0, 2] to be 2, got {simulation.grid[0, 2]}")
             return 1
 
         changed = simulation.apply_event(

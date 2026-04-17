@@ -274,12 +274,14 @@ class SimulationGrid:
 
     def _resolve_cell_value(self, cell: dict):
         """Resolve a numeric palette value from different cell payload variants."""
-        for numeric_key in ("value", "level", "depth_level", "risk_level"):
+        # Check for numeric values in these keys (including "state" if passed as a number)
+        for numeric_key in ("value", "level", "depth_level", "risk_level", "state"):
             if numeric_key in cell:
-                try:
-                    return int(cell[numeric_key])
-                except (TypeError, ValueError):
-                    return None
+                val = cell[numeric_key]
+                if isinstance(val, (int, float)):
+                    return int(val)
+                if isinstance(val, str) and val.isnumeric():
+                    return int(val)
 
         state = cell.get("state")
         if isinstance(state, str):

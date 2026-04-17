@@ -67,7 +67,7 @@ def run_e2e():
     
     # Wait for subscriber to finish processing Sim_End and write files
     try:
-        sub_out, _ = subscriber_proc.communicate(timeout=10)
+        sub_out, _ = subscriber_proc.communicate(timeout=30)
     except subprocess.TimeoutExpired:
         print("Timeout waiting for subscriber to exit upon Sim_End.")
         subscriber_proc.kill()

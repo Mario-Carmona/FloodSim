@@ -149,14 +149,15 @@ def main():
 
         cells = []
         for i in range(args.cells):
-            cells.append(
-                {
-                    "x": i,
-                    "y": i,
-                    "state": "LOW_DEPTH" if i % 2 == 0 else "HIGH_DEPTH",
-                    "value": 2 if i % 2 == 0 else 4,
-                }
-            )
+            if i % 3 == 0:
+                # Test formato string
+                cells.append({"x": i, "y": i, "state": "FLOODED"})
+            elif i % 3 == 1:
+                # Test formato número en clave 'state'
+                cells.append({"x": i, "y": i, "state": 4})
+            else:
+                # Test formato número en clave 'value' (legacy)
+                cells.append({"x": i, "y": i, "value": 2})
 
         update_layer = {
             "process": "EYE_SetState_Layer",
