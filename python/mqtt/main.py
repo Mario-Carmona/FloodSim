@@ -31,7 +31,7 @@ def main():
     mqtt_client = MQTTMonitorClient(msg_queue)
     mqtt_client.connect()
 
-    viewer = GridVisualizer(output_folder="sim_outputs")
+    viewer = GridVisualizer(output_folder=os.getenv("DANASIM_OUTPUT_FOLDER", "sim_outputs"))
 
     last_render_time = time.monotonic()
     running = True
@@ -127,6 +127,8 @@ def main():
         if not ended_by_sim_end:
             render_if_needed(force=True)
         mqtt_client.disconnect()
+        print("Clean exit after Sim_End", flush=True)
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
