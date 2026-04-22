@@ -91,6 +91,11 @@ class MQTTMonitorClient:
         # Forward non-handshake payloads so higher layers can react.
         self.queue.put({"topic": msg.topic, "payload": payload})
 
+    def publish_chunk_ack(self):
+        payload = json.dumps({"process": "ChunkAck"})
+        self.client.publish(config.TOPIC_CONTROL_EVENTS, payload=payload, qos=config.QOS_EVENTS)
+        self._logger.debug("Published ChunkAck to %s", config.TOPIC_CONTROL_EVENTS)
+
     def _reply_pong(self):
         payload = {
             "process": "System_Pong",

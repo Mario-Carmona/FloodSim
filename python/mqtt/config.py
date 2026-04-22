@@ -45,6 +45,7 @@ TOPIC_EVENTS = f"{TOPIC_BASE}/events"
 TOPIC_SYSTEM = f"{TOPIC_BASE}/system"
 TOPIC_HANDSHAKE_PING = f"{TOPIC_SYSTEM}/handshake/ping"
 TOPIC_HANDSHAKE_PONG = f"{TOPIC_SYSTEM}/handshake/pong"
+TOPIC_CONTROL_EVENTS = f"{TOPIC_BASE}/control/events"
 
 # MQTT delivery settings
 QOS_HANDSHAKE = 1
@@ -60,6 +61,6 @@ def utc_now_iso() -> str:
 	return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 # Visualization settings
-REFRESH_RATE_SECONDS = float(os.getenv("DANASIM_REFRESH_RATE_SECONDS", "0.25"))  # Interval for UI updates
+REFRESH_RATE_SECONDS = float(os.getenv("DANASIM_REFRESH_RATE_SECONDS", "1000000000"))  # Interval for UI updates
 IDLE_SLEEP_SECONDS = 0.1    # CPU saver when no data is arriving
 DEBUG_MODE = True

@@ -37,6 +37,9 @@ def main():
     running = True
     ended_by_sim_end = False
 
+    chunks_per_batch = 0
+    chunks_since_ack = 0
+
     def render_if_needed(force: bool = False):
         nonlocal last_render_time
         if not simulation.initialization["init_complete"] and not force:
@@ -96,12 +99,30 @@ def main():
                 if config.RENDER_ON_INIT_EOF:
                     render_if_needed(force=True)
                     print("Inicializacion completada. Snapshot inicial guardado.")
+            elif process == "FrameStart":
+                chunks_per_batch = payload.get("chunks_per_batch", 0)
+                total_chunks = payload.get("total_chunks", 0)
+                chunks_since_ack = 0
+                logging.info("FrameStart: total_chunks=%d, chunks_per_batch=%d", total_chunks, chunks_per_batch)
+            elif process == "FrameEnd":
+                render_if_needed(force=True)
+                logging.info("FrameEnd recibido.")
             elif process == "EYE_SetState_Layer":
                 changed = simulation.apply_event(payload)
+                if chunks_per_batch > 0:
+                    chunks_since_ack += 1
+                    if chunks_since_ack >= chunks_per_batch:
+                        mqtt_client.publish_chunk_ack()
+                        chunks_since_ack = 0
             elif process == "EYE_SetState":
                 changed = simulation.apply_event(payload)
                 if changed:
                     print("Evento EYE_SetState procesado.")
+                if chunks_per_batch > 0:
+                    chunks_since_ack += 1
+                    if chunks_since_ack >= chunks_per_batch:
+                        mqtt_client.publish_chunk_ack()
+                        chunks_since_ack = 0
             elif process == "EYE_Frame_Sync":
                 # End-of-frame marker: flush pending layer/object updates as one render.
                 render_if_needed(force=True)
@@ -123,8 +144,6 @@ def main():
                 logging.debug("Evento ignorado (no soportado todavía): %s", process)
 
             msg_queue.task_done()
-
-            render_if_needed()
 
     except KeyboardInterrupt:
         print("\nSaliendo...")
