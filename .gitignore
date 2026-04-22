@@ -71,3 +71,6 @@ __pycache__
 /data
 
 data_29_10_2024
+
+*.md
+docu/*
