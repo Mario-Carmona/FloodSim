@@ -98,14 +98,19 @@ def main():
                     print("Inicializacion completada. Snapshot inicial guardado.")
             elif process == "EYE_SetState_Layer":
                 changed = simulation.apply_event(payload)
-                if changed:
-                    render_if_needed()
-                    print("Evento EYE_SetState_Layer procesado.")
             elif process == "EYE_SetState":
                 changed = simulation.apply_event(payload)
                 if changed:
-                    render_if_needed()
                     print("Evento EYE_SetState procesado.")
+            elif process == "EYE_Frame_Sync":
+                # End-of-frame marker: flush pending layer/object updates as one render.
+                render_if_needed(force=True)
+                print(
+                    "Frame sincronizado. total_chunks_sent=",
+                    payload.get("total_chunks_sent"),
+                    "simulation_time=",
+                    payload.get("simulation_time"),
+                )
             elif process == "Sim_End":
                 logging.info("Evento recibido: Sim_End")
                 render_if_needed(force=True)

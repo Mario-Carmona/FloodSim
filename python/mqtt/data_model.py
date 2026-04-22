@@ -7,8 +7,10 @@ from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from idrisi_io import IdrisiIO
     import config
 else:
+    from .idrisi_io import IdrisiIO
     from . import config
 
 class SimulationGrid:
@@ -182,41 +184,46 @@ class SimulationGrid:
         Supported shape:
         {
           "changes": {
-            "cells": [
-              {"x": 1, "y": 2, "state": "FLOODED"},
-              ...
-            ]
+            "cells": {
+              "345": {"state": "FLOODED", "height": 10.0},
+              "1024": {"state": "OBSTACLE_DESTROYED", "height": 10.0}
+            }
           }
         }
         """
         changes = event.get("changes", {})
-        cells = changes.get("cells", [])
+        cells = changes.get("cells", {})
 
-        # Some producers may use a dict keyed by id. Convert to value list.
-        if isinstance(cells, dict):
-            cells = list(cells.values())
-
-        if not isinstance(cells, list) or not cells:
+        if not isinstance(cells, dict) or not cells:
+            print("Error cells dict")
             return False
 
         rows = []
         cols = []
         values = []
-        for cell in cells:
-            x = cell.get("x")
-            y = cell.get("y")
-            if x is None or y is None:
+
+        max_y, max_x = self.grid.shape
+        for key, cell in cells.items():
+            try:
+                flat_index = int(key)
+            except (TypeError, ValueError):
+                print("Error 2")
                 continue
+
+            row = flat_index // max_x
+            col = flat_index % max_x
 
             cell_value = self._resolve_cell_value(cell)
             if cell_value is None:
+                print("Error cell_value")
                 continue
 
-            cols.append(int(x))
-            rows.append(int(y))
+            cols.append(col)
+            rows.append(row)
             values.append(int(cell_value))
 
         if not rows:
+            print("Rows")
             return False
 
         cols_arr = np.array(cols)
@@ -296,9 +303,21 @@ class SimulationGrid:
         if path_obj.is_absolute():
             candidates.append(path_obj)
         else:
+            # Try both CWD-relative and configured data-root-relative paths.
+            candidates.append(path_obj.resolve())
             candidates.append((config.DEFAULT_DATA_ROOT / path_obj).resolve())
 
-        for base in candidates:
+        # Preserve order while removing duplicates.
+        deduped_candidates = []
+        seen = set()
+        for candidate in candidates:
+            key = str(candidate)
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped_candidates.append(candidate)
+
+        for base in deduped_candidates:
             layer = self._load_layer_candidate(base, data_filename)
             if layer is not None:
                 return layer
@@ -308,23 +327,44 @@ class SimulationGrid:
     def _load_layer_candidate(self, base: Path, data_filename: str):
         # Accept folder paths like .../water_depth and explicit file paths.
         if base.is_dir():
-            stem = data_filename or base.name
-            img_file = base / f"{stem}.img"
-            if img_file.exists():
-                return self._load_img_as_levels(img_file)
+            # Primary path: IDRISI (.doc + .img) through shared I/O module.
+            try:
+                raster = IdrisiIO.read(base, data_filename, read_metadata=True)
+                return self._to_palette_levels(raster.data)
+            except Exception as exc:
+                self._logger.warning(
+                    "Failed IDRISI read for folder=%s filename=%s: %s",
+                    base,
+                    data_filename,
+                    exc,
+                )
 
-            npy_file = base / f"{stem}.npy"
-            if npy_file.exists():
-                return self._to_palette_levels(np.load(npy_file))
+            # Fallbacks for tests and mixed datasets.
+            img_path = base / f"{data_filename}.img"
+            if img_path.exists():
+                return self._load_img_as_levels(img_path)
 
-            csv_file = base / f"{stem}.csv"
-            if csv_file.exists():
-                return self._to_palette_levels(np.loadtxt(csv_file, delimiter=","))
+            npy_path = base / f"{data_filename}.npy"
+            if npy_path.exists():
+                return self._to_palette_levels(np.load(npy_path))
+
+            csv_path = base / f"{data_filename}.csv"
+            if csv_path.exists():
+                return self._to_palette_levels(np.loadtxt(csv_path, delimiter=","))
+
             return None
 
         if base.is_file():
             suffix = base.suffix.lower()
             if suffix == ".img":
+                # If metadata is available, prefer IDRISI reader for shape/dtype fidelity.
+                doc_file = base.with_suffix(".doc")
+                if doc_file.exists():
+                    try:
+                        raster = IdrisiIO.read(base.parent, base.stem, read_metadata=True)
+                        return self._to_palette_levels(raster.data)
+                    except Exception as exc:
+                        self._logger.warning("Failed IDRISI read for %s: %s", base, exc)
                 return self._load_img_as_levels(base)
             if suffix == ".npy":
                 return self._to_palette_levels(np.load(base))

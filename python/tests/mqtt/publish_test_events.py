@@ -172,6 +172,17 @@ def main():
         client.publish(topics["events"], payload=json.dumps(update_layer), qos=args.qos)
         print(f"Published EYE_SetState_Layer ({len(cells)} cells) to: {topics['events']}")
 
+        frame_sync = {
+            "process": "EYE_Frame_Sync",
+            "source": "Test_Publisher",
+            "scenario": args.scenario,
+            "timestamp_utc": utc_now_iso(),
+            "total_chunks_sent": len(cells),
+            "simulation_time": utc_now_iso(),
+        }
+        client.publish(topics["events"], payload=json.dumps(frame_sync), qos=args.qos)
+        print(f"Published EYE_Frame_Sync to: {topics['events']}")
+
         sim_end = {
             "process": "Sim_End",
             "source": "Test_Publisher",
