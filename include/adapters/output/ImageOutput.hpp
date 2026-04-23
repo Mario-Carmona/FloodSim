@@ -31,7 +31,7 @@ namespace danasim {
 
         void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 
-        void setGrid(const MapGrid& grid) override;
+        void setInitConfig(const MapGrid& grid, const std::string& datasetName, std::chrono::sys_seconds startTimestamp) override;
 
         std::string getThreadName() const override { return "Out_Image"; }
 

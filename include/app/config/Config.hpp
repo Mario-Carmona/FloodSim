@@ -31,7 +31,7 @@ namespace danasim {
         struct FileInputSourceConfig {
             std::string staticFormat;
             std::string dynamicFormat;
-            std::filesystem::path path; ///< Path to the input file.
+            std::string datasetName; 
         };
 
 
@@ -61,13 +61,10 @@ namespace danasim {
         struct MqttOutputConfigEntry {
 
             enum class PayloadFormat {
-                PROTOBUF
+                JSON
             };
 
             std::string address;
-            std::string topic;
-            std::string clientId;
-            int qos;
             PayloadFormat payloadFormat;
         };
 
@@ -131,6 +128,7 @@ namespace danasim {
     struct ScenarioConfig {
         std::filesystem::path outputDir;
         std::string name;
+        bool appendStartTimestamp;
     };
 
     struct LoggingConfig {

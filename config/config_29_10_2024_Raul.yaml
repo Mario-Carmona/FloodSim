@@ -1,19 +1,20 @@
 scenario:
-  outputDir: ../outputs
+  output_dir: ../outputs
   name: scenario_29_10_2024_Raul
+  append_start_timestamp: true
 
 logging:
   level: info
   async: true
   silent: false
-  saveLogFile: true
+  save_log_file: true
 
 input:
   sources:
     - type: file
       static_format: IDRISI
       dynamic_format: HIF
-      path: ../data/data_29_10_2024
+      dataset_name: data_29_10_2024
   layers:
     - name: topo_bathy
       source: file
@@ -30,10 +31,7 @@ output:
   outputs:
     - type: mqtt
       address: mqtt://test.mosquitto.org:1883
-      topic: danasim/updates
-      client_id: Simulation_Publisher_Node
-      qos: 1
-      format: protobuf
+      format: json
 
 state_updater:
   type: onnx

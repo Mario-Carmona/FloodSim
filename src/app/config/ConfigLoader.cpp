@@ -47,7 +47,7 @@ namespace danasim {
 
         template <>
         OutputConfig::MqttOutputConfigEntry::PayloadFormat parseEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(std::string_view value) {
-            if (value == "protobuf") return OutputConfig::MqttOutputConfigEntry::PayloadFormat::PROTOBUF;
+            if (value == "json") return OutputConfig::MqttOutputConfigEntry::PayloadFormat::JSON;
             throw ConfigurationException("Invalid MQTT payload format: " + std::string(value));
         }
 
@@ -130,7 +130,7 @@ namespace danasim {
                 config.input.file = InputConfig::FileInputSourceConfig{
                     .staticFormat = extract<std::string>(fileNode, "static_format"),
                     .dynamicFormat = extract<std::string>(fileNode, "dynamic_format"),
-                    .path = (configFolder / extract<std::string>(fileNode, "path")).lexically_normal()
+                    .datasetName = extract<std::string>(fileNode, "dataset_name")
                 };
             }
 
@@ -169,9 +169,6 @@ namespace danasim {
                 case OutputConfig::OutputConfigEntryType::MQTT: {
                     config.output.outputs.emplace_back(OutputConfig::MqttOutputConfigEntry{
                         .address = extract<std::string>(outNode, "address"),
-                        .topic = extract<std::string>(outNode, "topic"),
-                        .clientId = extract<std::string>(outNode, "client_id"),
-                        .qos = extract<int>(outNode, "qos"),
                         .payloadFormat = parseEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(extract<std::string>(outNode, "format"))
                         });
                     break;
@@ -231,7 +228,7 @@ namespace danasim {
             config.logging.level = extract<std::string>(node, "level");
             config.logging.async = extract<bool>(node, "async");
             config.logging.silent = extract<bool>(node, "silent");
-            config.logging.saveLogFile = extract<bool>(node, "saveLogFile");
+            config.logging.saveLogFile = extract<bool>(node, "save_log_file");
         }
 
         // -----------------------------
@@ -240,14 +237,16 @@ namespace danasim {
         {
             const auto node = requireNode(root, "scenario");
 
-            if (node["outputDir"]) {
-                config.scenario.outputDir = (configFolder / extract<std::string>(node, "outputDir")).lexically_normal();
+            if (node["output_dir"]) {
+                config.scenario.outputDir = (configFolder / extract<std::string>(node, "output_dir")).lexically_normal();
             }
             else {
                 config.scenario.outputDir = GetAppDataDirectory("Danasim");
             }
 
             config.scenario.name = extract<std::string>(node, "name");
+
+            config.scenario.appendStartTimestamp = extract<bool>(node, "append_start_timestamp");
         }
 
         // -----------------------------

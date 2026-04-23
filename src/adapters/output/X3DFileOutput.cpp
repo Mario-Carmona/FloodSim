@@ -62,7 +62,7 @@ namespace danasim {
         }
     }
 
-    void X3dFileOutput::setGrid(const MapGrid& grid) {
+    void X3dFileOutput::setInitConfig(const MapGrid& grid, const std::string& datasetName, std::chrono::sys_seconds /* startTimestamp */) {
 
     }
 

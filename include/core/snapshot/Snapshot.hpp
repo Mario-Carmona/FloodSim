@@ -30,26 +30,17 @@ namespace danasim {
         virtual ~Snapshot() = default;
 
         void set(std::chrono::sys_seconds time, const MapGrid& grid);
-        void set(size_t size);
-        void swap(Snapshot& other) noexcept;
-
-        size_t size() const noexcept;
-
-        float* data() noexcept;
 
         [[nodiscard]] std::chrono::sys_seconds time() const noexcept { return time_; }
 
         [[nodiscard]] const std::vector<float>& waterDepth() const noexcept { return waterDepth_; }
+        [[nodiscard]] const std::vector<int8_t>& floodRisk() const noexcept { return floodRisk_; }
 
     private:
         std::chrono::sys_seconds time_;
 
         std::vector<float> waterDepth_;
+        std::vector<int8_t> floodRisk_;
     };
 
 } // namespace danasim
-
-// Especialización para que std::swap sea O(1)
-namespace std {
-    template<> void swap(danasim::Snapshot& a, danasim::Snapshot& b) noexcept;
-}

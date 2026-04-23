@@ -344,8 +344,6 @@ namespace danasim {
     }
 
     std::vector<Tile> OnnxStateUpdater::getActiveTiles(MapGrid& grid) {
-        const float DRY_TOLERANCE = 0.001f;
-
         int64_t cols = grid.cols();
         int64_t rows = grid.rows();
 

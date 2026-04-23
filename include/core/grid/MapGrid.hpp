@@ -58,6 +58,22 @@ namespace danasim {
         std::vector<ModelParam> scalars;
     };
 
+    struct GridViewBox {
+
+        struct Point {
+            double x;
+            double y;
+        };
+
+        Point southWest;
+        Point northEast;
+    };
+
+    struct UTMZoneInfo {
+        int zone;
+        bool isNorth;
+    };
+
     /**
      * @class MapGrid
      * @brief The primary grid container.
@@ -125,6 +141,11 @@ namespace danasim {
         [[nodiscard]] std::string crs() const noexcept { return metadata_.crs; }
         [[nodiscard]] double mapOriginX() const noexcept { return metadata_.minX; }
         [[nodiscard]] double mapOriginY() const noexcept { return metadata_.maxY; }
+        
+        ViewBox::Point georeference() const;
+
+        GridViewBox::Point transformViewPoint(ViewBox::Point sourcePoint, const std::string& targetCRS) const;
+        ViewBox::Point transformGridViewPoint(GridViewBox::Point sourcePoint, const std::string& targetCRS) const;
 
     private:
         // Storage for all layers defined in the enum
@@ -152,6 +173,10 @@ namespace danasim {
 
 
         void normalizeUnits(const std::string& name);
+
+
+
+        std::optional<UTMZoneInfo> parseUTMZoneFromEPSG(const std::string& epsgString) const;
     };
 
 } // namespace danasim

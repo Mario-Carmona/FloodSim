@@ -34,7 +34,16 @@ namespace danasim {
         , scenarioName_(scenarioName)
         , view_(config.viewBox)
     {
-        
+        // Initialize State
+        currentGrid_.load(stateUpdater_->getModelParamsInfo(), mainInputSource_, layersAlternativeInputSource_, scalarsConfig_, timeStep_, startTimestamp_);
+
+        calculateGridView();
+
+        stateUpdater_->initialize(currentGrid_);
+
+        for (auto& output : outputs_) {
+            output->setInitConfig(currentGrid_, mainInputSource_->getDatasetName(), startTimestamp_);
+        }
     }
 
     void SimulationCore::run()
@@ -44,19 +53,7 @@ namespace danasim {
         std::chrono::sys_seconds currentTime = startTimestamp_;
         std::chrono::sys_seconds finishTimestamp = currentTime + simulationDuration_;
 
-        // Initialize State
-        currentGrid_.load(stateUpdater_->getModelParamsInfo(), mainInputSource_, layersAlternativeInputSource_, scalarsConfig_, timeStep_, currentTime);
-
-        for (auto& output : outputs_) {
-            output->setGrid(currentGrid_);
-        }
-
-        calculateGridView();
-
-        stateUpdater_->initialize(currentGrid_);
-
-        // Publicar estado inicial (t=0)
-        publishCurrentState(currentTime);
+        currentSnapshot_.set(currentTime, currentGrid_);
 
         while (currentTime < finishTimestamp) {
             // --- PASO 1: CARGAR DATOS EXTERNOS ---
@@ -86,16 +83,9 @@ namespace danasim {
         // 1. Esperar a que los consumidores liberen el buffer anterior
         snapshotManager_->waitForReady();
 
-        if (time == startTimestamp_) {
-            currentSnapshot_.set(time, currentGrid_);
-            previousSnapshot_.set(currentSnapshot_.size());
-        }
-        else {
-            std::swap(currentSnapshot_, previousSnapshot_);
-            currentSnapshot_.set(time, currentGrid_);
-        }
-
         calculateViewChanges();
+
+        currentSnapshot_.set(time, currentGrid_);
 
         // 3. Publicar
         snapshotManager_->publish(&currentSnapshot_, &changes_);
@@ -113,8 +103,8 @@ namespace danasim {
         }
         else {
             GridViewBox gridView{
-                .southWest = transformViewPoint(view_.southWest, currentGrid_.crs()),
-                .northEast = transformViewPoint(view_.northEast, currentGrid_.crs())
+                .southWest = currentGrid_.transformViewPoint(view_.southWest, currentGrid_.crs()),
+                .northEast = currentGrid_.transformViewPoint(view_.northEast, currentGrid_.crs())
             };
 
             gridIndexView_.minCol = static_cast<GridIndexType>(std::floor((gridView.southWest.x - currentGrid_.mapOriginX()) / currentGrid_.cellSize()));
@@ -171,18 +161,15 @@ namespace danasim {
 
         // Calcular tamaño total primero para hacer un solo reserve
         size_t total_changes = 0;
-        for (const auto& res : results) total_changes += res.local_x.size();
+        for (const auto& res : results) total_changes += res.local_indexes.size();
 
-        changes_.x.clear();
-        changes_.y.clear();
+        changes_.indexes.clear();
 
-        changes_.x.reserve(total_changes);
-        changes_.y.reserve(total_changes);
+        changes_.indexes.reserve(total_changes);
 
         // Copiar datos
         for (const auto& res : results) {
-            changes_.x.insert(changes_.x.end(), res.local_x.begin(), res.local_x.end());
-            changes_.y.insert(changes_.y.end(), res.local_y.begin(), res.local_y.end());
+            changes_.indexes.insert(changes_.indexes.end(), res.local_indexes.begin(), res.local_indexes.end());
         }
     }
 
@@ -190,98 +177,22 @@ namespace danasim {
         // Pre-reservamos memoria local para evitar reallocs constantes
         // Estimamos un 5% de cambios para no desperdiciar RAM
         size_t estimated_changes = static_cast<size_t>((end_row - start_row) * (gridIndexView_.maxCol - gridIndexView_.minCol) * 0.05);
-        result.local_x.reserve(estimated_changes);
-        result.local_y.reserve(estimated_changes);
+        result.local_indexes.reserve(estimated_changes);
 
         // --- BUCLE CORREGIDO Y OPTIMIZADO ---
         // Eliminamos el memcpy de arriba y hacemos todo en un pase.
         for (GridIndexType y = start_row; y < end_row; ++y) {
             size_t row_offset = static_cast<size_t>(y * currentGrid_.cols());
-            const float* curr_row = currentSnapshot_.data() + row_offset;
-            const float* prev_row = previousSnapshot_.data() + row_offset;
+            const int8_t* curr_row = currentGrid_.getLayer<int8_t>("flood_risk")->getData().data() + row_offset;
+            const int8_t* prev_row = currentSnapshot_.floodRisk().data() + row_offset;
 
             // Parte 2: DENTRO de la vista (Comparar + Copiar + Detectar)
             for (GridIndexType x = gridIndexView_.minCol; x < gridIndexView_.maxCol; ++x) {
-                bool now_danger = (curr_row[x] > DANGER_THRESHOLD);
-                bool was_danger = (prev_row[x] > DANGER_THRESHOLD);
-
-                if (now_danger != was_danger) {
-                    result.local_y.push_back(y);
-                    result.local_x.push_back(x);
+                if (prev_row[x] != curr_row[x]) {
+                    result.local_indexes.push_back(y * currentGrid_.cols() + x);
                 }
             }
         }
-    }
-
-    std::optional<UTMZoneInfo> SimulationCore::parseUTMZoneFromEPSG(const std::string& epsgString) const {
-        // 1. Extraer solo la parte numérica (ignorar "EPSG:" si está presente)
-        size_t colonPos = epsgString.find(':');
-        std::string numPart = (colonPos != std::string::npos) ?
-            epsgString.substr(colonPos + 1) : epsgString;
-
-        int epsgCode;
-        try {
-            epsgCode = std::stoi(numPart);
-        }
-        catch (...) {
-            return std::nullopt; // No es un número válido
-        }
-
-        // 2. Extraer la zona (los dos últimos dígitos)
-        int zone = epsgCode % 100;
-
-        // Validación básica de zona UTM
-        if (zone < 1 || zone > 60) {
-            return std::nullopt;
-        }
-
-        // 3. Determinar el sistema y hemisferio
-        int baseCode = epsgCode - zone; // Ej: 25830 - 30 = 25800
-
-        switch (baseCode) {
-        case 32600: // WGS 84 North
-        case 25800: // ETRS89 North (Europa)
-        case 23000: // ED50 North (Europa)
-            return UTMZoneInfo{ zone, true };
-
-        case 32700: // WGS 84 South
-            return UTMZoneInfo{ zone, false };
-
-        default:
-            // Es un código EPSG válido numéricamente, pero no es de un bloque UTM reconocido
-            return std::nullopt;
-        }
-    }
-
-    GridViewBox::Point SimulationCore::transformViewPoint(ViewBox::Point sourcePoint, const std::string& targetCRS) const {
-        
-        auto utmInfo = parseUTMZoneFromEPSG(targetCRS);
-        if (!utmInfo.has_value()) {
-            throw std::runtime_error("El CRS destino (" + targetCRS + ") no es un sistema UTM soportado matemáticamente.");
-        }
-
-        int computedZone;
-        bool computedNorthp;
-
-        GridViewBox::Point gridViewPoint;
-
-        try {
-            // Le pasamos la zona extraída dinámicamente del string (ej. 30)
-            GeographicLib::UTMUPS::Forward(sourcePoint.lat, sourcePoint.lon, computedZone, computedNorthp, gridViewPoint.x, gridViewPoint.y, utmInfo->zone);
-
-            // Verificamos que la coordenada real cae en el hemisferio que el EPSG espera
-            if (computedNorthp != utmInfo->isNorth) {
-                // Nota: En algunos casos limítrofes (cerca del ecuador) esto podría flexibilizarse,
-                // pero estrictamente hablando, si el EPSG pide Norte y cae en Sur, hay una discrepancia.
-                throw std::runtime_error("Las coordenadas caen en el hemisferio incorrecto para este EPSG.");
-            }
-
-        }
-        catch (const GeographicLib::GeographicErr& e) {
-            throw std::runtime_error(std::string("Error en GeographicLib: ") + e.what());
-        }
-
-        return gridViewPoint;
     }
 
 } // namespace danasim
