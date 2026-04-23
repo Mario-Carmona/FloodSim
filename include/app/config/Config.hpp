@@ -91,16 +91,29 @@ namespace danasim {
     // State Updater Configuration
     // -------------------------------------------------------------------------
 
-    enum class StateUpdaterConfigType {
+    enum class UpdaterConfigType {
         ONNX
     };
 
-    struct OnnxStateUpdaterConfig {
+    struct OnnxUpdaterConfig {
         std::filesystem::path modelPath;
         int64_t tensorDim;
     };
 
-    using StateUpdaterConfig = std::variant<OnnxStateUpdaterConfig>;
+    using UpdaterConfig = std::variant<OnnxUpdaterConfig>;
+
+    struct FloodRiskLevel {
+        std::string name;
+        float thresholdStart;
+        std::string colorHex;
+    };
+
+    struct StateUpdaterConfig {
+        UpdaterConfig updater;
+        bool enableRainfall;
+        float dryTolerance;
+        std::vector<FloodRiskLevel> floodRiskLevels;
+    };
 
     // -------------------------------------------------------------------------
     // General Settings

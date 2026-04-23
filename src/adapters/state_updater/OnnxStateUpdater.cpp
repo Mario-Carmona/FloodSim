@@ -16,8 +16,8 @@
 
 namespace danasim {
 
-    OnnxStateUpdater::OnnxStateUpdater(const std::filesystem::path& modelPath, int64_t tensorDim)
-        : tensorDim_(tensorDim), haloSize_(1), tileSize_(tensorDim_ - (2 * haloSize_))
+    OnnxStateUpdater::OnnxStateUpdater(bool enableRainfall, float dryTolerance, const std::vector<FloodRiskLevel>& floodRiskLevels, const std::filesystem::path& modelPath, int64_t tensorDim)
+        : StateUpdaterPort(enableRainfall, dryTolerance, floodRiskLevels), tensorDim_(tensorDim), haloSize_(1), tileSize_(tensorDim_ - (2 * haloSize_))
         , env_(ORT_LOGGING_LEVEL_WARNING, "FloodSim")
         , memory_info_(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault))
     {
@@ -64,6 +64,8 @@ namespace danasim {
             nlohmann::json j;
             file >> j;
 
+			fluidLayerName_ = j["fluid_layer"].get<std::string>();
+			fluidMovementStateLayerName_ = j["fluid_movement_state_layer"].get<std::string>();
 
             preprocessModel_ = parseModelGraphInfo(j["preprocess"]);
 
@@ -160,14 +162,16 @@ namespace danasim {
                 }
             }
 
-            paramsInfo_.layers.push_back({
-                .name = "rainfall",
-                .dataType = DataType::FLOAT32,
-                .loadRequired = true
-            });
+            if (isRainfallEnabled()) {
+                paramsInfo_.layers.push_back({
+                    .name = RAINFALL_LAYER_NAME,
+                    .dataType = DataType::FLOAT32,
+                    .loadRequired = true
+                });
+            }
 
             paramsInfo_.layers.push_back({
-                .name = "flood_risk",
+                .name = FLOOD_RISK_LAYER_NAME,
                 .dataType = DataType::INT8,
                 .loadRequired = false
             });
@@ -179,14 +183,20 @@ namespace danasim {
     }
 
     int8_t OnnxStateUpdater::classifyRisk(float depth) const {
-        // Recorremos el enum automáticamente
-        for (std::size_t i = 0; i < magic_enum::enum_count<FloodRisk>(); ++i) {
-            if (depth <= risk_thresholds[i]) {
-                // Convertimos el índice de vuelta a nuestro tipo Enum de forma segura
-                return i;
+        const std::vector<FloodRiskLevel>& floodRiskLevels = getFloodRiskLevels();
+
+        int8_t level = 0;
+
+        for (std::size_t i = 0; i < floodRiskLevels.size(); ++i) {
+            if (depth >= floodRiskLevels[i].thresholdStart) {
+				level = static_cast<int8_t>(i);
+            }
+            else {
+                return level;
             }
         }
-        return magic_enum::enum_count<FloodRisk>() - 1; // Fallback de seguridad
+
+        return level;
     }
 
     void OnnxStateUpdater::runModel(Ort::Session& session, MapGrid& grid, const Ort::RunOptions& options, 
@@ -326,35 +336,31 @@ namespace danasim {
 
 
 
-        const std::vector<float>& water_depth = grid.getLayer<float>("water_depth")->getData();
-        std::vector<int8_t>& flood_risk = grid.getLayer<int8_t>("flood_risk")->getData();
-        std::vector<int8_t>& water_movement_state = grid.getLayer<int8_t>("water_movement_state")->getData();
+        const std::vector<float>& fluid_depth = grid.getLayer<float>(getFluidLayer())->getData();
+        std::vector<int8_t>& flood_risk = grid.getLayer<int8_t>(FLOOD_RISK_LAYER_NAME)->getData();
+        std::vector<int8_t>& fluid_movement_state = grid.getLayer<int8_t>(getFluidMovementStateLayer())->getData();
 
         #pragma omp parallel for
         for (int i = 0; i < grid.getMetadata().cellCount; ++i) {
-            flood_risk[i] = classifyRisk(water_depth[i]);
+            flood_risk[i] = classifyRisk(fluid_depth[i]);
 
-            if (flood_risk[i] > static_cast<int8_t>(FloodRisk::DRY)) {
-                water_movement_state[i] = static_cast<int8_t>(WaterMovementState::DYNAMIC_STATE);
+            if (fluid_depth[i] >= getDryTolerance()) {
+                fluid_movement_state[i] = static_cast<int8_t>(WaterMovementState::DYNAMIC_STATE);
             }
             else {
-                water_movement_state[i] = static_cast<int8_t>(WaterMovementState::STATIC_STATE);
+                fluid_movement_state[i] = static_cast<int8_t>(WaterMovementState::STATIC_STATE);
             }
         }
     }
 
-    std::vector<Tile> OnnxStateUpdater::getActiveTiles(MapGrid& grid) {
+    void OnnxStateUpdater::getActiveTiles(const MapGrid& grid, std::vector<Tile>& active_tiles) const {
         int64_t cols = grid.cols();
         int64_t rows = grid.rows();
 
         int64_t num_tiles_x = (cols + tileSize_ - 1) / tileSize_;
         int64_t num_tiles_y = (rows + tileSize_ - 1) / tileSize_;
 
-        const int8_t* flood_risk = grid.getLayer<int8_t>("flood_risk")->getData().data();
-        const float* rainfall = grid.getLayer<float>("rainfall")->getData().data();
-        const int8_t* water_movement_state = grid.getLayer<int8_t>("water_movement_state")->getData().data();
-
-        std::vector<Tile> active_tiles;
+        const int8_t* fluid_movement_state = grid.getLayer<int8_t>(getFluidMovementStateLayer())->getData().data();
 
         // Recorremos la cuadrícula de bloques
         // 2. Paralelización:
@@ -378,13 +384,11 @@ namespace danasim {
                     int64_t row_start_idx = ((start_y + y) * cols) + start_x;
 
                     // Punteros directos a la fila para esta iteración
-                    const int8_t* water_movement_row = water_movement_state + row_start_idx;
-                    const int8_t* flood_risk_row = flood_risk + row_start_idx;
-                    const float* rain_row = rainfall + row_start_idx;
+                    const int8_t* fluid_movement_row = fluid_movement_state + row_start_idx;
 
                     for (int64_t x = 0; x < width && !tile_is_active; ++x) {
                         // Acceso secuencial puramente lineal (¡Al compilador y a la Caché L1 les encanta esto!)
-                        if (water_movement_row[x] == static_cast<int8_t>(WaterMovementState::DYNAMIC_STATE) || (rain_row[x] > 0.0f && flood_risk_row[x] > static_cast<int8_t>(FloodRisk::DRY))) {
+                        if (fluid_movement_row[x] == static_cast<int8_t>(WaterMovementState::DYNAMIC_STATE)) {
                             tile_is_active = true;
                         }
                     }
@@ -396,35 +400,34 @@ namespace danasim {
                 }
             }
         }
-
-        return active_tiles;
     }
 
     void OnnxStateUpdater::step(MapGrid& grid) {
         try {
-            std::vector<int64_t> tensor_shape;
+            std::vector<float>& water_depth = grid.getLayer<float>(getFluidLayer())->getData();
 
-            std::vector<Tile> active_tiles;
+            
+            std::vector<int8_t>& fluid_movement_state = grid.getLayer<int8_t>(getFluidMovementStateLayer())->getData();
+            
 
-            auto* water_depth_layer = grid.getLayer<float>("water_depth");
-            auto* rainfall_layer = grid.getLayer<float>("rainfall");
+            if (isRainfallEnabled()) {
+                const std::vector<float>& rainfall = grid.getLayer<float>(RAINFALL_LAYER_NAME)->getData();
 
-            std::vector<int8_t>& flood_risk = grid.getLayer<int8_t>("flood_risk")->getData();
-            float* wd_ptr = water_depth_layer->getData().data();
-            const float* rain_ptr = rainfall_layer->getData().data();
-            int64_t total_cells = grid.rows() * grid.cols();
+                #pragma omp parallel for
+                for (size_t i = 0; i < water_depth.size(); ++i) {
+                    water_depth[i] += rainfall[i];
 
-            #pragma omp parallel for
-            for (int64_t i = 0; i < total_cells; ++i) {
-                wd_ptr[i] += rain_ptr[i];
-
-                if (rain_ptr[i] > 0.0f) {
-                    flood_risk[i] = classifyRisk(wd_ptr[i]);
+                    if (water_depth[i] >= getDryTolerance()) {
+                        fluid_movement_state[i] = static_cast<int8_t>(WaterMovementState::DYNAMIC_STATE);
+                    }
                 }
             }
+                
 
             // 2. Obtener los bloques activos
-            active_tiles = getActiveTiles(grid);
+            std::vector<Tile> active_tiles;
+            getActiveTiles(grid, active_tiles);
+
             int64_t batch_size = active_tiles.size();
 
             // Si no hay agua moviéndose ni lloviendo, nos saltamos la inferencia de ONNX
@@ -435,7 +438,7 @@ namespace danasim {
 
             LOG_INFO("Active tiles (Batch Size) for ONNX: {}", batch_size);
 
-            tensor_shape = { batch_size, tensorDim_, tensorDim_ };
+            std::vector<int64_t> tensor_shape = { batch_size, tensorDim_, tensorDim_ };
 
 
             Ort::RunOptions step_options { nullptr };
@@ -443,7 +446,8 @@ namespace danasim {
             runModel(step_session_, grid, step_options, stepModel_, tensor_shape, true, active_tiles);
 
 
-            
+            std::vector<int8_t>& flood_risk = grid.getLayer<int8_t>(FLOOD_RISK_LAYER_NAME)->getData();
+
             #pragma omp parallel for
             for (int64_t b = 0; b < static_cast<int64_t>(active_tiles.size()); ++b) {
                 const auto& tile = active_tiles[b];
@@ -457,7 +461,8 @@ namespace danasim {
 
                     for (int64_t i = 0; i < tile.core_width; i++) {
                         int64_t elem = globalOffset + i;
-                        flood_risk[elem] = classifyRisk(wd_ptr[elem]);
+
+                        flood_risk[elem] = classifyRisk(water_depth[elem]);
                     }
                 }
             }

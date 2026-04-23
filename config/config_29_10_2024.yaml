@@ -29,9 +29,32 @@ output:
       format: json
 
 state_updater:
-  type: onnx
-  model_path: ../exported_models/first_model_cpu
-  tensor_dim: 16
+  enable_rainfall: true
+  dry_tolerance: 0.001
+  flood_risk:
+    default_level:
+      name: Dry
+      color_hex: F5DEB3FF
+    levels:
+      - name: Very Shallow
+        threshold_start: 0.001
+        color_hex: E0F3F8FF
+      - name: Low Depth
+        threshold_start: 0.1
+        color_hex: 87CEEBFF
+      - name: Medium Depth
+        threshold_start: 0.3
+        color_hex: 1E90FFFF
+      - name: High Depth
+        threshold_start: 1.0
+        color_hex: 0000CDFF
+      - name: Extreme Depth
+        threshold_start: 2.0
+        color_hex: 4B0082FF
+  updater:
+    type: onnx
+    model_path: ../exported_models/first_model_cpu
+    tensor_dim: 16
 
 simulation:
   start_timestamp: 2024-10-29T10:00:00

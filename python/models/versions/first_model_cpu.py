@@ -269,3 +269,9 @@ class FloodModelCA(tf.Module):
             "water_depth:out": wd_next,
             "water_movement_state:out": wd_mov_state
         }
+
+    def get_fluid_layer_name(self) -> str:
+        return "water_depth"
+
+    def get_fluid_movement_state_layer_name(self) -> str:
+        return "water_movement_state"

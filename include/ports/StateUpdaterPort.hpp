@@ -27,6 +27,12 @@ namespace danasim {
      */
     class StateUpdaterPort {
     public:
+        StateUpdaterPort(bool enableRainfall, float dryTolerance, const std::vector<FloodRiskLevel>& floodRiskLevels)
+            : enableRainfall_(enableRainfall), dryTolerance_(dryTolerance), floodRiskLevels_(floodRiskLevels)
+        {
+
+        }
+
         virtual ~StateUpdaterPort() = default;
 
         virtual void initialize(MapGrid& grid) = 0;
@@ -35,31 +41,28 @@ namespace danasim {
 
         virtual const ModelParamsInfo& getModelParamsInfo() const = 0;
 
-    protected:
-        enum class FloodRisk : int8_t {
-            DRY,
-            VERY_SHALLOW,
-            LOW_DEPTH,
-            MEDIUM_DEPTH,
-            HIGH_DEPTH,
-            EXTREME_DEPTH
-        };
+        virtual const std::string& getFluidLayer() const = 0;
+        virtual const std::string& getFluidMovementStateLayer() const = 0;
 
+		virtual bool isRainfallEnabled() const { return enableRainfall_; }
+
+		virtual float getDryTolerance() const { return dryTolerance_; }
+
+		virtual const std::vector<FloodRiskLevel>& getFloodRiskLevels() const { return floodRiskLevels_; }
+
+    protected:
         enum class WaterMovementState : int8_t {
             STATIC_STATE,
             DYNAMIC_STATE
         };
 
-        // 2. Definimos el array utilizando magic_enum para deducir el tamaño exacto.
-        // Usamos constexpr para que se evalúe en tiempo de compilación sin coste de ejecución.
-        static constexpr std::array<float, magic_enum::enum_count<FloodRisk>()> risk_thresholds = {
-            DRY_TOLERANCE,                      // Dry (Máximo 0.0m)
-            0.1f,                               // VeryShallow (Máximo 0.1m)
-            0.3f,                               // LowDepth (Máximo 0.3m)
-            1.0f,                               // MediumDepth (Máximo 1.0m)
-            2.0f,                               // HighDepth (Máximo 2.0m)
-            std::numeric_limits<float>::max()   // ExtremeDepth (Hasta el infinito)
-        };
+		const std::string RAINFALL_LAYER_NAME = "rainfall";
+		const std::string FLOOD_RISK_LAYER_NAME = "flood_risk";
+
+    private:
+        bool enableRainfall_;
+        float dryTolerance_;
+        std::vector<FloodRiskLevel> floodRiskLevels_;
     };
 
 } // namespace danasim
