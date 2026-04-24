@@ -39,7 +39,7 @@ namespace danasim {
          * @throw std::runtime_error If an unknown output configuration type is encountered.
          */
         static std::vector<std::unique_ptr<OutputPort>>
-            createOutputs(const OutputConfig& config);
+            createOutputs(const OutputConfig& config, const std::string& scenarioName);
     };
 
 } // namespace danasim

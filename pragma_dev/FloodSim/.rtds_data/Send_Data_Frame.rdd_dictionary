@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE DictionaryObjects SYSTEM "rtdsDictionaryObjects.dtd">
+
+<DictionaryObjects version="11340" language="sdl-rt" diagramType="prcd">
+<Signal id="SIG1" name="ChunkAck">
+<UsingSymbols>
+<SymbolReference symbolId="SYM12" usingKind="input"/>
+</UsingSymbols>
+</Signal>
+<Item id="ITEM1" type="procedure" name="Send_Data_Frame" scope="current" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE" procedureKind="NORMAL_PROCEDURE">
+<Prototype>
+<Signature>Send_Data_Frame()</Signature>
+</Prototype>
+<Body>
+<ReceivedSignals>
+<SignalReference id="SIG1"/>
+</ReceivedSignals>
+</Body>
+</Item>
+<Item id="ITEM2" type="state" name="SENDING_BATCH" parentId="ITEM1" scope="none" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE">
+<DefiningSymbols>
+<SymbolReference symbolId="SYM4"/>
+</DefiningSymbols>
+<UsingSymbols>
+<SymbolReference symbolId="SYM13"/>
+<SymbolReference symbolId="SYM4"/>
+</UsingSymbols>
+</Item>
+<Item id="ITEM3" type="state" name="WAITING_ACK" parentId="ITEM1" scope="none" formalParameterOrder="-" isFormalParam="FALSE" isSyntype="FALSE">
+<DefiningSymbols>
+<SymbolReference symbolId="SYM11"/>
+</DefiningSymbols>
+<UsingSymbols>
+<SymbolReference symbolId="SYM11"/>
+</UsingSymbols>
+</Item>
+</DictionaryObjects>

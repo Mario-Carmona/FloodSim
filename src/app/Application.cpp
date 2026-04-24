@@ -14,9 +14,18 @@
 #include <filesystem>
 
 #ifdef _WIN32
-    #include <windows.h>
+#include <windows.h>
 #else
-    #include <pthread.h>
+#include <pthread.h>
+#endif
+
+#if defined(_WIN32)
+#include <windows.h>
+#elif defined(__linux__)
+#include <unistd.h>
+#include <limits.h>
+#else
+#error "Sistema operativo no soportado"
 #endif
 
 #include "app/config/ConfigLoader.hpp"
@@ -55,22 +64,44 @@ namespace danasim {
     #endif
     }
 
+    std::filesystem::path getExecutablePath() {
+        #if defined(_WIN32)
+        // Implementación para Windows
+        char buffer[MAX_PATH];
+        GetModuleFileNameA(NULL, buffer, MAX_PATH);
+        return std::filesystem::path(std::string(buffer));
+
+        #elif defined(__linux__)
+        // Implementación para Linux
+        char buffer[PATH_MAX];
+        ssize_t count = readlink("/proc/self/exe", buffer, PATH_MAX);
+        if (count != -1) {
+            return std::filesystem::path(std::string(buffer, count));
+        }
+        return std::filesystem::path(); // En caso de error
+        #endif
+    }
+
     Application::Application(const std::filesystem::path& configPath)
         : config_(ConfigLoader::load(configPath))
     {
-        // 1. Obtenemos el tiempo actual del sistema
-        auto now = std::chrono::system_clock::now();
-        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        if (config_.scenario.appendStartTimestamp) {
+            // 1. Obtenemos el tiempo actual del sistema
+            auto now = std::chrono::system_clock::now();
+            std::time_t now_c = std::chrono::system_clock::to_time_t(now);
 
-        // 2. Lo convertimos a tiempo local (estructura clásica std::tm)
-        // Usamos *std::localtime porque devuelve un puntero
-        std::tm localTime = *std::localtime(&now_c);
+            // 2. Lo convertimos a tiempo local (estructura clásica std::tm)
+            // Usamos *std::localtime porque devuelve un puntero
+            std::tm localTime = *std::localtime(&now_c);
 
-        // 3. Formateamos
-        // fmt soporta std::tm nativamente con la misma sintaxis que tenías
-        std::string timestamp = fmt::format("{:%Y-%m-%d_%H-%M-%S}", localTime);
+            // 3. Formateamos
+            // fmt soporta std::tm nativamente con la misma sintaxis que tenías
+            std::string timestamp = fmt::format("{:%Y-%m-%d_%H-%M-%S}", localTime);
 
-        outputPath_ = config_.scenario.outputDir / (config_.scenario.name + "_" + timestamp);
+            config_.scenario.name = config_.scenario.name + "_" + timestamp;
+        }
+            
+        outputPath_ = config_.scenario.outputDir / config_.scenario.name;
 
         if (!std::filesystem::exists(outputPath_)) {
             std::filesystem::create_directories(outputPath_);
@@ -103,8 +134,11 @@ namespace danasim {
             // -------------------------------------------------
             LOG_INFO("Initializing input factory");
 
-            std::unique_ptr<InputPort> mainInputSource = std::make_unique<FileInput>(
-                config_.input.file.path, 
+            std::filesystem::path dataPath = PROJECT_DIR / "data";
+
+            std::unique_ptr<FileInput> mainInputSource = std::make_unique<FileInput>(
+                dataPath,
+                config_.input.file.datasetName,
                 config_.input.file.staticFormat, 
                 config_.input.file.dynamicFormat
             );
@@ -115,7 +149,7 @@ namespace danasim {
             // 2. Output Modules Initialization
             // -------------------------------------------------
             LOG_INFO("Initializing output factory");
-            outputs_ = OutputFactory::createOutputs(config_.output);
+            outputs_ = OutputFactory::createOutputs(config_.output, config_.scenario.name);
 
             // -------------------------------------------------
             // 3. Snapshot Manager (Async State Capture)

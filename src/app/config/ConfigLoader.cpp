@@ -5,6 +5,7 @@
 
 #include "app/config/ConfigLoader.hpp"
 
+#include <algorithm>
 #include <yaml-cpp/yaml.h>
 #include <string_view>
 #include <filesystem>
@@ -47,13 +48,13 @@ namespace danasim {
 
         template <>
         OutputConfig::MqttOutputConfigEntry::PayloadFormat parseEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(std::string_view value) {
-            if (value == "protobuf") return OutputConfig::MqttOutputConfigEntry::PayloadFormat::PROTOBUF;
+            if (value == "json") return OutputConfig::MqttOutputConfigEntry::PayloadFormat::JSON;
             throw ConfigurationException("Invalid MQTT payload format: " + std::string(value));
         }
 
         template <>
-        StateUpdaterConfigType parseEnum<StateUpdaterConfigType>(std::string_view value) {
-            if (value == "onnx")   return StateUpdaterConfigType::ONNX;
+        UpdaterConfigType parseEnum<UpdaterConfigType>(std::string_view value) {
+            if (value == "onnx")   return UpdaterConfigType::ONNX;
             throw ConfigurationException("Invalid state updater type: " + std::string(value));
         }
 
@@ -130,7 +131,7 @@ namespace danasim {
                 config.input.file = InputConfig::FileInputSourceConfig{
                     .staticFormat = extract<std::string>(fileNode, "static_format"),
                     .dynamicFormat = extract<std::string>(fileNode, "dynamic_format"),
-                    .path = (configFolder / extract<std::string>(fileNode, "path")).lexically_normal()
+                    .datasetName = extract<std::string>(fileNode, "dataset_name")
                 };
             }
 
@@ -169,9 +170,6 @@ namespace danasim {
                 case OutputConfig::OutputConfigEntryType::MQTT: {
                     config.output.outputs.emplace_back(OutputConfig::MqttOutputConfigEntry{
                         .address = extract<std::string>(outNode, "address"),
-                        .topic = extract<std::string>(outNode, "topic"),
-                        .clientId = extract<std::string>(outNode, "client_id"),
-                        .qos = extract<int>(outNode, "qos"),
                         .payloadFormat = parseEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(extract<std::string>(outNode, "format"))
                         });
                     break;
@@ -231,7 +229,7 @@ namespace danasim {
             config.logging.level = extract<std::string>(node, "level");
             config.logging.async = extract<bool>(node, "async");
             config.logging.silent = extract<bool>(node, "silent");
-            config.logging.saveLogFile = extract<bool>(node, "saveLogFile");
+            config.logging.saveLogFile = extract<bool>(node, "save_log_file");
         }
 
         // -----------------------------
@@ -240,14 +238,16 @@ namespace danasim {
         {
             const auto node = requireNode(root, "scenario");
 
-            if (node["outputDir"]) {
-                config.scenario.outputDir = (configFolder / extract<std::string>(node, "outputDir")).lexically_normal();
+            if (node["output_dir"]) {
+                config.scenario.outputDir = (configFolder / extract<std::string>(node, "output_dir")).lexically_normal();
             }
             else {
                 config.scenario.outputDir = GetAppDataDirectory("Danasim");
             }
 
             config.scenario.name = extract<std::string>(node, "name");
+
+            config.scenario.appendStartTimestamp = extract<bool>(node, "append_start_timestamp");
         }
 
         // -----------------------------
@@ -256,16 +256,67 @@ namespace danasim {
         {
             const auto node = requireNode(root, "state_updater");
             
-            auto type = parseEnum<StateUpdaterConfigType>(extract<std::string>(node, "type"));
 
-            switch (type) {
-            case StateUpdaterConfigType::ONNX: {
-                config.stateUpdater = OnnxStateUpdaterConfig{
-                    .modelPath = (configFolder / extract<std::string>(node, "model_path")).lexically_normal(),
-					.tensorDim = extract<int64_t>(node, "tensor_dim")
-                };
-                break;
+            {
+                const auto updaterNode = requireNode(node, "updater");
+
+                auto type = parseEnum<UpdaterConfigType>(extract<std::string>(updaterNode, "type"));
+
+                switch (type) {
+                case UpdaterConfigType::ONNX: {
+                    config.stateUpdater.updater = OnnxUpdaterConfig{
+                        .modelPath = (configFolder / extract<std::string>(updaterNode, "model_path")).lexically_normal(),
+                        .tensorDim = extract<int64_t>(updaterNode, "tensor_dim")
+                    };
+                    break;
+                }
+                }
             }
+
+
+			config.stateUpdater.enableRainfall = extract<bool>(node, "enable_rainfall");
+
+            config.stateUpdater.dryTolerance = extract<float>(node, "dry_tolerance");
+
+            {
+                const auto floodRiskNode = requireNode(node, "flood_risk");
+
+                const auto defaultLevelNode = requireNode(floodRiskNode, "default_level");
+
+                FloodRiskLevel defaultLevel{
+                    .name = extract<std::string>(defaultLevelNode, "name"),
+                    .thresholdStart = 0.0,
+                    .colorHex = extract<std::string>(defaultLevelNode, "color_hex")
+                };
+
+
+                config.stateUpdater.floodRiskLevels.emplace_back(defaultLevel);
+
+
+                const auto levelsNode = requireNode(floodRiskNode, "levels");
+
+                for (const auto& elemNode : levelsNode) {
+                    config.stateUpdater.floodRiskLevels.emplace_back(FloodRiskLevel{
+                        .name = extract<std::string>(elemNode, "name"),
+                        .thresholdStart = extract<float>(elemNode, "threshold_start"),
+                        .colorHex = extract<std::string>(elemNode, "color_hex")
+                    });
+                }
+
+
+                validate(!config.stateUpdater.floodRiskLevels.empty(), "At least one flood risk level must be defined");
+
+
+                std::sort(
+                    config.stateUpdater.floodRiskLevels.begin(),
+                    config.stateUpdater.floodRiskLevels.end(),
+                    [](const FloodRiskLevel& a, const FloodRiskLevel& b) {
+                        return a.thresholdStart < b.thresholdStart;
+                    }
+                );
+
+
+                validate(config.stateUpdater.floodRiskLevels[0].name == defaultLevel.name, "First flood risk level must be the default level");
             }
         }
 

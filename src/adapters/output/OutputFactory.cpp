@@ -32,7 +32,7 @@ namespace danasim {
     }
 
     std::vector<std::unique_ptr<OutputPort>>
-        OutputFactory::createOutputs(const OutputConfig& config)
+        OutputFactory::createOutputs(const OutputConfig& config, const std::string& scenarioName)
     {
         std::vector<std::unique_ptr<OutputPort>> outputs;
 
@@ -51,14 +51,12 @@ namespace danasim {
                 },
 
                 // 2. MQTT Output
-                [](const OutputConfig::MqttOutputConfigEntry& arg) -> std::unique_ptr<OutputPort> {
-                    LOG_DEBUG("Initializing MQTT Output: {} (Topic: {})", arg.address, arg.topic);
+                [&scenarioName](const OutputConfig::MqttOutputConfigEntry& arg) -> std::unique_ptr<OutputPort> {
+                    LOG_DEBUG("Initializing MQTT Output");
 
                     return std::make_unique<MqttOutput>(
                         arg.address,
-                        arg.topic,
-                        arg.clientId,
-                        arg.qos,
+                        scenarioName,
                         arg.payloadFormat
                     );
                 },

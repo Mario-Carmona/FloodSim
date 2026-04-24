@@ -1,19 +1,20 @@
 scenario:
-  outputDir: ../outputs
+  output_dir: ../outputs
   name: scenario_29_10_2024_kaggle
+  append_start_timestamp: true
 
 logging:
   level: info
   async: true
   silent: false
-  saveLogFile: true
+  save_log_file: true
 
 input:
   sources:
     - type: file
       static_format: IDRISI
       dynamic_format: HIF
-      path: /kaggle/input/sim-data/data_29_10_2024
+      dataset_name: data_29_10_2024
   layers:
     - name: topo_bathy
       source: file

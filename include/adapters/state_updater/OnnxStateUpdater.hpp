@@ -28,7 +28,7 @@ namespace danasim {
 
     class OnnxStateUpdater : public StateUpdaterPort {
     public:
-        explicit OnnxStateUpdater(const std::filesystem::path& modelPath, int64_t tensorDim);
+        explicit OnnxStateUpdater(bool enableRainfall, float dryTolerance, const std::vector<FloodRiskLevel>& floodRiskLevels, const std::filesystem::path& modelPath, int64_t tensorDim);
         ~OnnxStateUpdater() = default;
 
         // Método para enviar datos estáticos (Elevación, Rugosidad, dt, dx) una sola vez
@@ -37,6 +37,9 @@ namespace danasim {
         void step(MapGrid& grid) override;
 
         const ModelParamsInfo& getModelParamsInfo() const override { return paramsInfo_; };
+
+        const std::string& getFluidLayer() const override { return fluidLayerName_; };
+		const std::string& getFluidMovementStateLayer() const override { return fluidMovementStateLayerName_; };
 
     private:
         int64_t tensorDim_;
@@ -49,6 +52,9 @@ namespace danasim {
 
         ModelGraphInfo preprocessModel_;
         ModelGraphInfo stepModel_;
+
+        std::string fluidLayerName_;
+        std::string fluidMovementStateLayerName_;
 
         std::unordered_map<std::string, std::unique_ptr<ScratchpadBase>> layersScratchpad;
 
@@ -63,13 +69,15 @@ namespace danasim {
             const ModelGraphInfo& graphInfo, const std::vector<int64_t>& tensor_shape, bool useDynamicBoundingBox,
             const std::vector<Tile>& active_tiles);
 
-        std::vector<Tile> getActiveTiles(MapGrid& grid);
+        void getActiveTiles(const MapGrid& grid, std::vector<Tile>& active_tiles) const;
 
         ModelGraphInfo parseModelGraphInfo(const nlohmann::json& graphJson);
 
         Ort::Value configureTensor(const TensorInfo& info, MapGrid& grid, const std::vector<int64_t>& tensor_shape, size_t tensor_size, bool useDynamicBoundingBox);
     
         TensorInfo parseTensorInfo(const nlohmann::json& tensorJson, bool outputTensor);
+
+        int8_t classifyRisk(float depth) const;
     };
 
 

@@ -34,7 +34,7 @@ namespace danasim {
          * @param inputPath The root directory containing the scenario data.
          * @throw std::runtime_error If GDAL drivers cannot be registered.
          */
-        explicit FileInput(const std::filesystem::path& inputPath, const std::string& staticFormat, const std::string& dynamicFormat);
+        explicit FileInput(const std::filesystem::path& dataPath, const std::string& datasetName, const std::string& staticFormat, const std::string& dynamicFormat);
 
         virtual ~FileInput() = default;
 
@@ -42,8 +42,12 @@ namespace danasim {
 
         bool isStaticLayer(const std::string& name) const override;
 
+        inline const std::string& getDatasetName() const { return datasetName_; }
+
     private:
         std::filesystem::path inputPath_;
+
+        std::string datasetName_;
 
         std::string staticFormat_;
         std::string dynamicFormat_;

@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cmath>
 #include <stdexcept>
+#include <GeographicLib/UTMUPS.hpp>
 
 #include "logging/Logger.hpp"
 
@@ -159,6 +160,112 @@ namespace danasim {
                 LOG_ERROR("La capa Rainfall no es de tipo float");
             }
         }
+    }
+
+    std::optional<UTMZoneInfo> MapGrid::parseUTMZoneFromEPSG(const std::string& epsgString) const {
+        // 1. Extraer solo la parte numérica (ignorar "EPSG:" si está presente)
+        size_t colonPos = epsgString.find(':');
+        std::string numPart = (colonPos != std::string::npos) ?
+            epsgString.substr(colonPos + 1) : epsgString;
+
+        int epsgCode;
+        try {
+            epsgCode = std::stoi(numPart);
+        }
+        catch (...) {
+            return std::nullopt; // No es un número válido
+        }
+
+        // 2. Extraer la zona (los dos últimos dígitos)
+        int zone = epsgCode % 100;
+
+        // Validación básica de zona UTM
+        if (zone < 1 || zone > 60) {
+            return std::nullopt;
+        }
+
+        // 3. Determinar el sistema y hemisferio
+        int baseCode = epsgCode - zone; // Ej: 25830 - 30 = 25800
+
+        switch (baseCode) {
+        case 32600: // WGS 84 North
+        case 25800: // ETRS89 North (Europa)
+        case 23000: // ED50 North (Europa)
+            return UTMZoneInfo{ zone, true };
+
+        case 32700: // WGS 84 South
+            return UTMZoneInfo{ zone, false };
+
+        default:
+            // Es un código EPSG válido numéricamente, pero no es de un bloque UTM reconocido
+            return std::nullopt;
+        }
+    }
+
+    GridViewBox::Point MapGrid::transformViewPoint(ViewBox::Point sourcePoint, const std::string& targetCRS) const {
+
+        auto utmInfo = parseUTMZoneFromEPSG(targetCRS);
+        if (!utmInfo.has_value()) {
+            throw std::runtime_error("El CRS destino (" + targetCRS + ") no es un sistema UTM soportado matemáticamente.");
+        }
+
+        int computedZone;
+        bool computedNorthp;
+
+        GridViewBox::Point gridViewPoint;
+
+        try {
+            // Le pasamos la zona extraída dinámicamente del string (ej. 30)
+            GeographicLib::UTMUPS::Forward(sourcePoint.lat, sourcePoint.lon, computedZone, computedNorthp, gridViewPoint.x, gridViewPoint.y, utmInfo->zone);
+
+            // Verificamos que la coordenada real cae en el hemisferio que el EPSG espera
+            if (computedNorthp != utmInfo->isNorth) {
+                // Nota: En algunos casos limítrofes (cerca del ecuador) esto podría flexibilizarse,
+                // pero estrictamente hablando, si el EPSG pide Norte y cae en Sur, hay una discrepancia.
+                throw std::runtime_error("Las coordenadas caen en el hemisferio incorrecto para este EPSG.");
+            }
+
+        }
+        catch (const GeographicLib::GeographicErr& e) {
+            throw std::runtime_error(std::string("Error en GeographicLib: ") + e.what());
+        }
+
+        return gridViewPoint;
+    }
+
+    ViewBox::Point MapGrid::transformGridViewPoint(GridViewBox::Point sourcePoint, const std::string& targetCRS) const {
+
+        auto utmInfo = parseUTMZoneFromEPSG(targetCRS);
+        if (!utmInfo.has_value()) {
+            throw std::runtime_error("El CRS destino (" + targetCRS + ") no es un sistema UTM soportado matemáticamente.");
+        }
+
+        int computedZone;
+        bool computedNorthp;
+
+        ViewBox::Point viewPoint;
+
+        try {
+            // Le pasamos la zona extraída dinámicamente del string (ej. 30)
+            GeographicLib::UTMUPS::Reverse(
+                utmInfo->zone,
+                utmInfo->isNorth,
+                sourcePoint.x,
+                sourcePoint.y,
+                viewPoint.lat,
+                viewPoint.lon
+            );
+
+        }
+        catch (const GeographicLib::GeographicErr& e) {
+            throw std::runtime_error(std::string("Error en GeographicLib: ") + e.what());
+        }
+
+        return viewPoint;
+    }
+
+    ViewBox::Point MapGrid::georeference() const {
+        return transformGridViewPoint(GridViewBox::Point{metadata_.minX, metadata_.maxY}, metadata_.crs);
     }
 
 } // namespace danasim

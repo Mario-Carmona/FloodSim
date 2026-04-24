@@ -77,7 +77,7 @@ namespace danasim {
         }
     }
 
-    void ImageOutput::setGrid(const MapGrid& grid) {
+    void ImageOutput::setInitConfig(const MapGrid& grid, const std::string& datasetName, std::chrono::sys_seconds /* startTimestamp */) {
         rows_ = static_cast<int>(grid.rows());
         cols_ = static_cast<int>(grid.cols());
 
@@ -322,45 +322,6 @@ namespace danasim {
         }
         else {
             LOG_ERROR("Failed to write image: {}", (imagesOutputPath / filename).string());
-        }
-
-
-        // ---------------------------------------------------------------------
-        // PASO 3: Generar Imagen de CAMBIOS (Changes)
-        // ---------------------------------------------------------------------
-        // AQUÍ ESTÁ LO QUE PEDÍAS: Usamos 'baseTerrain.clone()' de nuevo.
-        // Así tenemos el mismo fondo hillshade bonito, pero sin el agua pintada.
-        cv::Mat topoTerrain = createTerrainBackground(snapshot, true);
-        cv::Mat changesImg = topoTerrain.clone();
-
-        const auto& chX = changes.x;
-        const auto& chY = changes.y;
-        cv::Vec3b activeColor(0, 0, 255);
-
-        // Pintar puntos rojos
-        if (chX.size() == chY.size()) {
-            for (size_t i = 0; i < chX.size(); ++i) {
-                if (chX[i] >= 0 && chX[i] < cols_ && chY[i] >= 0 && chY[i] < rows_) {
-                    changesImg.at<cv::Vec3b>(static_cast<int>(chY[i]), static_cast<int>(chX[i])) = activeColor;
-                }
-            }
-        }
-
-        // Agregar texto específico a la imagen de cambios
-        std::string changesLabel = fmt::format("Active Cells: {}", chX.size());
-        cv::putText(changesImg, changesLabel, { 20, 40 }, cv::FONT_HERSHEY_SIMPLEX, 0.8, { 255, 255, 255 }, 4);
-        cv::putText(changesImg, changesLabel, { 20, 40 }, cv::FONT_HERSHEY_SIMPLEX, 0.8, { 0, 0, 255 }, 2);
-
-        // Construir nombre de archivo (_changes.png)
-        std::string changesFilename = fmt::format("Changes_{:%FT%T}.png", snapshot.time());
-        std::replace(changesFilename.begin(), changesFilename.end(), ':', '-');
-
-        if (cv::imwrite((imagesOutputPath / changesFilename).string(), changesImg)) {
-            // Opcional: Descomentar si quieres confirmación de escritura
-            LOG_INFO("Saved image: {} | Num. Changes: {}", (imagesOutputPath / changesFilename).string(), chX.size());
-        }
-        else {
-            LOG_ERROR("Failed to write image: {}", (imagesOutputPath / changesFilename).string());
         }
     }
 

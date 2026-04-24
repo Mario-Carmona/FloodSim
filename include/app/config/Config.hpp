@@ -31,7 +31,7 @@ namespace danasim {
         struct FileInputSourceConfig {
             std::string staticFormat;
             std::string dynamicFormat;
-            std::filesystem::path path; ///< Path to the input file.
+            std::string datasetName; 
         };
 
 
@@ -61,13 +61,10 @@ namespace danasim {
         struct MqttOutputConfigEntry {
 
             enum class PayloadFormat {
-                PROTOBUF
+                JSON
             };
 
             std::string address;
-            std::string topic;
-            std::string clientId;
-            int qos;
             PayloadFormat payloadFormat;
         };
 
@@ -94,16 +91,29 @@ namespace danasim {
     // State Updater Configuration
     // -------------------------------------------------------------------------
 
-    enum class StateUpdaterConfigType {
+    enum class UpdaterConfigType {
         ONNX
     };
 
-    struct OnnxStateUpdaterConfig {
+    struct OnnxUpdaterConfig {
         std::filesystem::path modelPath;
         int64_t tensorDim;
     };
 
-    using StateUpdaterConfig = std::variant<OnnxStateUpdaterConfig>;
+    using UpdaterConfig = std::variant<OnnxUpdaterConfig>;
+
+    struct FloodRiskLevel {
+        std::string name;
+        float thresholdStart;
+        std::string colorHex;
+    };
+
+    struct StateUpdaterConfig {
+        UpdaterConfig updater;
+        bool enableRainfall;
+        float dryTolerance;
+        std::vector<FloodRiskLevel> floodRiskLevels;
+    };
 
     // -------------------------------------------------------------------------
     // General Settings
@@ -131,6 +141,7 @@ namespace danasim {
     struct ScenarioConfig {
         std::filesystem::path outputDir;
         std::string name;
+        bool appendStartTimestamp;
     };
 
     struct LoggingConfig {

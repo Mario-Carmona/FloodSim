@@ -55,10 +55,12 @@ def generate_graph_metadata(model_proto) -> dict:
         "outputs": extract_node_metadata(graph.output)
     }
 
-def print_summary(model_name: str, metadata: dict):
+def print_summary(metadata: dict):
     """Prints a clean, formatted summary of the exported model to the console."""
     print(f"\n{'-'*50}")
-    print(f" MODEL EXPORTED: {model_name}")
+    print(f" MODEL EXPORTED: {metadata['model_name']}")
+    print(f" FLUID LAYER: {metadata['fluid_layer']}")
+    print(f" FLUID MOVEMENT STATE LAYER: {metadata['fluid_movement_state_layer']}")
     print(f"{'-'*50}")
     
     for method in ["preprocess", "step"]:
@@ -112,8 +114,26 @@ def export_all_models(source_dir: str, output_dir: str, target_class: str = "Flo
             print(f"  [ERROR] Model '{model_name}' is missing 'preprocess' or 'step' methods.")
             continue
 
+        # Extraer el nombre de la capa de fluido dinámicamente
+        fluid_layer_name = "unknown"
+        if hasattr(model_instance, "get_fluid_layer_name"):
+            fluid_layer_name = model_instance.get_fluid_layer_name()
+        else:
+            print(f"  [ERROR] Model '{model_name}' is missing 'get_fluid_layer_name'. Defaulting to 'unknown'.")
+
+        fluid_movement_state_layer_name = "unknown"
+        if hasattr(model_instance, "get_fluid_movement_state_layer_name"):
+            fluid_movement_state_layer_name = model_instance.get_fluid_movement_state_layer_name()
+        else:
+            print(f"  [ERROR] Model '{model_name}' is missing 'get_fluid_movement_state_layer_name'. Defaulting to 'unknown'.")
+
         os.makedirs(model_export_path, exist_ok=True)
-        model_metadata = {"model_name": model_name}
+
+        model_metadata = {
+            "model_name": model_name,
+            "fluid_layer": fluid_layer_name,
+            "fluid_movement_state_layer": fluid_movement_state_layer_name
+        }
 
         try:
             # ==========================================
@@ -148,7 +168,7 @@ def export_all_models(source_dir: str, output_dir: str, target_class: str = "Flo
                 json.dump(model_metadata, json_file, indent=4)
 
             # Output success and summary
-            print_summary(model_name, model_metadata)
+            print_summary(model_metadata)
 
         except Exception as e:
             print(f"  [ERROR] Failed to export {model_name}: {e}")

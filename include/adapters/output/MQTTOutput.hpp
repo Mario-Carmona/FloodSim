@@ -20,16 +20,14 @@ namespace danasim {
     class MqttOutput : public OutputPort {
     public:
         MqttOutput(const std::string& address,
-            const std::string& topic,
-            const std::string& clientId,
-            int qos,
+            const std::string& scenarioName,
             OutputConfig::MqttOutputConfigEntry::PayloadFormat payloadFormat);
 
         ~MqttOutput();
 
         void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
 
-        void setGrid(const MapGrid& grid) override;
+        void setInitConfig(const MapGrid& grid, const std::string& datasetName, std::chrono::sys_seconds startTimestamp) override;
 
         std::string getThreadName() const override { return "Out_MQTT"; }
 
@@ -38,15 +36,20 @@ namespace danasim {
         static std::unique_ptr<PayloadSerializer> createPayloadSerializer(const OutputConfig::MqttOutputConfigEntry::PayloadFormat& format);
 
         void connect();
+        void handshake();
+
+        GridIndexType sendInitState(const MapGrid& grid);
+
         void publishInChunks(const Snapshot& snapshot, const ChangeList& changes);
 
-        const int MAX_INFLIGHT = 100;
-        const int BATCH_SIZE = 20;
-        const size_t CHUNK_SIZE = 2000;
+        std::string getCurrentTimestampUTC();
 
-        const std::string topic_;
+        const int BATCH_SIZE = 10;
+        const GridIndexType CHUNK_SIZE = 40000;
+
+        const std::string baseTopic_;
+        std::string clientID_;
         mqtt::async_client client_;
-        int qos_;
 
         std::unique_ptr<PayloadSerializer> payloadSerializer_;
     };
