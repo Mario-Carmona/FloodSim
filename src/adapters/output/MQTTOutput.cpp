@@ -180,6 +180,7 @@ namespace danasim {
         const std::string TOPIC_CHANGES(baseTopic_ + "/events");
         const std::string TOPIC_CONTROL_CHANGES(baseTopic_ + "/control/events");
 
+        auto totalStart = std::chrono::high_resolution_clock::now();
 
         client_.subscribe(TOPIC_CONTROL_CHANGES, 1)->wait();
 
@@ -234,7 +235,13 @@ namespace danasim {
                 // Si hemos alcanzado el límite del lote, esperamos a que Mosquitto confirme 
                 // la recepción de todos antes de saturar los buffers.
                 if (chunk_count % BATCH_SIZE == 0) {
+                    auto start = std::chrono::high_resolution_clock::now();
+
                     auto msg_ack = client_.consume_message();
+
+                    auto end = std::chrono::high_resolution_clock::now();
+                    std::chrono::duration<double> elapsed = end - start;
+                    LOG_DEBUG("Tiempo Esperando: {}s", elapsed.count());
 
                     if (msg_ack && msg_ack->get_topic_ref().to_string() == TOPIC_CONTROL_CHANGES) {
                         nlohmann::json chunk_ack_payload = payloadSerializer_->parseChunkAckPayload(msg_ack->get_payload_ref().to_string());
@@ -266,6 +273,10 @@ namespace danasim {
         LOG_INFO("[MQTT] Envío de estado inicial completado. Total chunks: {}", chunk_count);
 
         client_.unsubscribe(TOPIC_CONTROL_CHANGES)->wait();
+
+        auto totalEnd = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = totalEnd - totalStart;
+        LOG_DEBUG("Tiempo Total: {}s", elapsed.count());
 
         return chunk_count;
     }

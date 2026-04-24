@@ -44,8 +44,8 @@ namespace danasim {
 
         std::string getCurrentTimestampUTC();
 
-        const int BATCH_SIZE = 40;
-        const GridIndexType CHUNK_SIZE = 4000;
+        const int BATCH_SIZE = 10;
+        const GridIndexType CHUNK_SIZE = 40000;
 
         const std::string baseTopic_;
         std::string clientID_;
