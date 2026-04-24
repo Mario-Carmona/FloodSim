@@ -11,14 +11,14 @@ from python.mqtt.network import MQTTMonitorClient
 from python.mqtt.visualizer import GridVisualizer
 
 
-def _run_main_with_messages(messages: list, chunks_per_batch: int) -> int:
+def _run_main_with_messages(messages: list) -> dict:
     """
     Runs main() in a daemon thread with a mocked MQTT client.
-    Feeds `messages` into the queue after startup and returns the number
-    of ChunkAck calls recorded.
+    Feeds `messages` into the queue and returns a dict with recorded calls:
+      - snapshot_calls: number of times save_snapshot was called
     """
     captured = {}
-    ack_calls = []
+    snapshot_calls = []
 
     def fake_init(self, q):
         self.queue = q
@@ -26,12 +26,14 @@ def _run_main_with_messages(messages: list, chunks_per_batch: int) -> int:
         self._logger = MagicMock()
         self.client = MagicMock()
 
+    def fake_save_snapshot(self, grid):
+        snapshot_calls.append(1)
+
     with (
         patch.object(MQTTMonitorClient, "__init__", fake_init),
         patch.object(MQTTMonitorClient, "connect", lambda self: None),
         patch.object(MQTTMonitorClient, "disconnect", lambda self: None),
-        patch.object(MQTTMonitorClient, "publish_chunk_ack", lambda self: ack_calls.append(1)),
-        patch.object(GridVisualizer, "save_snapshot", lambda self, grid: None),
+        patch.object(GridVisualizer, "save_snapshot", fake_save_snapshot),
         patch("sys.exit"),
     ):
         t = threading.Thread(target=main, daemon=True)
@@ -50,10 +52,10 @@ def _run_main_with_messages(messages: list, chunks_per_batch: int) -> int:
         t.join(timeout=5.0)
         assert not t.is_alive(), "main() thread did not finish before timeout"
 
-    return len(ack_calls)
+    return {"snapshot_calls": len(snapshot_calls)}
 
 
-def _base_init_messages():
+def _init_messages():
     return [
         {
             "process": "InitMap_Config",
@@ -63,60 +65,88 @@ def _base_init_messages():
     ]
 
 
-def _chunk_message():
-    return {"process": "EYE_SetState_Layer", "changes": {"cells": []}}
+def _layer_chunk(cells: dict):
+    return {"process": "EYE_SetState_Layer", "changes": {"cells": cells}}
 
 
-def test_chunk_ack_count():
-    """6 chunks with batch_size=2 must produce exactly 3 ACKs."""
-    messages = _base_init_messages() + [
-        {"process": "FrameStart", "total_chunks": 6, "chunks_per_batch": 2},
-        _chunk_message(),
-        _chunk_message(),
-        _chunk_message(),
-        _chunk_message(),
-        _chunk_message(),
-        _chunk_message(),
+def _frame_sync():
+    return {"process": "EYE_Frame_Sync", "simulation_time": "2026-01-01T00:00:00"}
+
+
+def _sim_end():
+    return {"process": "Sim_End", "sim_time_total": 1.0}
+
+
+def test_render_only_on_frame_sync():
+    """FrameEnd must NOT generate an image. EYE_Frame_Sync is the only render trigger."""
+    messages = _init_messages() + [
+        {"process": "FrameStart", "total_chunks": 1},
+        _layer_chunk({"0": {"state": "FLOODED"}}),
         {"process": "FrameEnd"},
-        {"process": "Sim_End", "sim_time_total": 1.0},
+        # No EYE_Frame_Sync → no extra render beyond Init_EOF
+        _sim_end(),
     ]
-    acks = _run_main_with_messages(messages, chunks_per_batch=2)
-    assert acks == 3, f"expected 3 ChunkAck, got {acks}"
-    print("PASS test_chunk_ack_count: 3 ChunkAck received correctly")
+    result = _run_main_with_messages(messages)
+    # Only Init_EOF should have triggered a snapshot (1 call)
+    assert result["snapshot_calls"] == 1, (
+        f"expected 1 snapshot (Init_EOF only), got {result['snapshot_calls']}"
+    )
+    print("PASS test_render_only_on_frame_sync")
 
 
-def test_no_ack_without_frame_start():
-    """Without FrameStart, chunks_per_batch stays 0 and no ACK is sent."""
-    messages = _base_init_messages() + [
-        _chunk_message(),
-        _chunk_message(),
-        _chunk_message(),
-        {"process": "Sim_End", "sim_time_total": 1.0},
-    ]
-    acks = _run_main_with_messages(messages, chunks_per_batch=0)
-    assert acks == 0, f"expected 0 ChunkAck, got {acks}"
-    print("PASS test_no_ack_without_frame_start: no ACK sent (backward compat)")
-
-
-def test_partial_batch_no_ack():
-    """5 chunks with batch_size=3 → only 1 ACK (after chunk 3); chunks 4-5 don't complete the next batch."""
-    messages = _base_init_messages() + [
-        {"process": "FrameStart", "total_chunks": 5, "chunks_per_batch": 3},
-        _chunk_message(),
-        _chunk_message(),
-        _chunk_message(),  # ACK here
-        _chunk_message(),
-        _chunk_message(),  # frame ends with 2 pending, no ACK
+def test_frame_sync_triggers_render():
+    """EYE_Frame_Sync after FrameEnd must generate exactly one image."""
+    messages = _init_messages() + [
+        {"process": "FrameStart", "total_chunks": 1},
+        _layer_chunk({"0": {"state": "FLOODED"}}),
         {"process": "FrameEnd"},
-        {"process": "Sim_End", "sim_time_total": 1.0},
+        _frame_sync(),
+        _sim_end(),
     ]
-    acks = _run_main_with_messages(messages, chunks_per_batch=3)
-    assert acks == 1, f"expected 1 ChunkAck, got {acks}"
-    print("PASS test_partial_batch_no_ack: 1 ACK for full batch, partial remainder silent")
+    result = _run_main_with_messages(messages)
+    # Init_EOF (1) + EYE_Frame_Sync (1) = 2 snapshots
+    assert result["snapshot_calls"] == 2, (
+        f"expected 2 snapshots (Init_EOF + EYE_Frame_Sync), got {result['snapshot_calls']}"
+    )
+    print("PASS test_frame_sync_triggers_render")
+
+
+def test_bulk_apply_accumulates_across_chunks():
+    """Changes from multiple chunks must all be present after FrameEnd."""
+    from python.mqtt.data_model import SimulationGrid
+
+    sim = SimulationGrid()
+    sim.apply_init_map_config({
+        "map": {"size_x": 5, "size_y": 5, "chunk_size": 1, "cell_resolution_m": 1.0}
+    })
+
+    chunk1 = {"0": {"state": "FLOODED"}}   # flat_index 0 → (row=0, col=0)
+    chunk2 = {"6": {"state": "HIGH_DEPTH"}} # flat_index 6 → (row=1, col=1)
+
+    pending = []
+    pending.extend(sim.collect_from_layer_event(
+        {"process": "EYE_SetState_Layer", "changes": {"cells": chunk1}}
+    ))
+    pending.extend(sim.collect_from_layer_event(
+        {"process": "EYE_SetState_Layer", "changes": {"cells": chunk2}}
+    ))
+
+    assert sim.grid[0, 0] == 0, "grid should not be modified before apply_bulk_changes"
+    assert sim.grid[1, 1] == 0, "grid should not be modified before apply_bulk_changes"
+
+    sim.apply_bulk_changes(pending)
+
+    assert sim.grid[0, 0] == 3, f"expected 3 (FLOODED), got {sim.grid[0, 0]}"
+    assert sim.grid[1, 1] == 4, f"expected 4 (HIGH_DEPTH), got {sim.grid[1, 1]}"
+    print("PASS test_bulk_apply_accumulates_across_chunks")
 
 
 def run() -> int:
-    tests = [test_chunk_ack_count, test_no_ack_without_frame_start, test_partial_batch_no_ack]
+    tests = [
+        test_render_only_on_frame_sync,
+        test_frame_sync_triggers_render,
+        test_bulk_apply_accumulates_across_chunks,
+    ]
     failed = 0
     for test in tests:
         try:
@@ -124,10 +154,7 @@ def run() -> int:
         except Exception as exc:
             print(f"FAIL {test.__name__}: {exc}")
             failed += 1
-    if failed == 0:
-        print(f"\nAll {len(tests)} tests passed.")
-    else:
-        print(f"\n{failed}/{len(tests)} tests FAILED.")
+    print(f"\n{'All' if not failed else failed} / {len(tests)} tests {'passed' if not failed else 'FAILED'}.")
     return failed
 
 

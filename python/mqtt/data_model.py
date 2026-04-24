@@ -178,6 +178,64 @@ class SimulationGrid:
         self.has_new_data = False
         return self.grid
 
+    def collect_from_layer_event(self, event: dict) -> list:
+        """Parse EYE_SetState_Layer and return (row, col, value) tuples without touching the grid."""
+        changes = event.get("changes", {})
+        cells = changes.get("cells", {})
+        if not isinstance(cells, dict) or not cells:
+            return []
+        max_y, max_x = self.grid.shape
+        result = []
+        for key, cell in cells.items():
+            try:
+                flat_index = int(key)
+            except (TypeError, ValueError):
+                self._logger.warning("Celda con clave no entera ignorada: %s", key)
+                continue
+            row = flat_index // max_x
+            col = flat_index % max_x
+            cell_value = self._resolve_cell_value(cell)
+            if cell_value is None:
+                continue
+            result.append((row, col, int(cell_value)))
+        return result
+
+    def collect_from_object_event(self, event: dict) -> list:
+        """Parse EYE_SetState and return a single (row, col, value) tuple without touching the grid."""
+        changes = event.get("changes", {})
+        coord = changes.get("coord", {})
+        x = coord.get("x")
+        y = coord.get("y")
+        if x is None or y is None:
+            self._logger.warning("EYE_SetState sin coord, ignorado")
+            return []
+        x, y = int(x), int(y)
+        max_y, max_x = self.grid.shape
+        if x < 0 or y < 0 or x >= max_x or y >= max_y:
+            self._logger.error("EYE_SetState coord fuera de bounds: x=%s y=%s", x, y)
+            return []
+        value = self._resolve_cell_value({
+            "value": changes.get("value"),
+            "level": changes.get("level"),
+            "state": changes.get("state"),
+            "depth_level": changes.get("depth_level"),
+            "risk_level": changes.get("risk_level"),
+        })
+        if value is None:
+            value = 1
+        return [(y, x, int(value))]
+
+    def apply_bulk_changes(self, pending: list) -> bool:
+        """Apply accumulated (row, col, value) changes in a single vectorized numpy operation."""
+        if not pending:
+            return False
+        rows = np.array([r for r, c, v in pending], dtype=np.intp)
+        cols = np.array([c for r, c, v in pending], dtype=np.intp)
+        vals = np.array([v for r, c, v in pending], dtype=np.uint8)
+        self.grid[rows, cols] = vals
+        self.has_new_data = True
+        return True
+
     def update_from_layer_event(self, event: dict) -> bool:
         """Apply layer changes from a JSON EYE_SetState_Layer event.
 

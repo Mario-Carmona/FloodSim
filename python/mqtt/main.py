@@ -3,7 +3,6 @@ import logging
 import queue
 import os
 import sys
-import time
 
 if __package__ in (None, ""):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -33,28 +32,18 @@ def main():
 
     viewer = GridVisualizer(output_folder=os.getenv("DANASIM_OUTPUT_FOLDER", "sim_outputs"))
 
-    last_render_time = time.monotonic()
     running = True
-    ended_by_sim_end = False
-
+    pending_changes: list = []
     chunks_per_batch = 0
     chunks_since_ack = 0
 
-    def render_if_needed(force: bool = False):
-        nonlocal last_render_time
-        if not simulation.initialization["init_complete"] and not force:
+    def render():
+        if not simulation.initialization["init_complete"]:
             return
-
-        if not simulation.has_new_data and not force:
+        if not simulation.has_new_data:
             return
-
-        now = time.monotonic()
-        if not force and (now - last_render_time) < config.REFRESH_RATE_SECONDS:
-            return
-
         viewer.save_snapshot(simulation.grid)
         simulation.consume_data()
-        last_render_time = now
 
     print(f"Monitor iniciado para escenario '{config.SCENARIO_NAME}'. Esperando mensajes...")
 
@@ -63,15 +52,6 @@ def main():
             try:
                 item = msg_queue.get(timeout=config.IDLE_SLEEP_SECONDS)
             except queue.Empty:
-                render_if_needed()
-                continue
-
-            if isinstance(item, tuple) and len(item) == 3:
-                x, y, step = item
-                simulation.update_from_deltas(x, y, step)
-                render_if_needed(force=True)
-                print(f"Frame {step} procesado y guardado.")
-                msg_queue.task_done()
                 continue
 
             payload = item.get("payload", {})
@@ -97,59 +77,52 @@ def main():
             elif process == "Init_EOF":
                 simulation.mark_init_eof(payload)
                 if config.RENDER_ON_INIT_EOF:
-                    render_if_needed(force=True)
+                    viewer.save_snapshot(simulation.grid)
+                    simulation.consume_data()
                     print("Inicializacion completada. Snapshot inicial guardado.")
             elif process == "FrameStart":
+                pending_changes.clear()
                 chunks_per_batch = payload.get("chunks_per_batch", 0)
-                total_chunks = payload.get("total_chunks", 0)
                 chunks_since_ack = 0
-                logging.info("FrameStart: total_chunks=%d, chunks_per_batch=%d", total_chunks, chunks_per_batch)
+                logging.info("FrameStart: total_chunks=%d, chunks_per_batch=%d", payload.get("total_chunks", 0), chunks_per_batch)
             elif process == "FrameEnd":
-                render_if_needed(force=True)
-                logging.info("FrameEnd recibido.")
+                n = len(pending_changes)
+                simulation.apply_bulk_changes(pending_changes)
+                pending_changes.clear()
+                logging.info("FrameEnd: %d cambios aplicados al grid.", n)
             elif process == "EYE_SetState_Layer":
-                changed = simulation.apply_event(payload)
+                pending_changes.extend(simulation.collect_from_layer_event(payload))
                 if chunks_per_batch > 0:
                     chunks_since_ack += 1
                     if chunks_since_ack >= chunks_per_batch:
                         mqtt_client.publish_chunk_ack()
                         chunks_since_ack = 0
             elif process == "EYE_SetState":
-                changed = simulation.apply_event(payload)
-                if changed:
-                    print("Evento EYE_SetState procesado.")
+                pending_changes.extend(simulation.collect_from_object_event(payload))
                 if chunks_per_batch > 0:
                     chunks_since_ack += 1
                     if chunks_since_ack >= chunks_per_batch:
                         mqtt_client.publish_chunk_ack()
                         chunks_since_ack = 0
             elif process == "EYE_Frame_Sync":
-                # End-of-frame marker: flush pending layer/object updates as one render.
-                render_if_needed(force=True)
-                print(
-                    "Frame sincronizado. total_chunks_sent=",
-                    payload.get("total_chunks_sent"),
-                    "simulation_time=",
+                render()
+                logging.info(
+                    "EYE_Frame_Sync: imagen generada. simulation_time=%s",
                     payload.get("simulation_time"),
                 )
             elif process == "Sim_End":
-                logging.info("Evento recibido: Sim_End")
-                render_if_needed(force=True)
-                ended_by_sim_end = True
-                simulation.initialization["init_complete"] = True
+                logging.info("Sim_End recibido. Cerrando.")
                 running = False
             elif process == "System_Disconnected":
                 logging.info("Evento recibido: %s", process)
             else:
-                logging.debug("Evento ignorado (no soportado todavía): %s", process)
+                logging.debug("Evento ignorado: %s", process)
 
             msg_queue.task_done()
 
     except KeyboardInterrupt:
         print("\nSaliendo...")
     finally:
-        if not ended_by_sim_end:
-            render_if_needed(force=True)
         mqtt_client.disconnect()
         print("Clean exit after Sim_End", flush=True)
         sys.exit(0)
