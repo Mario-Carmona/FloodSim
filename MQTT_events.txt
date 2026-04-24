@@ -108,6 +108,10 @@ publicando los fragmentos.
 {
   "process": "InitAgent_Layer",
   "data_path": "data/data_29_10_2024/water_depth"  // Subruta dentro del repositorio donde tanto el Core como el Visualizador leeren los datos iniciales de la capa
+  "default_value": {
+    "state": "DRY",
+    "height": 0.0
+  }
 }
 
 
@@ -172,6 +176,17 @@ publicando los fragmentos.
 }
 
 
+3. Sincronización cambios de capa (EYE_Frame_Sync)
+
+- Payload JSON:
+
+{
+  "process": "EYE_Frame_Sync",
+  "frame_id": 1024,
+  "total_chunks_sent": 4000,
+  "simulation_time": "2026-04-10T12:00:00"
+}
+
 
 ===========================================================
 = Finalización =
@@ -189,18 +204,3 @@ ciclo de manera limpia.
   "sim_time_total": 3600.0
 }
 
-
-
-
-
-####################################################
-####################################################
-####################################################
-
-
-- Añadir la paleta de colores dentro de la carpeta de datos del escenario. (Formato del archivo por definir, dentro se 
-asociará cada etiqueta de estado a un color. El Core se debe encargar de interpolar los valores a su estado correspondiente).
-
-- Cambiar Protobuf a JSON como codificador de MQTT.
-
-- Poner como nombre de topic {nombre de escenaro creado por el Core}/events.

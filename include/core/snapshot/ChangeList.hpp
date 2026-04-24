@@ -16,8 +16,7 @@
 namespace danasim {
 
     struct ChangeList {
-        std::vector<GridIndexType> x;
-        std::vector<GridIndexType> y;
+        std::vector<GridIndexType> indexes;
     };
 
 } // namespace danasim

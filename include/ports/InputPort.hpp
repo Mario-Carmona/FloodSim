@@ -30,6 +30,8 @@ namespace danasim {
         virtual std::unique_ptr<Reader> generateReader(std::string name, bool isStatic) const = 0;
 
         virtual bool isStaticLayer(const std::string& name) const = 0;
+
+        virtual const std::string& getDatasetName() const = 0;
     };
 
 } // namespace danasim

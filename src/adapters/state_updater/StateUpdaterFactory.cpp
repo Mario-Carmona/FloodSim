@@ -37,7 +37,7 @@ namespace danasim {
         return std::visit(overloaded{
 
             // Onnx Strategy
-            [](const OnnxStateUpdaterConfig& cfg) -> std::unique_ptr<StateUpdaterPort> {
+            [&config](const OnnxUpdaterConfig& cfg) -> std::unique_ptr<StateUpdaterPort> {
                 // Validation: Ensure the model file actually exists before passing it to TF
                 if (!std::filesystem::exists(cfg.modelPath)) {
                     auto msg = fmt::format("StateUpdaterFactory: Model file not found at '{}'",
@@ -47,7 +47,10 @@ namespace danasim {
                 }
 
                 LOG_DEBUG("Initializing Onnx State Updater using model: {}", cfg.modelPath.string());
-                return std::make_unique<OnnxStateUpdater>(cfg.modelPath, cfg.tensorDim);
+                return std::make_unique<OnnxStateUpdater>(
+                    config.enableRainfall, config.dryTolerance, config.floodRiskLevels,
+                    cfg.modelPath, cfg.tensorDim
+                );
             },
 
             // Catch-all for unhandled types
@@ -56,7 +59,7 @@ namespace danasim {
                 throw std::runtime_error("StateUpdaterFactory: Unimplemented updater type.");
             }
 
-        }, config);
+        }, config.updater);
     }
 
 } // namespace danasim

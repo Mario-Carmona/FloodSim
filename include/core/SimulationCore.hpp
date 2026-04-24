@@ -18,27 +18,11 @@
 
 namespace danasim {
 
-    struct GridViewBox {
-
-        struct Point {
-            double x;
-            double y;
-        };
-
-        Point southWest;
-        Point northEast;
-    };
-
     struct GridIndexViewBox {
         GridIndexType minCol;
         GridIndexType maxCol;
         GridIndexType minRow;
         GridIndexType maxRow;
-    };
-
-    struct UTMZoneInfo {
-        int zone;
-        bool isNorth;
     };
 
     /**
@@ -87,27 +71,23 @@ namespace danasim {
         GridIndexViewBox gridIndexView_;
 
         Snapshot currentSnapshot_;
-        Snapshot previousSnapshot_;
 
         ChangeList changes_;
 
 
         struct ThreadResult {
-            std::vector<GridIndexType> local_x;
-            std::vector<GridIndexType> local_y;
+            std::vector<GridIndexType> local_indexes;
         };
 
         void processChunk(GridIndexType start_row, GridIndexType end_row, ThreadResult& result);
 
-        GridViewBox::Point transformViewPoint(ViewBox::Point sourcePoint, const std::string& targetCRS) const;
+        
 
         void calculateGridView();
 
         void calculateViewChanges();
 
         void publishCurrentState(std::chrono::sys_seconds time);
-
-        std::optional<UTMZoneInfo> parseUTMZoneFromEPSG(const std::string& epsgString) const;
     };
 
 } // namespace danasim

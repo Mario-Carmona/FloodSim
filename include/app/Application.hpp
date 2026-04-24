@@ -35,6 +35,8 @@ namespace danasim {
      */
     void setCurrentThreadName(std::string_view name);
 
+    std::filesystem::path getExecutablePath();
+
     /**
      * @class Application
      * @brief The main entry point and lifecycle manager of the simulation.
@@ -67,6 +69,8 @@ namespace danasim {
         int run();
 
     private:
+        inline static const std::filesystem::path PROJECT_DIR = (getExecutablePath() / "../../../..").lexically_normal();
+
         /// The parsed application configuration.
         Config config_;
 
