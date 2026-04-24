@@ -240,17 +240,6 @@
         "PYTHON_SUBDIR_NAME": "mqtt",
         "ISOLATE_ENVIRONMENT": "OFF"
       }
-    },
-    {
-      "name": "python-visualizer",
-      "inherits": [
-        "python-envs"
-      ],
-      "description": "",
-      "cacheVariables": {
-        "PYTHON_SUBDIR_NAME": "visualizer",
-        "ISOLATE_ENVIRONMENT": "OFF"
-      }
     }
   ],
   "buildPresets": [
@@ -305,11 +294,6 @@
     {
       "name": "python-mqtt",
       "configurePreset": "python-mqtt",
-      "configuration": "Release"
-    },
-    {
-      "name": "python-visualizer",
-      "configurePreset": "python-visualizer",
       "configuration": "Release"
     }
   ],
@@ -485,19 +469,6 @@
         {
           "type": "build",
           "name": "python-mqtt"
-        }
-      ]
-    },
-    {
-      "name": "python-visualizer",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "python-visualizer"
-        },
-        {
-          "type": "build",
-          "name": "python-visualizer"
         }
       ]
     }
