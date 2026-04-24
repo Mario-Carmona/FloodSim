@@ -1,0 +1,83 @@
+
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import os
+import json
+import sys
+
+if __package__ in (None, ""):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import config
+else:
+    from . import config
+
+class GridVisualizer:
+    """
+    Guarda el estado del grid como imágenes PNG de alta resolución.
+    CORREGIDO: Usa vmin/vmax en lugar de norm para imsave.
+    """
+
+    def __init__(self, output_folder="output_frames"):
+        self.output_folder = output_folder
+        self.frame_count = 0
+        self.vmin = 0
+        self.vmax = 1
+        self._last_grid_hash = None
+        self._last_saved_step = None
+        
+        if not os.path.exists(self.output_folder):
+            os.makedirs(self.output_folder)
+            print(f"Carpeta creada: {self.output_folder}")
+
+        self.cmap, self.vmin, self.vmax = self._load_colormap_from_palette()
+
+    def _load_colormap_from_palette(self):
+        try:
+            with open(config.COLOR_PALETTE_FILE, "r", encoding="utf-8") as fp:
+                palette_data = json.load(fp)
+
+            layer_items = palette_data.get("layers", {}).get(config.COLOR_PALETTE_LAYER, [])
+            if not isinstance(layer_items, list) or not layer_items:
+                raise ValueError("Selected palette layer is empty or invalid")
+
+            layer_items = sorted(layer_items, key=lambda item: int(item.get("value", 0)))
+            colors = [item.get("hex", "#000000") for item in layer_items]
+            min_value = int(layer_items[0].get("value", 0))
+            max_value = int(layer_items[-1].get("value", len(colors) - 1))
+
+            return mcolors.ListedColormap(colors), min_value, max_value
+        except Exception as exc:
+            print(f"No se pudo cargar la paleta ({exc}). Usando paleta por defecto.")
+            return mcolors.ListedColormap(["#000000", "#00FFFF"]), 0, 1
+
+    def save_snapshot(self, grid_data, step_index=None):
+        """
+        Guarda la matriz actual como una imagen PNG.
+        """
+        if step_index is None:
+            step_index = self.frame_count
+
+        current_hash = hash(grid_data.tobytes())
+        if self._last_grid_hash == current_hash and self._last_saved_step == step_index:
+            return
+        
+        filename = os.path.join(self.output_folder, f"sim_{step_index:05d}.png")
+        
+        plt.imsave(
+            filename, 
+            grid_data, 
+            cmap=self.cmap, 
+            vmin=self.vmin,
+            vmax=self.vmax,
+            origin='upper'
+        )
+        
+        self.frame_count += 1
+        self._last_grid_hash = current_hash
+        self._last_saved_step = step_index
+        # Opcional: imprimir solo cada X frames para no ensuciar la consola
+        if config.DEBUG_MODE:
+             print(f"Imagen guardada: {filename}")
+
+    def close(self):
+        pass
