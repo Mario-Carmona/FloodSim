@@ -6,9 +6,9 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
-from python.mqtt.main import main
-from python.mqtt.network import MQTTMonitorClient
-from python.mqtt.visualizer import GridVisualizer
+from python.visualizer.main import main
+from python.visualizer.network import MQTTMonitorClient
+from python.visualizer.renderers.matplotlib_renderer import MatplotlibRenderer
 
 
 def _run_main_with_messages(messages: list) -> dict:
@@ -26,14 +26,15 @@ def _run_main_with_messages(messages: list) -> dict:
         self._logger = MagicMock()
         self.client = MagicMock()
 
-    def fake_save_snapshot(self, grid):
+    def fake_save_snapshot(self, frame, step_index):
         snapshot_calls.append(1)
 
     with (
         patch.object(MQTTMonitorClient, "__init__", fake_init),
         patch.object(MQTTMonitorClient, "connect", lambda self: None),
         patch.object(MQTTMonitorClient, "disconnect", lambda self: None),
-        patch.object(GridVisualizer, "save_snapshot", fake_save_snapshot),
+        patch.object(MatplotlibRenderer, "save_snapshot", fake_save_snapshot),
+        patch.object(MatplotlibRenderer, "setup", lambda self, meta: None),
         patch("sys.exit"),
     ):
         t = threading.Thread(target=main, daemon=True)
@@ -113,7 +114,7 @@ def test_frame_sync_triggers_render():
 
 def test_bulk_apply_accumulates_across_chunks():
     """Changes from multiple chunks must all be present after FrameEnd."""
-    from python.mqtt.data_model import SimulationGrid
+    from python.visualizer.data_model import SimulationGrid
 
     sim = SimulationGrid()
     sim.apply_init_map_config({

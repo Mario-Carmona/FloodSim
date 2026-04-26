@@ -3,13 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import os
 import json
-import sys
 
-if __package__ in (None, ""):
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import config
-else:
-    from . import config
+from . import config
 
 class GridVisualizer:
     """

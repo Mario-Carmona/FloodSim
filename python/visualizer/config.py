@@ -63,3 +63,6 @@ def utc_now_iso() -> str:
 # Visualization settings
 IDLE_SLEEP_SECONDS = 0.1    # CPU saver when no data is arriving
 DEBUG_MODE = True
+RENDERER_TYPE = os.getenv("DANASIM_RENDERER", "2d")
+DEPTH_PROVIDER_TYPE = os.getenv("DANASIM_DEPTH_PROVIDER", "palette")
+TERRAIN_LAYER_ID = os.getenv("DANASIM_TERRAIN_LAYER", "topo_bathy")

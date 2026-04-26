@@ -1,20 +1,13 @@
-
 import logging
 import queue
 import os
 import sys
 
-if __package__ in (None, ""):
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import config
-    from data_model import SimulationGrid
-    from network import MQTTMonitorClient
-    from visualizer import GridVisualizer
-else:
-    from . import config
-    from .data_model import SimulationGrid
-    from .network import MQTTMonitorClient
-    from .visualizer import GridVisualizer
+from . import config
+from .data_model import SimulationGrid
+from .network import MQTTMonitorClient
+from .renderers.base import FrameData, GridMeta
+from .renderers.registry import create_renderer, create_depth_provider
 
 
 logging.basicConfig(
@@ -30,19 +23,28 @@ def main():
     mqtt_client = MQTTMonitorClient(msg_queue)
     mqtt_client.connect()
 
-    viewer = GridVisualizer(output_folder=os.getenv("DANASIM_OUTPUT_FOLDER", "sim_outputs"))
+    output_folder = os.getenv("DANASIM_OUTPUT_FOLDER", "sim_outputs")
+    renderer = create_renderer(config.RENDERER_TYPE, output_folder)
+    depth_provider = create_depth_provider(config.DEPTH_PROVIDER_TYPE)
 
     running = True
     pending_changes: list = []
     chunks_per_batch = 0
     chunks_since_ack = 0
+    step_index = 0
+
+    def build_frame() -> FrameData:
+        water_depths = depth_provider.get_water_depths(simulation.grid)
+        return FrameData(palette_grid=simulation.grid, water_depths=water_depths)
 
     def render():
+        nonlocal step_index
         if not simulation.initialization["init_complete"]:
             return
         if not simulation.has_new_data:
             return
-        viewer.save_snapshot(simulation.grid)
+        renderer.save_snapshot(build_frame(), step_index)
+        step_index += 1
         simulation.consume_data()
 
     print(f"Monitor iniciado para escenario '{config.SCENARIO_NAME}'. Esperando mensajes...")
@@ -60,7 +62,9 @@ def main():
             if process == "InitMap_Config":
                 ok = simulation.apply_init_map_config(payload)
                 if ok:
-                    logging.info("InitMap_Config aplicado. Grid %sx%s", simulation.grid.shape[1], simulation.grid.shape[0])
+                    rows, cols = simulation.grid.shape
+                    depth_provider.setup(rows, cols)
+                    logging.info("InitMap_Config aplicado. Grid %sx%s", cols, rows)
                 else:
                     logging.error("InitMap_Config inválido")
             elif process == "InitAgent_Layer":
@@ -76,8 +80,16 @@ def main():
                 simulation.mark_init_agent_eof(payload)
             elif process == "Init_EOF":
                 simulation.mark_init_eof(payload)
+                meta = GridMeta(
+                    rows=simulation.grid.shape[0],
+                    cols=simulation.grid.shape[1],
+                    cell_size_m=simulation.cell_size_m,
+                    terrain_heights=simulation.terrain_heights,
+                )
+                renderer.setup(meta)
                 if config.RENDER_ON_INIT_EOF:
-                    viewer.save_snapshot(simulation.grid)
+                    renderer.save_snapshot(build_frame(), step_index)
+                    step_index += 1
                     simulation.consume_data()
                     print("Inicializacion completada. Snapshot inicial guardado.")
             elif process == "FrameStart":
@@ -107,7 +119,7 @@ def main():
             elif process == "EYE_Frame_Sync":
                 render()
                 logging.info(
-                    "EYE_Frame_Sync: imagen generada. simulation_time=%s",
+                    "EYE_Frame_Sync: snapshot guardado. simulation_time=%s",
                     payload.get("simulation_time"),
                 )
             elif process == "Sim_End":
@@ -123,6 +135,7 @@ def main():
     except KeyboardInterrupt:
         print("\nSaliendo...")
     finally:
+        renderer.close()
         mqtt_client.disconnect()
         print("Clean exit after Sim_End", flush=True)
         sys.exit(0)

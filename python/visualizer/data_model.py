@@ -1,17 +1,10 @@
 
 import numpy as np
 import logging
-import os
-import sys
 from pathlib import Path
 
-if __package__ in (None, ""):
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from idrisi_io import IdrisiIO
-    import config
-else:
-    from .idrisi_io import IdrisiIO
-    from . import config
+from .idrisi_io import IdrisiIO
+from . import config
 
 class SimulationGrid:
     """
@@ -21,6 +14,7 @@ class SimulationGrid:
     def __init__(self):
         # Store palette levels as uint8 values.
         self.grid = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.uint8)
+        self.terrain_heights: np.ndarray | None = None  # float32, flat (rows*cols,)
         self.has_new_data = False
         self.map_config = {
             "size_x": config.MAP_SIZE,
@@ -35,6 +29,10 @@ class SimulationGrid:
             "init_complete": False,
         }
         self._logger = logging.getLogger(__name__)
+
+    @property
+    def cell_size_m(self) -> float:
+        return float(self.map_config.get("cell_resolution_m") or 1.0)
 
     def apply_init_map_config(self, event: dict) -> bool:
         map_cfg = event.get("map", {})
@@ -89,6 +87,11 @@ class SimulationGrid:
                 layer_id,
             )
             return False
+
+        if layer_id == config.TERRAIN_LAYER_ID:
+            raw = self._load_raw_floats_from_data_path(data_path, data_filename)
+            if raw is not None:
+                self.terrain_heights = raw.flatten().astype(np.float32)
 
         layer = self._load_layer_from_data_path(data_path, data_filename)
         if layer is None:
@@ -438,6 +441,48 @@ class SimulationGrid:
         except Exception as exc:
             self._logger.error("Failed to load IDRISI img file %s: %s", img_file, exc)
             return None
+
+    def _load_raw_floats_from_data_path(self, data_path: str, data_filename: str) -> np.ndarray | None:
+        """Load a layer as raw float32 values without palette conversion."""
+        path_obj = Path(data_path)
+        candidates = [path_obj] if path_obj.is_absolute() else [
+            path_obj.resolve(),
+            (config.DEFAULT_DATA_ROOT / path_obj).resolve(),
+        ]
+        seen: set[str] = set()
+        for base in candidates:
+            key = str(base)
+            if key in seen:
+                continue
+            seen.add(key)
+            raw = self._load_raw_candidate(base, data_filename)
+            if raw is not None:
+                return raw
+        return None
+
+    def _load_raw_candidate(self, base: Path, data_filename: str) -> np.ndarray | None:
+        if base.is_dir():
+            try:
+                raster = IdrisiIO.read(base, data_filename, read_metadata=True)
+                return np.array(raster.data, dtype=np.float32)
+            except Exception:
+                pass
+            for suffix, loader in [(".npy", np.load), (".csv", lambda p: np.loadtxt(p, delimiter=","))]:
+                path = base / f"{data_filename}{suffix}"
+                if path.exists():
+                    try:
+                        return np.array(loader(path), dtype=np.float32)
+                    except Exception:
+                        pass
+        elif base.is_file():
+            try:
+                if base.suffix.lower() == ".npy":
+                    return np.array(np.load(base), dtype=np.float32)
+                if base.suffix.lower() == ".csv":
+                    return np.array(np.loadtxt(base, delimiter=","), dtype=np.float32)
+            except Exception:
+                pass
+        return None
 
     def _to_palette_levels(self, raw):
         arr = np.array(raw, dtype=float)

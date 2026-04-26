@@ -6,11 +6,10 @@ from pathlib import Path
 
 import numpy as np
 
-# AÃ±adir el root del proyecto al sys.path para poder importar python.mqtt.*
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
-from python.mqtt.data_model import SimulationGrid
-from python.mqtt.visualizer import GridVisualizer
+from python.visualizer.data_model import SimulationGrid
+from python.visualizer.visualizer import GridVisualizer
 
 
 def _build_init_layer(tmp_root: Path) -> Path:

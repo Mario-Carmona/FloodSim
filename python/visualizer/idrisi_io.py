@@ -8,9 +8,6 @@ numpy-based data structures (like StaticRaster) and disk storage.
 
 from pathlib import Path
 from typing import List, Optional
-import importlib.util
-import os
-import sys
 
 import numpy as np
 import rasterio
@@ -18,19 +15,7 @@ from loguru import logger
 from pyproj import CRS
 from rasterio.transform import from_bounds
 
-if __package__ in (None, ""):
-    module_dir = os.path.dirname(os.path.abspath(__file__))
-    types_path = os.path.join(module_dir, "types.py")
-    spec = importlib.util.spec_from_file_location("danasim_mqtt_types", types_path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Cannot load local types module from {types_path}")
-    local_types = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = local_types
-    spec.loader.exec_module(local_types)
-    SpatialContext = local_types.SpatialContext
-    StaticRaster = local_types.StaticRaster
-else:
-    from .types import SpatialContext, StaticRaster
+from .types import SpatialContext, StaticRaster
 
 
 class IdrisiIO:
