@@ -22,7 +22,7 @@ input:
 
 output:
   snapshot:
-    every_n_steps: 10
+    every_n_steps: 300
   outputs:
     - type: mqtt
       address: mqtt://100.106.184.68:1883
@@ -59,7 +59,7 @@ state_updater:
 simulation:
   start_timestamp: 2024-10-29T10:00:00
   time_step: 00:00:01
-  duration: 08:00:00
+  duration: 04:00:00
   view_box: 
     use_full_grid: true
     south_west:
