@@ -92,7 +92,7 @@ namespace danasim {
         const std::string TOPIC_PING(baseTopic_ + "/system/handshake/ping");
         const std::string TOPIC_PONG(baseTopic_ + "/system/handshake/pong");
 
-        const std::chrono::milliseconds PING_INTERVAL(2000); // Reintentar cada 2 segundos
+        const std::chrono::milliseconds PING_INTERVAL(10000); // Reintentar cada 10 segundos
 
 
         client_.subscribe(TOPIC_PONG, 1)->wait();

@@ -11,8 +11,8 @@ if(BUILD_APP)
 endif()
 
 if(BUILD_ALL_TESTS)
-    set(ENABLE_CORE ON)
     set(ENABLE_STATE_UPDATER_ADAPTERS ON)
+    set(ENABLE_CORE ON)
 endif()
 
 
@@ -37,8 +37,6 @@ endif()
 if(BUILD_APP)
     if(ENABLE_GUI)
         list(APPEND VCPKG_MANIFEST_FEATURES "gui")
-    else()
-    
     endif()
 endif()
 

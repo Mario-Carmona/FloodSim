@@ -376,18 +376,28 @@ namespace danasim {
                 int64_t width = std::min(tileSize_, cols - start_x);
                 int64_t height = std::min(tileSize_, rows - start_y);
 
+                // --- CÁLCULO DE LÍMITES CON HALO ---
+                // Expandimos 1 casilla, pero usamos std::max y std::min para no salirnos de los bordes del array global
+                int64_t check_start_x = std::max(int64_t(0), start_x - haloSize_);
+                int64_t check_start_y = std::max(int64_t(0), start_y - haloSize_);
+                int64_t check_end_x = std::min(cols, start_x + width + haloSize_);
+                int64_t check_end_y = std::min(rows, start_y + height + haloSize_);
+
+                // Ancho de la fila que vamos a escanear en esta iteración
+                int64_t check_width = check_end_x - check_start_x;
+
                 bool tile_is_active = false;
 
-                // Escaneamos las celdas DENTRO de este bloque para ver si se activa
-                for (int64_t y = 0; y < height && !tile_is_active; ++y) {
-                    // La multiplicación se hace una sola vez por fila
-                    int64_t row_start_idx = ((start_y + y) * cols) + start_x;
+                // Escaneamos las celdas DENTRO del bloque ampliado (tile + halo)
+                for (int64_t y = check_start_y; y < check_end_y && !tile_is_active; ++y) {
+                    // La multiplicación se hace una sola vez por fila, usando el inicio del escaneo
+                    int64_t row_start_idx = (y * cols) + check_start_x;
 
                     // Punteros directos a la fila para esta iteración
                     const int8_t* fluid_movement_row = fluid_movement_state + row_start_idx;
 
-                    for (int64_t x = 0; x < width && !tile_is_active; ++x) {
-                        // Acceso secuencial puramente lineal (¡Al compilador y a la Caché L1 les encanta esto!)
+                    for (int64_t x = 0; x < check_width && !tile_is_active; ++x) {
+                        // Acceso secuencial puramente lineal (¡seguimos manteniendo contenta a la Caché L1!)
                         if (fluid_movement_row[x] == static_cast<int8_t>(WaterMovementState::DYNAMIC_STATE)) {
                             tile_is_active = true;
                         }
@@ -395,7 +405,7 @@ namespace danasim {
                 }
 
                 if (tile_is_active) {
-                    // width y height ya están ajustados para no salir de los bordes (ej. 50x128)
+                    // Se inserta el tile ORIGINAL, ignorando el halo en los datos almacenados
                     active_tiles.push_back({ start_x, start_y, width, height });
                 }
             }
