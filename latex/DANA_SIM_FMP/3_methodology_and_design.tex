@@ -104,19 +104,37 @@ cells with lower hydraulic potential.
 
 \paragraph{B. Velocity Estimation via Manning’s Equation}
 
-Flow velocity in each of the eight directions is derived from a simplified version of Manning’s Equation, adapted for Cellular Automata 
-environments. The model integrates surface friction through a roughness coefficient $n$ (Manning’s $n$), which is dynamically retrieved 
-from a Lookup Table (LUT) based on land cover classification.
+To optimize computational performance and ensure numerical stability, the model identifies the maximum local hydraulic gradient 
+$S_{max} = \max(S_k)$ from the set of energy slopes toward the eight adjacent neighbors in the Moore neighborhood. A single theoretical 
+velocity ($v_{theor}$) is then derived from a simplified version of Manning’s Equation, adapted for high-performance tensor operations.
 
-The velocity $V_k$ in direction $k$ is calculated as:
+The model integrates surface friction through a roughness coefficient $n$ (Manning’s $n$), which is dynamically retrieved from a Lookup 
+Table (LUT) based on the land cover classification layer ($E_2$). The resulting theoretical velocity is defined as:
 
-$$V_{k} = \frac{1}{n} \cdot R^{2/3} \cdot \sqrt{S_{k}}$$
+$$v_{theor} = \frac{1}{n} \cdot WD^{2/3} \cdot \sqrt{S_{max}}$$
 
-In this context, $R$ represents the hydraulic radius, which for shallow laminar flows—typical of the Valencia DANA event—is approximated 
-by the water depth ($WD$). This relationship allows the simulator to accurately capture how urban infrastructure or dense vegetation in 
-the Valencian basin acts as a natural brake on the flood wave.
+In this context, the hydraulic radius is approximated by the water depth ($WD$), a valid assumption for the shallow-water flow conditions 
+characteristic of the 2024 Valencia DANA event. This single velocity represents the maximum potential speed of the flood wave at the 
+current cell, which serves as the basis for the subsequent volumetric displacement and multi-directional routing.
 
-\paragraph{C. Multiple Flow Direction (MFD) and Mass Balance}
+\paragraph{C. Volumetric Displacement Calculation}
+
+Once the effective velocity is determined, the engine must translate this linear speed ($m/s$) into a physical volume of water ($m^3$) 
+capable of moving across cell boundaries. This is achieved by first calculating the Cross-Sectional Area ($A_{cs}$) of the flow, which, 
+in our raster-based discretization, is defined as the product of the current water depth and the cell resolution:
+
+$$A_{cs} = WD^* \cdot \Delta x$$
+
+Subsequently, the Theoretical Outflow Volume ($V_{theor}$) is derived using the displacement equation over the simulation time step 
+$\Delta t$:
+
+$$V_{theor} = v_{theor} \cdot A_{cs} \cdot \Delta t$$
+
+This volumetric representation is the cornerstone of the model's mass conservation strategy. By computing $V_{theor}$ before the routing 
+phase, the engine ensures that the subsequent distribution of water to neighbors is based on finite physical quantities, preventing the 
+numerical "inflation" of water levels often found in simpler CA models.
+
+\paragraph{D. Multiple Flow Direction (MFD) and Mass Balance}
 
 In contrast to traditional Single Flow Direction (D8) models, this simulator implements a Multiple Flow Direction (MFD) algorithm. The 
 total outflow volume from a cell is distributed among all neighbors with a lower potential, weighting the amount of water sent to each 
@@ -130,7 +148,7 @@ To ensure numerical stability and prevent artificial oscillations (particularly 
 a precision filter ($\epsilon$) and a flow-limiting constraint: the total outflow can never exceed the volume of water physically 
 available in the cell during the current time step.
 
-\paragraph{D. Tensorial Implementation and Optimization}
+\paragraph{E. Tensorial Implementation and Optimization}
 
 From a software engineering perspective, these transitions are not computed through iterative cell-by-cell loops. Instead, the model 
 utilizes tensorial shift operations (leveraging padding and slicing). By representing the river basin as a multidimensional tensor, 
