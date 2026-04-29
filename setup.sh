@@ -20,6 +20,8 @@ sudo mkdir -p /opt/cmake
 # --prefix: Dice dónde instalarlo
 sudo ./cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/opt/cmake
 
+rm ./cmake-4.1.1-linux-x86_64.sh
+
 # 4. Crear el enlace simbólico para poder ejecutarlo desde cualquier lado
 sudo ln -sf /opt/cmake/bin/cmake /usr/local/bin/cmake
 

@@ -378,8 +378,8 @@ namespace danasim {
 
                 // --- CÁLCULO DE LÍMITES CON HALO ---
                 // Expandimos 1 casilla, pero usamos std::max y std::min para no salirnos de los bordes del array global
-                int64_t check_start_x = std::max(0LL, start_x - haloSize_);
-                int64_t check_start_y = std::max(0LL, start_y - haloSize_);
+                int64_t check_start_x = std::max(int64_t(0), start_x - haloSize_);
+                int64_t check_start_y = std::max(int64_t(0), start_y - haloSize_);
                 int64_t check_end_x = std::min(cols, start_x + width + haloSize_);
                 int64_t check_end_y = std::min(rows, start_y + height + haloSize_);
 

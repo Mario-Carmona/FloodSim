@@ -22,7 +22,7 @@ input:
 
 output:
   snapshot:
-    every_n_steps: 300
+    every_n_steps: 30
   outputs:
     - type: mqtt
       address: mqtt://100.106.184.68:1883
