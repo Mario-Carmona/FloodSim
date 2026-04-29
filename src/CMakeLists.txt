@@ -83,11 +83,9 @@ endif()
 
 add_subdirectory(adapters)
 
-if(ENABLE_APP)
-    add_subdirectory(app)
-endif()
-
 if(BUILD_APP)
+    add_subdirectory(app)
+
     if(ENABLE_GUI)
         add_subdirectory(gui)
     else()

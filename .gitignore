@@ -74,3 +74,5 @@ data_29_10_2024
 
 *.md
 docu/*
+
+/out/Ubuntu-24.04/build/linux-cli-debug/.cmake/api/v1/query/client-MicrosoftVS/query.json

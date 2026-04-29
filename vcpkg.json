@@ -77,7 +77,25 @@
     },
     "gui": {
       "description": "GUI",
-      "dependencies": []
+      "dependencies": [
+        {
+          "name": "imgui",
+          "default-features": false,
+          "features": [
+            "glfw-binding",
+            "opengl3-binding"
+          ]
+        },
+        {
+          "name": "glfw3",
+          "default-features": false,
+          "features": []
+        },
+        {
+          "name": "portable-file-dialogs",
+          "default-features": true
+        }
+      ]
     },
     "test": {
       "description": "Build Tests",

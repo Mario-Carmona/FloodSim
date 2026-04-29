@@ -19,6 +19,7 @@
 #include <filesystem>
 
 #include "app/Application.hpp"
+#include "cli/ConfigLoader.hpp"
 
 namespace {
 
@@ -105,7 +106,7 @@ int main(int argc, char* argv[])
         // Application Initialization
         // -----------------------------
         // Pasamos la ruta absoluta convertida a string (o como std::filesystem::path si tu app lo soporta)
-        danasim::Application app(absoluteConfigPath);
+        danasim::Application app(danasim::ConfigLoader::load(absoluteConfigPath));
 
         // -----------------------------
         // Simulation Execution

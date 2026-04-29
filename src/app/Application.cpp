@@ -28,7 +28,6 @@
 #error "Sistema operativo no soportado"
 #endif
 
-#include "app/config/ConfigLoader.hpp"
 #include "adapters/output/OutputFactory.hpp"
 #include "adapters/state_updater/StateUpdaterFactory.hpp"
 #include "logging/Logger.hpp"
@@ -82,8 +81,8 @@ namespace danasim {
         #endif
     }
 
-    Application::Application(const std::filesystem::path& configPath)
-        : config_(ConfigLoader::load(configPath))
+    Application::Application(const Config& config)
+        : config_(config)
     {
         if (config_.scenario.appendStartTimestamp) {
             // 1. Obtenemos el tiempo actual del sistema

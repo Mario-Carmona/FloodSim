@@ -163,6 +163,36 @@
       "description": ""
     },
     {
+      "name": "windows-gui-debug",
+      "inherits": [
+        "windows",
+        "app",
+        "gui",
+        "debug"
+      ],
+      "description": ""
+    },
+    {
+      "name": "windows-gui-release",
+      "inherits": [
+        "windows",
+        "app",
+        "gui",
+        "release"
+      ],
+      "description": ""
+    },
+    {
+      "name": "windows-gui-rel-with-deb-info",
+      "inherits": [
+        "windows",
+        "app",
+        "gui",
+        "rel-with-deb-info"
+      ],
+      "description": ""
+    },
+    {
       "name": "linux-cli-debug",
       "inherits": [ "linux", "app", "cli", "debug" ],
       "description": "Debug build for Linux CLI"
@@ -258,6 +288,24 @@
     {
       "name": "windows-cli-rel-with-deb-info",
       "configurePreset": "windows-cli-rel-with-deb-info",
+      "description": "",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "windows-gui-debug",
+      "configurePreset": "windows-gui-debug",
+      "description": "",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-gui-release",
+      "configurePreset": "windows-gui-release",
+      "description": "",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-gui-rel-with-deb-info",
+      "configurePreset": "windows-gui-rel-with-deb-info",
       "description": "",
       "configuration": "RelWithDebInfo"
     },
@@ -361,6 +409,45 @@
         {
           "type": "build",
           "name": "windows-cli-rel-with-deb-info"
+        }
+      ]
+    },
+    {
+      "name": "windows-gui-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-gui-debug"
+        },
+        {
+          "type": "build",
+          "name": "windows-gui-debug"
+        }
+      ]
+    },
+    {
+      "name": "windows-gui-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-gui-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-gui-release"
+        }
+      ]
+    },
+    {
+      "name": "windows-gui-rel-with-deb-info",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-gui-rel-with-deb-info"
+        },
+        {
+          "type": "build",
+          "name": "windows-gui-rel-with-deb-info"
         }
       ]
     },
