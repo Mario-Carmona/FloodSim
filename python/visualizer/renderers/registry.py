@@ -5,6 +5,7 @@ from .matplotlib_renderer import MatplotlibRenderer
 from .x3d.x3d_renderer import X3DRenderer
 from ..depth_providers.base import DepthProvider
 from ..depth_providers.palette import PaletteDepthProvider
+from ..depth_providers.direct import DirectDepthProvider
 
 _RENDERER_REGISTRY: dict[str, type[BaseRenderer]] = {
     "2d": MatplotlibRenderer,
@@ -13,7 +14,7 @@ _RENDERER_REGISTRY: dict[str, type[BaseRenderer]] = {
 
 _DEPTH_PROVIDER_REGISTRY: dict[str, type[DepthProvider]] = {
     "palette": PaletteDepthProvider,
-    # "mqtt_float": MQTTFloatDepthProvider,  <- Phase 5
+    "direct": DirectDepthProvider,
 }
 
 

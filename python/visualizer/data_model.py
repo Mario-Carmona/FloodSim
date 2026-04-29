@@ -15,6 +15,7 @@ class SimulationGrid:
         # Store palette levels as uint8 values.
         self.grid = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.uint8)
         self.terrain_heights: np.ndarray | None = None  # float32, flat (rows*cols,)
+        self.water_depths_m = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.float32)
         self.has_new_data = False
         self.map_config = {
             "size_x": config.MAP_SIZE,
@@ -46,6 +47,7 @@ class SimulationGrid:
         if self.grid.shape != (size_y, size_x):
             self._logger.info("Reallocating grid to %sx%s from InitMap_Config", size_x, size_y)
             self.grid = np.zeros((size_y, size_x), dtype=np.uint8)
+            self.water_depths_m = np.zeros((size_y, size_x), dtype=np.float32)
 
         self.map_config.update(
             {
@@ -182,7 +184,7 @@ class SimulationGrid:
         return self.grid
 
     def collect_from_layer_event(self, event: dict) -> list:
-        """Parse EYE_SetState_Layer and return (row, col, value) tuples without touching the grid."""
+        """Parse EYE_SetState_Layer and return (row, col, palette_value, water_depth_m) tuples."""
         changes = event.get("changes", {})
         cells = changes.get("cells", {})
         if not isinstance(cells, dict) or not cells:
@@ -200,7 +202,8 @@ class SimulationGrid:
             cell_value = self._resolve_cell_value(cell)
             if cell_value is None:
                 continue
-            result.append((row, col, int(cell_value)))
+            height = float(cell.get("height", 0.0)) if isinstance(cell, dict) else 0.0
+            result.append((row, col, int(cell_value), height))
         return result
 
     def collect_from_object_event(self, event: dict) -> list:
@@ -229,15 +232,24 @@ class SimulationGrid:
         return [(y, x, int(value))]
 
     def apply_bulk_changes(self, pending: list) -> bool:
-        """Apply accumulated (row, col, value) changes in a single vectorized numpy operation."""
+        """Apply accumulated (row, col, palette_value, ...) changes to the uint8 grid."""
         if not pending:
             return False
-        rows = np.array([r for r, c, v in pending], dtype=np.intp)
-        cols = np.array([c for r, c, v in pending], dtype=np.intp)
-        vals = np.array([v for r, c, v in pending], dtype=np.uint8)
+        rows = np.array([r for r, c, *_ in pending], dtype=np.intp)
+        cols = np.array([c for r, c, *_ in pending], dtype=np.intp)
+        vals = np.array([v for r, c, v, *_ in pending], dtype=np.uint8)
         self.grid[rows, cols] = vals
         self.has_new_data = True
         return True
+
+    def apply_bulk_float_changes(self, pending: list) -> None:
+        """Apply accumulated (row, col, _, water_depth_m) changes to the float32 depth grid."""
+        if not pending or len(pending[0]) < 4:
+            return
+        rows = np.array([r for r, c, v, h in pending], dtype=np.intp)
+        cols = np.array([c for r, c, v, h in pending], dtype=np.intp)
+        heights = np.array([h for r, c, v, h in pending], dtype=np.float32)
+        self.water_depths_m[rows, cols] = heights
 
     def update_from_layer_event(self, event: dict) -> bool:
         """Apply layer changes from a JSON EYE_SetState_Layer event.

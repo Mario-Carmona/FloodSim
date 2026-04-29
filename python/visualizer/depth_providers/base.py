@@ -12,6 +12,6 @@ class DepthProvider(ABC):
     @abstractmethod
     def get_water_depths(self, palette_grid: np.ndarray) -> np.ndarray: ...
 
-    def apply_float_changes(self, changes: list[tuple[int, int, float]]) -> None:
-        """No-op by default. Stateful providers override this."""
+    def update_from_grid(self, water_depths_m: np.ndarray) -> None:
+        """No-op by default. Override to receive the real float depth grid after each frame."""
         pass

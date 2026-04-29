@@ -100,6 +100,8 @@ def main():
             elif process == "FrameEnd":
                 n = len(pending_changes)
                 simulation.apply_bulk_changes(pending_changes)
+                simulation.apply_bulk_float_changes(pending_changes)
+                depth_provider.update_from_grid(simulation.water_depths_m)
                 pending_changes.clear()
                 logging.info("FrameEnd: %d cambios aplicados al grid.", n)
             elif process == "EYE_SetState_Layer":
