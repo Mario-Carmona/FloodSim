@@ -13,7 +13,10 @@ MAP_SIZE = 9403
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 COLOR_PALETTE_FILE = Path(
-	os.getenv("DANASIM_COLOR_PALETTE", str(PROJECT_ROOT / "data_29_10_2024" / "color_palette.json"))
+	os.getenv("DANASIM_COLOR_PALETTE", str(PROJECT_ROOT / "data" / "data_29_10_2024" / "color_palette.json"))
+)
+FLOOD_LEVELS_FILE = Path(
+	os.getenv("DANASIM_FLOOD_LEVELS", str(PROJECT_ROOT / "data" / "data_29_10_2024" / "flood_levels.json"))
 )
 COLOR_PALETTE_LAYER = os.getenv("DANASIM_COLOR_LAYER", "flood_risk")
 DEFAULT_DATA_ROOT = Path(os.getenv("DANASIM_DATA_ROOT", str(PROJECT_ROOT)))
@@ -63,3 +66,7 @@ def utc_now_iso() -> str:
 # Visualization settings
 IDLE_SLEEP_SECONDS = 0.1    # CPU saver when no data is arriving
 DEBUG_MODE = True
+RENDERER_TYPE = os.getenv("DANASIM_RENDERER", "2d")
+DEPTH_PROVIDER_TYPE = os.getenv("DANASIM_DEPTH_PROVIDER", "palette")
+TERRAIN_LAYER_ID = os.getenv("DANASIM_TERRAIN_LAYER", "topo_bathy")
+X3D_SUBSAMPLE = int(os.getenv("DANASIM_X3D_SUBSAMPLE", "1"))

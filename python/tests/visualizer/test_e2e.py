@@ -39,7 +39,7 @@ def run_e2e():
     
     print("Starting Subscriber (main.py)...")
     subscriber_proc = subprocess.Popen(
-        [python_exec, "-m", "python.mqtt.main"],
+        [python_exec, "-m", "python.visualizer.main"],
         env=subscriber_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

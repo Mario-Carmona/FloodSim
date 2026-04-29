@@ -1,17 +1,10 @@
 
 import numpy as np
 import logging
-import os
-import sys
 from pathlib import Path
 
-if __package__ in (None, ""):
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from idrisi_io import IdrisiIO
-    import config
-else:
-    from .idrisi_io import IdrisiIO
-    from . import config
+from .idrisi_io import IdrisiIO
+from . import config
 
 class SimulationGrid:
     """
@@ -21,6 +14,8 @@ class SimulationGrid:
     def __init__(self):
         # Store palette levels as uint8 values.
         self.grid = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.uint8)
+        self.terrain_heights: np.ndarray | None = None  # float32, flat (rows*cols,)
+        self.water_depths_m = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.float32)
         self.has_new_data = False
         self.map_config = {
             "size_x": config.MAP_SIZE,
@@ -36,6 +31,10 @@ class SimulationGrid:
         }
         self._logger = logging.getLogger(__name__)
 
+    @property
+    def cell_size_m(self) -> float:
+        return float(self.map_config.get("cell_resolution_m") or 1.0)
+
     def apply_init_map_config(self, event: dict) -> bool:
         map_cfg = event.get("map", {})
         size_x = int(map_cfg.get("size_x", self.grid.shape[1]))
@@ -48,6 +47,7 @@ class SimulationGrid:
         if self.grid.shape != (size_y, size_x):
             self._logger.info("Reallocating grid to %sx%s from InitMap_Config", size_x, size_y)
             self.grid = np.zeros((size_y, size_x), dtype=np.uint8)
+            self.water_depths_m = np.zeros((size_y, size_x), dtype=np.float32)
 
         self.map_config.update(
             {
@@ -90,6 +90,16 @@ class SimulationGrid:
             )
             return False
 
+        if layer_id == config.TERRAIN_LAYER_ID:
+            raw = self._load_raw_floats_from_data_path(data_path, data_filename)
+            if raw is not None:
+                self.terrain_heights = raw.flatten().astype(np.float32)
+                self.initialization["init_layers_received"] += 1
+                self._logger.info("Terrain heights loaded for id='%s' (%d cells)", layer_id, self.terrain_heights.size)
+                return True
+            self._logger.error("Could not load terrain heights from data_path=%s data_filename=%s", data_path, data_filename)
+            return False
+
         layer = self._load_layer_from_data_path(data_path, data_filename)
         if layer is None:
             self._logger.error(
@@ -114,8 +124,7 @@ class SimulationGrid:
         self.grid = layer
         self.has_new_data = True
         self.initialization["init_layers_received"] += 1
-        if layer_id:
-            self._logger.info("Init layer applied for id='%s'", layer_id)
+        self._logger.info("Init layer applied for id='%s'", layer_id)
         return True
 
     def mark_init_agent_eof(self, event: dict):
@@ -179,7 +188,7 @@ class SimulationGrid:
         return self.grid
 
     def collect_from_layer_event(self, event: dict) -> list:
-        """Parse EYE_SetState_Layer and return (row, col, value) tuples without touching the grid."""
+        """Parse EYE_SetState_Layer and return (row, col, palette_value, water_depth_m) tuples."""
         changes = event.get("changes", {})
         cells = changes.get("cells", {})
         if not isinstance(cells, dict) or not cells:
@@ -197,7 +206,8 @@ class SimulationGrid:
             cell_value = self._resolve_cell_value(cell)
             if cell_value is None:
                 continue
-            result.append((row, col, int(cell_value)))
+            height = float(cell.get("height", 0.0)) if isinstance(cell, dict) else 0.0
+            result.append((row, col, int(cell_value), height))
         return result
 
     def collect_from_object_event(self, event: dict) -> list:
@@ -226,15 +236,24 @@ class SimulationGrid:
         return [(y, x, int(value))]
 
     def apply_bulk_changes(self, pending: list) -> bool:
-        """Apply accumulated (row, col, value) changes in a single vectorized numpy operation."""
+        """Apply accumulated (row, col, palette_value, ...) changes to the uint8 grid."""
         if not pending:
             return False
-        rows = np.array([r for r, c, v in pending], dtype=np.intp)
-        cols = np.array([c for r, c, v in pending], dtype=np.intp)
-        vals = np.array([v for r, c, v in pending], dtype=np.uint8)
+        rows = np.array([r for r, c, *_ in pending], dtype=np.intp)
+        cols = np.array([c for r, c, *_ in pending], dtype=np.intp)
+        vals = np.array([v for r, c, v, *_ in pending], dtype=np.uint8)
         self.grid[rows, cols] = vals
         self.has_new_data = True
         return True
+
+    def apply_bulk_float_changes(self, pending: list) -> None:
+        """Apply accumulated (row, col, _, water_depth_m) changes to the float32 depth grid."""
+        if not pending or len(pending[0]) < 4:
+            return
+        rows = np.array([r for r, c, v, h in pending], dtype=np.intp)
+        cols = np.array([c for r, c, v, h in pending], dtype=np.intp)
+        heights = np.array([h for r, c, v, h in pending], dtype=np.float32)
+        self.water_depths_m[rows, cols] = heights
 
     def update_from_layer_event(self, event: dict) -> bool:
         """Apply layer changes from a JSON EYE_SetState_Layer event.
@@ -253,7 +272,6 @@ class SimulationGrid:
         cells = changes.get("cells", {})
 
         if not isinstance(cells, dict) or not cells:
-            print("Error cells dict")
             return False
 
         rows = []
@@ -265,7 +283,7 @@ class SimulationGrid:
             try:
                 flat_index = int(key)
             except (TypeError, ValueError):
-                print("Error 2")
+                self._logger.warning("Cell with non-integer key ignored: %s", key)
                 continue
 
             row = flat_index // max_x
@@ -273,7 +291,6 @@ class SimulationGrid:
 
             cell_value = self._resolve_cell_value(cell)
             if cell_value is None:
-                print("Error cell_value")
                 continue
 
             cols.append(col)
@@ -281,7 +298,6 @@ class SimulationGrid:
             values.append(int(cell_value))
 
         if not rows:
-            print("Rows")
             return False
 
         cols_arr = np.array(cols)
@@ -364,6 +380,8 @@ class SimulationGrid:
             # Try both CWD-relative and configured data-root-relative paths.
             candidates.append(path_obj.resolve())
             candidates.append((config.DEFAULT_DATA_ROOT / path_obj).resolve())
+            # Fallback: prepend data/ in case the sender omitted it
+            candidates.append((config.DEFAULT_DATA_ROOT / "data" / path_obj).resolve())
 
         # Preserve order while removing duplicates.
         deduped_candidates = []
@@ -438,6 +456,49 @@ class SimulationGrid:
         except Exception as exc:
             self._logger.error("Failed to load IDRISI img file %s: %s", img_file, exc)
             return None
+
+    def _load_raw_floats_from_data_path(self, data_path: str, data_filename: str) -> np.ndarray | None:
+        """Load a layer as raw float32 values without palette conversion."""
+        path_obj = Path(data_path)
+        candidates = [path_obj] if path_obj.is_absolute() else [
+            path_obj.resolve(),
+            (config.DEFAULT_DATA_ROOT / path_obj).resolve(),
+            (config.DEFAULT_DATA_ROOT / "data" / path_obj).resolve(),
+        ]
+        seen: set[str] = set()
+        for base in candidates:
+            key = str(base)
+            if key in seen:
+                continue
+            seen.add(key)
+            raw = self._load_raw_candidate(base, data_filename)
+            if raw is not None:
+                return raw
+        return None
+
+    def _load_raw_candidate(self, base: Path, data_filename: str) -> np.ndarray | None:
+        if base.is_dir():
+            try:
+                raster = IdrisiIO.read(base, data_filename, read_metadata=True)
+                return np.array(raster.data, dtype=np.float32)
+            except Exception:
+                pass
+            for suffix, loader in [(".npy", np.load), (".csv", lambda p: np.loadtxt(p, delimiter=","))]:
+                path = base / f"{data_filename}{suffix}"
+                if path.exists():
+                    try:
+                        return np.array(loader(path), dtype=np.float32)
+                    except Exception:
+                        pass
+        elif base.is_file():
+            try:
+                if base.suffix.lower() == ".npy":
+                    return np.array(np.load(base), dtype=np.float32)
+                if base.suffix.lower() == ".csv":
+                    return np.array(np.loadtxt(base, delimiter=","), dtype=np.float32)
+            except Exception:
+                pass
+        return None
 
     def _to_palette_levels(self, raw):
         arr = np.array(raw, dtype=float)

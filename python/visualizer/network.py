@@ -5,11 +5,7 @@ import sys
 
 import paho.mqtt.client as mqtt
 
-if __package__ in (None, ""):
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import config
-else:
-    from . import config
+from . import config
 
 
 class MQTTMonitorClient:
