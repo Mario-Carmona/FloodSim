@@ -94,6 +94,11 @@ class SimulationGrid:
             raw = self._load_raw_floats_from_data_path(data_path, data_filename)
             if raw is not None:
                 self.terrain_heights = raw.flatten().astype(np.float32)
+                self.initialization["init_layers_received"] += 1
+                self._logger.info("Terrain heights loaded for id='%s' (%d cells)", layer_id, self.terrain_heights.size)
+                return True
+            self._logger.error("Could not load terrain heights from data_path=%s data_filename=%s", data_path, data_filename)
+            return False
 
         layer = self._load_layer_from_data_path(data_path, data_filename)
         if layer is None:
@@ -119,8 +124,7 @@ class SimulationGrid:
         self.grid = layer
         self.has_new_data = True
         self.initialization["init_layers_received"] += 1
-        if layer_id:
-            self._logger.info("Init layer applied for id='%s'", layer_id)
+        self._logger.info("Init layer applied for id='%s'", layer_id)
         return True
 
     def mark_init_agent_eof(self, event: dict):
@@ -268,7 +272,6 @@ class SimulationGrid:
         cells = changes.get("cells", {})
 
         if not isinstance(cells, dict) or not cells:
-            print("Error cells dict")
             return False
 
         rows = []
@@ -280,7 +283,7 @@ class SimulationGrid:
             try:
                 flat_index = int(key)
             except (TypeError, ValueError):
-                print("Error 2")
+                self._logger.warning("Cell with non-integer key ignored: %s", key)
                 continue
 
             row = flat_index // max_x
@@ -288,7 +291,6 @@ class SimulationGrid:
 
             cell_value = self._resolve_cell_value(cell)
             if cell_value is None:
-                print("Error cell_value")
                 continue
 
             cols.append(col)
@@ -296,7 +298,6 @@ class SimulationGrid:
             values.append(int(cell_value))
 
         if not rows:
-            print("Rows")
             return False
 
         cols_arr = np.array(cols)
@@ -379,6 +380,8 @@ class SimulationGrid:
             # Try both CWD-relative and configured data-root-relative paths.
             candidates.append(path_obj.resolve())
             candidates.append((config.DEFAULT_DATA_ROOT / path_obj).resolve())
+            # Fallback: prepend data/ in case the sender omitted it
+            candidates.append((config.DEFAULT_DATA_ROOT / "data" / path_obj).resolve())
 
         # Preserve order while removing duplicates.
         deduped_candidates = []
@@ -460,6 +463,7 @@ class SimulationGrid:
         candidates = [path_obj] if path_obj.is_absolute() else [
             path_obj.resolve(),
             (config.DEFAULT_DATA_ROOT / path_obj).resolve(),
+            (config.DEFAULT_DATA_ROOT / "data" / path_obj).resolve(),
         ]
         seen: set[str] = set()
         for base in candidates:

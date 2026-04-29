@@ -69,10 +69,9 @@ def _make_flood_frame(rows: int, cols: int, frame: int, total_frames: int) -> np
 # Main
 # ---------------------------------------------------------------------------
 
-def run(renderer_type: str, output_dir: str) -> None:
-    rows, cols = 60, 80
-    cell_size_m = 25.0
-    n_frames = 8
+def run(renderer_type: str, output_dir: str,
+        rows: int = 60, cols: int = 80,
+        cell_size_m: float = 25.0, n_frames: int = 8) -> None:
 
     output_path = Path(output_dir)
     if output_path.exists():
@@ -135,5 +134,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DanaSim visualizer demo")
     parser.add_argument("--renderer", choices=["2d", "x3d"], default="x3d")
     parser.add_argument("--output", default="demo_output")
+    parser.add_argument("--rows", type=int, default=60)
+    parser.add_argument("--cols", type=int, default=80)
+    parser.add_argument("--cell-size", type=float, default=25.0)
+    parser.add_argument("--frames", type=int, default=8)
     args = parser.parse_args()
-    run(args.renderer, args.output)
+    run(args.renderer, args.output,
+        rows=args.rows, cols=args.cols,
+        cell_size_m=args.cell_size, n_frames=args.frames)

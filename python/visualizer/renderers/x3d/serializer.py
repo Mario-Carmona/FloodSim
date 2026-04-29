@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import logging
 import math
-from dataclasses import dataclass
 
 import numpy as np
 
@@ -9,13 +9,7 @@ from ..base import FrameData, GridMeta
 from .colors import X3DColorScheme
 
 _WATER_MIN_THRESHOLD = 0.0005  # metres — filter visual noise
-
-
-@dataclass
-class _TerrainStyle:
-    diffuse: str
-    shininess: float = 0.0
-    transparency: float = 0.0
+_NODATA_THRESHOLD = -500.0     # values below this are treated as nodata
 
 
 class X3DSerializer:
@@ -23,72 +17,81 @@ class X3DSerializer:
 
     No filesystem access — fully unit-testable.
     Call configure() once after init, then serialize() per frame.
+
+    Single ElevationGrid approach:
+      height      = topo_bathy + water_depth  (where flooded)
+                  = topo_bathy               (where dry)
+      colorIndex  = palette state (0–5) per vertex
+      Color node  = 6 fixed RGB entries, one per state
     """
 
-    def configure(self, meta: GridMeta, colors: X3DColorScheme | None = None) -> None:
+    def configure(self, meta: GridMeta, colors: X3DColorScheme | None = None,
+                  subsample: int = 1) -> None:
         if meta.rows == 0 or meta.cols == 0:
             raise ValueError("X3DSerializer: rows and cols must be > 0")
         self._meta = meta
         self._colors = colors or X3DColorScheme()
+        self._subsample = max(1, subsample)
+        s = self._subsample
+        self._rows_s = len(range(0, meta.rows, s))
+        self._cols_s = len(range(0, meta.cols, s))
+        self._spacing_s = meta.cell_size_m * s
         self._configured = True
 
-    def serialize(self, frame: FrameData) -> tuple[str, str]:
-        """Return (html_document, water_heights_str) for this frame.
+    def serialize(self, frame: FrameData) -> tuple[str, tuple[str, str]]:
+        """Return (html_document, (heights_str, colors_str)) for this frame.
 
-        The water_heights_str is kept separate so the renderer can
-        accumulate it for the animation player.
+        The second element is kept separate so the renderer can accumulate it
+        for the animation player.
         """
         if not getattr(self, "_configured", False):
             raise RuntimeError("X3DSerializer.configure() must be called before serialize()")
 
         meta = self._meta
-        rows, cols = meta.rows, meta.cols
-        spacing = meta.cell_size_m
+        rows, cols = self._rows_s, self._cols_s
+        spacing = self._spacing_s
 
-        terrain = self._get_terrain(rows, cols)
-        water = self._get_water(frame.water_depths, rows, cols)
+        scale = self._scale_z()
+        surface = self._get_surface(frame, scale)
+        colors_str = self._get_colors_str(frame)
 
         grid_w = cols * spacing
         grid_h = rows * spacing
-        max_height = float(terrain.max()) if terrain.size else 0.0
-        viewpoint, orientation = self._compute_viewpoint(grid_w, grid_h, max_height)
+        max_h = float(surface.max()) if surface.size else 0.0
+        viewpoint, orientation = self._compute_viewpoint(grid_w, grid_h, max_h)
 
-        height_range = float(terrain.max() - terrain.min()) if terrain.size else 0.0
-        ts = self._terrain_style(height_range)
-        ws = self._water_style()
+        heights_str = self._heights_to_str(surface)
 
-        terrain_str = self._heights_to_str(terrain)
-        water_str = self._heights_to_str(water)
+        scene = self._build_scene(cols, rows, spacing, viewpoint, orientation,
+                                  heights_str, colors_str)
+        return self._wrap_html(scene, meta), (heights_str, colors_str)
 
-        scene = self._build_scene(cols, rows, spacing, viewpoint, orientation, ts, ws, terrain_str, water_str)
-        return self._wrap_html(scene, meta), water_str
-
-    def generate_player(self, water_frames: list[str]) -> str:
+    def generate_player(self, frames: list[tuple[str, str]]) -> str:
         """Generate a single HTML player that animates all frames."""
         if not getattr(self, "_configured", False):
             raise RuntimeError("X3DSerializer.configure() must be called before generate_player()")
 
         meta = self._meta
-        rows, cols = meta.rows, meta.cols
-        spacing = meta.cell_size_m
+        rows, cols = self._rows_s, self._cols_s
+        spacing = self._spacing_s
 
-        terrain = self._get_terrain(rows, cols)
+        scale = self._scale_z()
+        terrain = self._get_terrain_scaled(scale)
         grid_w = cols * spacing
         grid_h = rows * spacing
-        max_height = float(terrain.max()) if terrain.size else 0.0
-        viewpoint, orientation = self._compute_viewpoint(grid_w, grid_h, max_height)
-        height_range = float(terrain.max() - terrain.min()) if terrain.size else 0.0
-        ts = self._terrain_style(height_range)
-        ws = self._water_style()
-        terrain_str = self._heights_to_str(terrain)
+        max_h = float(terrain.max()) if terrain.size else 0.0
+        viewpoint, orientation = self._compute_viewpoint(grid_w, grid_h, max_h)
 
-        # Embed all water frames as a JS array of strings
-        frames_js = ",\n  ".join(f'"{f}"' for f in water_frames)
-        n_frames = len(water_frames)
+        first_h, first_c = frames[0] if frames else ("", "")
+        scene = self._build_scene(cols, rows, spacing, viewpoint, orientation,
+                                  first_h, first_c,
+                                  surface_def="SurfaceGrid", color_def="SurfaceColor")
 
-        scene = self._build_scene(cols, rows, spacing, viewpoint, orientation, ts, ws, terrain_str,
-                                  water_frames[0] if water_frames else terrain_str,
-                                  water_def="WaterGrid")
+        n_frames = len(frames)
+        frames_js = ",\n  ".join(
+            f'{{h:"{h}",c:"{c}"}}'
+            for h, c in frames
+        )
 
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -135,7 +138,7 @@ class X3DSerializer:
   </div>
 
   <script>
-    const waterFrames = [
+    const simFrames = [
   {frames_js}
     ];
 
@@ -144,12 +147,14 @@ class X3DSerializer:
     let timer = null;
 
     function setFrame(i) {{
-      current = ((i % waterFrames.length) + waterFrames.length) % waterFrames.length;
-      const grid = document.querySelector("ElevationGrid[DEF='WaterGrid']");
-      if (grid) grid.setAttribute("height", waterFrames[current]);
+      current = ((i % simFrames.length) + simFrames.length) % simFrames.length;
+      const grid = document.querySelector("ElevationGrid[DEF='SurfaceGrid']");
+      if (grid) grid.setAttribute("height", simFrames[current].h);
+      const colorNode = document.querySelector("Color[DEF='SurfaceColor']");
+      if (colorNode) colorNode.setAttribute("color", simFrames[current].c);
       document.getElementById("slider").value = current;
       document.getElementById("frame-label").textContent =
-        "Frame " + current + " / " + (waterFrames.length - 1);
+        "Frame " + current + " / " + (simFrames.length - 1);
     }}
 
     function startPlay() {{
@@ -181,7 +186,6 @@ class X3DSerializer:
       if (playing) {{ stopPlay(); startPlay(); }}
     }});
 
-    // Set initial frame once scene is ready
     document.querySelector("x3d-canvas").addEventListener("load", () => setFrame(0));
   </script>
 </body>
@@ -192,80 +196,71 @@ class X3DSerializer:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _terrain_style(self, height_range: float) -> _TerrainStyle:
-        r, g, b = self._colors.terrain_rgb(height_range)
-        return _TerrainStyle(f"{r:.2f} {g:.2f} {b:.2f}")
+    def _get_surface(self, frame: FrameData, scale: float) -> np.ndarray:
+        """Single surface: terrain where dry, terrain+water where flooded."""
+        s = self._subsample
+        terrain = self._get_terrain_scaled(scale)
+        water = self._sanitize(frame.water_depths[::s, ::s].flatten().astype(np.float32))
+        wet = water >= _WATER_MIN_THRESHOLD
+        surface = terrain.copy()
+        surface[wet] += water[wet] * scale
+        return surface
 
-    def _water_style(self) -> _TerrainStyle:
-        r, g, b = self._colors.water_rgb
-        return _TerrainStyle(
-            f"{r:.2f} {g:.2f} {b:.2f}",
-            shininess=self._colors.water_shininess,
-            transparency=self._colors.water_transparency,
-        )
+    def _get_colors_str(self, frame: FrameData) -> str:
+        """Full per-vertex RGB string for the Color node."""
+        s = self._subsample
+        indices = frame.palette_grid[::s, ::s].flatten().astype(np.int32)
+        colors_arr = np.array(self._colors.state_colors, dtype=np.float32)
+        indices = np.clip(indices, 0, len(colors_arr) - 1)
+        vertex_colors = colors_arr[indices]  # (N, 3)
+        flat = vertex_colors.reshape(-1)
+        return " ".join(f"{v:.2f}" for v in flat)
 
-    def _build_scene(self, cols: int, rows: int, spacing: float,
-                     viewpoint: str, orientation: str,
-                     ts: _TerrainStyle, ws: _TerrainStyle,
-                     terrain_str: str, water_str: str,
-                     water_def: str = "") -> str:
-        def_attr = f' DEF="{water_def}"' if water_def else ""
-        r, g, b = self._colors.sky
-        sky_str = f"{r:.2f} {g:.2f} {b:.2f}"
-        return f"""<x3d>
-  <scene>
-    <background skyColor="{sky_str}"></background>
-    <Viewpoint position="{viewpoint}" orientation="{orientation}" description="Overview"></Viewpoint>
-    <NavigationInfo type='"EXAMINE" "ANY"'></NavigationInfo>
-    <Shape>
-      <Appearance>
-        <Material diffuseColor="{ts.diffuse}" shininess="{ts.shininess:.2f}" transparency="{ts.transparency:.2f}"></Material>
-      </Appearance>
-      <ElevationGrid xDimension="{cols}" zDimension="{rows}"
-        xSpacing="{spacing:.4f}" zSpacing="{spacing:.4f}"
-        height="{terrain_str}" solid="false">
-      </ElevationGrid>
-    </Shape>
-    <Shape>
-      <Appearance>
-        <Material diffuseColor="{ws.diffuse}" shininess="{ws.shininess:.2f}" transparency="{ws.transparency:.2f}"></Material>
-      </Appearance>
-      <ElevationGrid{def_attr} xDimension="{cols}" zDimension="{rows}"
-        xSpacing="{spacing:.4f}" zSpacing="{spacing:.4f}"
-        height="{water_str}" solid="false">
-      </ElevationGrid>
-    </Shape>
-  </scene>
-</x3d>"""
-
-    def _get_terrain(self, rows: int, cols: int) -> np.ndarray:
+    def _get_terrain_scaled(self, scale: float) -> np.ndarray:
         meta = self._meta
+        s = self._subsample
+        log = logging.getLogger(__name__)
+        rows, cols = meta.rows, meta.cols
         if meta.terrain_heights is not None and meta.terrain_heights.size == rows * cols:
-            raw = meta.terrain_heights.reshape(-1).astype(np.float32)
+            raw = meta.terrain_heights.reshape(rows, cols)[::s, ::s].flatten().astype(np.float32)
+            nodata_count = int((raw < _NODATA_THRESHOLD).sum())
+            if nodata_count:
+                log.debug("terrain: replacing %d nodata cells (< %.0f) with 0", nodata_count, _NODATA_THRESHOLD)
+            raw = np.where(raw < _NODATA_THRESHOLD, 0.0, raw)
         else:
-            raw = np.zeros(rows * cols, dtype=np.float32)
-        return self._sanitize(raw) * self._scale_z(rows, cols)
+            if meta.terrain_heights is None:
+                log.warning("terrain_heights is None — rendering flat terrain")
+            else:
+                log.warning("terrain_heights size %d != grid %d*%d=%d — rendering flat terrain",
+                            meta.terrain_heights.size, rows, cols, rows * cols)
+            raw = np.zeros(self._rows_s * self._cols_s, dtype=np.float32)
+        result = self._sanitize(raw) * scale
+        log.info("terrain scaled: min=%.2f max=%.2f scale=%.4f", float(result.min()), float(result.max()), scale)
+        return result
 
-    def _get_water(self, water_depths: np.ndarray, rows: int, cols: int) -> np.ndarray:
-        terrain = self._get_terrain(rows, cols)
-        scale = self._scale_z(rows, cols)
-        flat = self._sanitize(water_depths.flatten().astype(np.float32))
-        flat = np.where(flat < _WATER_MIN_THRESHOLD, 0.0, flat) * scale
-        # Dry cells: sink water 1 unit below terrain so it is occluded by terrain mesh
-        below = terrain - 1.0
-        return np.where(flat == 0.0, below, terrain + flat)
-
-    def _scale_z(self, rows: int, cols: int) -> float:
+    def _scale_z(self) -> float:
         """Vertical exaggeration so terrain height ≈ 10% of the shorter grid side."""
         meta = self._meta
+        log = logging.getLogger(__name__)
         if meta.terrain_heights is None:
+            log.warning("_scale_z: terrain_heights is None, using scale=1.0")
             return 1.0
-        raw = self._sanitize(meta.terrain_heights.reshape(-1).astype(np.float32))
-        terrain_range = float(raw.max() - raw.min())
+        raw = meta.terrain_heights.reshape(-1).astype(np.float32)
+        # Exclude nodata values from range calculation
+        valid = raw[raw > _NODATA_THRESHOLD]
+        log.info("_scale_z: total=%d valid=%d nodata=%d raw_min=%.2f raw_max=%.2f",
+                 raw.size, valid.size, raw.size - valid.size,
+                 float(raw.min()), float(raw.max()))
+        if valid.size == 0:
+            return 1.0
+        terrain_range = float(valid.max() - valid.min())
         if terrain_range < 0.01:
+            log.warning("_scale_z: terrain_range=%.4f too small, using scale=1.0", terrain_range)
             return 1.0
-        min_dim = min(rows * meta.cell_size_m, cols * meta.cell_size_m)
-        return (min_dim * 0.10) / terrain_range
+        min_dim = min(meta.rows * meta.cell_size_m, meta.cols * meta.cell_size_m)
+        scale = (min_dim * 0.30) / terrain_range
+        log.info("_scale_z: terrain_range=%.2f min_dim=%.0fm scale=%.4f", terrain_range, min_dim, scale)
+        return scale
 
     def _sanitize(self, values: np.ndarray) -> np.ndarray:
         out = values.copy()
@@ -277,13 +272,42 @@ class X3DSerializer:
     def _heights_to_str(self, values: np.ndarray) -> str:
         return " ".join(f"{v:.4f}" for v in values)
 
-    def _compute_viewpoint(self, grid_w: float, grid_h: float, max_height: float = 0.0) -> str:
+    def _build_scene(self, cols: int, rows: int, spacing: float,
+                     viewpoint: str, orientation: str,
+                     heights_str: str, colors_str: str,
+                     surface_def: str = "", color_def: str = "") -> str:
+        def_attr = f' DEF="{surface_def}"' if surface_def else ""
+        color_def_attr = f' DEF="{color_def}"' if color_def else ""
+        r, g, b = self._colors.sky
+        sky_str = f"{r:.2f} {g:.2f} {b:.2f}"
+        return f"""<x3d>
+  <scene>
+    <background skyColor="{sky_str}"></background>
+    <Viewpoint position="{viewpoint}" orientation="{orientation}" description="Overview"></Viewpoint>
+    <NavigationInfo type='"EXAMINE" "ANY"'></NavigationInfo>
+    <Shape>
+      <Appearance>
+        <Material ambientIntensity="1" diffuseColor="1 1 1" specularColor="0 0 0"/>
+      </Appearance>
+      <ElevationGrid{def_attr} xDimension="{cols}" zDimension="{rows}"
+        xSpacing="{spacing:.4f}" zSpacing="{spacing:.4f}"
+        height="{heights_str}"
+        colorPerVertex="true"
+        solid="false">
+        <Color{color_def_attr} color="{colors_str}"/>
+      </ElevationGrid>
+    </Shape>
+  </scene>
+</x3d>"""
+
+    def _compute_viewpoint(self, grid_w: float, grid_h: float, max_height: float = 0.0) -> tuple[str, str]:
         cx = grid_w * 0.5
         cz = grid_h * 0.5
         max_dim = max(grid_w, grid_h)
-        cam_x = cx                        # centred over the grid
-        cam_y = max(max_height * 2.5, max_dim * 0.4)
-        cam_z = cz + max_dim * 0.8        # behind the grid
+        cam_x = cx
+        # Stay 1.5× above tallest terrain point, no higher than 20% of grid width
+        cam_y = max(max_height * 1.5, max_dim * 0.05)
+        cam_z = cz + max_dim * 0.8
         angle = -math.atan2(cam_y, max_dim * 0.8)
         return f"{cam_x:.2f} {cam_y:.2f} {cam_z:.2f}", f"1 0 0 {angle:.3f}"
 

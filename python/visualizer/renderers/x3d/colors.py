@@ -7,58 +7,58 @@ from pathlib import Path
 
 RGB = tuple[float, float, float]
 
+_DEFAULT_STATE_COLORS: list[RGB] = [
+    (0.62, 0.50, 0.25),   # 0: Dry
+    (0.60, 0.90, 1.00),   # 1: Very Shallow
+    (0.20, 0.60, 0.90),   # 2: Low Depth
+    (0.10, 0.40, 0.80),   # 3: Medium Depth
+    (0.05, 0.20, 0.70),   # 4: High Depth
+    (0.10, 0.10, 0.60),   # 5: Extreme Depth
+]
+
 
 @dataclass
 class X3DColorScheme:
-    """Scene colors for the X3D renderer. Loaded from color_palette.json["x3d"]."""
+    """Colors for X3D rendering. state_colors maps palette index (0-5) to RGB."""
     sky: RGB = (0.53, 0.81, 0.98)
-    water_rgb: RGB = (0.10, 0.55, 0.95)
-    water_shininess: float = 0.5
-    water_transparency: float = 0.15
-    # Each band: (max_height_range, rgb). Ascending order; last entry is the catch-all.
-    terrain_bands: list[tuple[float, RGB]] = field(default_factory=lambda: [
-        (0.5, (0.62, 0.50, 0.25)),
-        (2.0, (0.34, 0.52, 0.22)),
-        (float("inf"), (0.60, 0.60, 0.60)),
-    ])
+    state_colors: list[RGB] = field(default_factory=lambda: list(_DEFAULT_STATE_COLORS))
 
-    def terrain_rgb(self, height_range: float) -> RGB:
-        for max_r, rgb in self.terrain_bands:
-            if height_range < max_r:
-                return rgb
-        return self.terrain_bands[-1][1]
+    def state_rgb(self, state: int) -> RGB:
+        idx = max(0, min(state, len(self.state_colors) - 1))
+        return self.state_colors[idx]
+
+    def palette_color_str(self) -> str:
+        """Flat X3D Color string with one RGB per state (used by Color node)."""
+        return "  ".join(f"{r:.2f} {g:.2f} {b:.2f}" for r, g, b in self.state_colors)
 
 
 def load_colors(palette_path: Path) -> X3DColorScheme:
-    """Load X3D colors from the x3d section of color_palette.json. Falls back to defaults."""
+    """Load X3D colors from color_palette.json.
+
+    Reads state_colors from the optional 'x3d' section first.
+    Falls back to 'layers.flood_risk[].rgba' (0-255) if present.
+    Uses hardcoded defaults if neither is found.
+    """
     try:
         data = json.loads(palette_path.read_text(encoding="utf-8"))
+
         x3d = data.get("x3d", {})
-        if not x3d:
-            return X3DColorScheme()
+        if x3d:
+            sky: RGB = tuple(x3d.get("sky_rgb", (0.53, 0.81, 0.98)))  # type: ignore[assignment]
+            raw_states = x3d.get("state_colors", [])
+            state_colors: list[RGB] = [tuple(c) for c in raw_states] if raw_states else list(_DEFAULT_STATE_COLORS)  # type: ignore[misc]
+            return X3DColorScheme(sky=sky, state_colors=state_colors)
 
-        sky = tuple(x3d.get("sky_rgb", (0.53, 0.81, 0.98)))
-        w = x3d.get("water", {})
-        water_rgb = tuple(w.get("rgb", (0.10, 0.55, 0.95)))
-        shininess = float(w.get("shininess", 0.5))
-        transparency = float(w.get("transparency", 0.15))
+        flood_risk = data.get("layers", {}).get("flood_risk", [])
+        if flood_risk:
+            sorted_levels = sorted(flood_risk, key=lambda e: e["value"])
+            state_colors = [
+                (e["rgba"][0] / 255.0, e["rgba"][1] / 255.0, e["rgba"][2] / 255.0)
+                for e in sorted_levels
+            ]
+            return X3DColorScheme(state_colors=state_colors)
 
-        raw_bands = x3d.get("terrain", [])
-        bands = []
-        for b in raw_bands:
-            rgb = tuple(b["rgb"])
-            max_r = float(b.get("max_height_range", float("inf")))
-            bands.append((max_r, rgb))
-        if not bands:
-            bands = X3DColorScheme().terrain_bands
-
-        return X3DColorScheme(
-            sky=sky,
-            water_rgb=water_rgb,
-            water_shininess=shininess,
-            water_transparency=transparency,
-            terrain_bands=bands,
-        )
+        return X3DColorScheme()
     except Exception as exc:
         logging.getLogger(__name__).warning(
             "Could not load X3D colors from %s: %s. Using defaults.", palette_path, exc
