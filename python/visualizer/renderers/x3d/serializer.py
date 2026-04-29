@@ -57,12 +57,15 @@ class X3DSerializer:
 
         grid_w = cols * spacing
         grid_h = rows * spacing
-        max_h = float(surface.max()) if surface.size else 0.0
-        viewpoint, orientation = self._compute_viewpoint(grid_w, grid_h, max_h)
+        norm = max(grid_w, grid_h) / 1000.0
+        spacing_n = spacing / norm
+        surface_n = surface / norm
+        max_h_n = float(surface_n.max()) if surface_n.size else 0.0
+        viewpoint, orientation = self._compute_viewpoint(grid_w / norm, grid_h / norm, max_h_n)
 
-        heights_str = self._heights_to_str(surface)
+        heights_str = self._heights_to_str(surface_n)
 
-        scene = self._build_scene(cols, rows, spacing, viewpoint, orientation,
+        scene = self._build_scene(cols, rows, spacing_n, viewpoint, orientation,
                                   heights_str, colors_str)
         return self._wrap_html(scene, meta), (heights_str, colors_str)
 
@@ -79,11 +82,13 @@ class X3DSerializer:
         terrain = self._get_terrain_scaled(scale)
         grid_w = cols * spacing
         grid_h = rows * spacing
-        max_h = float(terrain.max()) if terrain.size else 0.0
-        viewpoint, orientation = self._compute_viewpoint(grid_w, grid_h, max_h)
+        norm = max(grid_w, grid_h) / 1000.0
+        spacing_n = spacing / norm
+        max_h_n = float(terrain.max()) / norm if terrain.size else 0.0
+        viewpoint, orientation = self._compute_viewpoint(grid_w / norm, grid_h / norm, max_h_n)
 
         first_h, first_c = frames[0] if frames else ("", "")
-        scene = self._build_scene(cols, rows, spacing, viewpoint, orientation,
+        scene = self._build_scene(cols, rows, spacing_n, viewpoint, orientation,
                                   first_h, first_c,
                                   surface_def="SurfaceGrid", color_def="SurfaceColor")
 
