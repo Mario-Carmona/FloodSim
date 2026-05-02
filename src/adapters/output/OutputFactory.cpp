@@ -14,8 +14,8 @@
 #include "app/config/Config.hpp"
 
 // Include concrete implementations
-#include "adapters/output/X3dFileOutput.hpp"
-#include "adapters/output/MqttOutput.hpp"
+#include "adapters/output/X3DFileOutput.hpp"
+#include "adapters/output/MQTTOutput.hpp"
 #include "adapters/output/ImageOutput.hpp"
 
 namespace danasim {

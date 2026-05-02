@@ -14,8 +14,8 @@ add_library(danasim_output_adapters)
 
 target_sources(danasim_output_adapters
     PRIVATE
-        X3dFileOutput.cpp
-        MqttOutput.cpp
+        X3DFileOutput.cpp
+        MQTTOutput.cpp
         ImageOutput.cpp
         OutputFactory.cpp
 )

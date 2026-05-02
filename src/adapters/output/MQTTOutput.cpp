@@ -1,5 +1,5 @@
 
-#include "adapters/output/MqttOutput.hpp"
+#include "adapters/output/MQTTOutput.hpp"
 
 #include <stdexcept>
 
