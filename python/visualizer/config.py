@@ -70,3 +70,11 @@ RENDERER_TYPE = os.getenv("DANASIM_RENDERER", "2d")
 DEPTH_PROVIDER_TYPE = os.getenv("DANASIM_DEPTH_PROVIDER", "palette")
 TERRAIN_LAYER_ID = os.getenv("DANASIM_TERRAIN_LAYER", "topo_bathy")
 X3D_SUBSAMPLE = int(os.getenv("DANASIM_X3D_SUBSAMPLE", "1"))
+
+# CSV renderer
+CSV_WATER_THRESHOLD = float(os.getenv("DANASIM_CSV_WATER_THRESHOLD", "0.0005"))
+
+# LOD tiled serializer (config vars reserved in renderers/x3d/NOTES.md)
+X3D_LOD_CHUNK      = int(os.getenv("DANASIM_X3D_LOD_CHUNK", "256"))
+X3D_LOD_SUBSAMPLES = [int(x) for x in os.getenv("DANASIM_X3D_LOD_SUBSAMPLES", "1,4,16").split(",")]
+X3D_LOD_RANGES     = [float(x) for x in os.getenv("DANASIM_X3D_LOD_RANGES", "5000,20000").split(",")]
