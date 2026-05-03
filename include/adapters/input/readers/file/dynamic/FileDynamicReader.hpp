@@ -10,10 +10,6 @@ namespace danasim {
 
     class FileDynamicReader : public DynamicReader {
     public:
-        enum class Format : uint8_t {
-            HIF
-        };
-
         FileDynamicReader(const std::filesystem::path& dataPath, const std::string& dataFilename);
         virtual ~FileDynamicReader() = default;
 

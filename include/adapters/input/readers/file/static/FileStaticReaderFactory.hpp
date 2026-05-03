@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <memory>
 
+#include "adapters/input/readers/file/static/FileStaticFormat.hpp"
 #include "adapters/input/readers/StaticReader.hpp"
 
 namespace danasim {
@@ -12,7 +13,7 @@ namespace danasim {
     class FileStaticReaderFactory {
     public:
         static std::unique_ptr<StaticReader> create(
-            const std::string& format, const std::filesystem::path& dataPath, 
+            const FileStaticFormat& format, const std::filesystem::path& dataPath,
             const std::string& dataFilename
         );
     };

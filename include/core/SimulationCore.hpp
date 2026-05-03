@@ -7,6 +7,7 @@
 #include <string_view>
 #include <stdexcept>
 #include <optional>
+#include <atomic>
 
 #include "app/config/Config.hpp"
 #include "core/snapshot/SnapshotManager.hpp"
@@ -44,7 +45,7 @@ namespace danasim {
         /**
          * @brief Run the simulation loop.
          */
-        void run();
+        void run(const std::atomic<bool>& stopFlag);
 
     private:
         // Dependencies

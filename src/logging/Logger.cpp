@@ -6,6 +6,9 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/pattern_formatter.h>
+#include <spdlog/sinks/base_sink.h>
+
+#include <magic_enum/magic_enum.hpp>
 
 #include <mutex>
 #include <shared_mutex> // C++17
@@ -61,31 +64,65 @@ namespace danasim {
     };
 
     // Helper: Convertir string level a enum
-    static spdlog::level::level_enum toSpd(const std::string& level) {
-        if (level == "trace") return spdlog::level::trace;
-        if (level == "debug") return spdlog::level::debug;
-        if (level == "info")  return spdlog::level::info;
-        if (level == "warn")  return spdlog::level::warn;
-        if (level == "error") return spdlog::level::err;
-        if (level == "critical") return spdlog::level::critical;
-        return spdlog::level::info;
+    spdlog::level::level_enum Logger::toSpdLevel(const LoggerLevel& level) {
+        switch(level) {
+            case LoggerLevel::debug: return spdlog::level::debug;
+            case LoggerLevel::info:  return spdlog::level::info;
+            case LoggerLevel::warn:  return spdlog::level::warn;
+            case LoggerLevel::error: return spdlog::level::err;
+            case LoggerLevel::critical: return spdlog::level::critical;
+            default: return spdlog::level::info;
+		}
     }
 
-    void Logger::init(const std::string& level, bool async, bool silent, bool saveLogFile, const std::filesystem::path& outputPath)
+    // --- CUSTOM SINK PARA LA GUI ---
+    template<typename Mutex>
+    class CallbackSink : public spdlog::sinks::base_sink<Mutex> {
+    public:
+        explicit CallbackSink(std::function<void(int, const std::string&)> callback)
+            : callback_(std::move(callback)) {
+        }
+
+    protected:
+        void sink_it_(const spdlog::details::log_msg& msg) override {
+            spdlog::memory_buf_t formatted;
+            this->formatter_->format(msg, formatted);
+
+            if (callback_) {
+                // Pasamos el nivel (casteado a int) y el mensaje formateado
+                callback_(static_cast<int>(msg.level), fmt::to_string(formatted));
+            }
+        }
+        void flush_() override {}
+    private:
+        std::function<void(int, const std::string&)> callback_;
+    };
+    using CallbackSink_mt = CallbackSink<std::mutex>;
+
+    void Logger::init(const LoggerLevel& level, bool async, bool silent, bool saveLogFile, const std::filesystem::path& outputPath, std::function<void(int, const std::string&)> guiCallback)
     {
         std::vector<spdlog::sink_ptr> sinks;
 
-        if (!silent) {
-            sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+        if (silent) {
+            sinks.push_back(std::make_shared<spdlog::sinks::null_sink_mt>());
+        }
+        else {
+            
+
+            if (guiCallback) {
+                // 1. MODO GUI: Enviamos los logs al callback
+                sinks.push_back(std::make_shared<CallbackSink_mt>(guiCallback));
+            }
+            else {
+                // 2. MODO CLI: Consola estándar con colores
+                sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+            }
 
             if (saveLogFile) {
                 std::filesystem::path logFile = outputPath / "simulation.log";
 
                 sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFile.string(), true));
             }
-        }
-        else {
-            sinks.push_back(std::make_shared<spdlog::sinks::null_sink_mt>());
         }
 
         if (async && !silent) {
@@ -97,7 +134,7 @@ namespace danasim {
             s_logger = std::make_shared<spdlog::logger>("danasim", sinks.begin(), sinks.end());
         }
 
-        s_logger->set_level(toSpd(level));
+        s_logger->set_level(toSpdLevel(level));
 
         // Configurar formatter
         auto formatter = std::make_unique<spdlog::pattern_formatter>();

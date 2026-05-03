@@ -18,6 +18,7 @@
 #include <vector>
 #include <memory>
 #include <thread>
+#include <functional>
 
 #include "app/config/Config.hpp"
 
@@ -52,7 +53,7 @@ namespace danasim {
          * * @param configPath Path to the YAML configuration file.
          * @throw std::runtime_error If configuration loading fails.
          */
-        explicit Application(const Config& config);
+        explicit Application(const Config& config, std::function<void(int, const std::string&)> guiCallback = nullptr);
 
         /**
          * @brief Destructor. Ensures all threads are stopped safely.
@@ -68,8 +69,14 @@ namespace danasim {
          */
         int run();
 
+        // Método público que llamará la GUI
+        void stop();
+
     private:
         inline static const std::filesystem::path PROJECT_DIR = (getExecutablePath() / "../../../..").lexically_normal();
+
+        // Bandera atómica que el bucle principal revisará constantemente
+        std::atomic<bool> stopRequested_{ false };
 
         /// The parsed application configuration.
         Config config_;

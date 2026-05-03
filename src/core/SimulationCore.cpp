@@ -46,7 +46,7 @@ namespace danasim {
         }
     }
 
-    void SimulationCore::run()
+    void SimulationCore::run(const std::atomic<bool>& stopFlag)
     {
         LOG_INFO("Simulation started");
 
@@ -64,12 +64,21 @@ namespace danasim {
 
             for (StepType i = 0; i < snapshotManager_->everyNSteps(); ++i) {
                 stateUpdater_->step(currentGrid_);
+
+                if (stopFlag.load(std::memory_order_relaxed)) {
+                    break; // Salimos del bucle pacíficamente
+                }
             }
 
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
             LOG_INFO("TF Graph Execution time: {}s", elapsed.count());
             
+            if (stopFlag.load(std::memory_order_relaxed)) {
+                LOG_WARN("Simulation halted early by user request.");
+                break; // Salimos del bucle pacíficamente
+            }
+
             currentTime += (snapshotManager_->everyNSteps() * timeStep_);
 
             // --- PASO 3: OUTPUT ---

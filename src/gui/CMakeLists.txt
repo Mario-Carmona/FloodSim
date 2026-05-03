@@ -10,6 +10,12 @@ find_path(PORTABLE_FILE_DIALOGS_INCLUDE_DIRS "portable-file-dialogs.h")
 
 
 
+add_subdirectory(helpers)
+
+add_subdirectory(tabs)
+
+
+
 add_executable(danasim_gui
     main_gui.cpp
 )
@@ -18,6 +24,8 @@ target_link_libraries(danasim_gui
     PRIVATE
         danasim_options
         danasim_app
+        danasim_gui_helpers
+        danasim_gui_tabs
         imgui::imgui
         glfw
         OpenGL::GL

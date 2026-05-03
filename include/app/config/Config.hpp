@@ -20,6 +20,10 @@
 #include <chrono>
 
 #include "Types.hpp"
+#include "logging/LoggerLevel.hpp"
+#include "adapters/input/readers/file/static/FileStaticFormat.hpp"
+#include "adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
+
 
 namespace danasim {
 
@@ -29,8 +33,8 @@ namespace danasim {
 
     struct InputConfig {
         struct FileInputSourceConfig {
-            std::string staticFormat;
-            std::string dynamicFormat;
+            FileStaticFormat staticFormat;
+            FileDynamicFormat dynamicFormat;
             std::string datasetName; 
         };
 
@@ -64,7 +68,9 @@ namespace danasim {
                 JSON
             };
 
-            std::string address;
+            std::string protocol = "mqtt://";
+            std::string host = "127.0.0.1";
+            int port = 1883;
             PayloadFormat payloadFormat;
         };
 
@@ -145,7 +151,7 @@ namespace danasim {
     };
 
     struct LoggingConfig {
-        std::string level = "info";
+        LoggerLevel level;
         bool async;
         bool silent;
         bool saveLogFile;

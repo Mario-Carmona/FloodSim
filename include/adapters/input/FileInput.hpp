@@ -17,6 +17,8 @@
 #include <vector>
 
 #include "ports/InputPort.hpp"
+#include "adapters/input/readers/file/static/FileStaticFormat.hpp"
+#include "adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
 
 namespace danasim {
 
@@ -34,7 +36,7 @@ namespace danasim {
          * @param inputPath The root directory containing the scenario data.
          * @throw std::runtime_error If GDAL drivers cannot be registered.
          */
-        explicit FileInput(const std::filesystem::path& dataPath, const std::string& datasetName, const std::string& staticFormat, const std::string& dynamicFormat);
+        explicit FileInput(const std::filesystem::path& dataPath, const std::string& datasetName, const FileStaticFormat& staticFormat, const FileDynamicFormat& dynamicFormat);
 
         virtual ~FileInput() = default;
 
@@ -49,8 +51,8 @@ namespace danasim {
 
         std::string datasetName_;
 
-        std::string staticFormat_;
-        std::string dynamicFormat_;
+        FileStaticFormat staticFormat_;
+        FileDynamicFormat dynamicFormat_;
     };
 
 } // namespace danasim

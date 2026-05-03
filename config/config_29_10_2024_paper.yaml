@@ -4,7 +4,7 @@ scenario:
   append_start_timestamp: false
 
 logging:
-  level: debug
+  level: info
   async: false
   silent: false
   save_log_file: true
@@ -15,16 +15,18 @@ input:
     dynamic_format: HIF
     dataset_name: data_29_10_2024
   scalars:
-    - name: fluid_density
-      value: 1000.0
-    - name: fluid_viscosity
-      value: 0.001
+    fluid_density: 1000.0
+    fluid_viscosity: 0.001
 
 output:
   snapshot:
-    every_n_steps: 10
+    every_n_steps: 300
   outputs:
-    - type: image
+    - type: MQTT
+      protocol: mqtt://
+      host: 100.106.184.68
+      port: 1883
+      format: JSON
 
 state_updater:
   enable_rainfall: true
@@ -50,14 +52,14 @@ state_updater:
         threshold_start: 2.0
         color_hex: 4B0082FF
   updater:
-    type: onnx
+    type: ONNX
     model_path: ../exported_models/first_model_cpu
     tensor_dim: 16
 
 simulation:
   start_timestamp: 2024-10-29T10:00:00
   time_step: 00:00:01
-  duration: 08:00:00
+  duration: 04:00:00
   view_box: 
     use_full_grid: true
     south_west:

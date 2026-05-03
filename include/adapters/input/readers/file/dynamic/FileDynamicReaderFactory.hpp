@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <memory>
 
+#include "adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
 #include "adapters/input/readers/DynamicReader.hpp"
 
 namespace danasim {
@@ -12,7 +13,7 @@ namespace danasim {
     class FileDynamicReaderFactory {
     public:
         static std::unique_ptr<DynamicReader> create(
-            const std::string& format, const std::filesystem::path& dataPath, 
+            const FileDynamicFormat& format, const std::filesystem::path& dataPath,
             const std::string& dataFilename
         );
     };
