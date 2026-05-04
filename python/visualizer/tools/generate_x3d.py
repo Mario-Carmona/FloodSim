@@ -15,66 +15,13 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import csv
-import json
 import logging
 import sys
 from pathlib import Path
 
 import numpy as np
 
-
-# ---------------------------------------------------------------------------
-# Pure data helpers — no imports from the visualizer package at module level.
-# All project imports are deferred into functions to keep this script testable
-# without the full package on sys.path.
-# ---------------------------------------------------------------------------
-
-def load_meta(data_dir: Path) -> dict:
-    """Return dict with rows, cols, cell_size_m."""
-    return json.loads((data_dir / "meta.json").read_text(encoding="utf-8"))
-
-
-def load_terrain(data_dir: Path) -> np.ndarray:
-    """Return float32 flat terrain array."""
-    return np.load(data_dir / "terrain.npy").astype(np.float32)
-
-
-def load_frame(csv_path: Path, rows: int, cols: int) -> tuple[np.ndarray, np.ndarray]:
-    """Reconstruct palette_grid (uint8) and water_depths (float32) from a sparse CSV.
-
-    Returns arrays of shape (rows, cols). Dry cells are 0.
-    """
-    palette_grid = np.zeros((rows, cols), dtype=np.uint8)
-    water_depths = np.zeros((rows, cols), dtype=np.float32)
-    with csv_path.open(encoding="utf-8", newline="") as fh:
-        reader = csv.reader(fh)
-        header_skipped = False
-        for row_vals in reader:
-            if not row_vals or row_vals[0].startswith("#"):
-                continue
-            if not header_skipped:
-                header_skipped = True  # skip "row,col,water_depth,flood_risk" line
-                continue
-            r, c = int(row_vals[0]), int(row_vals[1])
-            if 0 <= r < rows and 0 <= c < cols:
-                water_depths[r, c] = float(row_vals[2])
-                palette_grid[r, c] = int(row_vals[3])
-    return palette_grid, water_depths
-
-
-def discover_frames(data_dir: Path) -> list[Path]:
-    """Return sorted list of step_XXXXX.csv paths."""
-    return sorted(data_dir.glob("step_?????.csv"))
-
-
-def build_wet_mask(frame_paths: list[Path], rows: int, cols: int) -> np.ndarray:
-    """Return flat boolean array (rows*cols) — True where any cell is ever wet across all frames."""
-    wet = np.zeros(rows * cols, dtype=bool)
-    for csv_path in frame_paths:
-        _, water_depths = load_frame(csv_path, rows, cols)
-        wet |= (water_depths.flatten() >= 0.0005)
-    return wet
+from .csv_utils import load_meta, load_terrain, load_frame, discover_frames, build_wet_mask
 
 
 def _auto_detect_palette(data_dir: Path) -> Path | None:
