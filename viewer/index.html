@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>DanaSim Flood Viewer</title>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.120/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.120/Build/Cesium/Widgets/widgets.css" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1a1a2e; color: #e0e0e0; font-family: sans-serif;
+           display: flex; flex-direction: column; height: 100vh; }
+    #cesiumContainer { flex: 1; min-height: 0; }
+    #controls {
+      padding: 10px 16px; background: #16213e;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      border-top: 1px solid #0f3460; z-index: 10;
+    }
+    #controls button {
+      background: #0f3460; color: #e0e0e0; border: 1px solid #1a6ea8;
+      border-radius: 4px; padding: 5px 14px; cursor: pointer; font-size: 14px;
+    }
+    #controls button:hover { background: #1a6ea8; }
+    #slider { flex: 1; min-width: 120px; accent-color: #1a6ea8; }
+    #speed  { width: 80px; accent-color: #1a6ea8; }
+    label { font-size: 12px; color: #a0a0c0; }
+    #frame-label { font-size: 13px; min-width: 100px; }
+    #status { font-size: 11px; color: #6080a0; min-width: 160px; }
+  </style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<div id="controls">
+  <button id="prevBtn">&#9664;</button>
+  <button id="playBtn">&#9654; Play</button>
+  <button id="nextBtn">&#9654;&#9654;</button>
+  <input id="slider" type="range" min="0" max="0" value="0"/>
+  <span id="frame-label">Frame 0 / 0</span>
+  <label>Speed <input id="speed" type="range" min="100" max="2000" value="800" step="100"/></label>
+  <span id="status">Loading...</span>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Configuration — adjust paths if you serve from a different root
+// ---------------------------------------------------------------------------
+const TERRAIN_TILES = '../tiles/terrain';
+const FLOOD_TILES   = '../tiles/flood';
+const MANIFEST_URL  = `${FLOOD_TILES}/manifest.json`;
+
+// ---------------------------------------------------------------------------
+// CesiumJS initialisation — no Ion account needed for local tiles
+// ---------------------------------------------------------------------------
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDAiLCJpZCI6MCwiaWF0IjowfQ.';
+
+// Decode Terrarium RGB → height in metres
+function decodeTerrariumPixels(imageData, width, height) {
+  const heights = new Float32Array(width * height);
+  for (let i = 0; i < width * height; i++) {
+    const r = imageData[i * 4];
+    const g = imageData[i * 4 + 1];
+    const b = imageData[i * 4 + 2];
+    heights[i] = (r * 256 + g + b / 256.0) - 32768.0;
+  }
+  return heights;
+}
+
+const FLAT_TILE = new Float32Array(256 * 256).fill(0);
+
+async function fetchTerrainTile(x, y, level) {
+  const url = `${TERRAIN_TILES}/${level}/${x}/${y}.png`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return FLAT_TILE;  // outside our zoom range or missing tile
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+    const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    return decodeTerrariumPixels(imageData, bitmap.width, bitmap.height);
+  } catch {
+    return FLAT_TILE;
+  }
+}
+
+const terrainProvider = new Cesium.CustomHeightmapTerrainProvider({
+  width:  256,
+  height: 256,
+  tilingScheme: new Cesium.WebMercatorTilingScheme(),
+  callback: fetchTerrainTile,
+});
+
+const viewer = new Cesium.Viewer('cesiumContainer', {
+  terrainProvider,
+  baseLayerPicker:       false,
+  geocoder:              false,
+  homeButton:            false,
+  sceneModePicker:       false,
+  navigationHelpButton:  false,
+  animation:             false,
+  timeline:              false,
+  fullscreenButton:      false,
+  vrButton:              false,
+  infoBox:               false,
+  selectionIndicator:    false,
+  imageryProvider:       false,   // disable default Bing imagery
+});
+
+viewer.scene.skyAtmosphere.show = false;
+viewer.scene.verticalExaggeration = 5.0;  // terrain looks flat without this at map scale
+
+// ---------------------------------------------------------------------------
+// Flood overlay layers — one per frame, toggled by setFrame()
+// ---------------------------------------------------------------------------
+const layers = [];
+let manifest = null;
+let current  = 0;
+let playing  = false;
+let timer    = null;
+
+function georef3857ToRect(georef) {
+  // Convert EPSG:3857 metres → CesiumJS Rectangle (radians via degrees)
+  const R = 6378137.0;
+  const westDeg  = (georef.dom_west_3857  / R) * (180 / Math.PI);
+  const eastDeg  = (georef.dom_east_3857  / R) * (180 / Math.PI);
+  const southDeg = (2 * Math.atan(Math.exp(georef.dom_south_3857 / R)) - Math.PI / 2) * (180 / Math.PI);
+  const northDeg = (2 * Math.atan(Math.exp(georef.dom_north_3857 / R)) - Math.PI / 2) * (180 / Math.PI);
+  return Cesium.Rectangle.fromDegrees(westDeg, southDeg, eastDeg, northDeg);
+}
+
+async function loadManifest() {
+  document.getElementById('status').textContent = 'Loading...';
+  try {
+    // Load georef first — needed for the imagery layer rectangle
+    const georef  = await fetch(`${TERRAIN_TILES}/georef.json`).then(r => r.json());
+    const domRect = georef3857ToRect(georef);
+
+    const resp = await fetch(MANIFEST_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    manifest = await resp.json();
+
+    // Terrain colormap as base imagery — shows land/sea without OSM
+    viewer.imageryLayers.addImageryProvider(
+      new Cesium.UrlTemplateImageryProvider({
+        url: `${TERRAIN_TILES}/imagery/{z}/{x}/{y}.png`,
+        tilingScheme: new Cesium.WebMercatorTilingScheme(),
+        minimumLevel: georef.min_zoom,
+        maximumLevel: georef.max_zoom,
+        rectangle: domRect,
+      })
+    );
+
+    const n = manifest.frames.length;
+    document.getElementById('slider').max = n - 1;
+    document.getElementById('frame-label').textContent = `Frame 0 / ${n - 1}`;
+    document.getElementById('status').textContent = `${n} frame(s) loaded`;
+
+    // Create one hidden imagery layer per frame.
+    // The rectangle restricts CesiumJS to only request tiles within our domain —
+    // without it, CesiumJS scans the entire world and generates thousands of 404s.
+    for (const frame of manifest.frames) {
+      const provider = new Cesium.UrlTemplateImageryProvider({
+        url: `${FLOOD_TILES}/${frame.file}/{z}/{x}/{y}.png`,
+        tilingScheme: new Cesium.WebMercatorTilingScheme(),
+        minimumLevel: manifest.min_zoom,
+        maximumLevel: manifest.max_zoom,
+        rectangle: domRect,
+        hasAlphaChannel: true,
+      });
+      const layer = viewer.imageryLayers.addImageryProvider(provider);
+      layer.show = false;
+      layer.alpha = 0.85;
+      layers.push(layer);
+    }
+
+    setFrame(0);
+    viewer.camera.flyTo({ destination: domRect, duration: 2.0 });
+
+  } catch (err) {
+    document.getElementById('status').textContent = `Error: ${err.message}`;
+    return;
+  }
+
+  // (flyToDomain removed — handled inline above)
+}
+
+function setFrame(i) {
+  if (!manifest) return;
+  const n = manifest.frames.length;
+  current = ((i % n) + n) % n;
+  layers.forEach((l, idx) => { l.show = (idx === current); });
+  document.getElementById('slider').value = current;
+  document.getElementById('frame-label').textContent =
+    `Frame ${current} / ${n - 1}`;
+}
+
+function startPlay() {
+  const ms = parseInt(document.getElementById('speed').value);
+  timer = setInterval(() => setFrame(current + 1), ms);
+  playing = true;
+  document.getElementById('playBtn').textContent = '⏸ Pause';
+}
+
+function stopPlay() {
+  clearInterval(timer);
+  playing = false;
+  document.getElementById('playBtn').textContent = '▶ Play';
+}
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  playing ? stopPlay() : startPlay();
+});
+document.getElementById('prevBtn').addEventListener('click', () => {
+  stopPlay(); setFrame(current - 1);
+});
+document.getElementById('nextBtn').addEventListener('click', () => {
+  stopPlay(); setFrame(current + 1);
+});
+document.getElementById('slider').addEventListener('input', e => {
+  stopPlay(); setFrame(parseInt(e.target.value));
+});
+document.getElementById('speed').addEventListener('change', () => {
+  if (playing) { stopPlay(); startPlay(); }
+});
+
+// Kick everything off
+loadManifest();
+</script>
+</body>
+</html>
