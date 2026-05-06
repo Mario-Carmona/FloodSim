@@ -28,15 +28,15 @@
 #error "Sistema operativo no soportado"
 #endif
 
-#include "adapters/output/OutputFactory.hpp"
-#include "adapters/state_updater/StateUpdaterFactory.hpp"
+#include "app/adapters/output/OutputFactory.hpp"
+#include "app/adapters/state_updater/StateUpdaterFactory.hpp"
 #include "logging/Logger.hpp"
 
-#include "core/snapshot/SnapshotManager.hpp"
-#include "core/SimulationCore.hpp"
-#include "ports/OutputPort.hpp"
-#include "core/grid/Scalar.hpp"
-#include "adapters/input/FileInput.hpp"
+#include "app/core/snapshot/SnapshotManager.hpp"
+#include "app/core/SimulationCore.hpp"
+#include "app/core/ports/OutputPort.hpp"
+#include "app/core/grid/Scalar.hpp"
+#include "app/adapters/input/FileInput.hpp"
 
 namespace danasim {
 

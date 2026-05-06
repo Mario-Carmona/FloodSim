@@ -17,7 +17,7 @@
 #include "logging/LoggerLevel.hpp"
 #include "misc/Paths.hpp"
 #include "misc/Time.hpp"
-#include "core/grid/LayerTypes.hpp"
+#include "app/core/grid/LayerTypes.hpp"
 
 namespace danasim {
 

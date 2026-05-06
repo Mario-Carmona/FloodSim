@@ -17,7 +17,7 @@ add_subdirectory(tabs)
 
 
 add_executable(danasim_gui
-    main_gui.cpp
+    mainGUI.cpp
 )
 
 target_link_libraries(danasim_gui

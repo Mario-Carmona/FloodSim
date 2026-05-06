@@ -1,6 +1,6 @@
 
 add_executable(danasim_cli
-    main_cli.cpp
+    mainCLI.cpp
 )
 
 target_link_libraries(danasim_cli

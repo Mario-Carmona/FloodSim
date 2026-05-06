@@ -21,8 +21,8 @@
 
 #include "Types.hpp"
 #include "logging/LoggerLevel.hpp"
-#include "adapters/input/readers/file/static/FileStaticFormat.hpp"
-#include "adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
+#include "app/adapters/input/readers/file/static/FileStaticFormat.hpp"
+#include "app/adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
 
 
 namespace danasim {

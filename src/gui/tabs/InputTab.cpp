@@ -1,8 +1,8 @@
 
 #include "gui/tabs/Tabs.hpp"
 
-#include "adapters/input/readers/file/static/FileStaticFormat.hpp"
-#include "adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
+#include "app/adapters/input/readers/file/static/FileStaticFormat.hpp"
+#include "app/adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
 
 #include <nlohmann/json.hpp>
 #include <fstream>

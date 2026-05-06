@@ -77,15 +77,11 @@ endif()
 # -----------------------
 # Subproyectos
 # -----------------------
-if(ENABLE_CORE)
-    add_subdirectory(core)
+if(BUILD_APP OR BUILD_TESTS)
+    add_subdirectory(app)
 endif()
 
-add_subdirectory(adapters)
-
 if(BUILD_APP)
-    add_subdirectory(app)
-
     if(ENABLE_GUI)
         add_subdirectory(gui)
     else()
