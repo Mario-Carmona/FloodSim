@@ -1,5 +1,5 @@
 
-#include "adapters/output/X3dFileOutput.hpp"
+#include "adapters/output/X3DFileOutput.hpp"
 
 #include <fstream>
 #include <iomanip>

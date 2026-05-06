@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .base import BaseRenderer
+from .csv.csv_renderer import CSVRenderer
 from .matplotlib_renderer import MatplotlibRenderer
 from .x3d.x3d_renderer import X3DRenderer
 from ..depth_providers.base import DepthProvider
@@ -10,6 +11,7 @@ from ..depth_providers.direct import DirectDepthProvider
 _RENDERER_REGISTRY: dict[str, type[BaseRenderer]] = {
     "2d": MatplotlibRenderer,
     "x3d": X3DRenderer,
+    "csv": CSVRenderer,
 }
 
 _DEPTH_PROVIDER_REGISTRY: dict[str, type[DepthProvider]] = {
