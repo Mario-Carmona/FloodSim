@@ -6,16 +6,13 @@
 #include <string>
 #include <filesystem>
 
+#include "adapters/input/readers/file/static/FileStaticFormat.hpp"
+
 namespace danasim {
 
     class FileStaticReader : public StaticReader {
     public:
-        enum class Format : uint8_t {
-            IDRISI
-        };
-
-
-        static bool isStaticLayer(const std::filesystem::path& dataPath, const std::string& dataFilename, const std::string& formatStr);
+        static bool isStaticLayer(const std::filesystem::path& dataPath, const std::string& dataFilename, const FileStaticFormat& format);
 
 
         FileStaticReader(const std::filesystem::path& dataPath, const std::string& dataFilename);

@@ -27,7 +27,7 @@ namespace danasim {
     // Implementation
     // -------------------------------------------------------------------------
 
-    FileInput::FileInput(const std::filesystem::path& dataPath, const std::string& datasetName, const std::string& staticFormat, const std::string& dynamicFormat)
+    FileInput::FileInput(const std::filesystem::path& dataPath, const std::string& datasetName, const FileStaticFormat& staticFormat, const FileDynamicFormat& dynamicFormat)
         : inputPath_(dataPath / datasetName), datasetName_(datasetName), staticFormat_(staticFormat), dynamicFormat_(dynamicFormat)
     {
         LOG_INFO("FileInput initialized with root: {}", inputPath_.string());

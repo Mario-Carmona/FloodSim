@@ -55,7 +55,7 @@ namespace danasim {
                     LOG_DEBUG("Initializing MQTT Output");
 
                     return std::make_unique<MqttOutput>(
-                        arg.address,
+                        arg.protocol + arg.host + ":" + std::to_string(arg.port),
                         scenarioName,
                         arg.payloadFormat
                     );

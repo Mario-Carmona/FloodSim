@@ -19,7 +19,7 @@
 #include <filesystem>
 
 #include "app/Application.hpp"
-#include "cli/ConfigLoader.hpp"
+#include "app/config/ConfigLoader.hpp"
 
 namespace {
 

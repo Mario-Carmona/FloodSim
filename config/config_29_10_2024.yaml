@@ -15,18 +15,14 @@ input:
     dynamic_format: HIF
     dataset_name: data_29_10_2024
   scalars:
-    - name: fluid_density
-      value: 1000.0
-    - name: fluid_viscosity
-      value: 0.001
+    fluid_density: 1000.0
+    fluid_viscosity: 0.001
 
 output:
   snapshot:
     every_n_steps: 30
   outputs:
-    - type: mqtt
-      address: mqtt://100.106.184.68:1883
-      format: json
+    - type: IMAGE
 
 state_updater:
   enable_rainfall: true
@@ -52,7 +48,7 @@ state_updater:
         threshold_start: 2.0
         color_hex: 4B0082FF
   updater:
-    type: onnx
+    type: ONNX
     model_path: ../exported_models/first_model_cpu
     tensor_dim: 16
 

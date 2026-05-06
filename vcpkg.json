@@ -94,6 +94,16 @@
         {
           "name": "portable-file-dialogs",
           "default-features": true
+        },
+        {
+          "name": "nlohmann-json",
+          "default-features": false,
+          "features": []
+        },
+        {
+          "name": "magic-enum",
+          "default-features": false,
+          "features": []
         }
       ]
     },

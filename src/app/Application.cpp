@@ -81,7 +81,7 @@ namespace danasim {
         #endif
     }
 
-    Application::Application(const Config& config)
+    Application::Application(const Config& config, std::function<void(int, const std::string&)> guiCallback)
         : config_(config)
     {
         if (config_.scenario.appendStartTimestamp) {
@@ -112,7 +112,8 @@ namespace danasim {
             config_.logging.async,
             config_.logging.silent,
             config_.logging.saveLogFile,
-            outputPath_
+            outputPath_, 
+            guiCallback
         );
     }
 
@@ -125,6 +126,9 @@ namespace danasim {
     int Application::run()
     {
         try {
+            // 1. Reseteamos la bandera al iniciar
+            stopRequested_.store(false, std::memory_order_relaxed);
+
             setCurrentThreadName("Core");
             LOG_INFO("Application booting up...");
 
@@ -197,7 +201,7 @@ namespace danasim {
             // 7. Execute Simulation (Blocking)
             // -------------------------------------------------
             LOG_INFO("Starting simulation loop");
-            core_->run();
+            core_->run(stopRequested_);
 
             // -------------------------------------------------
             // 8. Graceful Shutdown
@@ -217,6 +221,13 @@ namespace danasim {
             Logger::shutdown();
             return 1;
         }
+    }
+
+    void Application::stop() {
+        // Cambiamos el estado a true. 
+        // Usamos memory_order_relaxed porque es un simple booleano y no 
+        // necesitamos sincronizar operaciones de memoria complejas aquí.
+        stopRequested_.store(true, std::memory_order_relaxed);
     }
 
     void Application::startOutputThreads()

@@ -28,6 +28,8 @@ namespace danasim {
          * * @throw ConfigurationException If the file cannot be found or contains invalid data.
          */
         static Config load(const std::filesystem::path& configPath);
+
+        static void saveToFile(const std::filesystem::path& destination, const Config& config);
     };
 
 } // namespace danasim
