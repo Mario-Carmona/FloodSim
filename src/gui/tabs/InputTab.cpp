@@ -96,7 +96,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
                 EnumComboBox<FileStaticFormat>(label, inputConfig.file.staticFormat, tooltip);
             }
 
@@ -111,7 +111,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
                 EnumComboBox<FileDynamicFormat>(label, inputConfig.file.dynamicFormat, tooltip);
             }
 
@@ -126,7 +126,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(400.0f, ImGui::GetContentRegionAvail().x));
 
                 TextInput(label, inputConfig.file.datasetName, tooltip);
             }
@@ -162,7 +162,7 @@ namespace FloodSim::Gui {
 
                     // Columna 1: Input de texto (vinculado al mapa de escalares)
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    ImGui::SetNextItemWidth(std::min(200.0f, ImGui::GetContentRegionAvail().x));
 
                     // Usamos tu Helper (como es un std::unordered_map<string, string>, funciona directo) 
                     TextInput(scalarName.c_str(), inputConfig.scalars[scalarName], "Extracted from model metadata.");

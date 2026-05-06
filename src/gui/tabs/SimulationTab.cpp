@@ -26,7 +26,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(200.0f, ImGui::GetContentRegionAvail().x));
                 TimestampPicker(label, simulationConfig.startTimestamp, tooltip);
             }
 
@@ -41,7 +41,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(200.0f, ImGui::GetContentRegionAvail().x));
                 TimePicker(label, simulationConfig.timeStep, tooltip);
                 if (simulationConfig.timeStep.count() < 1) simulationConfig.timeStep = std::chrono::seconds(1);
             }
@@ -57,7 +57,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(200.0f, ImGui::GetContentRegionAvail().x));
                 TimePicker(label, simulationConfig.duration, tooltip);
                 if (simulationConfig.duration.count() < 1) simulationConfig.duration = std::chrono::seconds(1);
             }
@@ -118,7 +118,7 @@ namespace FloodSim::Gui {
                     ImGui::Text("%s", label);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    ImGui::SetNextItemWidth(std::min(100.0f, ImGui::GetContentRegionAvail().x));
                     DoubleInput(label, simulationConfig.viewBox.southWest.lon, tooltip);
                 }
 
@@ -134,7 +134,7 @@ namespace FloodSim::Gui {
                     ImGui::Text("%s", label);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    ImGui::SetNextItemWidth(std::min(100.0f, ImGui::GetContentRegionAvail().x));
                     DoubleInput(label, simulationConfig.viewBox.southWest.lat, tooltip);
                 }
 
@@ -157,7 +157,7 @@ namespace FloodSim::Gui {
                     ImGui::Text("%s", label);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    ImGui::SetNextItemWidth(std::min(100.0f, ImGui::GetContentRegionAvail().x));
                     DoubleInput(label, simulationConfig.viewBox.northEast.lon, tooltip);
                 }
 
@@ -173,7 +173,7 @@ namespace FloodSim::Gui {
                     ImGui::Text("%s", label);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    ImGui::SetNextItemWidth(std::min(100.0f, ImGui::GetContentRegionAvail().x));
                     DoubleInput(label, simulationConfig.viewBox.northEast.lat, tooltip);
                 }
             }

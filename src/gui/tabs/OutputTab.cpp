@@ -33,7 +33,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(200.0f, ImGui::GetContentRegionAvail().x));
                 Int64Input(label, outputConfig.snapshot.everyNSteps, tooltip);
                 if (outputConfig.snapshot.everyNSteps < 1)  outputConfig.snapshot.everyNSteps = 1;
             }
@@ -57,7 +57,11 @@ namespace FloodSim::Gui {
             ImGui::AlignTextToFramePadding();
             ImGui::BulletText("Output #%zu", i + 1);
 
-            ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 80.0f);
+            ImGui::SameLine();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
+
             if (ImGui::Button("Remove", ImVec2(80.0f, 0))) {
                 // Si el usuario borra, eliminamos el elemento, ajustamos el loop y pasamos al siguiente
                 outputConfig.outputs.erase(outputConfig.outputs.begin() + i);
@@ -65,6 +69,8 @@ namespace FloodSim::Gui {
                 --i;
                 continue;
             }
+
+            ImGui::PopStyleColor(2);
 
             ImGui::Spacing();
 
@@ -85,7 +91,7 @@ namespace FloodSim::Gui {
                     ImGui::Text(label);
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::SetNextItemWidth(-FLT_MIN);
+                    ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
 
                     danasim::OutputConfig::OutputConfigEntryType currentType;
 
@@ -135,7 +141,6 @@ namespace FloodSim::Gui {
                             ImGui::Text("%s", label);
 
                             ImGui::TableSetColumnIndex(1);
-                            ImGui::SetNextItemWidth(-FLT_MIN);
                             
                             // Definimos qué protocolos permitimos para este input concreto
                             static const std::vector<std::string> mqttProtocols = { "mqtt://", "mqtts://", "ws://", "wss://" };
@@ -147,6 +152,7 @@ namespace FloodSim::Gui {
                                 specificOutput.host,
                                 specificOutput.port,
                                 mqttProtocols,
+                                std::min(800.0f, ImGui::GetContentRegionAvail().x),
                                 tooltip
                             );
                         }
@@ -163,7 +169,7 @@ namespace FloodSim::Gui {
                             ImGui::Text("%s", label);
 
                             ImGui::TableSetColumnIndex(1);
-                            ImGui::SetNextItemWidth(-FLT_MIN);
+                            ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
 
                             // NOTA: Si 'format' es un std::string usamos TextInput.
                             // Si lo declaraste como un enum, cambia esta línea por:

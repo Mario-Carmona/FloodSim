@@ -5,6 +5,7 @@
 #include <atomic>
 #include <memory>
 #include <thread>
+#include <algorithm>
 
 #include "app/config/Config.hpp"
 

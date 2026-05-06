@@ -27,7 +27,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
                 EnumComboBox<LoggerLevel>(label, loggingConfig.level, tooltip);
             }
 

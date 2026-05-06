@@ -28,7 +28,7 @@ namespace FloodSim::Gui {
     void Checkbox(const char* label, bool& value, const char* tooltip = nullptr);
 
     // Helper para selección de carpetas
-    void FolderInput(const char* label, std::filesystem::path& value, const char* tooltip = nullptr);
+    void FolderInput(const char* label, std::filesystem::path& value, const float& itemWidth, const char* tooltip = nullptr);
 
     void ColorInput(const char* label, std::string& hexColor, const char* tooltip = nullptr, ImGuiColorEditFlags extraFlags = 0);
 
@@ -41,7 +41,7 @@ namespace FloodSim::Gui {
     // Selecciona SOLO la Hora (Mantiene la fecha intacta internamente)
     void TimePicker(const char* label, std::chrono::seconds& time, const char* tooltip = nullptr);
 
-    void ServerAddressInput(const char* label, std::string& protocol, std::string& host, int& port, const std::vector<std::string>& protocols, const char* tooltip = nullptr);
+    void ServerAddressInput(const char* label, std::string& protocol, std::string& host, int& port, const std::vector<std::string>& protocols, const float& itemWidth, const char* tooltip = nullptr);
 
     template <typename T>
     void ComboBox(const char* label, T& value, const std::vector<T>& options, const char* tooltip = nullptr) {

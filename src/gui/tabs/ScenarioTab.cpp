@@ -33,7 +33,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(400.0f, ImGui::GetContentRegionAvail().x));
                 TextInput(label, scenarioConfig.name, tooltip);
             }
 
@@ -64,7 +64,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                FolderInput(label, scenarioConfig.outputDir, tooltip);
+                FolderInput(label, scenarioConfig.outputDir, std::min(900.0f, ImGui::GetContentRegionAvail().x), tooltip);
             }
 
             {

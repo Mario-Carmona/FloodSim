@@ -73,7 +73,7 @@ namespace FloodSim::Gui {
     }
 
     // Helper para selección de carpetas
-    void FolderInput(const char* label, std::filesystem::path& value, const char* tooltip) {
+    void FolderInput(const char* label, std::filesystem::path& value, const float& itemWidth, const char* tooltip) {
         ImGui::PushID(label);
         
         std::string tempStr = value.string();
@@ -93,7 +93,7 @@ namespace FloodSim::Gui {
 
         ImGui::SameLine();
 
-        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::SetNextItemWidth(itemWidth - browseButtonWidth);
         ImGui::InputText("##input", &tempStr, ImGuiInputTextFlags_ReadOnly);
 
         ImGui::PopID();
@@ -110,7 +110,7 @@ namespace FloodSim::Gui {
         // Flags por defecto combinados con los que se pasen por parámetro
         ImGuiColorEditFlags flags = ImGuiColorEditFlags_DisplayHex | ImGuiColorEditFlags_AlphaPreview | extraFlags;
 
-        if (ImGui::ColorEdit4(label, col, flags)) {
+        if (ImGui::ColorEdit4("##ColorPicker", col, flags)) {
             char buffer[10];
             std::snprintf(buffer, sizeof(buffer), "%02X%02X%02X%02X",
                 (int)(col[0] * 255.0f), (int)(col[1] * 255.0f),
@@ -285,7 +285,7 @@ namespace FloodSim::Gui {
             current_tm.tm_year + 1900, current_tm.tm_mon + 1, current_tm.tm_mday,
             current_tm.tm_hour, current_tm.tm_min, current_tm.tm_sec);
 
-        if (ImGui::Button(buffer, ImVec2(-FLT_MIN, 0))) ImGui::OpenPopup("TimestampPopup");
+        if (ImGui::Button(buffer, ImVec2(ImGui::CalcItemWidth(), 0))) ImGui::OpenPopup("TimestampPopup");
         if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
 
         if (ImGui::BeginPopup("TimestampPopup")) {
@@ -320,7 +320,7 @@ namespace FloodSim::Gui {
         std::snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d",
             current_tm.tm_year + 1900, current_tm.tm_mon + 1, current_tm.tm_mday);
 
-        if (ImGui::Button(buffer, ImVec2(-FLT_MIN, 0))) ImGui::OpenPopup("DatePopup");
+        if (ImGui::Button(buffer, ImVec2(ImGui::CalcItemWidth(), 0))) ImGui::OpenPopup("DatePopup");
         if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
 
         if (ImGui::BeginPopup("DatePopup")) {
@@ -368,7 +368,7 @@ namespace FloodSim::Gui {
         std::snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d",
             current_tm.tm_hour, current_tm.tm_min, current_tm.tm_sec);
 
-        if (ImGui::Button(buffer, ImVec2(-FLT_MIN, 0))) ImGui::OpenPopup("TimePopup");
+        if (ImGui::Button(buffer, ImVec2(ImGui::CalcItemWidth(), 0))) ImGui::OpenPopup("TimePopup");
         if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
 
         // 5. Renderizamos el popup
@@ -389,13 +389,16 @@ namespace FloodSim::Gui {
         ImGui::PopID();
     }
 
-    void ServerAddressInput(const char* label, std::string& protocol, std::string& host, int& port, const std::vector<std::string>& protocols, const char* tooltip) {
+    void ServerAddressInput(const char* label, std::string& protocol, std::string& host, int& port, const std::vector<std::string>& protocols, const float& itemWidth, const char* tooltip) {
         ImGui::PushID(label);
 
         bool is_hovered = false;
 
+        float protocolWidth = 120.0f;
+        float portWidth = 100.0f;
+
         // 1. Protocolo (ComboBox de ancho fijo, ej: 85px)
-        ImGui::SetNextItemWidth(85.0f);
+        ImGui::SetNextItemWidth(protocolWidth);
         if (ImGui::BeginCombo("##Protocol", protocol.c_str())) {
             for (const auto& p : protocols) {
                 bool is_selected = (protocol == p);
@@ -410,19 +413,15 @@ namespace FloodSim::Gui {
 
         ImGui::SameLine(0, 4.0f);
 
-        // Calculamos el espacio restante. Reservamos unos 60px para el puerto.
-        float availableWidth = ImGui::GetContentRegionAvail().x;
-        float portWidth = 60.0f;
-
         // 2. Host (Se estira para ocupar el espacio intermedio)
-        ImGui::SetNextItemWidth(availableWidth - portWidth - 4.0f);
+        ImGui::SetNextItemWidth(itemWidth - protocolWidth - portWidth - 8.0f);
         ImGui::InputText("##Host", &host);
         is_hovered |= ImGui::IsItemHovered();
 
         ImGui::SameLine(0, 4.0f);
 
         // 3. Puerto (Ocupa hasta el final. Los '0, 0' ocultan los botones de +/-)
-        ImGui::SetNextItemWidth(-FLT_MIN);
+        ImGui::SetNextItemWidth(portWidth);
         ImGui::InputInt("##Port", &port, 0, 0);
         is_hovered |= ImGui::IsItemHovered();
 

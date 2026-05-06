@@ -20,7 +20,7 @@ namespace FloodSim::Gui {
 
             {
                 const char* label = "Enable Rainfall";
-                const char* tooltip = "";
+                const char* tooltip = "Enable or disable rainfall contribution to the simulation state.";
 
                 ImGui::TableNextRow();
 
@@ -34,7 +34,7 @@ namespace FloodSim::Gui {
 
             {
                 const char* label = "Dry Tolerance";
-                const char* tooltip = "";
+                const char* tooltip = "Minimum depth threshold to treat a grid cell as dry.";
 
                 ImGui::TableNextRow();
 
@@ -43,7 +43,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(100.0f, ImGui::GetContentRegionAvail().x));
                 FloatInput(label, stateUpdaterConfig.dryTolerance, tooltip);
             }
 
@@ -70,7 +70,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
 
                 // 1. DEDUCIR EL ENUM DESDE EL VARIANT ACTIVO
                 // Leemos qué tipo de estructura hay actualmente en el variant
@@ -115,7 +115,7 @@ namespace FloodSim::Gui {
                         ImGui::Text("%s", label);
 
                         ImGui::TableSetColumnIndex(1);
-                        FolderInput(label, onnx.modelPath, tooltip);
+                        FolderInput(label, onnx.modelPath, std::min(900.0f, ImGui::GetContentRegionAvail().x), tooltip);
                     }
 
                     {
@@ -129,7 +129,7 @@ namespace FloodSim::Gui {
                         ImGui::Text("%s", label);
 
                         ImGui::TableSetColumnIndex(1);
-                        ImGui::SetNextItemWidth(-FLT_MIN);
+                        ImGui::SetNextItemWidth(std::min(100.0f, ImGui::GetContentRegionAvail().x));
 
                         // Definimos los valores exactos permitidos
                         const std::vector<int64_t> allowedTensorDims = { 16, 32, 64, 128, 256, 512, 1024 };
@@ -190,7 +190,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(300.0f, ImGui::GetContentRegionAvail().x));
 
                 TextInput(label, defaultLvl.name, tooltip);
             }
@@ -206,7 +206,7 @@ namespace FloodSim::Gui {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::SetNextItemWidth(-FLT_MIN);
+                ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
                 ColorInput(label, defaultLvl.colorHex, tooltip);
             }
 
@@ -224,10 +224,10 @@ namespace FloodSim::Gui {
         ImGui::Spacing();
 
         // --- 2. Tabla de Niveles Dinámicos ---
-        if (ImGui::BeginTable("DynamicLevelsTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
-            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 2.0f);
-            ImGui::TableSetupColumn("Threshold (Start)", ImGuiTableColumnFlags_WidthStretch, 1.0f);
-            ImGui::TableSetupColumn("Color", ImGuiTableColumnFlags_WidthStretch, 1.5f);
+        if (ImGui::BeginTable("DynamicLevelsTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoKeepColumnsVisible, ImVec2(710.0f, 0.0f))) {
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 300.0f);
+            ImGui::TableSetupColumn("Threshold (Start)", ImGuiTableColumnFlags_WidthFixed, 180.0f);
+            ImGui::TableSetupColumn("Color", ImGuiTableColumnFlags_WidthFixed, 120.0f);
             ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 70.0f);
             ImGui::TableHeadersRow();
 
