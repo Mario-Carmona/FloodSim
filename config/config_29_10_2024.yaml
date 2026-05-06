@@ -4,7 +4,7 @@ scenario:
   append_start_timestamp: false
 
 logging:
-  level: info
+  level: debug
   async: false
   silent: false
   save_log_file: true
@@ -25,7 +25,7 @@ output:
     every_n_steps: 30
   outputs:
     - type: mqtt
-      address: mqtt://localhost:1883
+      address: mqtt://100.106.184.68:1883
       format: json
 
 state_updater:
