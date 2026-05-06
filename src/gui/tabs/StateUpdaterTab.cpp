@@ -246,7 +246,7 @@ namespace FloodSim::Gui {
 
                 {
                     const char* label = "Name";
-                    const char* tooltip = "";
+                    const char* tooltip = "Descriptive name for this flood level.";
 
                     TextInput(label, level.name, tooltip);
                 }
@@ -257,7 +257,7 @@ namespace FloodSim::Gui {
 
                 {
                     const char* label = "Threshold";
-                    const char* tooltip = "";
+                    const char* tooltip = "Minimum water depth (in meters) to trigger this risk level. Values must be greater than zero.";
 
                     FloatInput(label, level.thresholdStart, tooltip);
 
@@ -270,7 +270,7 @@ namespace FloodSim::Gui {
 
                 {
                     const char* label = "Color";
-                    const char* tooltip = "";
+                    const char* tooltip = "Visual color representing this depth level on the simulation map.";
 
                     ColorInput(label, level.colorHex, tooltip);
                 }
