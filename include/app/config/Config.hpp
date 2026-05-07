@@ -7,7 +7,7 @@
  *
  * @version 1.0
  * @date 2026
- * @copyright Copyright (c) 2026 Danasim
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #pragma once

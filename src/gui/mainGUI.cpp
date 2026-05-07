@@ -1,244 +1,300 @@
+/**
+ * \file mainGUI.cpp
+ * \brief Entry point and main GUI loop for the Flood Simulator application.
+ *
+ * Handles window creation, OpenGL context initialization, ImGui setup,
+ * and the primary application event loop.
+ *
+ * \version 1.0
+ * \date 2026
+ * \copyright Copyright (c) 2026 FloodSim
+ */
 
+#include <atomic>
+#include <cstdlib>
+#include <exception>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <thread>
+
+#include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <GLFW/glfw3.h>
 #include <portable-file-dialogs.h>
 
 #include "app/Application.hpp"
-
 #include "app/config/Config.hpp"
 #include "app/config/ConfigLoader.hpp"
-
 #include "gui/tabs/Tabs.hpp"
 
+namespace {
 
-// Define the possible states of our UI view
-enum class ViewState {
-    Home,
-    NewScenario,
-    LoadScenario
-};
+    // Global simulation state variables.
+    // Encapsulated in an anonymous namespace to restrict visibility to this translation unit.
+    std::atomic<bool> g_is_simulation_running{ false };
+    std::shared_ptr<danasim::Application> g_current_simulation = nullptr;
+    std::jthread g_simulation_thread;
 
-static std::atomic<bool> isSimulationRunning{ false };
-static std::shared_ptr<danasim::Application> currentSimulation = nullptr;
-static std::jthread simulationThread;
+}  // namespace
 
-void renderTabs(danasim::Config& config) {
-    ImGui::Spacing();
+namespace floodsim::gui {
 
-    // Ahora main_gui tiene acceso directo y nativo a la variable
-    bool isRunning = isSimulationRunning.load(std::memory_order_relaxed);
+    /**
+    * \enum ViewState
+    * \brief Represents the high-level states of the application's user interface.
+    */
+    enum class ViewState {
+        kHome,          ///< The initial welcome screen.
+        kNewScenario,   ///< The view for creating a new scenario from scratch.
+        kLoadScenario   ///< The view for working with a loaded scenario.
+    };
 
-    // --- TAB BAR DEL ESCENARIO ---
-    if (ImGui::BeginTabBar("ConfigurationTabs")) {
+    /**
+        * \brief Renders the main configuration tabs based on the current configuration.
+        *
+        * Disables certain tabs while the simulation is actively running to prevent
+        * concurrent modification of critical parameters.
+        *
+        * \param config Reference to the active scenario configuration.
+        * \throws std::exception if any sub-rendering function throws an unexpected error.
+        */
+    void RenderTabs(danasim::Config& config) {
+        ImGui::Spacing();
 
-        // Pestaña 1: General / Control
-        if (ImGui::BeginTabItem("Main Control")) {
-            FloodSim::Gui::renderMainControlTab(
-                config,
-                isSimulationRunning,
-                currentSimulation,
-                simulationThread
-            );
-            ImGui::EndTabItem();
+        bool is_running = g_is_simulation_running.load(std::memory_order_relaxed);
+
+        if (ImGui::BeginTabBar("ConfigurationTabs")) {
+            if (ImGui::BeginTabItem("Main Control")) {
+                RenderMainControlTab(
+                    config,
+                    g_is_simulation_running,
+                    g_current_simulation,
+                    g_simulation_thread
+                );
+                ImGui::EndTabItem();
+            }
+
+            if (is_running) {
+                ImGui::BeginDisabled();
+            }
+
+            if (ImGui::BeginTabItem("Scenario Info")) {
+                RenderScenarioTab(config.scenario);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Simulation")) {
+                RenderSimulationTab(config.simulation);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Logging")) {
+                RenderLoggingTab(config.logging);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("State Updater")) {
+                RenderStateUpdaterTab(config.stateUpdater);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Input")) {
+                RenderInputTab(config.input, config.stateUpdater.updater);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Output")) {
+                RenderOutputTab(config.output);
+                ImGui::EndTabItem();
+            }
+
+            if (is_running) {
+                ImGui::EndDisabled();
+            }
+
+            ImGui::EndTabBar();
         }
-
-        // Si la simulación corre, desactivamos el resto
-        if (isRunning) { ImGui::BeginDisabled(); }
-
-        // Pestaña 2: Tiempos
-        if (ImGui::BeginTabItem("Scenario Info")) {
-            FloodSim::Gui::renderScenarioTab(config.scenario);
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Simulation")) {
-            FloodSim::Gui::renderSimulationTab(config.simulation);
-            ImGui::EndTabItem();
-        }
-
-        // Pestaña 3: Archivos
-        if (ImGui::BeginTabItem("Logging")) {
-            FloodSim::Gui::renderLoggingTab(config.logging);
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("State Updater")) {
-            FloodSim::Gui::renderStateUpdaterTab(config.stateUpdater);
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Input")) {
-            FloodSim::Gui::renderInputTab(config.input, config.stateUpdater.updater);
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Output")) {
-            FloodSim::Gui::renderOutputTab(config.output);
-            ImGui::EndTabItem();
-        }
-
-        if (isRunning) { ImGui::EndDisabled(); }
-
-        ImGui::EndTabBar();
     }
-}
 
+}  // namespace floodsim::gui
 
+/**
+ * \brief Application entry point.
+ *
+ * Initializes GLFW, OpenGL, and ImGui, and enters the main rendering loop.
+ *
+ * \param argc Argument count.
+ * \param argv Argument vector.
+ * \return EXIT_SUCCESS on successful execution, EXIT_FAILURE on fatal errors.
+ */
 int main(int argc, char** argv) {
-    if (!glfwInit()) return 1;
+    try {
+        if (!glfwInit()) {
+            throw std::runtime_error("Failed to initialize GLFW.");
+        }
 
-    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "FLOOD SIMULATOR v1.0", nullptr, nullptr);
-    if (!window) {
+        GLFWwindow* window = glfwCreateWindow(1280, 720, "FLOOD SIMULATOR v1.0", nullptr, nullptr);
+        if (!window) {
+            glfwTerminate();
+            throw std::runtime_error("Failed to create GLFW window.");
+        }
+
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.IniFilename = nullptr;
+        io.FontGlobalScale = 1.3f;
+
+        if (!ImGui_ImplGlfw_InitForOpenGL(window, true)) {
+            throw std::runtime_error("Failed to initialize ImGui GLFW backend.");
+        }
+        if (!ImGui_ImplOpenGL3_Init("#version 130")) {
+            throw std::runtime_error("Failed to initialize ImGui OpenGL3 backend.");
+        }
+
+        floodsim::gui::ViewState current_view = floodsim::gui::ViewState::kHome;
+        danasim::Config current_config;
+        bool is_dark_theme = true;
+
+        ImGui::StyleColorsDark();
+
+        while (!glfwWindowShouldClose(window)) {
+            try {
+                glfwPollEvents();
+
+                ImGui_ImplOpenGL3_NewFrame();
+                ImGui_ImplGlfw_NewFrame();
+                ImGui::NewFrame();
+
+                ImGui::SetNextWindowPos(ImVec2(0, 0));
+                ImGui::SetNextWindowSize(io.DisplaySize);
+
+                ImGui::Begin("Main Desktop", nullptr,
+                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+                    ImGuiWindowFlags_MenuBar);
+
+                if (ImGui::BeginMenuBar()) {
+                    if (ImGui::BeginMenu("Scenario")) {
+                        if (ImGui::MenuItem("New Scenario (Blank)")) {
+                            current_view = floodsim::gui::ViewState::kNewScenario;
+                            current_config = danasim::Config();
+                        }
+
+                        if (ImGui::MenuItem("Load Existing Configuration...")) {
+                            auto selection = pfd::open_file(
+                                "Select Configuration File",
+                                ".",
+                                { "YAML Files", "*.yaml" }
+                            ).result();
+
+                            if (!selection.empty()) {
+                                std::string config_file_path = selection[0];
+                                try {
+                                    current_config = danasim::ConfigLoader::load(config_file_path);
+                                    current_view = floodsim::gui::ViewState::kLoadScenario;
+                                }
+                                catch (const std::exception& e) {
+                                    std::cerr << "[Error] Failed to load configuration: " << e.what() << "\n";
+                                }
+                            }
+                        }
+
+                        ImGui::Separator();
+
+                        if (ImGui::MenuItem("Exit", "Alt+F4")) {
+                            glfwSetWindowShouldClose(window, true);
+                        }
+
+                        ImGui::EndMenu();
+                    }
+
+                    if (ImGui::BeginMenu("View")) {
+                        if (ImGui::MenuItem(is_dark_theme ? "Switch to Light Theme" : "Switch to Dark Theme")) {
+                            is_dark_theme = !is_dark_theme;
+                            if (is_dark_theme) {
+                                ImGui::StyleColorsDark();
+                            }
+                            else {
+                                ImGui::StyleColorsLight();
+                            }
+                        }
+                        ImGui::EndMenu();
+                    }
+
+                    ImGui::EndMenuBar();
+                }
+
+                switch (current_view) {
+                case floodsim::gui::ViewState::kHome: {
+                    const char* welcome_text = "Select an option from the 'Scenario' menu to begin.";
+                    ImGui::SetWindowFontScale(2.0f);
+
+                    ImVec2 text_size = ImGui::CalcTextSize(welcome_text);
+                    ImVec2 window_size = ImGui::GetWindowSize();
+
+                    ImGui::SetCursorPos(ImVec2(
+                        (window_size.x - text_size.x) * 0.5f,
+                        (window_size.y - text_size.y) * 0.5f
+                    ));
+
+                    ImGui::TextDisabled("%s", welcome_text);
+                    ImGui::SetWindowFontScale(1.0f);
+                    break;
+                }
+                case floodsim::gui::ViewState::kNewScenario:
+                case floodsim::gui::ViewState::kLoadScenario: {
+                    floodsim::gui::RenderTabs(current_config);
+                    break;
+                }
+                }
+
+                ImGui::End();
+                ImGui::Render();
+
+                int display_width, display_height;
+                glfwGetFramebufferSize(window, &display_width, &display_height);
+                glViewport(0, 0, display_width, display_height);
+                glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                glfwSwapBuffers(window);
+
+            }
+            catch (const std::exception& inner_e) {
+                std::cerr << "[Warning] Exception caught during frame render: " << inner_e.what() << "\n";
+                // Attempting to finish the frame gracefully to prevent ImGui assertion failures
+                ImGui::EndFrame();
+            }
+        }
+
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        glfwDestroyWindow(window);
         glfwTerminate();
-        return 1;
+
+        return EXIT_SUCCESS;
+
     }
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.IniFilename = nullptr;
-
-    // --- AUMENTAR TAMAÑO DE LETRA ---
-    io.FontGlobalScale = 1.3f;
-
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 130");
-
-    ViewState currentView = ViewState::Home;
-
-    danasim::Config currentConfig;
-
-    bool isDarkTheme = true;
-    ImGui::StyleColorsDark(); // Tema inicial
-
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
-
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(io.DisplaySize);
-
-        ImGui::Begin("Main Desktop", nullptr,
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-            ImGuiWindowFlags_MenuBar);
-
-        // --- TOP MENU BAR ---
-        if (ImGui::BeginMenuBar()) {
-            if (ImGui::BeginMenu("Scenario")) {
-                if (ImGui::MenuItem("New Scenario (Blank)")) {
-                    currentView = ViewState::NewScenario;
-
-                    currentConfig = danasim::Config();
-                }
-
-                if (ImGui::MenuItem("Load Existing Configuration...")) {
-                    currentView = ViewState::LoadScenario;
-
-                    // Abrimos el diálogo: Título, Directorio inicial ("."), Filtros de extensión
-                    auto selection = pfd::open_file("Select Configuration File", ".", { "YAML Files", "*.yaml" }).result();
-
-                    // Si el usuario no canceló, result contiene las rutas elegidas
-                    if (!selection.empty()) {
-                        std::string configFilePath = selection[0];
-
-                        currentConfig = danasim::ConfigLoader::load(configFilePath);
-                    }
-                }
-
-                ImGui::Separator();
-
-                if (ImGui::MenuItem("Exit", "Alt+F4")) {
-                    glfwSetWindowShouldClose(window, true);
-                }
-
-                ImGui::EndMenu();
-            }
-
-            if (ImGui::BeginMenu("View")) {
-                // El texto del botón cambia según el tema actual
-                if (ImGui::MenuItem(isDarkTheme ? "Switch to Light Theme" : "Switch to Dark Theme")) {
-                    isDarkTheme = !isDarkTheme; // Invertimos el estado
-
-                    if (isDarkTheme) {
-                        ImGui::StyleColorsDark();
-                    }
-                    else {
-                        ImGui::StyleColorsLight();
-                    }
-                }
-                ImGui::EndMenu();
-            }
-
-            ImGui::EndMenuBar();
-        }
-
-        // --- VIEW MANAGEMENT ---
-        switch (currentView) {
-        case ViewState::Home: {
-            const char* welcomeText = "Select an option from the 'Scenario' menu to begin.";
-
-            // Aumentamos el tamaño de la fuente al doble temporalmente
-            ImGui::SetWindowFontScale(2.0f);
-
-            // Calculamos el tamaño del texto para centrarlo
-            ImVec2 textSize = ImGui::CalcTextSize(welcomeText);
-            ImVec2 windowSize = ImGui::GetWindowSize();
-
-            // Posicionamos el cursor exactamente en el centro
-            ImGui::SetCursorPos(ImVec2((windowSize.x - textSize.x) * 0.5f, (windowSize.y - textSize.y) * 0.5f));
-
-            ImGui::TextDisabled("%s", welcomeText);
-
-            // Restauramos la escala original para no afectar a otros frames
-            ImGui::SetWindowFontScale(1.0f);
-            break;
-        }
-
-        case ViewState::NewScenario: {
-            renderTabs(currentConfig);
-            break;
-        }
-
-        case ViewState::LoadScenario: {
-            renderTabs(currentConfig);
-            break;
-        }
-
-        }
-
-        ImGui::End();
-
-        // --- RENDERING ---
-        ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwSwapBuffers(window);
+    catch (const std::exception& e) {
+        std::cerr << "[Fatal Error] " << e.what() << "\n";
+        return EXIT_FAILURE;
     }
-
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
-    return 0;
+    catch (...) {
+        std::cerr << "[Fatal Error] An unknown error occurred.\n";
+        return EXIT_FAILURE;
+    }
 }

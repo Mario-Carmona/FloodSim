@@ -1,22 +1,22 @@
 /**
- * @file main_cli.cpp
- * @brief Entry point for the Danasim CLI application.
+ * \file mainCLI.cpp
+ * \brief Entry point for the Danasim CLI application.
  *
  * This file contains the main function which handles command-line argument parsing,
  * initializes the application logic via the Configuration Manager, and manages
  * top-level exception handling.
  *
- * @version 1.0
- * @date 2026
- * @copyright Copyright (c) 2026 Danasim
+ * \version 1.0
+ * \date 2026
+ * \copyright Copyright (c) 2026 FloodSim
  */
 
+#include <cstdlib>
+#include <exception>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <exception>
-#include <cstdlib>
-#include <filesystem>
 
 #include "app/Application.hpp"
 #include "app/config/ConfigLoader.hpp"
@@ -24,104 +24,75 @@
 namespace {
 
     /**
-     * @brief Prints basic usage instructions to stderr.
-     *
-     * @param programName The name of the executable (usually argv[0]).
+     * \brief Prints basic usage instructions to standard error.
+     * \param program_name The name of the executable (usually argv[0]).
      */
-    void printUsage(std::string_view programName)
-    {
-        std::cerr << "Usage: " << programName << " [--config /path/to/config.yaml]\n";
-        std::cerr << "If no arguments are provided, the configuration path will be prompted interactively.\n";
+    void PrintUsage(std::string_view program_name) {
+        std::cerr << "Usage: " << program_name << " [--config /path/to/config.yaml]\n"
+            << "If no arguments are provided, the configuration path will be prompted interactively.\n";
     }
 
-} // anonymous namespace
+}  // namespace
 
 /**
- * @brief Main execution entry point.
+ * \brief Main execution entry point.
  *
  * Validates input arguments, bootstraps the Application instance using the
  * provided configuration file, and executes the simulation loop.
  *
- * @param argc The number of command-line arguments.
- * @param argv The array of command-line arguments.
- * @return int Returns EXIT_SUCCESS (0) on success, or EXIT_FAILURE (1) on error.
- *
- * @exception std::exception Catches standard exceptions and logs them before exiting.
- * @exception ... Catches unknown exceptions and logs a generic error.
+ * \param argc The number of command-line arguments.
+ * \param argv The array of command-line arguments.
+ * \return EXIT_SUCCESS (0) on successful execution, EXIT_FAILURE (1) otherwise.
  */
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     try {
-        std::string configInputStr;
+        std::string config_input_str;
 
-        // -----------------------------
-        // Argument Parsing & Input
-        // -----------------------------
-        if (argc == 3) {
-            // Se pasaron parámetros por línea de comandos
-            const std::string_view flag{ argv[1] };
-
-            if (flag != "--config") {
-                printUsage(argv[0]);
-                return EXIT_FAILURE;
-            }
-            configInputStr = argv[2];
-
+        // 1. Command-line Argument Parsing
+        if (argc == 3 && std::string(argv[1]) == "--config") {
+            config_input_str = argv[2];
         }
         else if (argc == 1) {
-            // No se pasaron parámetros -> Modo Interactivo
-            std::cout << "--- Danasim Configuration ---\n";
-            std::cout << "Current Working Directory: " << std::filesystem::current_path() << "\n";
-            std::cout << "Enter the path to the configuration file (.yaml): ";
-
-            std::getline(std::cin, configInputStr);
-
-            if (configInputStr.empty()) {
-                std::cerr << "Fatal error: Configuration path cannot be empty.\n";
+            std::cout << "Enter the path to the configuration file (.yaml or .json): ";
+            if (!std::getline(std::cin, config_input_str) || config_input_str.empty()) {
+                std::cerr << "[Error] No configuration path provided. Aborting.\n";
                 return EXIT_FAILURE;
             }
         }
         else {
-            // Número inválido de argumentos (ej: solo 2, o más de 3)
-            printUsage(argv[0]);
+            PrintUsage(argv[0]);
             return EXIT_FAILURE;
         }
 
-        // -----------------------------
-        // Path Resolution
-        // -----------------------------
-        // std::filesystem::absolute usa el CWD automáticamente para resolver rutas relativas.
-        // Si la ruta ya es absoluta (ej: C:\configs\app.yaml), la deja intacta.
-        std::filesystem::path absoluteConfigPath = std::filesystem::absolute(configInputStr).lexically_normal();
+        // 2. Path Normalization and Validation
+        // Converts any relative path into a clean, absolute system path.
+        std::filesystem::path absolute_config_path =
+            std::filesystem::absolute(config_input_str).lexically_normal();
 
-        // Opcional: Validar que el archivo realmente existe antes de pasarlo a la app
-        if (!std::filesystem::exists(absoluteConfigPath)) {
-            std::cerr << "Fatal error: Configuration file not found at " << absoluteConfigPath << "\n";
+        if (!std::filesystem::exists(absolute_config_path)) {
+            std::cerr << "[Fatal Error] Configuration file not found at: "
+                << absolute_config_path << "\n";
             return EXIT_FAILURE;
         }
 
-        std::cout << "Loading configuration from: " << absoluteConfigPath << "\n";
+        std::cout << "Loading configuration from: " << absolute_config_path << "\n";
 
-        // -----------------------------
-        // Application Initialization
-        // -----------------------------
-        // Pasamos la ruta absoluta convertida a string (o como std::filesystem::path si tu app lo soporta)
-        danasim::Application app(danasim::ConfigLoader::load(absoluteConfigPath));
+        // 3. Application Initialization
+        danasim::Application app(danasim::ConfigLoader::load(absolute_config_path));
 
-        // -----------------------------
-        // Simulation Execution
-        // -----------------------------
-        // app.run() is expected to block until the simulation completes
+        // 4. Simulation Execution
+        // app.run() is expected to block until the simulation completes.
         return app.run();
+
     }
     catch (const std::exception& ex) {
         // Top-level guard for standard library and custom derived exceptions
-		std::cerr << "Fatal error: " << ex.what() << std::endl;
+        std::cerr << "[Fatal Error] Exception caught: " << ex.what() << "\n";
         return EXIT_FAILURE;
     }
     catch (...) {
         // Fallback for non-standard exceptions
-        std::cerr << "Fatal error: unknown exception" << std::endl;
+        std::cerr << "[Fatal Error] An unknown critical exception occurred.\n";
         return EXIT_FAILURE;
     }
 }
