@@ -1,0 +1,59 @@
+{#-
+  DanaSim X3D heightmap player — Jinja2 template.
+
+  The Python generator inlines the CSS, the JS, and a JSON config object
+  so the output is a single self-contained HTML file.
+
+  Variables expected:
+    - inlined_css         : raw CSS to embed inside <style>
+    - inlined_js          : raw JS to embed inside <script>
+    - config_json         : JSON string with all runtime constants for the JS
+    - viewpoint_position  : space-separated "x y z" string
+    - viewpoint_orient    : "x y z angle" rotation
+    - n_frames            : number of flood frames (just for the slider max)
+    - rows, cols, cell_size, frame_count : informational comment for debugging
+-#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>DanaSim Heightmap Viewer</title>
+  <script src="https://cdn.jsdelivr.net/npm/x_ite@12.1.4/dist/x_ite.min.js"></script>
+  <style>
+{{ inlined_css }}
+  </style>
+</head>
+<body>
+  <!-- rows={{ rows }} cols={{ cols }} cell_size={{ cell_size }}m frames={{ frame_count }} -->
+  <div id="loading">Decoding heightmap and building 3D terrain…</div>
+  <div id="viewport">
+    <x3d-canvas>
+      <x3d>
+        <scene>
+          <background skyColor="0.53 0.81 0.98"></background>
+          <Viewpoint position="{{ viewpoint_position }}"
+                     orientation="{{ viewpoint_orient }}" description="Overview"></Viewpoint>
+          <NavigationInfo type='"EXAMINE" "ANY"' speed="500"></NavigationInfo>
+          <Group id="terrain_container"></Group>
+        </scene>
+      </x3d>
+    </x3d-canvas>
+  </div>
+  <div id="controls">
+    <button id="prevBtn">&#9664;</button>
+    <button id="playBtn">&#9654; Play</button>
+    <button id="nextBtn">&#9654;&#9654;</button>
+    <input id="slider" type="range" min="0" max="{{ n_frames - 1 }}" value="0"/>
+    <span id="frame-label">Frame 0 / {{ n_frames - 1 }}</span>
+    <label>Speed <input id="speed" type="range" min="100" max="2000" value="800" step="100"/></label>
+    <span id="status">Loading terrain…</span>
+  </div>
+
+  <script>
+window.__CONFIG__ = {{ config_json }};
+  </script>
+  <script>
+{{ inlined_js }}
+  </script>
+</body>
+</html>
