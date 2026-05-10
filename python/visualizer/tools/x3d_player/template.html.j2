@@ -40,6 +40,50 @@
         </scene>
       </x3d>
     </x3d-canvas>
+
+    <aside id="sidebar" aria-label="Capas">
+      <button id="sidebarToggle" type="button" aria-label="Mostrar/ocultar panel">&#9776;</button>
+      <div class="sidebar-content">
+        <h2>Capas</h2>
+        <label class="layer-row">
+          <input id="layerTerrain" type="checkbox" checked/>
+          <span>Terreno</span>
+        </label>
+        <label class="layer-row">
+          <input id="layerWater" type="checkbox" checked/>
+          <span>Agua</span>
+        </label>
+
+        <fieldset class="state-group">
+          <legend>Profundidad</legend>
+          <label class="layer-row state state-1">
+            <input id="layerState1" type="checkbox" checked/>
+            <span class="swatch" data-state="1"></span>
+            <span>Muy somero</span>
+          </label>
+          <label class="layer-row state state-2">
+            <input id="layerState2" type="checkbox" checked/>
+            <span class="swatch" data-state="2"></span>
+            <span>Profundidad baja</span>
+          </label>
+          <label class="layer-row state state-3">
+            <input id="layerState3" type="checkbox" checked/>
+            <span class="swatch" data-state="3"></span>
+            <span>Profundidad media</span>
+          </label>
+          <label class="layer-row state state-4">
+            <input id="layerState4" type="checkbox" checked/>
+            <span class="swatch" data-state="4"></span>
+            <span>Profundidad alta</span>
+          </label>
+          <label class="layer-row state state-5">
+            <input id="layerState5" type="checkbox" checked/>
+            <span class="swatch" data-state="5"></span>
+            <span>Profundidad extrema</span>
+          </label>
+        </fieldset>
+      </div>
+    </aside>
   </div>
   <div id="controls">
     <button id="prevBtn">&#9664;</button>

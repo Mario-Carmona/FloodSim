@@ -8,14 +8,35 @@
 // presets, minimap zone) will hang their state off the same object.
 
 /** @typedef {{
+ *   terrain: boolean,
+ *   water: boolean,
+ *   states: boolean[],
+ * }} LayerState */
+
+/** @typedef {{
  *   frame: number,
  *   playing: boolean,
+ *   layers: LayerState,
  * }} State */
+
+/**
+ * Default layer state: everything visible. `states[0]` is the dry slot and is
+ * never read — it lives at index 0 so palette indices map directly.
+ * @returns {LayerState}
+ */
+export function defaultLayers() {
+  return {
+    terrain: true,
+    water: true,
+    states: [false, true, true, true, true, true],
+  };
+}
 
 /** @type {State} */
 export const state = {
   frame: 0,
   playing: false,
+  layers: defaultLayers(),
 };
 
 /** @type {Set<(state: State) => void>} */

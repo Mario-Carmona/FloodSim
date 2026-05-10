@@ -90,3 +90,100 @@ label {
   z-index: 10;
   text-align: center;
 }
+
+/* ----------------------------------------------------------------------- *
+ * Sidebar — overlay panel anchored to the right of the viewport.          *
+ * ----------------------------------------------------------------------- */
+#sidebar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 280px;
+  max-height: calc(100% - 24px);
+  background: rgba(22, 33, 62, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #1a6ea8;
+  border-radius: 8px;
+  padding: 14px;
+  z-index: 5;
+  overflow-y: auto;
+  font-size: 13px;
+  transition: width 150ms ease, padding 150ms ease;
+}
+
+#sidebar.collapsed {
+  width: 44px;
+  padding: 6px;
+  overflow: hidden;
+}
+
+#sidebar.collapsed .sidebar-content {
+  display: none;
+}
+
+#sidebarToggle {
+  background: transparent;
+  color: #e0e0e0;
+  border: 1px solid #1a6ea8;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+#sidebarToggle:hover {
+  background: #1a6ea8;
+}
+
+#sidebar h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 12px 0 8px;
+  color: #c0d4ec;
+  letter-spacing: 0.3px;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  user-select: none;
+  color: #e0e0e0;
+}
+
+.layer-row input[type="checkbox"] {
+  accent-color: #1a6ea8;
+  cursor: pointer;
+}
+
+.layer-row input[type="checkbox"]:disabled + .swatch,
+.layer-row input[type="checkbox"]:disabled ~ span {
+  opacity: 0.4;
+}
+
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.state-group {
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 10px;
+}
+
+.state-group legend {
+  padding: 0 6px;
+  color: #c0d4ec;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}

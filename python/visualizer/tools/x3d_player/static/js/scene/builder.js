@@ -5,6 +5,18 @@ import { CHUNK_M, LOD_RANGES, LOD_SIZES, WATER_LIFT } from "../config.js";
 import { MAP_W, MAP_D, PNG_COLS, PNG_ROWS, PNG_RES, STATE_COLORS } from "../runtime.js";
 import { getTerrainH, terrainColor } from "./terrain.js";
 
+/** Sentinel height (metres) used to push hidden cells well below the camera. */
+const _HIDDEN_Z = -99999;
+
+/**
+ * @typedef {{
+ *   floodPx: Uint8ClampedArray | null,
+ *   showTerrain: boolean,
+ *   showWater: boolean,
+ *   stateMask: boolean[],
+ * }} BuildOpts
+ */
+
 /**
  * @typedef {{
  *   def: string,
@@ -18,16 +30,23 @@ import { getTerrainH, terrainColor } from "./terrain.js";
 
 /**
  * Build the height/colour arrays for one LOD level inside one chunk.
- * Returned shape is later wrapped in X3D markup by `shapeHTML`.
+ *
+ * Cell visibility rules:
+ *   - If `showWater` is false OR `floodPx` is null OR the cell's palette
+ *     state is masked off, the cell is treated as dry.
+ *   - A dry cell with `showTerrain=false` is hidden by sinking it to a very
+ *     negative Z (the mesh stays continuous, the camera just doesn't see it).
+ *   - A flooded cell shows the palette colour for its (unmasked) state and
+ *     is lifted by `WATER_LIFT[state]` metres.
  *
  * @param {number} cxi          chunk index along X
  * @param {number} czi          chunk index along Z
  * @param {number} cellM        mesh cell size in metres for this LOD
- * @param {boolean} terrainOnly skip flood overlay (used during initial bake)
- * @param {Uint8ClampedArray | null} floodPx decoded flood RGBA pixels
+ * @param {BuildOpts} opts
  * @returns {LodShape}
  */
-export function buildLodShape(cxi, czi, cellM, terrainOnly, floodPx) {
+export function buildLodShape(cxi, czi, cellM, opts) {
+  const { floodPx, showTerrain, showWater, stateMask } = opts;
   const tx = cxi * CHUNK_M;
   const tz = czi * CHUNK_M;
   const aw = Math.min(CHUNK_M, MAP_W - tx);
@@ -42,10 +61,22 @@ export function buildLodShape(cxi, czi, cellM, terrainOnly, floodPx) {
       const px = Math.min(Math.floor((tx + lx * cellM) / PNG_RES), PNG_COLS - 1);
       const pz = Math.min(Math.floor((tz + lz * cellM) / PNG_RES), PNG_ROWS - 1);
       const h = getTerrainH(px, pz);
-      const st = (!terrainOnly && floodPx) ? floodPx[(pz * PNG_COLS + px) * 4] : 0;
-      const lift = st > 0 ? WATER_LIFT[Math.min(st, WATER_LIFT.length - 1)] : 0;
-      heights.push((h + lift).toFixed(2));
-      colors.push(st > 0 ? STATE_COLORS[Math.min(st, STATE_COLORS.length - 1)] : terrainColor(h));
+
+      const rawSt = (showWater && floodPx) ? floodPx[(pz * PNG_COLS + px) * 4] : 0;
+      // Cells whose state is masked off (or whose state is 0) are dry.
+      const flooded = rawSt > 0 && stateMask[Math.min(rawSt, stateMask.length - 1)];
+
+      if (flooded) {
+        const st = Math.min(rawSt, WATER_LIFT.length - 1);
+        heights.push((h + WATER_LIFT[st]).toFixed(2));
+        colors.push(STATE_COLORS[Math.min(rawSt, STATE_COLORS.length - 1)]);
+      } else if (showTerrain) {
+        heights.push(h.toFixed(2));
+        colors.push(terrainColor(h));
+      } else {
+        heights.push(_HIDDEN_Z.toFixed(2));
+        colors.push(terrainColor(h));  // colour irrelevant — vertex out of view
+      }
     }
   }
 
@@ -75,10 +106,10 @@ export function shapeHTML({ def, pts_x, pts_z, cellM, heights, colors }) {
  * contains one Shape per LOD_SIZES level.
  * @param {number} cxi
  * @param {number} czi
- * @param {Uint8ClampedArray | null} floodPx
+ * @param {BuildOpts} opts
  * @returns {string}
  */
-export function buildChunk(cxi, czi, floodPx) {
+export function buildChunk(cxi, czi, opts) {
   const tx = cxi * CHUNK_M;
   const tz = czi * CHUNK_M;
   const aw = Math.min(CHUNK_M, MAP_W - tx);
@@ -86,7 +117,7 @@ export function buildChunk(cxi, czi, floodPx) {
   let lodShapes = "";
 
   for (const cellM of LOD_SIZES) {
-    lodShapes += shapeHTML(buildLodShape(cxi, czi, cellM, false, floodPx));
+    lodShapes += shapeHTML(buildLodShape(cxi, czi, cellM, opts));
   }
   lodShapes += '<WorldInfo info="fuera_de_rango"/>';
 

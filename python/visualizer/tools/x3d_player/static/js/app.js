@@ -9,6 +9,8 @@ import { FLOOD_FRAMES } from "./runtime.js";
 import { loadTerrain } from "./scene/terrain.js";
 import { fetchFloodPx } from "./scene/flood.js";
 import { buildScene } from "./scene/scene.js";
+import { state } from "./state.js";
+import { initLayers } from "./ui/layers.js";
 import { initPlayback } from "./ui/playback.js";
 
 const $loading = document.getElementById("loading");
@@ -16,6 +18,15 @@ const $status  = document.getElementById("status");
 
 function setLoading(msg) {
   $loading.textContent = msg;
+}
+
+/** Read the current layer toggles (without `floodPx`, scene fills it in). */
+function initialLayerOpts() {
+  return {
+    showTerrain: state.layers.terrain,
+    showWater:   state.layers.water,
+    stateMask:   state.layers.states,
+  };
 }
 
 (async () => {
@@ -29,12 +40,13 @@ function setLoading(msg) {
       : null;
 
     setLoading("Step 3/3: Building 3D scene…");
-    await buildScene(initFlood, setLoading);
+    await buildScene(initFlood, initialLayerOpts(), setLoading);
 
     $loading.style.display = "none";
     $status.textContent = `${FLOOD_FRAMES.length} frame(s) ready`;
 
     initPlayback();
+    initLayers();
   } catch (err) {
     setLoading("Error: " + err.message);
     console.error("Scene init failed:", err);

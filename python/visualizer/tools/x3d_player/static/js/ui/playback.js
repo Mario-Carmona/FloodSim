@@ -6,7 +6,7 @@
 
 import { FLOOD_FRAMES } from "../runtime.js";
 import { fetchFloodPx } from "../scene/flood.js";
-import { applyFlood } from "../scene/scene.js";
+import { setFrame as sceneSetFrame } from "../scene/scene.js";
 import { state, update } from "../state.js";
 
 let _timer = null;
@@ -15,9 +15,20 @@ function _frameLabel(i) {
   return `Frame ${i} / ${FLOOD_FRAMES.length - 1}`;
 }
 
+/** @returns {import("../scene/builder.js").BuildOpts} */
+function _layerOpts() {
+  return {
+    floodPx: null,
+    showTerrain: state.layers.terrain,
+    showWater:   state.layers.water,
+    stateMask:   state.layers.states,
+  };
+}
+
 /**
  * Show frame `i` (modulo the frame list). If it differs from the currently
- * displayed frame, fetch the flood PNG and apply it to the scene.
+ * displayed frame, fetch the flood PNG and push it to the scene with the
+ * current layer opts.
  * @param {number} i
  */
 async function setFrame(i) {
@@ -26,11 +37,11 @@ async function setFrame(i) {
   document.getElementById("slider").value = next;
   document.getElementById("frame-label").textContent = _frameLabel(next);
 
-  if (next === state.frame) return;  // already showing this frame
+  if (next === state.frame) return;
   update({ frame: next });
 
   const floodPx = await fetchFloodPx(FLOOD_FRAMES[next]);
-  applyFlood(floodPx);
+  sceneSetFrame(floodPx, _layerOpts());
 }
 
 function startPlay() {
