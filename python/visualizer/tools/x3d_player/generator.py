@@ -1,9 +1,14 @@
 """X3D heightmap player generator.
 
-Reads simulation CSV output and produces a self-contained ``player.html`` plus
-a ``flood/`` directory of frame PNGs. Functionally equivalent to the legacy
-``generate_x3d_heightmap.generate_x3d_heightmap`` module — internally it splits
-HTML / CSS / JS into separate source files and assembles them via Jinja2.
+Reads simulation CSV output and produces:
+
+  - ``player.html``        — main page, references ``js/app.js`` as a module
+  - ``js/`` tree            — ES modules copied verbatim from ``static/js/``
+  - ``flood/*.png``         — one PNG per simulation frame
+
+The HTML embeds the terrain heightmap as a base64 data URL and CSS inline,
+so only ``player.html`` plus the ``js/`` and ``flood/`` directories are needed
+to serve the viewer.
 
 Run as::
 
@@ -17,6 +22,7 @@ import argparse
 import base64
 import json
 import logging
+import shutil
 import sys
 from io import BytesIO
 from pathlib import Path
@@ -28,19 +34,13 @@ from PIL import Image
 from ..csv_utils import discover_frames, load_frame, load_meta, load_terrain
 
 # ---------------------------------------------------------------------------
-# Constants — kept identical to the legacy generator for parity
+# Constants
 # ---------------------------------------------------------------------------
+# Visualisation constants (chunk size, LOD ranges, water surface lift,…) live
+# next to the rendering code in ``static/js/config.js`` — keep them in one
+# place so the Python side cannot drift out of sync with the browser side.
 _NODATA      = -9999.0
 _DEFAULT_RES = 5.0     # metres per PNG pixel — full source resolution
-_CHUNK_M     = 2500.0  # chunk size in metres
-
-# LOD mesh cell sizes — independent of PNG resolution. PNG_RES controls
-# sampling accuracy; these control ElevationGrid vertex density.
-_LOD_CELL_SIZES = [25.0, 100.0, 500.0]
-_LOD_RANGES     = "3000,10000,30000"
-
-# Approximate water surface lift (m) per palette state — visual depth cues.
-_WATER_LIFT = [0.0, 0.1, 0.4, 1.0, 2.5, 5.0]
 
 _TEMPLATE_DIR = Path(__file__).parent
 _STATIC_DIR   = _TEMPLATE_DIR / "static"
@@ -144,7 +144,11 @@ def generate_player(
     frame_names: list[str],
     state_colors: list[tuple[int, int, int]],
 ) -> str:
-    """Render the player HTML by combining the Jinja2 template, CSS, JS and config."""
+    """Render the player HTML by combining the Jinja2 template, CSS and runtime config.
+
+    Only values that vary across simulation runs are injected here. Compile-time
+    constants (chunk size, LOD ranges, water lift) live in ``static/js/config.js``.
+    """
     map_w = orig_cols * cell_size_m
     map_d = orig_rows * cell_size_m
 
@@ -156,11 +160,7 @@ def generate_player(
         "mapD":        map_d,
         "minH":        min_h,
         "maxH":        max_h,
-        "chunkM":      _CHUNK_M,
-        "lodRanges":   _LOD_RANGES,
-        "lodSizes":    _LOD_CELL_SIZES,
         "stateColors": _state_color_strings(state_colors),
-        "waterLift":   _WATER_LIFT,
         "floodFrames": frame_names,
         "terrainSrc":  f"data:image/png;base64,{terrain_b64}",
     }
@@ -176,7 +176,6 @@ def generate_player(
 
     return template.render(
         inlined_css=_read_static_asset("css/style.css"),
-        inlined_js=_read_static_asset("js/app.js"),
         config_json=json.dumps(config),
         viewpoint_position=viewpoint_position,
         viewpoint_orient=viewpoint_orient,
@@ -186,6 +185,19 @@ def generate_player(
         cell_size=f"{cell_size_m:.4f}",
         frame_count=len(frame_names),
     )
+
+
+def copy_js_assets(output_dir: Path) -> None:
+    """Copy the ES module tree from ``static/js/`` to ``<output_dir>/js/``.
+
+    Wipes any pre-existing ``js/`` directory so stale modules are not left
+    behind across regenerations.
+    """
+    src = _STATIC_DIR / "js"
+    dst = output_dir / "js"
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +288,10 @@ def main(argv: list[str] | None = None) -> int:
     player_path = output_dir / "player.html"
     player_path.write_text(player_html, encoding="utf-8")
     log.info("Player: %s  (%.1fKB)", player_path, player_path.stat().st_size / 1024)
+
+    copy_js_assets(output_dir)
+    log.info("JS modules copied to: %s", output_dir / "js")
+
     log.info("Done — %d frames processed", len(frame_names))
     return 0
 
