@@ -8,11 +8,10 @@
   module graph executes.
 
   Template variables expected:
-    - inlined_css         : raw CSS to embed inside <style>
-    - config_json         : JSON string with all runtime constants for the JS
-    - viewpoint_position  : space-separated "x y z" string
-    - viewpoint_orient    : "x y z angle" rotation
-    - n_frames            : number of flood frames (sets the slider max)
+    - inlined_css   : raw CSS to embed inside <style>
+    - config_json   : JSON string with all runtime constants for the JS
+    - viewpoints    : dict with overview/cenital/lateral {pos, orient} strings
+    - n_frames      : number of flood frames (sets the slider max)
     - rows, cols, cell_size, frame_count : informational comment for debugging
 -#}
 <!DOCTYPE html>
@@ -33,17 +32,33 @@
       <x3d>
         <scene>
           <background skyColor="0.53 0.81 0.98"></background>
-          <Viewpoint position="{{ viewpoint_position }}"
-                     orientation="{{ viewpoint_orient }}" description="Overview"></Viewpoint>
+
+          <Viewpoint DEF="VP_Overview"
+                     position="{{ viewpoints.overview.pos }}"
+                     orientation="{{ viewpoints.overview.orient }}"
+                     description="Overview"></Viewpoint>
+          <Viewpoint DEF="VP_Cenital"
+                     position="{{ viewpoints.cenital.pos }}"
+                     orientation="{{ viewpoints.cenital.orient }}"
+                     description="Cenital"></Viewpoint>
+          <Viewpoint DEF="VP_Lateral"
+                     position="{{ viewpoints.lateral.pos }}"
+                     orientation="{{ viewpoints.lateral.orient }}"
+                     description="Lateral"></Viewpoint>
+
           <NavigationInfo type='"EXAMINE" "ANY"' speed="500"></NavigationInfo>
-          <Group id="terrain_container"></Group>
+
+          <Transform DEF="ZScale" scale="1 1 1">
+            <Group id="terrain_container"></Group>
+          </Transform>
         </scene>
       </x3d>
     </x3d-canvas>
 
-    <aside id="sidebar" aria-label="Capas">
+    <aside id="sidebar" aria-label="Panel de control">
       <button id="sidebarToggle" type="button" aria-label="Mostrar/ocultar panel">&#9776;</button>
       <div class="sidebar-content">
+
         <h2>Capas</h2>
         <label class="layer-row">
           <input id="layerTerrain" type="checkbox" checked/>
@@ -53,38 +68,59 @@
           <input id="layerWater" type="checkbox" checked/>
           <span>Agua</span>
         </label>
-
         <fieldset class="state-group">
           <legend>Profundidad</legend>
-          <label class="layer-row state state-1">
+          <label class="layer-row">
             <input id="layerState1" type="checkbox" checked/>
             <span class="swatch" data-state="1"></span>
             <span>Muy somero</span>
           </label>
-          <label class="layer-row state state-2">
+          <label class="layer-row">
             <input id="layerState2" type="checkbox" checked/>
             <span class="swatch" data-state="2"></span>
             <span>Profundidad baja</span>
           </label>
-          <label class="layer-row state state-3">
+          <label class="layer-row">
             <input id="layerState3" type="checkbox" checked/>
             <span class="swatch" data-state="3"></span>
             <span>Profundidad media</span>
           </label>
-          <label class="layer-row state state-4">
+          <label class="layer-row">
             <input id="layerState4" type="checkbox" checked/>
             <span class="swatch" data-state="4"></span>
             <span>Profundidad alta</span>
           </label>
-          <label class="layer-row state state-5">
+          <label class="layer-row">
             <input id="layerState5" type="checkbox" checked/>
             <span class="swatch" data-state="5"></span>
             <span>Profundidad extrema</span>
           </label>
         </fieldset>
+
+        <h2>Cámara</h2>
+        <div class="camera-presets">
+          <button class="cam-btn" data-vp="VP_Overview" title="Vista perspectiva (P)">Perspectiva</button>
+          <button class="cam-btn" data-vp="VP_Cenital"  title="Vista cenital (C)">Cenital</button>
+          <button class="cam-btn" data-vp="VP_Lateral"  title="Vista lateral (L)">Lateral</button>
+          <button class="cam-btn" id="camReset"          title="Resetear cámara (R)">&#8635; Reset</button>
+        </div>
+
+        <div class="slider-row">
+          <label for="zScale">Exageración Z</label>
+          <input id="zScale" type="range" min="1" max="10" value="1" step="0.5"/>
+          <span id="zScaleVal">1×</span>
+        </div>
+
+        <p class="shortcuts-hint">
+          Atajos: <kbd>C</kbd> cenital &nbsp;·&nbsp; <kbd>P</kbd> perspectiva
+          &nbsp;·&nbsp; <kbd>L</kbd> lateral &nbsp;·&nbsp; <kbd>R</kbd> reset
+          &nbsp;·&nbsp; <kbd>Space</kbd> play &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd> frames
+        </p>
+
       </div>
     </aside>
   </div>
+
   <div id="controls">
     <button id="prevBtn">&#9664;</button>
     <button id="playBtn">&#9654; Play</button>

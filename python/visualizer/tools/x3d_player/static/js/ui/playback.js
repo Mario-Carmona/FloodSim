@@ -59,7 +59,8 @@ function stopPlay() {
 }
 
 /**
- * Wire up event listeners. Must be called once after the scene is ready.
+ * Wire up event listeners and keyboard shortcuts.
+ * Must be called once after the scene is ready.
  */
 export function initPlayback() {
   document.getElementById("playBtn").addEventListener("click",
@@ -76,4 +77,21 @@ export function initPlayback() {
 
   document.getElementById("speed").addEventListener("change",
     () => { if (state.playing) { stopPlay(); startPlay(); } });
+
+  // Keyboard shortcuts for playback.
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    switch (e.key) {
+      case " ":
+        e.preventDefault();  // prevent page scroll
+        state.playing ? stopPlay() : startPlay();
+        break;
+      case "ArrowLeft":
+        stopPlay(); setFrame(state.frame - 1);
+        break;
+      case "ArrowRight":
+        stopPlay(); setFrame(state.frame + 1);
+        break;
+    }
+  });
 }

@@ -119,11 +119,23 @@ def _state_color_strings(state_colors: list[tuple[int, int, int]]) -> list[str]:
     return [f"{r/255:.2f} {g/255:.2f} {b/255:.2f}" for r, g, b in state_colors]
 
 
-def _viewpoint(map_w: float, map_d: float, max_h: float) -> tuple[str, str]:
+def _viewpoints(map_w: float, map_d: float, max_h: float) -> dict:
+    """Return position/orientation strings for the three camera presets."""
     cam_h = max(max_h * 3.0, map_d * 0.3)
-    position = f"{map_w/2:.0f} {cam_h:.0f} {map_d + map_d * 0.4:.0f}"
-    orientation = "1 0 0 -0.5"
-    return position, orientation
+    return {
+        "overview": {
+            "pos":    f"{map_w/2:.0f} {cam_h:.0f} {map_d + map_d * 0.4:.0f}",
+            "orient": "1 0 0 -0.5",
+        },
+        "cenital": {
+            "pos":    f"{map_w/2:.0f} {cam_h * 2:.0f} {map_d/2:.0f}",
+            "orient": "1 0 0 -1.5708",
+        },
+        "lateral": {
+            "pos":    f"{map_w/2:.0f} {cam_h * 0.35:.0f} {map_d * 2.2:.0f}",
+            "orient": "0 0 0 1",
+        },
+    }
 
 
 def _read_static_asset(relative: str) -> str:
@@ -165,7 +177,7 @@ def generate_player(
         "terrainSrc":  f"data:image/png;base64,{terrain_b64}",
     }
 
-    viewpoint_position, viewpoint_orient = _viewpoint(map_w, map_d, max_h)
+    viewpoints = _viewpoints(map_w, map_d, max_h)
 
     env = Environment(
         loader=FileSystemLoader(str(_TEMPLATE_DIR)),
@@ -177,8 +189,7 @@ def generate_player(
     return template.render(
         inlined_css=_read_static_asset("css/style.css"),
         config_json=json.dumps(config),
-        viewpoint_position=viewpoint_position,
-        viewpoint_orient=viewpoint_orient,
+        viewpoints=viewpoints,
         n_frames=len(frame_names),
         rows=orig_rows,
         cols=orig_cols,

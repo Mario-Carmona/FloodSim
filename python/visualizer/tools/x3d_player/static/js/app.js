@@ -10,6 +10,7 @@ import { loadTerrain } from "./scene/terrain.js";
 import { fetchFloodPx } from "./scene/flood.js";
 import { buildScene } from "./scene/scene.js";
 import { state } from "./state.js";
+import { initCamera } from "./ui/camera.js";
 import { initLayers } from "./ui/layers.js";
 import { initPlayback } from "./ui/playback.js";
 
@@ -47,6 +48,7 @@ function initialLayerOpts() {
 
     initPlayback();
     initLayers();
+    initCamera();
   } catch (err) {
     setLoading("Error: " + err.message);
     console.error("Scene init failed:", err);
