@@ -103,7 +103,7 @@ jobs:
           restore-keys: vcpkg-windows-
 
       - name: Setup CMake
-        uses: jwlawrence/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '4.1.1'
 
@@ -181,7 +181,7 @@ jobs:
           restore-keys: vcpkg-windows-
 
       - name: Setup CMake
-        uses: jwlawrence/actions-setup-cmake@v2
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '4.1.1'
 
