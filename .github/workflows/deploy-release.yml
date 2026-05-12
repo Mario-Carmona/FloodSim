@@ -108,7 +108,7 @@ jobs:
           cmake-version: '4.1.1'
 
       - name: Build GUI (Updating Cache)
-        run: cmake --workflow --preset windows-full-suite-release
+        run: cmake --workflow --preset windows-full-suite-release -G "Visual Studio 17 2022"
         shell: pwsh
 
       # 💾 GUARDADO: Aquí creamos la nueva "última versión"
@@ -194,7 +194,7 @@ jobs:
         shell: pwsh
 
       - name: Build and Package
-        run: cmake --workflow --preset ${{ matrix.preset }}
+        run: cmake --workflow --preset ${{ matrix.preset }} -G "Visual Studio 17 2022"
         shell: pwsh
 
       - name: Upload Artifact
