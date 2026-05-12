@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=FloodSim Simulator
+Comment=Simulador de Redes Neuronales y Procesamiento de Datos
+# El nombre del ejecutable tal como se instalará en /usr/bin
+Exec=FloodSimGUI
+Icon=floodsim
+Terminal=false
+Categories=Science;Education;

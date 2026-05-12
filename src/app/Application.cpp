@@ -137,10 +137,8 @@ namespace danasim {
             // -------------------------------------------------
             LOG_INFO("Initializing input factory");
 
-            std::filesystem::path dataPath = PROJECT_DIR / "data";
-
             std::unique_ptr<FileInput> mainInputSource = std::make_unique<FileInput>(
-                dataPath,
+                config_.input.file.datasetFolder,
                 config_.input.file.datasetName,
                 config_.input.file.staticFormat, 
                 config_.input.file.dynamicFormat

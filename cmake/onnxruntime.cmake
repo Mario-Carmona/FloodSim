@@ -17,15 +17,12 @@ message(STATUS "Configuring ONNX Runtime C++ API (version ${ONNX_RUNTIME_VERSION
 if (WIN32)
     set(ONNX_RUNTIME_PLATFORM "win-x64")
     set(ONNX_RUNTIME_ARCHIVE_EXT "zip")
-    set(ONNX_RUNTIME_OS_DIR "Windows")
 elseif (APPLE)
     set(ONNX_RUNTIME_PLATFORM "osx-x86_64")
     set(ONNX_RUNTIME_ARCHIVE_EXT "tgz")
-    set(ONNX_RUNTIME_OS_DIR "Darwin")
 else()
     set(ONNX_RUNTIME_PLATFORM "linux-x64")
     set(ONNX_RUNTIME_ARCHIVE_EXT "tgz")
-    set(ONNX_RUNTIME_OS_DIR "Linux")
 endif()
 
 set(ONNX_RUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v${ONNX_RUNTIME_VERSION}/onnxruntime-${ONNX_RUNTIME_PLATFORM}-${ONNX_RUNTIME_VERSION}.${ONNX_RUNTIME_ARCHIVE_EXT}")
@@ -35,7 +32,7 @@ message(STATUS "ONNX Runtime download URL: ${ONNX_RUNTIME_URL}")
 
 # Construimos la ruta: <Proyecto>/build/<SO>/_deps/onnxruntime
 # CMAKE_SOURCE_DIR es la raíz de tu proyecto (donde está el CMakeLists.txt principal)
-set(ONNX_RUNTIME_CUSTOM_INSTALL_DIR "${CMAKE_SOURCE_DIR}/build/${ONNX_RUNTIME_OS_DIR}/_deps/onnxruntime")
+set(ONNX_RUNTIME_CUSTOM_INSTALL_DIR "$ENV{HOST_BUILD_DIR}/_deps/onnxruntime")
 
 
 # ------------------------------------------------------------
@@ -77,6 +74,11 @@ if (WIN32)
         INTERFACE_INCLUDE_DIRECTORIES "${ONNX_RUNTIME_INCLUDE_DIR}"
     )
 
+    # Instruimos a CPack para que copie la DLL al directorio 'bin' del paquete final
+    install(FILES "${ONNX_RUNTIME_DLL}"
+            DESTINATION bin
+            COMPONENT Unspecified)
+
     # ============================================================
     # AUTOMATIC DLL DEPLOYMENT (vcpkg-style)
     # ============================================================
@@ -103,11 +105,24 @@ elseif (APPLE)
         INTERFACE_INCLUDE_DIRECTORIES ${ONNX_RUNTIME_INCLUDE_DIR}
     )
 
+    # Instalación para macOS
+    install(FILES "${ONNX_RUNTIME_LIB_DIR}/libonnxruntime.dylib"
+            DESTINATION lib
+            COMPONENT Unspecified)
+
 else() # Linux
     set_target_properties(onnxruntime PROPERTIES
         IMPORTED_LOCATION ${ONNX_RUNTIME_LIB_DIR}/libonnxruntime.so
         INTERFACE_INCLUDE_DIRECTORIES ${ONNX_RUNTIME_INCLUDE_DIR}
     )
+
+    # 1. Buscar todos los archivos versionados (.so, .so.1, .so.1.23.2, etc.)
+    file(GLOB ONNX_LINUX_LIBS "${ONNX_RUNTIME_LIB_DIR}/libonnxruntime.so*")
+
+    # 2. Instalación para Linux
+    install(FILES ${ONNX_LINUX_LIBS}
+            DESTINATION lib
+            COMPONENT Unspecified)
 endif()
 
 message(STATUS "ONNX Runtime C++ API successfully configured")

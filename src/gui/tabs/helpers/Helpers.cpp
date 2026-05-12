@@ -3,7 +3,7 @@
  * \brief Implementation of ImGui widget wrappers and helper functions.
  */
 
-#include "gui/helpers/Helpers.hpp"
+#include "gui/tabs/helpers/Helpers.hpp"
 
 #include <cstdio>
 #include <iomanip>

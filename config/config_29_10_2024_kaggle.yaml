@@ -1,5 +1,5 @@
 scenario:
-  output_dir: ../outputs
+  output_dir: /kaggle/working
   name: scenario_29_10_2024
   append_start_timestamp: false
 
@@ -21,9 +21,13 @@ input:
 
 output:
   snapshot:
-    every_n_steps: 30
+    every_n_steps: 900
   outputs:
-    - type: IMAGE
+    - type: MQTT
+      protocol: mqtt://
+      host: 127.0.0.1
+      port: 1883
+      format: JSON
 
 state_updater:
   enable_rainfall: true

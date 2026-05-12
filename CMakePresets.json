@@ -10,7 +10,10 @@
       "name": "common-configure-options",
       "hidden": true,
       "description": "Base preset defining common cache variables shared by all presets.",
-      "binaryDir": "${sourceDir}/build/${presetName}"
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "environment": {
+        "HOST_BUILD_DIR": "${sourceDir}/build/${hostSystemName}"
+      }
     },
     {
       "name": "app",
@@ -28,9 +31,13 @@
         "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/${hostSystemName}/$<CONFIG>",
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
         "CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
+        "X_VCPKG_APPLOCAL_DEPS_INSTALL": "ON",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/external/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_INSTALL_OPTIONS": "--clean-after-build",
-        "VCPKG_INSTALLED_DIR": "${sourceDir}/build/vcpkg_installed/${hostSystemName}"
+        "VCPKG_INSTALLED_DIR": "$env{HOST_BUILD_DIR}/vcpkg_installed"
+      },
+      "environment": {
+        "VCPKG_DEFAULT_BINARY_CACHE": "$env{HOST_BUILD_DIR}/vcpkg_cache"
       }
     },
     {
@@ -124,8 +131,8 @@
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-linux",
         "VCPKG_HOST_TRIPLET": "x64-linux",
-        "CMAKE_C_COMPILER": "/usr/bin/gcc-12",
-        "CMAKE_CXX_COMPILER": "/usr/bin/g++-12"
+        "CMAKE_CXX_COMPILER": "/usr/bin/g++-12",
+        "CMAKE_MAKE_PROGRAM": "/usr/bin/ninja"
       },
       "environment": {
         "CC": "/usr/bin/gcc-12",
@@ -133,7 +140,7 @@
       }
     },
     {
-      "name": "windows-cli-debug",
+      "name": "windows-cli-only-debug",
       "inherits": [
         "windows",
         "app",
@@ -143,7 +150,7 @@
       "description": ""
     },
     {
-      "name": "windows-cli-release",
+      "name": "windows-cli-only-release",
       "inherits": [
         "windows",
         "app",
@@ -153,7 +160,7 @@
       "description": ""
     },
     {
-      "name": "windows-cli-rel-with-deb-info",
+      "name": "windows-cli-only-rel-with-deb-info",
       "inherits": [
         "windows",
         "app",
@@ -163,7 +170,7 @@
       "description": ""
     },
     {
-      "name": "windows-gui-debug",
+      "name": "windows-full-suite-debug",
       "inherits": [
         "windows",
         "app",
@@ -173,7 +180,7 @@
       "description": ""
     },
     {
-      "name": "windows-gui-release",
+      "name": "windows-full-suite-release",
       "inherits": [
         "windows",
         "app",
@@ -183,7 +190,7 @@
       "description": ""
     },
     {
-      "name": "windows-gui-rel-with-deb-info",
+      "name": "windows-full-suite-rel-with-deb-info",
       "inherits": [
         "windows",
         "app",
@@ -193,14 +200,24 @@
       "description": ""
     },
     {
-      "name": "linux-cli-debug",
+      "name": "linux-cli-only-debug",
       "inherits": [ "linux", "app", "cli", "debug" ],
       "description": "Debug build for Linux CLI"
     },
     {
-      "name": "linux-cli-release",
+      "name": "linux-cli-only-release",
       "inherits": [ "linux", "app", "cli", "release" ],
       "description": "Release build for Linux CLI"
+    },
+    {
+      "name": "linux-full-suite-debug",
+      "inherits": [ "linux", "app", "gui", "debug" ],
+      "description": "Debug build for Linux GUI"
+    },
+    {
+      "name": "linux-full-suite-release",
+      "inherits": [ "linux", "app", "gui", "release" ],
+      "description": "Release build for Linux GUI"
     },
     {
       "name": "tests",
@@ -261,62 +278,72 @@
       }
     },
     {
-      "name": "python-mqtt",
+      "name": "python-visualizer",
       "inherits": [
         "python-envs"
       ],
       "description": "",
       "cacheVariables": {
-        "PYTHON_SUBDIR_NAME": "mqtt",
+        "PYTHON_SUBDIR_NAME": "visualizer",
         "ISOLATE_ENVIRONMENT": "OFF"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "windows-cli-debug",
-      "configurePreset": "windows-cli-debug",
+      "name": "windows-cli-only-debug",
+      "configurePreset": "windows-cli-only-debug",
       "description": "",
       "configuration": "Debug"
     },
     {
-      "name": "windows-cli-release",
-      "configurePreset": "windows-cli-release",
+      "name": "windows-cli-only-release",
+      "configurePreset": "windows-cli-only-release",
       "description": "",
       "configuration": "Release"
     },
     {
-      "name": "windows-cli-rel-with-deb-info",
-      "configurePreset": "windows-cli-rel-with-deb-info",
+      "name": "windows-cli-only-rel-with-deb-info",
+      "configurePreset": "windows-cli-only-rel-with-deb-info",
       "description": "",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "windows-gui-debug",
-      "configurePreset": "windows-gui-debug",
+      "name": "windows-full-suite-debug",
+      "configurePreset": "windows-full-suite-debug",
       "description": "",
       "configuration": "Debug"
     },
     {
-      "name": "windows-gui-release",
-      "configurePreset": "windows-gui-release",
+      "name": "windows-full-suite-release",
+      "configurePreset": "windows-full-suite-release",
       "description": "",
       "configuration": "Release"
     },
     {
-      "name": "windows-gui-rel-with-deb-info",
-      "configurePreset": "windows-gui-rel-with-deb-info",
+      "name": "windows-full-suite-rel-with-deb-info",
+      "configurePreset": "windows-full-suite-rel-with-deb-info",
       "description": "",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "linux-cli-debug",
-      "configurePreset": "linux-cli-debug",
+      "name": "linux-cli-only-debug",
+      "configurePreset": "linux-cli-only-debug",
       "configuration": "Debug"
     },
     {
-      "name": "linux-cli-release",
-      "configurePreset": "linux-cli-release",
+      "name": "linux-cli-only-release",
+      "configurePreset": "linux-cli-only-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-full-suite-debug",
+      "configurePreset": "linux-full-suite-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-full-suite-release",
+      "configurePreset": "linux-full-suite-release",
       "configuration": "Release"
     },
     {
@@ -340,8 +367,8 @@
       "configuration": "Release"
     },
     {
-      "name": "python-mqtt",
-      "configurePreset": "python-mqtt",
+      "name": "python-visualizer",
+      "configurePreset": "python-visualizer",
       "configuration": "Release"
     }
   ],
@@ -349,148 +376,221 @@
     {
       "name": "common-package-options",
       "hidden": true,
-      "description": "Base preset defining common CPack variables for all package types.",
       "variables": {
-        "CPACK_PACKAGE_VENDOR": "Tu Nombre o Compañía",
-        "CPACK_PACKAGE_CONTACT": "contacto@ejemplo.com",
-        "CPACK_PACKAGE_DESCRIPTION_SUMMARY": "Simulador de Redes Neuronales y Procesamiento de Datos (NN/Data Processing)",
-        "CPACK_PACKAGE_HOMEPAGE_URL": "http://www.ejemplo.com/danasim",
-        "CPACK_ARCHIVE_COMPONENT_INSTALL": "ON",
         "CPACK_PACKAGE_DIRECTORY": "${sourceDir}/installer"
       }
     },
     {
-      "name": "windows-installer",
-      "displayName": "Windows Installer (MSI)",
-      "inherits": [
-        "common-package-options"
-      ],
-      "generators": [ "WIX" ],
-      "configurePreset": "windows-cli-release",
+      "name": "cli-only",
+      "hidden": true,
+      "inherits": [ "common-package-options" ],
       "variables": {
-        "CPACK_WIX_ROOT": "C:/Program Files (x86)/WiX Toolset v3.14/bin"
+        "CPACK_COMPONENTS_ALL": "CLI"
       }
+    },
+    {
+      "name": "full-suite",
+      "hidden": true,
+      "inherits": [ "common-package-options" ],
+      "variables": {
+        "CPACK_COMPONENTS_ALL": "CLI;GUI"
+      }
+    },
+    {
+      "name": "windows-cli-only",
+      "displayName": "Installer - CLI Only",
+      "inherits": [ "cli-only" ],
+      "configurePreset": "windows-cli-only-release"
+    },
+    {
+      "name": "windows-full-suite",
+      "displayName": "Installer - GUI & CLI",
+      "inherits": [ "full-suite" ],
+      "configurePreset": "windows-full-suite-release"
+    },
+    {
+      "name": "linux-cli-only",
+      "displayName": "Installer - CLI Only",
+      "inherits": [ "cli-only" ],
+      "configurePreset": "linux-cli-only-release"
+    },
+    {
+      "name": "linux-full-suite",
+      "displayName": "Installer - GUI & CLI",
+      "inherits": [ "full-suite" ],
+      "configurePreset": "linux-full-suite-release"
     }
   ],
   "workflowPresets": [
     {
-      "name": "windows-cli-debug",
+      "name": "windows-cli-only-debug",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-cli-debug"
+          "name": "windows-cli-only-debug"
         },
         {
           "type": "build",
-          "name": "windows-cli-debug"
+          "name": "windows-cli-only-debug"
         }
       ]
     },
     {
-      "name": "windows-cli-release",
+      "name": "windows-cli-only-release",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-cli-release"
+          "name": "windows-cli-only-release"
         },
         {
           "type": "build",
-          "name": "windows-cli-release"
+          "name": "windows-cli-only-release"
         }
       ]
     },
     {
-      "name": "windows-cli-rel-with-deb-info",
+      "name": "windows-cli-only-rel-with-deb-info",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-cli-rel-with-deb-info"
+          "name": "windows-cli-only-rel-with-deb-info"
         },
         {
           "type": "build",
-          "name": "windows-cli-rel-with-deb-info"
+          "name": "windows-cli-only-rel-with-deb-info"
         }
       ]
     },
     {
-      "name": "windows-gui-debug",
+      "name": "windows-full-suite-debug",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-gui-debug"
+          "name": "windows-full-suite-debug"
         },
         {
           "type": "build",
-          "name": "windows-gui-debug"
+          "name": "windows-full-suite-debug"
         }
       ]
     },
     {
-      "name": "windows-gui-release",
+      "name": "windows-full-suite-release",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-gui-release"
+          "name": "windows-full-suite-release"
         },
         {
           "type": "build",
-          "name": "windows-gui-release"
+          "name": "windows-full-suite-release"
         }
       ]
     },
     {
-      "name": "windows-gui-rel-with-deb-info",
+      "name": "windows-full-suite-rel-with-deb-info",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-gui-rel-with-deb-info"
+          "name": "windows-full-suite-rel-with-deb-info"
         },
         {
           "type": "build",
-          "name": "windows-gui-rel-with-deb-info"
+          "name": "windows-full-suite-rel-with-deb-info"
         }
       ]
     },
     {
-      "name": "linux-cli-debug",
+      "name": "linux-cli-only-debug",
       "steps": [
         {
           "type": "configure",
-          "name": "linux-cli-debug"
+          "name": "linux-cli-only-debug"
         },
         {
           "type": "build",
-          "name": "linux-cli-debug"
+          "name": "linux-cli-only-debug"
         }
       ]
     },
     {
-      "name": "linux-cli-release",
+      "name": "linux-cli-only-release",
       "steps": [
         {
           "type": "configure",
-          "name": "linux-cli-release"
+          "name": "linux-cli-only-release"
         },
         {
           "type": "build",
-          "name": "linux-cli-release"
+          "name": "linux-cli-only-release"
         }
       ]
     },
     {
-      "name": "windows-installer",
+      "name": "windows-pack-server",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-cli-release"
+          "name": "windows-cli-only-release"
         },
         {
           "type": "build",
-          "name": "windows-cli-release"
+          "name": "windows-cli-only-release"
         },
         {
           "type": "package",
-          "name": "windows-installer"
+          "name": "windows-cli-only"
+        }
+      ]
+    },
+    {
+      "name": "windows-pack-desktop",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-full-suite-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-full-suite-release"
+        },
+        {
+          "type": "package",
+          "name": "windows-full-suite"
+        }
+      ]
+    },
+    {
+      "name": "linux-pack-server",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-cli-only-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-cli-only-release"
+        },
+        {
+          "type": "package",
+          "name": "linux-cli-only"
+        }
+      ]
+    },
+    {
+      "name": "linux-pack-desktop",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-full-suite-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-full-suite-release"
+        },
+        {
+          "type": "package",
+          "name": "linux-full-suite"
         }
       ]
     },
@@ -547,15 +647,15 @@
       ]
     },
     {
-      "name": "python-mqtt",
+      "name": "python-visualizer",
       "steps": [
         {
           "type": "configure",
-          "name": "python-mqtt"
+          "name": "python-visualizer"
         },
         {
           "type": "build",
-          "name": "python-mqtt"
+          "name": "python-visualizer"
         }
       ]
     }

@@ -109,6 +109,7 @@ namespace danasim {
                 config.input.file = InputConfig::FileInputSourceConfig{
                     .staticFormat = magic_enum::enum_cast<FileStaticFormat>(extract<std::string>(fileNode, "static_format"), magic_enum::case_insensitive).value(),
                     .dynamicFormat = magic_enum::enum_cast<FileDynamicFormat>(extract<std::string>(fileNode, "dynamic_format"), magic_enum::case_insensitive).value(),
+					.datasetFolder = (configFolder / extract<std::string>(fileNode, "dataset_folder")).lexically_normal(),
                     .datasetName = extract<std::string>(fileNode, "dataset_name")
                 };
             }
@@ -414,6 +415,7 @@ namespace danasim {
         // ---------------------------------------------------------
         YAML::Node inputNode;
         YAML::Node fileNode;
+        fileNode["dataset_folder"] = config.input.file.datasetFolder.string();
         fileNode["dataset_name"] = config.input.file.datasetName;
         fileNode["static_format"] = std::string(magic_enum::enum_name(config.input.file.staticFormat));
         fileNode["dynamic_format"] = std::string(magic_enum::enum_name(config.input.file.dynamicFormat));

@@ -82,25 +82,11 @@ if(BUILD_APP OR BUILD_TESTS)
 endif()
 
 if(BUILD_APP)
+    # 1. Siempre añadimos la CLI (es la base del simulador)
+    add_subdirectory(cli)
+
+    # 2. Añadimos la GUI de forma opcional
     if(ENABLE_GUI)
         add_subdirectory(gui)
-    else()
-        add_subdirectory(cli)
     endif()
 endif()
-
-
-
-# =========================================================
-# CONFIGURACIÓN DE EMPAQUETADO (CPack)
-# =========================================================
-
-# SOLUCIÓN: Carga el módulo de CPack para inicializar todas las variables
-include(CPack) 
-
-# (Opcional, pero recomendado para instaladores de Windows)
-# Incluye las librerías de tiempo de ejecución del sistema necesarias (como los runtimes de MSVC)
-# para que el instalador WIX/MSI las pueda incluir.
-include(InstallRequiredSystemLibraries)
-
-# =========================================================

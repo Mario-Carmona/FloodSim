@@ -14,7 +14,7 @@
 #include <thread>
 
 #include "app/config/Config.hpp"
-#include "gui/helpers/Helpers.hpp"
+#include "gui/tabs/helpers/Helpers.hpp"
 #include "app/Application.hpp"
 
 namespace floodsim::gui {

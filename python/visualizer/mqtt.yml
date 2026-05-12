@@ -4,7 +4,7 @@ mqtt:
   host: localhost
   port: 1883
   client_id: Danasim_Monitor_Viewer
-  scenario: scenario_local
+  scenario: scenario_29_10_2024
   qos_events: 1
   handshake_timeout: 5.0
   handshake_max_retries: 3

@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
             config_input_str = argv[2];
         }
         else if (argc == 1) {
-            std::cout << "Enter the path to the configuration file (.yaml or .json): ";
+            std::cout << "Enter the path to the configuration file (.yaml): ";
             if (!std::getline(std::cin, config_input_str) || config_input_str.empty()) {
                 std::cerr << "[Error] No configuration path provided. Aborting.\n";
                 return EXIT_FAILURE;

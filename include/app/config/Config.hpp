@@ -35,6 +35,7 @@ namespace danasim {
         struct FileInputSourceConfig {
             FileStaticFormat staticFormat;
             FileDynamicFormat dynamicFormat;
+            std::filesystem::path datasetFolder;
             std::string datasetName; 
         };
 

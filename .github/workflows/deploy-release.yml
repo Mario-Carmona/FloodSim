@@ -1,0 +1,272 @@
+name: Deploy release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-tag:
+    runs-on: ubuntu-latest
+    steps:
+      # 🔹 Checkout repository again to prepare for tagging and release
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 🧑‍💻 Configure a Git user for tagging and pushing
+      - name: Setup git user
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      # 🏷️ Create a unique tag based on the current date (e.g., v2025.10.30)
+      - name: Check tag availability
+        run: |
+          VERSION=$(date +'%Y.%m.%d')
+          TAG="v${VERSION}"
+          if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+              echo "❌ Error: The tag '$TAG' already exists." >&2
+              exit 1
+          fi 
+
+  # ======================================================
+  # 1️⃣ Check/Restore: Detectamos si el vcpkg.json ha cambiado
+  # ======================================================
+  check-cache-windows:
+    needs: [check-tag]
+    runs-on: windows-latest
+    outputs:
+      # Importante: usamos 'cache-hit' para decidir si lanzamos el sembrado
+      cache-hit: ${{ steps.vcpkg-windows-restore.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore/Check vcpkg cache
+        id: vcpkg-windows-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/Windows/vcpkg_installed
+            build/Windows/vcpkg_cache
+          # Clave exacta con el hash actual
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
+          # 🔄 Si el vcpkg.json cambió, rescatamos la caché de la release anterior
+          # Esto evita que la caché "muera" por falta de uso
+          restore-keys: vcpkg-windows-
+
+  check-cache-linux:
+    needs: [check-tag]
+    runs-on: ubuntu-latest
+    outputs:
+      # Importante: usamos 'cache-hit' para decidir si lanzamos el sembrado
+      cache-hit: ${{ steps.vcpkg-linux-restore.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore/Check vcpkg cache
+        id: vcpkg-linux-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/Linux/vcpkg_installed
+            build/Linux/vcpkg_cache
+          # Clave exacta con el hash actual
+          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+          # 🔄 Si el vcpkg.json cambió, rescatamos la caché de la release anterior
+          # Esto evita que la caché "muera" por falta de uso
+          restore-keys: |
+            vcpkg-linux-
+            
+  build-new-cache-windows:
+    needs: check-cache-windows
+    if: needs.check-cache-windows.outputs.cache-hit != 'true'
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Restauramos la caché vieja para añadirle las librerías nuevas
+      - name: Restore latest available cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/Windows/vcpkg_installed
+            build/Windows/vcpkg_cache
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-windows-
+
+      - name: Build GUI (Updating Cache)
+        run: cmake --workflow --preset windows-full-suite-release
+        shell: pwsh
+
+      # 💾 GUARDADO: Aquí creamos la nueva "última versión"
+      - name: Save updated cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/Windows/vcpkg_installed
+            build/Windows/vcpkg_cache
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
+            
+  build-new-cache-linux:
+    needs: check-cache-linux
+    if: needs.check-cache-linux.outputs.cache-hit != 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Restauramos la caché vieja para añadirle las librerías nuevas
+      - name: Restore latest available cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/Linux/vcpkg_installed
+            build/Linux/vcpkg_cache
+          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-
+
+      - name: Build GUI (Updating Cache)
+        run: cmake --workflow --preset linux-full-suite-release
+        shell: pwsh
+
+      # 💾 GUARDADO: Aquí creamos la nueva "última versión"
+      - name: Save updated cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/Linux/vcpkg_installed
+            build/Linux/vcpkg_cache
+          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+
+  build-parallel-windows:
+    needs: [check-cache-windows, build-new-cache-windows]
+    if: always() && (needs.build-new-cache-windows.result == 'success' || needs.build-new-cache-windows.result == 'skipped')
+    strategy:
+      matrix:
+        preset: [windows-pack-desktop, windows-pack-server]
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Siempre restauramos la versión más reciente disponible
+      - name: Restore vcpkg
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/Windows/vcpkg_installed
+            build/Windows/vcpkg_cache
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-windows-
+
+      - name: Setup WiX
+        run: |
+          $wixPath = Get-ChildItem -Path "C:\Program Files (x86)\WiX Toolset*" | Select-Object -First 1
+          if ($wixPath) {
+            echo "$($wixPath.FullName)\bin" >> $env:GITHUB_PATH
+          }
+        shell: pwsh
+
+      - name: Build and Package
+        run: cmake --workflow --preset ${{ matrix.preset }}
+        shell: pwsh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.preset }}-installer
+          path: installer/*.msi
+
+  build-parallel-linux:
+    needs: [check-cache-linux, build-new-cache-linux]
+    if: always() && (needs.build-new-cache-linux.result == 'success' || needs.build-new-cache-linux.result == 'skipped')
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        preset: [linux-pack-desktop, linux-pack-server]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Siempre restauramos la versión más reciente disponible
+      - name: Restore vcpkg
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/Linux/vcpkg_installed
+            build/Linux/vcpkg_cache
+          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-
+
+      - name: Install dependencies
+        run: bash install-deps.sh --desktop
+        shell: pwsh
+
+      - name: Build and Package
+        run: cmake --workflow --preset ${{ matrix.preset }}
+        shell: pwsh
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-${{ matrix.preset }}-installer
+          path: installer/*.deb
+
+  release:
+    # 🚀 Run only after the Windows builds complete
+    needs: [build-parallel-windows, build-parallel-linux]
+    runs-on: ubuntu-latest
+    steps:
+      # 🔹 Checkout repository again to prepare for tagging and release
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ⬇️ Download all installer artifacts from previous job
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          path: all-installers
+
+      # 🧑‍💻 Configure a Git user for tagging and pushing
+      - name: Setup git user
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      # 🏷️ Create a unique tag based on the current date (e.g., v2025.10.30)
+      - name: Create unique tag based on date
+        id: tag
+        run: |
+          VERSION=$(date +'%Y.%m.%d')
+          TAG="v${VERSION}"
+          echo "TAG=$TAG" >> $GITHUB_ENV
+      
+      # 🧾 Create a draft GitHub release and attach installer files
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: "Release ${{ env.TAG }}"
+          files: |
+            all-installers/**/*.msi
+            all-installers/**/*.deb
+          draft: true # La crea como borrador para que tú la revises antes de publicar
+          prerelease: false
+          generate_release_notes: true # GitHub generará automáticamente el registro de cambios
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
