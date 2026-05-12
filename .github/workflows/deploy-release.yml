@@ -135,6 +135,10 @@ jobs:
           key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-linux-
 
+      - name: Install dependencies
+        run: bash install-deps.sh --desktop
+        shell: pwsh
+
       - name: Build GUI (Updating Cache)
         run: cmake --workflow --preset linux-full-suite-release
         shell: pwsh
