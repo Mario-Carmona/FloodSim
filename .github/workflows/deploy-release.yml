@@ -102,6 +102,11 @@ jobs:
           key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-windows-
 
+      - name: Setup CMake
+        uses: jwlawrence/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.1.1'
+
       - name: Build GUI (Updating Cache)
         run: cmake --workflow --preset windows-full-suite-release
         shell: pwsh
@@ -174,6 +179,11 @@ jobs:
             build/Windows/vcpkg_cache
           key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-windows-
+
+      - name: Setup CMake
+        uses: jwlawrence/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.1.1'
 
       - name: Setup WiX
         run: |
