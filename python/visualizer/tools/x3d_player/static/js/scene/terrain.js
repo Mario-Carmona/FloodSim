@@ -42,15 +42,26 @@ export function getTerrainH(px, pz) {
 }
 
 /**
+ * Terrain colour stops by elevation. Each entry is [maxHeightMetres, r, g, b]
+ * with r/g/b in 0–1 range. The last entry acts as the fallback (Infinity).
+ * Shared with minimap.js so both use identical colours.
+ */
+export const TERRAIN_COLOR_STOPS = [
+  [0,        0.20, 0.39, 0.70],
+  [5,        0.82, 0.76, 0.57],
+  [30,       0.73, 0.80, 0.51],
+  [100,      0.55, 0.67, 0.36],
+  [Infinity, 0.51, 0.44, 0.29],
+];
+
+/**
  * Discrete terrain colour ramp by elevation. Returns a "r g b" floats string
  * suitable for X3D Color nodes.
  * @param {number} h height in metres
  * @returns {string}
  */
 export function terrainColor(h) {
-  if (h <= 0)   return "0.20 0.39 0.70";
-  if (h <= 5)   return "0.82 0.76 0.57";
-  if (h <= 30)  return "0.73 0.80 0.51";
-  if (h <= 100) return "0.55 0.67 0.36";
-  return "0.51 0.44 0.29";
+  for (const [maxH, r, g, b] of TERRAIN_COLOR_STOPS) {
+    if (h <= maxH) return `${r} ${g} ${b}`;
+  }
 }

@@ -12,6 +12,8 @@ import { buildScene } from "./scene/scene.js";
 import { state } from "./state.js";
 import { initCamera } from "./ui/camera.js";
 import { initLayers } from "./ui/layers.js";
+import { initLegend } from "./ui/legend.js";
+import { initMinimap } from "./ui/minimap.js";
 import { initPlayback } from "./ui/playback.js";
 
 const $loading = document.getElementById("loading");
@@ -49,6 +51,8 @@ function initialLayerOpts() {
     initPlayback();
     initLayers();
     initCamera();
+    initLegend();
+    initMinimap();
   } catch (err) {
     setLoading("Error: " + err.message);
     console.error("Scene init failed:", err);

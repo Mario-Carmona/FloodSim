@@ -1,18 +1,24 @@
 // Camera controls — viewpoint presets, vertical exaggeration slider and
 // keyboard shortcuts for camera navigation.
 //
-// Viewpoint binding works via x_ite's `set_bind` field: setting it to "true"
-// on a Viewpoint node makes the browser smoothly transition to that view.
+// Viewpoint binding uses x_ite's `set_bind` inputOnly SFBool field.
+// Must be set as a JS property (vp.set_bind = true), NOT via setAttribute —
+// x_ite ignores setAttribute for inputOnly fields.
 // The ZScale Transform (DEF="ZScale") wraps the entire terrain so we can
 // scale Y without touching any geometry data.
 
 /**
- * Bind to one of the named Viewpoint nodes embedded in the scene.
- * @param {string} def  DEF attribute value — "VP_Overview" | "VP_Cenital" | "VP_Lateral"
+ * Bind to a named Viewpoint node embedded in the scene.
+ * Exported so other modules (e.g. minimap.js) can trigger camera transitions.
+ * @param {string} def  Viewpoint DEF attribute — e.g. "VP_Overview"
  */
-function _bindViewpoint(def) {
-  const vp = document.querySelector(`Viewpoint[DEF="${def}"]`);
-  if (vp) vp.setAttribute("set_bind", "true");
+export function bindViewpoint(def) {
+  // Use x_ite's SAI — getNamedNode returns a scene-graph proxy whose field
+  // setters are wired to the x_ite event system. The raw DOM element obtained
+  // via querySelector does NOT have those setters (set_bind stays undefined).
+  const canvas = document.querySelector("x3d-canvas");
+  const vp = canvas?.browser?.currentScene?.getNamedNode(def);
+  if (vp) vp.set_bind = true;
 }
 
 /**
@@ -33,13 +39,13 @@ function _applyZScale(factor) {
 export function initCamera() {
   // Preset buttons — each carries data-vp with the target Viewpoint DEF.
   document.querySelectorAll(".cam-btn[data-vp]").forEach(btn => {
-    btn.addEventListener("click", () => _bindViewpoint(btn.dataset.vp));
+    btn.addEventListener("click", () => bindViewpoint(btn.dataset.vp));
   });
 
   // Reset button — back to the Overview viewpoint.
   const resetBtn = document.getElementById("camReset");
   if (resetBtn) {
-    resetBtn.addEventListener("click", () => _bindViewpoint("VP_Overview"));
+    resetBtn.addEventListener("click", () => bindViewpoint("VP_Overview"));
   }
 
   // Z-scale slider.
@@ -54,10 +60,10 @@ export function initCamera() {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
     switch (e.key.toLowerCase()) {
-      case "c": _bindViewpoint("VP_Cenital");  break;
-      case "p": _bindViewpoint("VP_Overview"); break;
-      case "l": _bindViewpoint("VP_Lateral");  break;
-      case "r": _bindViewpoint("VP_Overview"); break;
+      case "c": bindViewpoint("VP_Cenital");  break;
+      case "p": bindViewpoint("VP_Overview"); break;
+      case "l": bindViewpoint("VP_Lateral");  break;
+      case "r": bindViewpoint("VP_Overview"); break;
     }
   });
 }

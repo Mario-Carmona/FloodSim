@@ -46,6 +46,10 @@
                      orientation="{{ viewpoints.lateral.orient }}"
                      description="Lateral"></Viewpoint>
 
+          <!-- VP_Zone is updated by minimap.js before binding -->
+          <Viewpoint DEF="VP_Zone" position="0 1 1" orientation="1 0 0 -0.5"
+                     description="Zona seleccionada"></Viewpoint>
+
           <NavigationInfo type='"EXAMINE" "ANY"' speed="500"></NavigationInfo>
 
           <Transform DEF="ZScale" scale="1 1 1">
@@ -116,6 +120,17 @@
           &nbsp;·&nbsp; <kbd>L</kbd> lateral &nbsp;·&nbsp; <kbd>R</kbd> reset
           &nbsp;·&nbsp; <kbd>Space</kbd> play &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd> frames
         </p>
+
+        <h2>Minimapa</h2>
+        <div class="minimap-wrap">
+          <canvas id="minimapCanvas" title="Arrastra para seleccionar zona"></canvas>
+          <button id="minimapReset" class="cam-btn" style="margin-top:6px;width:100%">
+            &#8635; Vista completa
+          </button>
+        </div>
+
+        <h2>Leyenda</h2>
+        <div id="legend"></div>
 
       </div>
     </aside>
