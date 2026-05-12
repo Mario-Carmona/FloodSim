@@ -527,6 +527,19 @@
       ]
     },
     {
+      "name": "linux-full-suite-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-full-suite-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-full-suite-release"
+        }
+      ]
+    },
+    {
       "name": "windows-pack-server",
       "steps": [
         {
