@@ -51,19 +51,16 @@ jobs:
             @{ 
               os="windows-2025-vs2026"; 
               build_preset="windows-full-suite-release"; 
-              cache_path="build/Windows/vcpkg_installed`nbuild/Windows/vcpkg_cache";
               run_install_deps=$false
             },
             @{ 
               os="ubuntu-24.04"; 
               build_preset="linux-full-suite-release"; 
-              cache_path="build/Linux/vcpkg_installed`nbuild/Linux/vcpkg_cache";
               run_install_deps=$true
             },
             @{ 
               os="ubuntu-22.04"; 
               build_preset="linux-full-suite-release"; 
-              cache_path="build/Linux/vcpkg_installed`nbuild/Linux/vcpkg_cache";
               run_install_deps=$true
             }
           )
@@ -114,7 +111,9 @@ jobs:
       - name: Restore Cache (Try to get partial)
         uses: actions/cache/restore@v4
         with:
-          path: ${{ matrix.cache_path }}
+          path: |
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
           key: vcpkg-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-${{ matrix.os }}-
 
@@ -125,7 +124,9 @@ jobs:
       - name: Save Cache
         uses: actions/cache/save@v4
         with:
-          path: ${{ matrix.cache_path }}
+          path: |
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
           key: vcpkg-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}
 
   build-parallel:
@@ -175,10 +176,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            build/Windows/vcpkg_installed
-            build/Windows/vcpkg_cache
-            build/Linux/vcpkg_installed
-            build/Linux/vcpkg_cache
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
           key: vcpkg-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}
           fail-on-cache-miss: true # Opcional: asegura que la cache del job anterior esté ahí
 
