@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   check-tag:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # 🔹 Checkout repository again to prepare for tagging and release
       - name: Checkout repository
@@ -35,7 +35,7 @@ jobs:
   # ======================================================
   check-cache-windows:
     needs: [check-tag]
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     outputs:
       # Importante: usamos 'cache-hit' para decidir si lanzamos el sembrado
       cache-hit: ${{ steps.vcpkg-windows-restore.outputs.cache-hit }}
@@ -59,7 +59,7 @@ jobs:
 
   check-cache-linux:
     needs: [check-tag]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       # Importante: usamos 'cache-hit' para decidir si lanzamos el sembrado
       cache-hit: ${{ steps.vcpkg-linux-restore.outputs.cache-hit }}
@@ -85,7 +85,7 @@ jobs:
   build-new-cache-windows:
     needs: check-cache-windows
     if: needs.check-cache-windows.outputs.cache-hit != 'true'
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     
     steps:
       - uses: actions/checkout@v4
@@ -108,7 +108,7 @@ jobs:
           cmake-version: '4.1.1'
 
       - name: Build GUI (Updating Cache)
-        run: cmake --workflow --preset windows-full-suite-release -G "Visual Studio 17 2022"
+        run: cmake --workflow --preset windows-full-suite-release
         shell: pwsh
 
       # 💾 GUARDADO: Aquí creamos la nueva "última versión"
@@ -123,7 +123,7 @@ jobs:
   build-new-cache-linux:
     needs: check-cache-linux
     if: needs.check-cache-linux.outputs.cache-hit != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     steps:
       - uses: actions/checkout@v4
@@ -163,7 +163,7 @@ jobs:
     strategy:
       matrix:
         preset: [windows-pack-desktop, windows-pack-server]
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
 
     steps:
       - uses: actions/checkout@v4
@@ -194,7 +194,7 @@ jobs:
         shell: pwsh
 
       - name: Build and Package
-        run: cmake --workflow --preset ${{ matrix.preset }} -G "Visual Studio 17 2022"
+        run: cmake --workflow --preset ${{ matrix.preset }}
         shell: pwsh
 
       - name: Upload Artifact
@@ -244,7 +244,7 @@ jobs:
   release:
     # 🚀 Run only after the Windows builds complete
     needs: [build-parallel-windows, build-parallel-linux]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # 🔹 Checkout repository again to prepare for tagging and release
       - name: Checkout repository
