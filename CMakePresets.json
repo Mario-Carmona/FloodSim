@@ -109,7 +109,6 @@
         "rhs": "Windows"
       },
       "generator": "Visual Studio 18 2026",
-      "toolset": "version=14.50",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-windows",
         "VCPKG_HOST_TRIPLET": "x64-windows"
