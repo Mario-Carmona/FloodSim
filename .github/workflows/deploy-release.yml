@@ -102,11 +102,6 @@ jobs:
           key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-windows-
 
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.1.1'
-
       - name: Build GUI (Updating Cache)
         run: cmake --workflow --preset windows-full-suite-release
         shell: pwsh
@@ -179,19 +174,6 @@ jobs:
             build/Windows/vcpkg_cache
           key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-windows-
-
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.1.1'
-
-      - name: Setup WiX
-        run: |
-          $wixPath = Get-ChildItem -Path "C:\Program Files (x86)\WiX Toolset*" | Select-Object -First 1
-          if ($wixPath) {
-            echo "$($wixPath.FullName)\bin" >> $env:GITHUB_PATH
-          }
-        shell: pwsh
 
       - name: Build and Package
         run: cmake --workflow --preset ${{ matrix.preset }}
