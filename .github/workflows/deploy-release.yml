@@ -47,7 +47,6 @@ jobs:
         id: set-matrix
         shell: pwsh
         run: |
-          # Definimos una configuración por cada OS con su preset de "llenado"
           $os_configs = @(
             @{ 
               os="windows-2025-vs2026"; 
@@ -71,9 +70,8 @@ jobs:
 
           $missing = @()
           foreach ($c in $os_configs) {
-            # La clave ahora solo depende del OS y el vcpkg.json
             $key = "vcpkg-$($c.os)-${{ hashFiles('vcpkg.json') }}"
-            $cacheExists = gh cache list --key "$key" --limit 1 | Select-String "$key"
+            $cacheExists = try { gh cache list --key "$key" --limit 1 | Select-String "$key" } catch { $null }
             
             if (-not $cacheExists) {
               $missing += $c
@@ -83,9 +81,14 @@ jobs:
             }
           }
 
-          echo "matrix_full=$($os_configs | ConvertTo-Json -Compress)" >> $GITHUB_OUTPUT
-          echo "matrix_missing=$($missing | ConvertTo-Json -Compress)" >> $GITHUB_OUTPUT
-          echo "any_missing=$($missing.Count -gt 0 ? 'true' : 'false')" >> $GITHUB_OUTPUT
+          # 🛠️ FORMA CORRECTA DE SETEAR OUTPUTS EN PWSH
+          $json_full = $os_configs | ConvertTo-Json -Compress
+          $json_missing = $missing | ConvertTo-Json -Compress
+          $any_missing = if ($missing.Count -gt 0) { "true" } else { "false" }
+
+          "matrix_full=$json_full" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "matrix_missing=$json_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "any_missing=$any_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
