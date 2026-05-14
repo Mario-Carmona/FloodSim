@@ -40,6 +40,7 @@ jobs:
       matrix_full: ${{ steps.set-matrix.outputs.matrix_full }}
       matrix_missing: ${{ steps.set-matrix.outputs.matrix_missing }}
       any_missing: ${{ steps.set-matrix.outputs.any_missing }}
+      vcpkg_hash: ${{ steps.set-matrix.outputs.vcpkg_hash }}
     steps:
       - uses: actions/checkout@v4
   
@@ -47,6 +48,19 @@ jobs:
         id: set-matrix
         shell: pwsh
         run: |
+          # 1. Leer el archivo y normalizarlo (quitar todos los saltos de línea y espacios extra)
+          # Esto garantiza que el hash sea idéntico en Windows (CRLF) y Linux (LF)
+          $rawContent = Get-Content "vcpkg.json" -Raw
+          $normalizedContent = $rawContent -replace "`r`n", "`n" # Normaliza a LF
+          
+          # Generar SHA256 del contenido normalizado
+          $sha256 = [System.Security.Cryptography.SHA256]::Create()
+          $contentBytes = [System.Text.Encoding]::UTF8.GetBytes($normalizedContent)
+          $hashBytes = $sha256.ComputeHash($contentBytes)
+          $vcpkgHash = ($hashBytes | ForEach-Object { $_.ToString("x2") }) -join ""
+
+          Write-Host "Normlized Hash (vcpkg.json): $vcpkgHash"
+
           $os_configs = @(
             @{ 
               os="windows-2025-vs2026"; 
@@ -67,7 +81,7 @@ jobs:
 
           $missing = @()
           foreach ($c in $os_configs) {
-            $key = "vcpkg-$($c.os)-${{ hashFiles('vcpkg.json') }}"
+            $key = "vcpkg-$($c.os)-$vcpkgHash"
             $cacheExists = try { gh cache list --key "$key" --limit 1 | Select-String "$key" } catch { $null }
             
             if (-not $cacheExists) {
@@ -81,11 +95,15 @@ jobs:
           # 🛠️ FORMA CORRECTA DE SETEAR OUTPUTS EN PWSH
           $json_full = $os_configs | ConvertTo-Json -Compress
           $json_missing = $missing | ConvertTo-Json -Compress
+          
+          # Si no hay nada perdido, enviamos un array con un objeto vacío "dummy" o manejamos el skip
           $any_missing = if ($missing.Count -gt 0) { "true" } else { "false" }
+          if ($missing.Count -eq 0) { $json_missing = "[]" }
 
           "matrix_full=$json_full" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "matrix_missing=$json_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "any_missing=$any_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "vcpkg_hash=$vcpkgHash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -114,7 +132,7 @@ jobs:
           path: |
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
-          key: vcpkg-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
           restore-keys: vcpkg-${{ matrix.os }}-
 
       - name: Build Full Suite to populate cache
@@ -127,11 +145,15 @@ jobs:
           path: |
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
-          key: vcpkg-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
 
   build-parallel:
     needs: [check-cache, build-new-cache]
-    if: always() && !cancelled() && needs.check-cache.result == 'success'
+    if: |
+      always() && 
+      needs.check-tag.result == 'success' &&
+      needs.check-cache.result == 'success' &&
+      (needs.build-new-cache.result == 'success' || needs.build-new-cache.result == 'skipped')
     strategy:
       matrix:
         # Aquí definimos todos los paquetes que queremos generar por OS
@@ -178,7 +200,7 @@ jobs:
           path: |
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
-          key: vcpkg-${{ matrix.os }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
           fail-on-cache-miss: true # Opcional: asegura que la cache del job anterior esté ahí
 
       - name: Build to populate cache
