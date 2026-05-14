@@ -219,6 +219,9 @@ jobs:
     # 🚀 Run only after the Windows builds complete
     needs: [build-parallel]
     runs-on: ubuntu-latest
+    if: |
+      always() && 
+      needs.build-parallel.result == 'success'
     steps:
       # ⬇️ Download all installer artifacts from previous job
       - name: Download installers
