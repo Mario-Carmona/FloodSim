@@ -1,26 +1,26 @@
 name: Deploy release
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
 
 permissions:
-  contents: write
-  actions: write
+  contents: write # Required for creating releases and tags
+  actions: write  # Required for querying and managing GitHub Caches via 'gh' CLI
 
 jobs:
+  # ======================================================
+  # 1️) Check Tag: Prevent duplicate releases
+  # ======================================================  
   check-tag:
     runs-on: ubuntu-latest
     steps:
-      # 🔹 Checkout repository again to prepare for tagging and release
       - uses: actions/checkout@v4
-
-      # 🧑‍💻 Configure a Git user for tagging and pushing
+      
       - name: Setup git user
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-
-      # 🏷️ Create a unique tag based on the current date (e.g., v2025.10.30)
+          
       - name: Check tag availability
         run: |
           VERSION=$(date +'%Y.%m.%d')
@@ -31,7 +31,7 @@ jobs:
           fi 
 
   # ======================================================
-  # 1️⃣ Check/Restore: Detectamos si el vcpkg.json ha cambiado
+  # 2️) Check Cache: Orchestrate dynamic build matrix
   # ======================================================
   check-cache:
     needs: [check-tag]
@@ -44,16 +44,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
   
-      - name: Generate Matrices
+      - name: Generate Build Matrices
         id: set-matrix
         shell: pwsh
         run: |
-          # 1. Leer el archivo y normalizarlo (quitar todos los saltos de línea y espacios extra)
-          # Esto garantiza que el hash sea idéntico en Windows (CRLF) y Linux (LF)
+          # 💡 NORMALIZE HASH: Read vcpkg.json and force LF line endings.
+          # This ensures the hash is identical whether the file was checked out on Windows (CRLF) or Linux (LF).
           $rawContent = Get-Content "vcpkg.json" -Raw
           $normalizedContent = $rawContent -replace "`r`n", "`n" # Normaliza a LF
           
-          # Generar SHA256 del contenido normalizado
           $sha256 = [System.Security.Cryptography.SHA256]::Create()
           $contentBytes = [System.Text.Encoding]::UTF8.GetBytes($normalizedContent)
           $hashBytes = $sha256.ComputeHash($contentBytes)
@@ -61,20 +60,22 @@ jobs:
 
           Write-Host "Normlized Hash (vcpkg.json): $vcpkgHash"
 
+          # Define the OS configurations. 
+          # 'build_preset' is used only for populating the cache (Configure step).
           $os_configs = @(
             @{ 
               os="windows-2025-vs2026"; 
-              build_preset="windows-full-suite-release"; 
+              build_cache_preset="windows-full-suite-release"; 
               run_install_deps=$false
             },
             @{ 
               os="ubuntu-24.04"; 
-              build_preset="linux-full-suite-release"; 
+              build_cache_preset="linux-full-suite-release"; 
               run_install_deps=$true
             },
             @{ 
               os="ubuntu-22.04"; 
-              build_preset="linux-full-suite-release"; 
+              build_cache_preset="linux-full-suite-release"; 
               run_install_deps=$true
             }
           )
@@ -92,20 +93,13 @@ jobs:
             }
           }
 
-          # 🛠️ FORMA CORRECTA DE SETEAR OUTPUTS EN PWSH
+          # 🚀 DYNAMIC MATRIX: Prepare JSON strings for GitHub Actions matrix
           $json_full = $os_configs | ConvertTo-Json -Compress
-
-          # 🛠️ Forzamos que $missing sea tratado como un array, incluso con 1 solo elemento
-          $json_missing = ,$missing | ConvertTo-Json -Compress -Depth 10
-          
-          # Si no hay nada perdido, enviamos un array con un objeto vacío "dummy" o manejamos el skip
+          # Ensure $missing is treated as an array even if it has 1 element using the comma operator
+          $json_missing = if ($missing.Count -gt 0) { ,$missing | ConvertTo-Json -Compress } else { "[]" }
           $any_missing = if ($missing.Count -gt 0) { "true" } else { "false" }
 
-          # Si el array está vacío, nos aseguramos de que sea "[]" y no un string vacío
-          if ($missing.Count -eq 0) {
-              $json_missing = "[]"
-          }
-
+          # Append to GITHUB_OUTPUT using UTF8 to avoid encoding issues in Actions
           "matrix_full=$json_full" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "matrix_missing=$json_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "any_missing=$any_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -113,26 +107,30 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ======================================================
+  # 3️) Build New Cache: Seed the cache if missing
+  # ======================================================
   build-new-cache:
     needs: check-cache
+    # Only run if at least one OS configuration is missing its cache
     if: needs.check-cache.outputs.any_missing == 'true'
     strategy:
       fail-fast: true
       matrix:
+        # Use the filtered matrix containing only missing configurations
         include: ${{ fromJson(needs.check-cache.outputs.matrix_missing) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      # 🔹 PASO PREVIO: Solo se ejecuta si run_install_deps es true
-      - name: Install system dependencies (Linux only)
+          
+      - name: Install system dependencies (Linux)
         if: matrix.run_install_deps == true
-        run: bash install-deps.sh --desktop
+        run: ./install-deps.sh --desktop
         shell: bash
 
-      - name: Restore Cache (Try to get partial)
+      - name: Restore OS Cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -141,11 +139,12 @@ jobs:
           key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
           restore-keys: vcpkg-${{ matrix.os }}-
 
-      - name: Build Full Suite to populate cache
-        run: cmake --workflow --preset ${{ matrix.build_preset }}
+      - name: Install vcpkg dependencies (Configure only)
+        # Running 'configure' is enough to trigger vcpkg installation without building the whole project
+        run: cmake --preset ${{ matrix.build_cache_preset }}
         shell: pwsh
 
-      - name: Save Cache
+      - name: Save OS Cache
         uses: actions/cache/save@v4
         with:
           path: |
@@ -153,8 +152,12 @@ jobs:
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
           key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
 
+  # ======================================================
+  # 4️) Build Parallel: Generate final installers
+  # ======================================================
   build-parallel:
     needs: [check-cache, build-new-cache]
+    # Execute if the check was successful, even if the 'seed' job was skipped (cache hit)
     if: |
       always() && 
       needs.check-tag.result == 'success' &&
@@ -162,7 +165,7 @@ jobs:
       (needs.build-new-cache.result == 'success' || needs.build-new-cache.result == 'skipped')
     strategy:
       matrix:
-        # Aquí definimos todos los paquetes que queremos generar por OS
+        # Use the full matrix to generate all requested installers (Desktop, Server, etc.)
         include:
           - os: windows-2025-vs2026
             preset: windows-pack-desktop
@@ -193,56 +196,53 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      # 🔹 También lo incluimos aquí para el job de empaquetado
-      - name: Install system dependencies (Linux only)
+          
+      - name: Install system dependencies (Linux)
         if: matrix.run_install_deps == true
-        run: bash install-deps.sh --desktop
+        run: ./install-deps.sh --desktop
         shell: bash
 
-      - name: Restore Cache (Try to get partial)
+      - name: Restore OS Cache
         uses: actions/cache/restore@v4
         with:
           path: |
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
             ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
           key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
-          fail-on-cache-miss: true # Opcional: asegura que la cache del job anterior esté ahí
+          fail-on-cache-miss: true
 
-      - name: Build to populate cache
+      - name: Build and Package
         run: cmake --workflow --preset ${{ matrix.preset }}
         shell: pwsh
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          # Usamos el nombre específico definido en la matriz para evitar conflictos
           name: ${{ matrix.os }}-${{ matrix.preset }}-installer
-          # El path buscará .msi en Windows y .deb en Linux según lo definido
           path: ${{ matrix.artifact_path }}
 
+  # ======================================================
+  # 5️) Release: Create GitHub Draft Release
+  # ======================================================
   release:
-    # 🚀 Run only after the Windows builds complete
     needs: [build-parallel]
     runs-on: ubuntu-latest
+    # Ensure release runs if parallel builds were successful, regardless of caching jobs
     if: |
       always() && 
       needs.build-parallel.result == 'success'
     steps:
-      # ⬇️ Download all installer artifacts from previous job
       - name: Download installers
         uses: actions/download-artifact@v4
         with:
           path: all-installers
-
-      # 🏷️ Create a unique tag based on the current date (e.g., v2025.10.30)
+          
       - name: Create tag name
         id: tag
         run: |
           VERSION=$(date +'%Y.%m.%d')
           echo "TAG=v${VERSION}" >> $GITHUB_ENV
       
-      # 🧾 Create a draft GitHub release and attach installer files
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -251,8 +251,7 @@ jobs:
           files: |
             all-installers/**/*.msi
             all-installers/**/*.deb
-          draft: true # La crea como borrador para que tú la revises antes de publicar
-          prerelease: false
-          generate_release_notes: true # GitHub generará automáticamente el registro de cambios
+          draft: true 
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
