@@ -94,11 +94,17 @@ jobs:
 
           # 🛠️ FORMA CORRECTA DE SETEAR OUTPUTS EN PWSH
           $json_full = $os_configs | ConvertTo-Json -Compress
-          $json_missing = $missing | ConvertTo-Json -Compress
+
+          # 🛠️ Forzamos que $missing sea tratado como un array, incluso con 1 solo elemento
+          $json_missing = ,$missing | ConvertTo-Json -Compress -Depth 10
           
           # Si no hay nada perdido, enviamos un array con un objeto vacío "dummy" o manejamos el skip
           $any_missing = if ($missing.Count -gt 0) { "true" } else { "false" }
-          if ($missing.Count -eq 0) { $json_missing = "[]" }
+
+          # Si el array está vacío, nos aseguramos de que sea "[]" y no un string vacío
+          if ($missing.Count -eq 0) {
+              $json_missing = "[]"
+          }
 
           "matrix_full=$json_full" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "matrix_missing=$json_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
