@@ -21,6 +21,6 @@ target_link_libraries(${CLI_EXE_NAME}
 
 # Instalación profesional por componentes
 install(TARGETS ${CLI_EXE_NAME}
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     COMPONENT CLI  # <--- Crucial para el empaquetado filtrado
 )

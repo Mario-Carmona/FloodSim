@@ -77,6 +77,9 @@ set(FULL_DATE_VERSION "${CURRENT_YEAR}.${CURRENT_MONTH}.${CURRENT_DAY}")
 project(FloodSim VERSION ${PROGRAM_VERSION} LANGUAGES CXX)
 
 
+# 1. Incluir el módulo estándar de directorios
+include(GNUInstallDirs)
+
 
 
 if(BUILD_APP OR BUILD_TESTS)
@@ -92,6 +95,16 @@ endif()
 if(BUILD_PYTHON_ENVS)
     add_subdirectory(python)
 endif()
+
+
+
+include(cmake/third_party_notices.cmake)
+
+generate_third_party_notices(
+    "${VCPKG_INSTALLED_DIR}" 
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${ONNX_LICENSE_FILE}"
+)
 
 
 
@@ -111,6 +124,12 @@ if(BUILD_APP)
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config/"
             DESTINATION ${CONFIG_DEST_PATH}
             COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
+    )
+
+
+    install(FILES 
+        "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}
     )
 
 

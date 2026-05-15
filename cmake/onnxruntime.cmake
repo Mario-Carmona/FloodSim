@@ -74,10 +74,7 @@ if (WIN32)
         INTERFACE_INCLUDE_DIRECTORIES "${ONNX_RUNTIME_INCLUDE_DIR}"
     )
 
-    # Instruimos a CPack para que copie la DLL al directorio 'bin' del paquete final
-    install(FILES "${ONNX_RUNTIME_DLL}"
-            DESTINATION bin
-            COMPONENT Unspecified)
+    set(ONNX_LIBS "${ONNX_RUNTIME_DLL}")
 
     # ============================================================
     # AUTOMATIC DLL DEPLOYMENT (vcpkg-style)
@@ -105,10 +102,7 @@ elseif (APPLE)
         INTERFACE_INCLUDE_DIRECTORIES ${ONNX_RUNTIME_INCLUDE_DIR}
     )
 
-    # Instalación para macOS
-    install(FILES "${ONNX_RUNTIME_LIB_DIR}/libonnxruntime.dylib"
-            DESTINATION lib
-            COMPONENT Unspecified)
+    set(ONNX_LIBS "${ONNX_RUNTIME_LIB_DIR}/libonnxruntime.dylib")
 
 else() # Linux
     set_target_properties(onnxruntime PROPERTIES
@@ -117,12 +111,28 @@ else() # Linux
     )
 
     # 1. Buscar todos los archivos versionados (.so, .so.1, .so.1.23.2, etc.)
-    file(GLOB ONNX_LINUX_LIBS "${ONNX_RUNTIME_LIB_DIR}/libonnxruntime.so*")
+    file(GLOB ONNX_LIBS "${ONNX_RUNTIME_LIB_DIR}/libonnxruntime.so*")
+endif()
 
-    # 2. Instalación para Linux
-    install(FILES ${ONNX_LINUX_LIBS}
-            DESTINATION lib
+
+include(GNUInstallDirs)
+
+if(WIN32)
+    # En Windows, los archivos .dll son binarios de ejecución (RUNTIME).
+    # Deben ir a la carpeta 'bin' para que el .exe los encuentre al ejecutarse.
+    install(FILES ${ONNX_LIBS}
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+            COMPONENT Unspecified)
+else()
+    # En Linux y macOS, los archivos .so / .dylib son librerías compartidas (LIBRARY).
+    # Su lugar correcto según el estándar FHS es la carpeta 'lib'.
+    install(FILES ${ONNX_LIBS}
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}
             COMPONENT Unspecified)
 endif()
+
+
+set(ONNX_LICENSE_FILE "${ONNX_RUNTIME_CUSTOM_INSTALL_DIR}/LICENSE" CACHE INTERNAL "Path to ONNX License")
+
 
 message(STATUS "ONNX Runtime C++ API successfully configured")

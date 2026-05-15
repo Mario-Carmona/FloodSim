@@ -53,6 +53,6 @@ target_include_directories(${GUI_EXE_NAME}
 
 # Instalación asignada al componente GUI
 install(TARGETS ${GUI_EXE_NAME}
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     COMPONENT GUI # <--- Distingue este binario del CLI
 )
