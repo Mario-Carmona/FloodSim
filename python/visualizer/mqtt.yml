@@ -1,17 +1,19 @@
 # DanaSim simulation monitor configuration
 
+sim_config: ../../config/config_29_10_2024.yaml
+
 mqtt:
   host: localhost
   port: 1883
   client_id: Danasim_Monitor_Viewer
-  scenario: scenario_local
+  scenario: scenario_29_10_2024
   qos_events: 1
   handshake_timeout: 5.0
   handshake_max_retries: 3
   keepalive: 60
 
 renderer:
-  type: csv          # options: csv, x3d, 2d
+  type: x3d          # options: csv, x3d, 2d
   output_folder: sim_outputs
   depth_provider: palette  # options: palette, direct
 

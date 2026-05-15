@@ -14,10 +14,22 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _CONFIG_PATH  = Path(__file__).parent / "mqtt.yml"
 
 # ---------------------------------------------------------------------------
-# Load YAML
+# Load YAML configs
 # ---------------------------------------------------------------------------
 with _CONFIG_PATH.open(encoding="utf-8") as _fh:
     _cfg = yaml.safe_load(_fh)
+
+_sim_config_rel  = _cfg.get("sim_config")
+_SIM_CONFIG_PATH = (_CONFIG_PATH.parent / _sim_config_rel).resolve() if _sim_config_rel else None
+
+if _SIM_CONFIG_PATH and _SIM_CONFIG_PATH.exists():
+    with _SIM_CONFIG_PATH.open(encoding="utf-8") as _fh:
+        _sim_cfg = yaml.safe_load(_fh)
+    _levels = _sim_cfg.get("state_updater", {}).get("flood_risk", {}).get("levels", [])
+    # Levels are implicitly indexed 1-N (index 0 = Dry lives in default_level)
+    FLOOD_LEVELS: dict[int, float] = {i + 1: float(lvl["threshold_start"]) for i, lvl in enumerate(_levels)}
+else:
+    FLOOD_LEVELS = {1: 0.001, 2: 0.1, 3: 0.3, 4: 1.0, 5: 2.0}
 
 def _get(section: str, key: str, env_var: str, default):
     """Return yml value, overridden by env var if set."""
@@ -30,7 +42,6 @@ def _get(section: str, key: str, env_var: str, default):
 # ---------------------------------------------------------------------------
 MAP_SIZE           = 9403
 COLOR_PALETTE_FILE = _PROJECT_ROOT / "data" / "data_29_10_2024" / "color_palette.json"
-FLOOD_LEVELS_FILE  = _PROJECT_ROOT / "data" / "data_29_10_2024" / "flood_levels.json"
 COLOR_PALETTE_LAYER = "flood_risk"
 DEFAULT_DATA_ROOT   = _PROJECT_ROOT
 PALETTE_MAX_VALUE   = 5
@@ -64,11 +75,6 @@ DEPTH_PROVIDER_TYPE  = _get("renderer", "depth_provider", "DANASIM_DEPTH_PROVIDE
 TERRAIN_LAYER_ID     = "topo_bathy"
 IDLE_SLEEP_SECONDS   = 0.1
 DEBUG_MODE           = True
-
-# ---------------------------------------------------------------------------
-# CSV renderer
-# ---------------------------------------------------------------------------
-CSV_WATER_THRESHOLD  = _get("csv", "water_threshold", "DANASIM_CSV_WATER_THRESHOLD", 0.0005)
 
 # ---------------------------------------------------------------------------
 # X3D renderer

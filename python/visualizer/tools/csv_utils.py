@@ -23,12 +23,13 @@ def load_terrain(data_dir: Path) -> np.ndarray:
 
 
 def load_frame(csv_path: Path, rows: int, cols: int) -> tuple[np.ndarray, np.ndarray]:
-    """Reconstruct palette_grid (uint8) and water_depths (float32) from a sparse CSV.
+    """Reconstruct palette_grid (uint8) from a sparse CSV.
 
-    Returns arrays of shape (rows, cols). Dry cells are 0.
+    Returns (palette_grid, None) — water_depths are no longer stored in CSV
+    and must be derived from palette_grid via PaletteDepthProvider if needed.
+    Shape (rows, cols). Dry cells are 0.
     """
     palette_grid = np.zeros((rows, cols), dtype=np.uint8)
-    water_depths = np.zeros((rows, cols), dtype=np.float32)
     with csv_path.open(encoding="utf-8", newline="") as fh:
         reader = csv.reader(fh)
         header_skipped = False
@@ -40,9 +41,8 @@ def load_frame(csv_path: Path, rows: int, cols: int) -> tuple[np.ndarray, np.nda
                 continue
             r, c = int(row_vals[0]), int(row_vals[1])
             if 0 <= r < rows and 0 <= c < cols:
-                water_depths[r, c] = float(row_vals[2])
-                palette_grid[r, c] = int(row_vals[3])
-    return palette_grid, water_depths
+                palette_grid[r, c] = int(row_vals[2])
+    return palette_grid, None
 
 
 def discover_frames(data_dir: Path) -> list[Path]:
@@ -54,6 +54,6 @@ def build_wet_mask(frame_paths: list[Path], rows: int, cols: int) -> np.ndarray:
     """Return flat boolean array (rows*cols) — True where any cell is ever wet."""
     wet = np.zeros(rows * cols, dtype=bool)
     for csv_path in frame_paths:
-        _, water_depths = load_frame(csv_path, rows, cols)
-        wet |= (water_depths.flatten() >= 0.0005)
+        palette_grid, _ = load_frame(csv_path, rows, cols)
+        wet |= (palette_grid.flatten() > 0)
     return wet

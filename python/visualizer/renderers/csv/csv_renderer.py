@@ -8,7 +8,6 @@ from pathlib import Path
 import numpy as np
 
 from ..base import BaseRenderer, FrameData, GridMeta
-from ... import config
 
 
 class CSVRenderer(BaseRenderer):
@@ -23,9 +22,9 @@ class CSVRenderer(BaseRenderer):
 
     CSV format (UTF-8, comma-separated):
         # rows=5577 cols=9403 cell_size_m=5.0
-        row,col,water_depth,flood_risk
+        row,col,flood_risk
 
-    Only cells where water_depth > config.CSV_WATER_THRESHOLD are written.
+    Only flooded cells (flood_risk > 0) are written.
     Dry cells are omitted entirely (sparse representation).
     """
 
@@ -57,17 +56,16 @@ class CSVRenderer(BaseRenderer):
             raise RuntimeError("CSVRenderer.setup() must be called before save_snapshot()")
 
         meta = self._meta
-        threshold = config.CSV_WATER_THRESHOLD
         path = self._output_folder / f"step_{step_index:05d}.csv"
 
         try:
-            rows_idx, cols_idx = np.nonzero(frame.water_depths > threshold)
+            rows_idx, cols_idx = np.nonzero(frame.palette_grid > 0)
             with path.open("w", newline="", encoding="utf-8") as fh:
                 fh.write(f"# rows={meta.rows} cols={meta.cols} cell_size_m={meta.cell_size_m}\n")
                 writer = csv.writer(fh)
-                writer.writerow(["row", "col", "water_depth", "flood_risk"])
+                writer.writerow(["row", "col", "flood_risk"])
                 for r, c in zip(rows_idx.tolist(), cols_idx.tolist()):
-                    writer.writerow([r, c, f"{frame.water_depths[r, c]:.4f}", int(frame.palette_grid[r, c])])
+                    writer.writerow([r, c, int(frame.palette_grid[r, c])])
             self._frame_count += 1
             self._logger.debug("CSV frame saved: %s  (%d wet cells)", path, len(rows_idx))
         except OSError as exc:

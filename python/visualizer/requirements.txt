@@ -10,3 +10,4 @@ pyproj
 affine
 loguru
 pyyaml
+jinja2>=3.1
