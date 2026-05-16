@@ -203,6 +203,9 @@ class SimulationGrid:
                 continue
             row = flat_index // max_x
             col = flat_index % max_x
+            if row >= max_y or col >= max_x:
+                self._logger.warning("Flat index %d out of bounds (row=%d, col=%d), skipped", flat_index, row, col)
+                continue
             cell_value = self._resolve_cell_value(cell)
             if cell_value is None:
                 continue
