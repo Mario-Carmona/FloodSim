@@ -59,6 +59,7 @@ QOS_EVENTS              = _get("mqtt", "qos_events",          "DANASIM_QOS_EVENT
 KEEPALIVE_SECONDS       = _get("mqtt", "keepalive",           "DANASIM_KEEPALIVE",            60)
 HANDSHAKE_TIMEOUT_SECONDS = _get("mqtt", "handshake_timeout", "DANASIM_HANDSHAKE_TIMEOUT",    5.0)
 HANDSHAKE_MAX_RETRIES   = _get("mqtt", "handshake_max_retries", "DANASIM_HANDSHAKE_MAX_RETRIES", 3)
+FRAME_TIMEOUT_SECONDS   = _get("mqtt", "frame_timeout",        "DANASIM_FRAME_TIMEOUT",        720.0)
 
 TOPIC_BASE             = f"FloodSim/{SCENARIO_NAME}"
 TOPIC_EVENTS           = f"{TOPIC_BASE}/events"

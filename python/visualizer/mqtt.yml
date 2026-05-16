@@ -11,6 +11,7 @@ mqtt:
   handshake_timeout: 5.0
   handshake_max_retries: 3
   keepalive: 60
+  frame_timeout: 720      # seconds to wait for FrameEnd before discarding (12 min)
 
 renderer:
   type: x3d          # options: csv, x3d, 2d

@@ -2,6 +2,7 @@ import logging
 import queue
 import os
 import sys
+import time
 
 from . import config
 from .data_model import SimulationGrid
@@ -32,6 +33,7 @@ def main():
     chunks_per_batch = 0
     chunks_since_ack = 0
     step_index = 0
+    frame_start_time: float | None = None
 
     def build_frame() -> FrameData:
         water_depths = depth_provider.get_water_depths(simulation.grid)
@@ -54,6 +56,17 @@ def main():
             try:
                 item = msg_queue.get(timeout=config.IDLE_SLEEP_SECONDS)
             except queue.Empty:
+                if (frame_start_time is not None and
+                        time.monotonic() - frame_start_time > config.FRAME_TIMEOUT_SECONDS):
+                    logging.warning(
+                        "Frame timeout (%.0fs): FrameEnd not received after FrameStart. "
+                        "Discarding %d pending changes.",
+                        config.FRAME_TIMEOUT_SECONDS, len(pending_changes),
+                    )
+                    pending_changes.clear()
+                    frame_start_time = None
+                    chunks_per_batch = 0
+                    chunks_since_ack = 0
                 continue
 
             payload = item.get("payload", {})
@@ -96,6 +109,7 @@ def main():
                 pending_changes.clear()
                 chunks_per_batch = payload.get("chunks_per_batch", 0)
                 chunks_since_ack = 0
+                frame_start_time = time.monotonic()
                 logging.info("FrameStart: total_chunks=%d, chunks_per_batch=%d", payload.get("total_chunks", 0), chunks_per_batch)
             elif process == "FrameEnd":
                 n = len(pending_changes)
@@ -103,6 +117,7 @@ def main():
                 simulation.apply_bulk_float_changes(pending_changes)
                 depth_provider.update_from_grid(simulation.water_depths_m)
                 pending_changes.clear()
+                frame_start_time = None
                 logging.info("FrameEnd: %d cambios aplicados al grid.", n)
             elif process == "EYE_SetState_Layer":
                 pending_changes.extend(simulation.collect_from_layer_event(payload))
