@@ -59,6 +59,13 @@ function stopPlay() {
 }
 
 /**
+ * Jump to the last available frame. Used by live polling when auto-follow is on.
+ */
+export function goToLatest() {
+  setFrame(FLOOD_FRAMES.length - 1);
+}
+
+/**
  * Wire up event listeners and keyboard shortcuts.
  * Must be called once after the scene is ready.
  */

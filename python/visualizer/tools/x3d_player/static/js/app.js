@@ -15,6 +15,7 @@ import { initLayers } from "./ui/layers.js";
 import { initLegend } from "./ui/legend.js";
 import { initMinimap } from "./ui/minimap.js";
 import { initPlayback } from "./ui/playback.js";
+import { startLivePolling } from "./live.js";
 
 const $loading = document.getElementById("loading");
 const $status  = document.getElementById("status");
@@ -46,13 +47,13 @@ function initialLayerOpts() {
     await buildScene(initFlood, initialLayerOpts(), setLoading);
 
     $loading.style.display = "none";
-    $status.textContent = `${FLOOD_FRAMES.length} frame(s) ready`;
 
     initPlayback();
     initLayers();
     initCamera();
     initLegend();
     initMinimap();
+    startLivePolling();
   } catch (err) {
     setLoading("Error: " + err.message);
     console.error("Scene init failed:", err);
