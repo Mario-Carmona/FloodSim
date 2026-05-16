@@ -35,6 +35,7 @@ def _run_main_with_messages(messages: list) -> dict:
         patch.object(MQTTMonitorClient, "disconnect", lambda self: None),
         patch.object(MatplotlibRenderer, "save_snapshot", fake_save_snapshot),
         patch.object(MatplotlibRenderer, "setup", lambda self, meta: None),
+        patch("python.visualizer.config.RENDERER_TYPE", "2d"),
         patch("sys.exit"),
     ):
         t = threading.Thread(target=main, daemon=True)
