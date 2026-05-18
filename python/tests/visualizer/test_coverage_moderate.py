@@ -1,67 +1,30 @@
-"""Tests to increase coverage on main.py, tile_utils, idrisi_io and visualizer.py."""
+"""Tests to increase coverage on simulation_app, tile_utils, idrisi_io and visualizer.py."""
 from __future__ import annotations
 
-import queue
-import sys
-import threading
-import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
-from python.visualizer.main import main
-from python.visualizer.network import MQTTMonitorClient
-from python.visualizer.renderers.matplotlib_renderer import MatplotlibRenderer
+from python.visualizer.simulation_app import SimulationApp
+from python.visualizer.depth_providers.palette import PaletteDepthProvider
+from python.visualizer.renderers.base import BaseRenderer
 
 
 # ---------------------------------------------------------------------------
-# Shared helpers for main.py tests
+# Shared helpers
 # ---------------------------------------------------------------------------
 
-def _run(messages: list) -> dict:
-    """Run main() with mocked MQTT and MatplotlibRenderer, return stats."""
-    captured = {}
-    snapshot_calls = []
-    setup_calls = []
-
-    def fake_init(self, q):
-        self.queue = q
-        captured["q"] = q
-        self._logger = MagicMock()
-        self.client = MagicMock()
-
-    def fake_save(self, frame, step_index):
-        snapshot_calls.append(step_index)
-
-    def fake_setup(self, meta):
-        setup_calls.append(meta)
-
-    with (
-        patch.object(MQTTMonitorClient, "__init__", fake_init),
-        patch.object(MQTTMonitorClient, "connect", lambda self: None),
-        patch.object(MQTTMonitorClient, "disconnect", lambda self: None),
-        patch.object(MQTTMonitorClient, "publish_chunk_ack", lambda self: None),
-        patch.object(MatplotlibRenderer, "save_snapshot", fake_save),
-        patch.object(MatplotlibRenderer, "setup", fake_setup),
-        patch.object(MatplotlibRenderer, "close", lambda self: None),
-        patch("python.visualizer.config.RENDERER_TYPE", "2d"),
-        patch("sys.exit"),
-    ):
-        t = threading.Thread(target=main, daemon=True)
-        t.start()
-        deadline = time.time() + 2.0
-        while "q" not in captured and time.time() < deadline:
-            time.sleep(0.01)
-        assert "q" in captured
-        q = captured["q"]
-        for msg in messages:
-            q.put({"topic": "FloodSim/test/events", "payload": msg})
-        t.join(timeout=5.0)
-        assert not t.is_alive()
-
-    return {"snapshots": snapshot_calls, "setups": setup_calls}
+def _run_app(messages: list, renderer=None) -> SimulationApp:
+    """Feed messages directly into SimulationApp.handle_event() — no threads needed."""
+    if renderer is None:
+        renderer = MagicMock(spec=BaseRenderer)
+    depth_provider = PaletteDepthProvider()
+    app = SimulationApp(renderer, depth_provider, MagicMock())
+    for msg in messages:
+        app.handle_event(msg)
+    return app
 
 
 def _init_msgs(size_x=5, size_y=4):
@@ -77,18 +40,19 @@ def _sim_end():
 
 
 # ===========================================================================
-# main.py — missing branches
+# SimulationApp — event dispatch branches
 # ===========================================================================
 
 class TestMainBranches:
     def test_invalid_init_map_config_logged(self) -> None:
+        renderer = MagicMock(spec=BaseRenderer)
         messages = [
             {"process": "InitMap_Config",
              "map": {"size_x": 0, "size_y": 0, "cell_resolution_m": 5.0}},
             _sim_end(),
         ]
-        result = _run(messages)
-        assert result["setups"] == []
+        _run_app(messages, renderer)
+        renderer.setup.assert_not_called()
 
     def test_init_agent_layer_ok(self, tmp_path: Path) -> None:
         npy = tmp_path / "terrain.npy"
@@ -100,7 +64,7 @@ class TestMainBranches:
              "data_filename": "terrain"},
             _sim_end(),
         ]
-        _run(messages)
+        _run_app(messages)
 
     def test_init_agent_layer_fail_logged(self) -> None:
         messages = _init_msgs() + [
@@ -110,16 +74,17 @@ class TestMainBranches:
              "data_filename": "missing"},
             _sim_end(),
         ]
-        _run(messages)
+        _run_app(messages)
 
     def test_init_agent_eof_processed(self) -> None:
         messages = _init_msgs() + [
             {"process": "InitAgent_EOF"},
             _sim_end(),
         ]
-        _run(messages)
+        _run_app(messages)
 
     def test_eye_setstate_with_chunk_ack(self) -> None:
+        renderer = MagicMock(spec=BaseRenderer)
         messages = _init_msgs() + [
             {"process": "FrameStart", "total_chunks": 2, "chunks_per_batch": 1},
             {"process": "EYE_SetState_Layer",
@@ -128,10 +93,11 @@ class TestMainBranches:
             {"process": "EYE_Frame_Sync", "simulation_time": "2024-01-01T00:00:00"},
             _sim_end(),
         ]
-        result = _run(messages)
-        assert len(result["snapshots"]) >= 1
+        _run_app(messages, renderer)
+        assert renderer.save_snapshot.call_count >= 1
 
     def test_eye_setstate_single_object(self) -> None:
+        renderer = MagicMock(spec=BaseRenderer)
         messages = _init_msgs() + [
             {"process": "FrameStart", "total_chunks": 1, "chunks_per_batch": 1},
             {"process": "EYE_SetState",
@@ -140,58 +106,28 @@ class TestMainBranches:
             {"process": "EYE_Frame_Sync", "simulation_time": "2024-01-01T00:00:00"},
             _sim_end(),
         ]
-        result = _run(messages)
-        assert len(result["snapshots"]) >= 1
+        _run_app(messages, renderer)
+        assert renderer.save_snapshot.call_count >= 1
 
     def test_system_disconnected_event(self) -> None:
         messages = _init_msgs() + [
             {"process": "System_Disconnected"},
             _sim_end(),
         ]
-        _run(messages)
+        _run_app(messages)
 
     def test_unknown_event_ignored(self) -> None:
         messages = _init_msgs() + [
             {"process": "SomeUnknownEvent"},
             _sim_end(),
         ]
-        _run(messages)
+        _run_app(messages)
 
     def test_keyboard_interrupt_triggers_close(self) -> None:
-        captured = {}
-
-        def fake_init(self, q):
-            self.queue = q
-            captured["q"] = q
-            self._logger = MagicMock()
-            self.client = MagicMock()
-
-        closed = []
-
-        def fake_close(self):
-            closed.append(True)
-
-        with (
-            patch.object(MQTTMonitorClient, "__init__", fake_init),
-            patch.object(MQTTMonitorClient, "connect", lambda self: None),
-            patch.object(MQTTMonitorClient, "disconnect", lambda self: None),
-            patch.object(MatplotlibRenderer, "save_snapshot", lambda *a: None),
-            patch.object(MatplotlibRenderer, "setup", lambda *a: None),
-            patch.object(MatplotlibRenderer, "close", fake_close),
-            patch("python.visualizer.config.RENDERER_TYPE", "2d"),
-            patch("sys.exit"),
-        ):
-            t = threading.Thread(target=main, daemon=True)
-            t.start()
-            deadline = time.time() + 2.0
-            while "q" not in captured and time.time() < deadline:
-                time.sleep(0.01)
-            # Simulate KeyboardInterrupt via queue timeout expiry + thread kill
-            q = captured["q"]
-            q.put({"topic": "t", "payload": {"process": "Sim_End"}})
-            t.join(timeout=3.0)
-
-        assert closed
+        renderer = MagicMock(spec=BaseRenderer)
+        app = SimulationApp(renderer, PaletteDepthProvider(), MagicMock())
+        app.close()
+        renderer.close.assert_called_once()
 
 
 # ===========================================================================

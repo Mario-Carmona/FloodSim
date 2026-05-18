@@ -1,60 +1,22 @@
 import os
 import sys
-import threading
-import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
-from python.visualizer.main import main
-from python.visualizer.network import MQTTMonitorClient
-from python.visualizer.renderers.matplotlib_renderer import MatplotlibRenderer
+from python.visualizer.simulation_app import SimulationApp
+from python.visualizer.depth_providers.palette import PaletteDepthProvider
+from python.visualizer.renderers.base import BaseRenderer
 
 
-def _run_main_with_messages(messages: list) -> dict:
-    """
-    Runs main() in a daemon thread with a mocked MQTT client.
-    Feeds `messages` into the queue and returns a dict with recorded calls:
-      - snapshot_calls: number of times save_snapshot was called
-    """
-    captured = {}
-    snapshot_calls = []
-
-    def fake_init(self, q):
-        self.queue = q
-        captured["q"] = q
-        self._logger = MagicMock()
-        self.client = MagicMock()
-
-    def fake_save_snapshot(self, frame, step_index):
-        snapshot_calls.append(1)
-
-    with (
-        patch.object(MQTTMonitorClient, "__init__", fake_init),
-        patch.object(MQTTMonitorClient, "connect", lambda self: None),
-        patch.object(MQTTMonitorClient, "disconnect", lambda self: None),
-        patch.object(MatplotlibRenderer, "save_snapshot", fake_save_snapshot),
-        patch.object(MatplotlibRenderer, "setup", lambda self, meta: None),
-        patch("python.visualizer.config.RENDERER_TYPE", "2d"),
-        patch("sys.exit"),
-    ):
-        t = threading.Thread(target=main, daemon=True)
-        t.start()
-
-        deadline = time.time() + 2.0
-        while "q" not in captured and time.time() < deadline:
-            time.sleep(0.01)
-
-        assert "q" in captured, "main() did not expose the queue in time"
-
-        q = captured["q"]
-        for msg in messages:
-            q.put({"topic": "FloodSim/test/events", "payload": msg})
-
-        t.join(timeout=5.0)
-        assert not t.is_alive(), "main() thread did not finish before timeout"
-
-    return {"snapshot_calls": len(snapshot_calls)}
+def _run_app_with_messages(messages: list) -> dict:
+    """Feed messages into SimulationApp directly; return recorded call counts."""
+    renderer = MagicMock(spec=BaseRenderer)
+    depth_provider = PaletteDepthProvider()
+    app = SimulationApp(renderer, depth_provider, MagicMock())
+    for msg in messages:
+        app.handle_event(msg)
+    return {"snapshot_calls": renderer.save_snapshot.call_count}
 
 
 def _init_messages():
@@ -88,7 +50,7 @@ def test_render_only_on_frame_sync():
         # No EYE_Frame_Sync → no extra render beyond Init_EOF
         _sim_end(),
     ]
-    result = _run_main_with_messages(messages)
+    result = _run_app_with_messages(messages)
     # Only Init_EOF should have triggered a snapshot (1 call)
     assert result["snapshot_calls"] == 1, (
         f"expected 1 snapshot (Init_EOF only), got {result['snapshot_calls']}"
@@ -105,7 +67,7 @@ def test_frame_sync_triggers_render():
         _frame_sync(),
         _sim_end(),
     ]
-    result = _run_main_with_messages(messages)
+    result = _run_app_with_messages(messages)
     # Init_EOF (1) + EYE_Frame_Sync (1) = 2 snapshots
     assert result["snapshot_calls"] == 2, (
         f"expected 2 snapshots (Init_EOF + EYE_Frame_Sync), got {result['snapshot_calls']}"
@@ -122,7 +84,7 @@ def test_bulk_apply_accumulates_across_chunks():
         "map": {"size_x": 5, "size_y": 5, "chunk_size": 1, "cell_resolution_m": 1.0}
     })
 
-    chunk1 = {"0": {"state": "FLOODED"}}   # flat_index 0 → (row=0, col=0)
+    chunk1 = {"0": {"state": "FLOODED"}}    # flat_index 0 → (row=0, col=0)
     chunk2 = {"6": {"state": "HIGH_DEPTH"}} # flat_index 6 → (row=1, col=1)
 
     pending = []

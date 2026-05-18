@@ -21,13 +21,13 @@ def _make_msg(topic: str, payload: dict) -> MagicMock:
     return msg
 
 
-def _make_client() -> tuple[MQTTMonitorClient, MagicMock, queue.Queue]:
-    """Return (client, mock_paho_client, queue)."""
-    q = queue.Queue()
+def _make_client() -> tuple[MQTTMonitorClient, MagicMock, MagicMock]:
+    """Return (client, mock_paho_client, handler_mock)."""
+    handler = MagicMock()
     mock_paho = MagicMock()
     with patch("paho.mqtt.client.Client", return_value=mock_paho):
-        client = MQTTMonitorClient(q)
-    return client, mock_paho, q
+        client = MQTTMonitorClient(handler)
+    return client, mock_paho, handler
 
 
 # ===========================================================================
@@ -35,9 +35,9 @@ def _make_client() -> tuple[MQTTMonitorClient, MagicMock, queue.Queue]:
 # ===========================================================================
 
 class TestInit:
-    def test_queue_stored(self) -> None:
-        client, _, q = _make_client()
-        assert client.queue is q
+    def test_handler_stored(self) -> None:
+        client, _, handler = _make_client()
+        assert client._handler is handler
 
     def test_on_connect_registered(self) -> None:
         client, mock_paho, _ = _make_client()
@@ -100,17 +100,19 @@ class TestOnConnect:
 # ===========================================================================
 
 class TestOnMessage:
-    def test_regular_event_queued(self) -> None:
-        client, mock_paho, q = _make_client()
+    def test_regular_event_calls_handler(self) -> None:
+        """_on_message puts payload in internal queue; run() delivers it to handler."""
+        client, mock_paho, handler = _make_client()
         from python.visualizer import config
         msg = _make_msg(config.TOPIC_EVENTS, {"process": "FrameStart", "total_chunks": 5})
+        sim_end = _make_msg(config.TOPIC_EVENTS, {"process": "Sim_End"})
         client._on_message(mock_paho, None, msg)
-        item = q.get_nowait()
-        assert item["payload"]["process"] == "FrameStart"
-        assert item["topic"] == config.TOPIC_EVENTS
+        client._on_message(mock_paho, None, sim_end)
+        client.run()
+        handler.handle_event.assert_any_call({"process": "FrameStart", "total_chunks": 5})
 
     def test_ping_triggers_pong(self) -> None:
-        client, mock_paho, q = _make_client()
+        client, mock_paho, handler = _make_client()
         from python.visualizer import config
         msg = _make_msg(config.TOPIC_HANDSHAKE_PING, {"process": "System_Ping"})
         client._on_message(mock_paho, None, msg)
@@ -118,22 +120,22 @@ class TestOnMessage:
         args, kwargs = mock_paho.publish.call_args
         topic = args[0] if args else kwargs.get("topic")
         assert topic == config.TOPIC_HANDSHAKE_PONG
-        assert q.empty()  # ping not forwarded to queue
+        assert client._queue.empty()  # ping not forwarded to queue
 
     def test_invalid_json_not_queued(self) -> None:
-        client, mock_paho, q = _make_client()
+        client, mock_paho, handler = _make_client()
         msg = MagicMock()
         msg.topic = "some/topic"
         msg.payload = b"not valid json {{{"
         client._on_message(mock_paho, None, msg)
-        assert q.empty()
+        assert client._queue.empty()
 
     def test_non_ping_on_handshake_topic_queued(self) -> None:
-        client, mock_paho, q = _make_client()
+        client, mock_paho, handler = _make_client()
         from python.visualizer import config
         msg = _make_msg(config.TOPIC_HANDSHAKE_PING, {"process": "System_Pong"})
         client._on_message(mock_paho, None, msg)
-        assert not q.empty()
+        assert not client._queue.empty()
 
 
 # ===========================================================================

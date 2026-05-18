@@ -1,18 +1,25 @@
 import json
 import logging
-import os
-import sys
+import queue
 
 import paho.mqtt.client as mqtt
 
 from . import config
+from .ports import SimulationEventHandler
 
 
 class MQTTMonitorClient:
-    """Handle MQTT connections and route incoming JSON events to a queue."""
+    """Handle MQTT connections and route incoming JSON events to a handler.
 
-    def __init__(self, msg_queue):
-        self.queue = msg_queue
+    The internal queue is an implementation detail: paho fires _on_message
+    from its own network thread, so the queue bridges that thread to the
+    main thread's run() loop.  The handler (SimulationApp) never sees the
+    queue.
+    """
+
+    def __init__(self, handler: SimulationEventHandler) -> None:
+        self._handler = handler
+        self._queue: queue.Queue = queue.Queue()
         self._logger = logging.getLogger(__name__)
 
         self.client = mqtt.Client(client_id=config.CLIENT_ID, clean_session=True)
@@ -28,7 +35,9 @@ class MQTTMonitorClient:
                 "timestamp_utc": config.utc_now_iso(),
             }
         )
-        self.client.will_set(config.TOPIC_SYSTEM, payload=lwt_payload, qos=config.QOS_HANDSHAKE, retain=True)
+        self.client.will_set(
+            config.TOPIC_SYSTEM, payload=lwt_payload, qos=config.QOS_HANDSHAKE, retain=True
+        )
 
     def connect(self):
         try:
@@ -56,7 +65,9 @@ class MQTTMonitorClient:
             "scenario": config.SCENARIO_NAME,
             "timestamp_utc": config.utc_now_iso(),
         }
-        self.client.publish(config.TOPIC_HANDSHAKE_PING, payload=json.dumps(payload), qos=config.QOS_HANDSHAKE)
+        self.client.publish(
+            config.TOPIC_HANDSHAKE_PING, payload=json.dumps(payload), qos=config.QOS_HANDSHAKE
+        )
         self._logger.info("Published System_Ping to %s", config.TOPIC_HANDSHAKE_PING)
 
     def _on_connect(self, client, userdata, flags, rc):
@@ -84,12 +95,28 @@ class MQTTMonitorClient:
             self._reply_pong()
             return
 
-        # Forward non-handshake payloads so higher layers can react.
-        self.queue.put({"topic": msg.topic, "payload": payload})
+        # Queue non-handshake payloads for the main-thread run() loop.
+        self._queue.put({"topic": msg.topic, "payload": payload})
+
+    def run(self) -> None:
+        """Main event loop: drain the internal queue and delegate to the handler."""
+        running = True
+        while running:
+            try:
+                item = self._queue.get(timeout=config.IDLE_SLEEP_SECONDS)
+                payload = item.get("payload", {})
+                self._handler.handle_event(payload)
+                self._queue.task_done()
+                if payload.get("process") == "Sim_End":
+                    running = False
+            except queue.Empty:
+                self._handler.on_idle()
 
     def publish_chunk_ack(self):
         payload = json.dumps({"process": "ChunkAck"})
-        self.client.publish(config.TOPIC_CONTROL_EVENTS, payload=payload, qos=config.QOS_EVENTS)
+        self.client.publish(
+            config.TOPIC_CONTROL_EVENTS, payload=payload, qos=config.QOS_EVENTS
+        )
         self._logger.debug("Published ChunkAck to %s", config.TOPIC_CONTROL_EVENTS)
 
     def _reply_pong(self):
@@ -99,5 +126,7 @@ class MQTTMonitorClient:
             "scenario": config.SCENARIO_NAME,
             "timestamp_utc": config.utc_now_iso(),
         }
-        self.client.publish(config.TOPIC_HANDSHAKE_PONG, payload=json.dumps(payload), qos=config.QOS_HANDSHAKE)
+        self.client.publish(
+            config.TOPIC_HANDSHAKE_PONG, payload=json.dumps(payload), qos=config.QOS_HANDSHAKE
+        )
         self._logger.info("Published System_Pong to %s", config.TOPIC_HANDSHAKE_PONG)
