@@ -27,7 +27,6 @@ class IgnClient:
         WCS_20_NAMESPACE (str): The XML namespace for WCS 2.0.
         WCS_NS_MAP (dict): Namespace mapping for XML parsing.
         IGN_WFS_URL (str): The endpoint URL for the IGN WFS service.
-        CODIIGE_TO_INDEX (dict): Mapping from SIOSE/CODIIGE string codes to internal integer IDs.
     """
 
     # --- API Endpoints & Configuration ---
@@ -36,65 +35,6 @@ class IgnClient:
     WCS_NS_MAP = {'wcs': WCS_20_NAMESPACE}
 
     IGN_WFS_URL = "https://servicios.idee.es/wfs-inspire"
-
-    # Land Cover classes mapping (SIOSE/CODIIGE to internal numeric indices)
-    CODIIGE_TO_INDEX = {
-        "110": 1,  # "Mixed urban"
-        "111": 2,  # "Urban core / Historic center"
-        "112": 3,  # "Urban expansion"
-        "113": 4,  # "Discontinuous urban fabric"
-        "114": 5,  # "Urban green areas"
-        "120": 6,  # "Primary sector facilities"
-        "121": 7,  # "Agricultural and/or livestock facilities"
-        "122": 8,  # "Forestry facilities"
-        "123": 9,  # "Mining extraction"
-        "130": 10, # "Industrial"
-        "140": 11, # "Services and public facilities"
-        "150": 12, # "Agricultural settlement and orchards"
-        "160": 13, # "Transport infrastructure"
-        "161": 14, # "Road and rail networks"
-        "162": 15, # "Ports"
-        "163": 16, # "Airports"
-        "170": 17, # "Technical infrastructures"
-        "171": 18, # "Supply infrastructures"
-        "172": 19, # "Waste infrastructures"
-        "210": 20, # "Arable land / Herbaceous crops"
-        "220": 21, # "Greenhouses"
-        "230": 22, # "Woody / Permanent crops"
-        "231": 23, # "Citrus orchards"
-        "232": 24, # "Non-citrus orchards"
-        "233": 25, # "Vineyards"
-        "234": 26, # "Olive groves"
-        "235": 27, # "Other woody crops"
-        "236": 28, # "Woody crop combinations"
-        "240": 29, # "Meadows / Pastures"
-        "250": 30, # "Crop combinations"
-        "260": 31, # "Crop and vegetation combinations"
-        "310": 32, # "Forest"
-        "311": 33, # "Broad-leaved forest"
-        "312": 34, # "Coniferous forest"
-        "313": 35, # "Mixed forest"
-        "320": 36, # "Natural grasslands"
-        "330": 37, # "Scrubland / Shrubland"
-        "340": 38, # "Vegetation combinations"
-        "350": 39, # "Areas without vegetation / Bare areas"
-        "351": 40, # "Beaches, dunes, and sand plains"
-        "352": 41, # "Bare rock"
-        "353": 42, # "Temporarily unstocked due to fires / Burnt areas"
-        "354": 43, # "Bare soil"
-        "410": 44, # "Wetlands"
-        "411": 45, # "Wet and swampy areas"
-        "412": 46, # "Peat bogs"
-        "413": 47, # "Salt marshes"
-        "414": 48, # "Salines / Salt pans"
-        "510": 49, # "Water bodies"
-        "511": 50, # "Water courses"
-        "512": 51, # "Lakes and lagoons"
-        "513": 52, # "Reservoirs"
-        "514": 53, # "Artificial water bodies"
-        "515": 54, # "Seas and oceans"
-        "516": 55  # "Glaciers and perpetual snow"
-    }
 
     @classmethod
     def _validate_resolution_ign(cls, resolution: int, mdt_wcs_url: str, target_crs: CRS) -> None:
@@ -226,6 +166,65 @@ class IgnClient:
         Returns:
             StaticRaster: A rasterized land cover matrix with its spatial context.
         """
+        # Land Cover classes mapping (SIOSE/CODIIGE to internal numeric indices)
+        CODIIGE_TO_INDEX = {
+            "110": 1,  # "Mixed urban"
+            "111": 2,  # "Urban core / Historic center"
+            "112": 3,  # "Urban expansion"
+            "113": 4,  # "Discontinuous urban fabric"
+            "114": 5,  # "Urban green areas"
+            "120": 6,  # "Primary sector facilities"
+            "121": 7,  # "Agricultural and/or livestock facilities"
+            "122": 8,  # "Forestry facilities"
+            "123": 9,  # "Mining extraction"
+            "130": 10, # "Industrial"
+            "140": 11, # "Services and public facilities"
+            "150": 12, # "Agricultural settlement and orchards"
+            "160": 13, # "Transport infrastructure"
+            "161": 14, # "Road and rail networks"
+            "162": 15, # "Ports"
+            "163": 16, # "Airports"
+            "170": 17, # "Technical infrastructures"
+            "171": 18, # "Supply infrastructures"
+            "172": 19, # "Waste infrastructures"
+            "210": 20, # "Arable land / Herbaceous crops"
+            "220": 21, # "Greenhouses"
+            "230": 22, # "Woody / Permanent crops"
+            "231": 23, # "Citrus orchards"
+            "232": 24, # "Non-citrus orchards"
+            "233": 25, # "Vineyards"
+            "234": 26, # "Olive groves"
+            "235": 27, # "Other woody crops"
+            "236": 28, # "Woody crop combinations"
+            "240": 29, # "Meadows / Pastures"
+            "250": 30, # "Crop combinations"
+            "260": 31, # "Crop and vegetation combinations"
+            "310": 32, # "Forest"
+            "311": 33, # "Broad-leaved forest"
+            "312": 34, # "Coniferous forest"
+            "313": 35, # "Mixed forest"
+            "320": 36, # "Natural grasslands"
+            "330": 37, # "Scrubland / Shrubland"
+            "340": 38, # "Vegetation combinations"
+            "350": 39, # "Areas without vegetation / Bare areas"
+            "351": 40, # "Beaches, dunes, and sand plains"
+            "352": 41, # "Bare rock"
+            "353": 42, # "Temporarily unstocked due to fires / Burnt areas"
+            "354": 43, # "Bare soil"
+            "410": 44, # "Wetlands"
+            "411": 45, # "Wet and swampy areas"
+            "412": 46, # "Peat bogs"
+            "413": 47, # "Salt marshes"
+            "414": 48, # "Salines / Salt pans"
+            "510": 49, # "Water bodies"
+            "511": 50, # "Water courses"
+            "512": 51, # "Lakes and lagoons"
+            "513": 52, # "Reservoirs"
+            "514": 53, # "Artificial water bodies"
+            "515": 54, # "Seas and oceans"
+            "516": 55  # "Glaciers and perpetual snow"
+        }
+
         MAX_FEATURES = 5000
         TILE_SIZE_METERS = 1000.0
         MAX_WORKERS = 4 # Safe parallelism level to avoid blocking by IGN
@@ -296,7 +295,7 @@ class IgnClient:
                             href = elem.attrib.get('{http://www.w3.org/1999/xlink}href')
                             if href:
                                 numeric_code = href.split('/')[-1] 
-                                class_value = cls.CODIIGE_TO_INDEX.get(numeric_code, 0)
+                                class_value = CODIIGE_TO_INDEX.get(numeric_code, 0)
                                 
                     class_map[gml_id] = class_value
                     
@@ -369,3 +368,71 @@ class IgnClient:
         logger.success("Vector-to-Raster processing completed successfully.")
 
         return StaticRaster(data=raster_matrix, spatial_context=ctx)
+
+    @classmethod
+    def get_mdt_legal_notices(cls, resolution: int) -> Dict[str, str]:
+        """
+        Retrieves the legal notices for the MDT data source based on the specified resolution.
+
+        Args:
+            resolution (int): The spatial resolution of the DEM (e.g., 5, 25, or 200 meters).
+
+        Returns:
+            Dict[str, str]: A dictionary containing the name, source, license, attribution, and processing notes for the specified MDT dataset.
+        """
+        RESOLUTION_MAP = {
+            5: {
+                "coverage_id": "MDT05-cob1",
+                "date_range": "2008-2015"
+            }, 
+            25: {
+                "coverage_id": "MDT25-cob2",
+                "date_range": "2015-2021"
+            }, 
+            200: {
+                "coverage_id": "MDT200-cob2",
+                "date_range": "2015-2021"
+            }
+        }
+
+        return cls._get_legal_notices(
+            title = f"Digital Elevation Model ({resolution}m)",
+            coverage_id = RESOLUTION_MAP[resolution]["coverage_id"],
+            date_range = RESOLUTION_MAP[resolution]["date_range"]
+        )
+
+    @classmethod
+    def get_land_cover_legal_notices(cls) -> Dict[str, str]:
+        """
+        Retrieves the legal notices for the Land Cover data source.
+
+        Returns:
+            Dict[str, str]: A dictionary containing the name, source, license, attribution, and processing notes for the specified Land Cover dataset.
+        """
+        return cls._get_legal_notices(
+            title = "High-Resolution Land Cover System of Spain (SIOSE AR)",
+            coverage_id = "sioseAR",
+            date_range = "2020"
+        )
+
+    @classmethod
+    def _get_legal_notices(cls, title: str, coverage_id: str, date_range: str) -> Dict[str, str]:
+        """
+        Provides the legal attribution for the IGN data sources, dynamically incorporating 
+        the specific coverage ID and date range for clarity.
+
+        Args:
+            title (str): A descriptive title for the dataset (e.g., "Digital Elevation Model (25m)").
+            coverage_id (str): The specific coverage identifier from IGN (e.g., "MDT25-cob2").
+            date_range (str): The date range during which the data was collected or updated (e.g., "2015-2021").
+
+        Returns:
+            Dict[str, str]: A dictionary containing the name, source, license, attribution, and processing notes for the IGN data used in this layer.
+        """
+        return {
+            "name": f"{title}",
+            "source": "Instituto Geográfico Nacional (IGN) / Sistema Cartográfico Nacional (España)",
+            "license": "CC BY 4.0 (Creative Commons Attribution 4.0 International)",
+            "attribution": f"Obra derivada de {coverage_id} {date_range} CC-BY 4.0 scne.es",
+            "processing": "The original elevation data was automatically fetched via WCS and processed by a Python pipeline."
+        }

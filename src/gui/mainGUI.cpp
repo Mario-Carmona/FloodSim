@@ -30,6 +30,12 @@
 #include "app/config/ConfigLoader.hpp"
 #include "gui/tabs/Tabs.hpp"
 
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#include <Windows.h>
+#endif
+
 namespace {
 
     // Global simulation state variables.
@@ -51,6 +57,66 @@ namespace floodsim::gui {
         kNewScenario,   ///< The view for creating a new scenario from scratch.
         kLoadScenario   ///< The view for working with a loaded scenario.
     };
+
+    void RenderAboutWindow() {
+        // Set an elegant initial size
+        ImGui::SetNextWindowSize(ImVec2(500, 450), ImGuiCond_FirstUseEver);
+
+        // Usamos una variable local para la 'X' de la esquina superior derecha
+        bool is_open = true;
+
+        if (ImGui::BeginPopupModal(("About " + std::string(FLOODSIM_PROGRAM_NAME)).c_str(), &is_open, ImGuiWindowFlags_NoCollapse)) {
+
+            // --- 1. Header & Metadata ---
+            ImGui::TextUnformatted((std::string(FLOODSIM_PROGRAM_NAME) + " - Flood Simulation Engine").c_str());
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            ImGui::Text("Version: %s", FLOODSIM_PROGRAM_VERSION);
+            ImGui::Text("Copyright (c) %s %s", FLOODSIM_COPYRIGHT_YEAR, FLOODSIM_AUTHOR);
+            ImGui::Spacing();
+
+            // --- 2. Project Description ---
+            ImGui::TextWrapped(
+                "FloodSim is a hydrological simulation engine developed as a Master's Thesis. "
+                "It leverages geospatial and meteorological data to model real-time flood behavior "
+                "and spatiotemporal dynamic risks."
+            );
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // --- 3. Software License ---
+            if (ImGui::CollapsingHeader("Software License (MIT)")) {
+                ImGui::BeginChild("LicenseText", ImVec2(0, 180), true);
+
+                ImGui::TextWrapped(
+                    "MIT License\n\n"
+                    "Copyright(c) 2026 Mario Carmona Segovia\n\n"
+                    "Permission is hereby granted, free of charge, to any person obtaining a copy "
+                    "of this software and associated documentation files(the \"Software\"), to deal "
+                    "in the Software without restriction, including without limitation the rights "
+                    "to use, copy, modify, merge, publish, distribute, sublicense, and /or sell "
+                    "copies of the Software, and to permit persons to whom the Software is "
+                    "furnished to do so, subject to the following conditions :\n\n"
+                    "The above copyright notice and this permission notice shall be included in all "
+                    "copies or substantial portions of the Software.\n\n"
+                    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR "
+                    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
+                    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE "
+                    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER "
+                    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, "
+                    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE "
+                    "SOFTWARE."
+                );
+
+                ImGui::EndChild();
+            } 
+
+            // OBLIGATORIO: EndPopup en lugar de End
+            ImGui::EndPopup();
+        }
+    }
 
     /**
         * \brief Renders the main configuration tabs based on the current configuration.
@@ -141,11 +207,35 @@ int main(int argc, char** argv) {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-        GLFWwindow* window = glfwCreateWindow(1280, 720, "FLOOD SIMULATOR v1.0", nullptr, nullptr);
+        // ─── COMPATIBILIDAD DE ICONO PARA LINUX ───
+        #ifndef _WIN32
+        // Define el WM_CLASS para que el Dock de Linux asocie la ventana con el archivo .desktop
+        glfwWindowHintString(GLFW_X11_CLASS_NAME, "FloodSimGUI");
+        glfwWindowHintString(GLFW_X11_INSTANCE_NAME, "floodsimgui");
+        #endif
+
+        GLFWwindow* window = glfwCreateWindow(1280, 720, (std::string(FLOODSIM_PROGRAM_NAME) + " v" + std::string(FLOODSIM_PROGRAM_VERSION)).c_str(), nullptr, nullptr);
         if (!window) {
             glfwTerminate();
             throw std::runtime_error("Failed to create GLFW window.");
         }
+
+        #ifdef _WIN32
+        // Obtener el HWND (manejador de ventana) de GLFW
+        HWND hwnd = glfwGetWin32Window(window);
+
+        // Obtener el manejador de la instancia del proceso actual
+        HINSTANCE hinstance = GetModuleHandle(NULL);
+
+        // Cargar el icono desde los recursos del archivo .rc usando su nombre/ID
+        HICON hIcon = LoadIcon(hinstance, "IDI_ICON1");
+        if (hIcon) {
+            // Fijar el icono grande (Barra de tareas: Alt+Tab)
+            SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+            // Fijar el icono pequeño (Esquina de la ventana)
+            SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+        }
+        #endif
 
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
@@ -184,6 +274,9 @@ int main(int argc, char** argv) {
                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
                     ImGuiWindowFlags_MenuBar);
+
+                // 1. Declaras la variable bandera (puede ser estática o parte de tu clase/estado)
+                static bool trigger_about_popup = false;
 
                 if (ImGui::BeginMenuBar()) {
                     if (ImGui::BeginMenu("Scenario")) {
@@ -233,8 +326,22 @@ int main(int argc, char** argv) {
                         ImGui::EndMenu();
                     }
 
+                    if (ImGui::BeginMenu("Help")) {
+                        if (ImGui::MenuItem(("About " + std::string(FLOODSIM_PROGRAM_NAME) + "...").c_str())) {
+                            trigger_about_popup = true;
+                        }
+                        ImGui::EndMenu();
+                    }
+
                     ImGui::EndMenuBar();
                 }
+
+                if (trigger_about_popup) {
+                    ImGui::OpenPopup("About FloodSim");
+                    trigger_about_popup = false;
+                }
+
+                floodsim::gui::RenderAboutWindow();
 
                 switch (current_view) {
                 case floodsim::gui::ViewState::kHome: {

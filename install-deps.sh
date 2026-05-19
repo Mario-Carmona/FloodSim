@@ -30,8 +30,14 @@ echo "STATUS: Starting system dependencies installation..."
 # PHASE 1: Install CMake >= 4.1.1 (Custom Installation)
 # ---------------------------------------------------------
 REQUIRED_CMAKE_VER="4.1.1"
-# Get current version or "0" if not installed
-CURRENT_CMAKE_VER=$(cmake --version | head -n1 | cut -d' ' -f3 || echo "0")
+
+# Safely check if cmake exists on the system
+if ! command -v cmake &> /dev/null; then
+    CURRENT_CMAKE_VER="0"
+else
+    # If it exists, extract the version without risk of errors
+    CURRENT_CMAKE_VER=$(cmake --version | head -n1 | cut -d' ' -f3)
+fi
 
 echo "STATUS: Current CMake version: $CURRENT_CMAKE_VER"
 

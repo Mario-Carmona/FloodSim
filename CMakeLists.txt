@@ -68,10 +68,21 @@ math(EXPR PATCH_VER "${CURRENT_DAY} + 0")
 
 set(PROGRAM_VERSION "${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}")
 
-# Opcional: Mantener la fecha completa solo para mostrar en logs o UI
-set(FULL_DATE_VERSION "${CURRENT_YEAR}.${CURRENT_MONTH}.${CURRENT_DAY}")
+#############################################
 
+set(COPYRIGHT_RANGE_START "2026")
 
+if(CURRENT_YEAR EQUAL COPYRIGHT_RANGE_START)
+    set(COPYRIGHT_YEAR "${CURRENT_YEAR}")
+else()
+    set(COPYRIGHT_YEAR "${COPYRIGHT_RANGE_START}-${CURRENT_YEAR}")
+endif()
+
+###############################################
+
+set(AUTHOR "Mario Carmona Segovia")
+
+#################################################
 
 
 project(FloodSim VERSION ${PROGRAM_VERSION} LANGUAGES CXX)
@@ -79,6 +90,19 @@ project(FloodSim VERSION ${PROGRAM_VERSION} LANGUAGES CXX)
 
 # 1. Incluir el módulo estándar de directorios
 include(GNUInstallDirs)
+
+
+
+string(TOLOWER "${PROJECT_NAME}" PROJECT_NAME_LOWER)
+
+
+add_compile_definitions(
+    FLOODSIM_PROGRAM_NAME="${PROJECT_NAME}"
+    FLOODSIM_PROGRAM_VERSION="${PROGRAM_VERSION}"
+    FLOODSIM_AUTHOR="${AUTHOR}"
+    FLOODSIM_COPYRIGHT_YEAR="${COPYRIGHT_YEAR}"
+)
+
 
 
 
@@ -117,7 +141,7 @@ if(BUILD_APP)
     else()
         # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
         # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
-        set(CONFIG_DEST_PATH "etc/floodsim/config")
+        set(CONFIG_DEST_PATH "etc/${PROJECT_NAME_LOWER}/config")
     endif()
 
     # Instalar el directorio completo
@@ -144,6 +168,7 @@ if(BUILD_APP)
     set(CPACK_PACKAGE_VERSION ${PROGRAM_VERSION})
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Simulador de Redes Neuronales y Procesamiento de Datos")
 
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 
     # Obtener la arquitectura del procesador (amd64 / x86_64)
     set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
@@ -218,19 +243,24 @@ if(BUILD_APP)
 
         set(CPACK_GENERATOR "WIX")
 
-        # Ruta típica de instalación de WiX v3
-        set(WIX_ROOT "C:/Program Files (x86)/WiX Toolset v3.14/bin")
-    
-        # Indicamos a CMake dónde buscar los ejecutables específicos
-        find_program(CPACK_WIX_CANDLE_EXECUTABLE candle PATHS ${WIX_ROOT} NO_DEFAULT_PATH)
-        find_program(CPACK_WIX_LIGHT_EXECUTABLE  light  PATHS ${WIX_ROOT} NO_DEFAULT_PATH)
+        find_program(CPACK_WIX_CANDLE_EXECUTABLE 
+            NAMES candle 
+            PATHS "$ENV{WIX}bin" 
+        )
+
+        find_program(CPACK_WIX_LIGHT_EXECUTABLE 
+            NAMES light 
+            PATHS "$ENV{WIX}bin" 
+        )
+
+        set(CPACK_WIX_LICENSE_RTF "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/License.rtf")
         
 
         # 1. Genera un GUID nuevo una sola vez y pégalo aquí permanentemente
         set(CPACK_WIX_UPGRADE_GUID "86D6D602-CCC2-4BE3-A83C-4D9D7A61FAE0")
 
 
-        set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/res/floodsim.ico")
+        set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/${PROJECT_NAME_LOWER}.ico")
 
         # ---------------------------------------------------------
         # 1. CARPETA EN EL MENÚ DE INICIO (ESTILO PROFESIONAL)
@@ -254,25 +284,32 @@ if(BUILD_APP)
     if(UNIX AND NOT APPLE)
         set(CPACK_GENERATOR "DEB") # Genera un instalador .deb y un comprimido .tar.gz
 
+        configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Linux/${PROJECT_NAME_LOWER}.desktop.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Linux/${PROJECT_NAME_LOWER}.desktop"
+            @ONLY
+        )
+
         # 1. Instalar el acceso directo (Menú de aplicaciones)
-        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/res/linux/floodsim.desktop"
+        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Linux/${PROJECT_NAME_LOWER}.desktop"
             DESTINATION "share/applications"
             COMPONENT GUI # Solo lo instalamos si se instala la interfaz gráfica
         )
 
         # 2. Instalar el icono de la aplicación
         # (Asegúrate de tener un floodsim.png de 256x256 píxeles)
-        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/res/floodsim.svg"
-            DESTINATION "share/icons/hicolor/256x256/apps"
+        install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/${PROJECT_NAME_LOWER}.svg"
+            DESTINATION "share/icons/hicolor/scalable/apps"
             COMPONENT GUI
         )
 
         # Datos del paquete
         set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Tu Nombre <tu-email@ejemplo.com>")
-        set(CPACK_DEBIAN_PACKAGE_SECTION "science")
 
         # Prefijo para los paquetes (ej. floodsim-gui_1.0.0_amd64.deb)
-        set(CPACK_DEBIAN_PACKAGE_NAME "floodsim")
+        set(CPACK_DEBIAN_PACKAGE_NAME "${PROJECT_NAME_LOWER}")
+
+        set(CPACK_DEBIAN_PACKAGE_LICENSE "MIT")
 
         # ---------------------------------------------------------
         # GENERACIÓN UNIFICADA (TODA LA SUITE EN UN SOLO .DEB)

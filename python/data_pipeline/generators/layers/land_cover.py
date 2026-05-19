@@ -9,7 +9,7 @@ sharing its exact spatial context.
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 from loguru import logger
 
@@ -46,7 +46,7 @@ class LandCoverGenerator(StaticLayerGenerator):
         end_date: datetime, 
         cfg: Dict[str, Any], 
         cfg_dir: Path
-    ) -> Any:
+    ) -> StaticRaster:
         """Generates the land cover layer perfectly aligned with the elevation DEM.
 
         Args:
@@ -78,3 +78,15 @@ class LandCoverGenerator(StaticLayerGenerator):
 
         # 2. Delegate the fetching and rasterization process to the client
         return IgnClient.fetch_land_cover(ctx)
+
+    def _get_legal_notices(self, cfg: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Retrieves legal notices and attributions for the land cover data sources.
+
+        Args:
+            cfg (Dict[str, Any]): Layer-specific configuration parameters.
+
+        Returns:
+            Dict[str, str]: A dictionary containing legal notices and attributions for the data sources used.
+        """
+        return IgnClient.get_land_cover_legal_notices()

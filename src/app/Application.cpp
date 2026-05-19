@@ -130,6 +130,12 @@ namespace danasim {
             stopRequested_.store(false, std::memory_order_relaxed);
 
             setCurrentThreadName("Core");
+
+            LOG_INFO("==================================================");
+            LOG_INFO("{} v{} - Flood Simulation Engine", FLOODSIM_PROGRAM_NAME, FLOODSIM_PROGRAM_VERSION);
+            LOG_INFO("Copyright(c) {} {}", FLOODSIM_COPYRIGHT_YEAR, FLOODSIM_AUTHOR);
+            LOG_INFO("==================================================");
+
             LOG_INFO("Application booting up...");
 
             // -------------------------------------------------

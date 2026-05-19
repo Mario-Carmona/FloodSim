@@ -176,3 +176,15 @@ class TopoBathyGenerator(StaticLayerGenerator):
         combined[is_water_body] = bathy_array[is_water_body]
 
         return combined
+
+    def _get_legal_notices(self, cfg: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Retrieves legal notices and attributions for the topobathymetric data sources.
+
+        Args:
+            cfg (Dict[str, Any]): Layer-specific configuration parameters.
+
+        Returns:
+            Dict[str, str]: A dictionary containing legal notices and attributions for the data sources used.
+        """
+        return EmodnetClient.get_legal_notices()
