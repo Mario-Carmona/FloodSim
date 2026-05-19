@@ -175,7 +175,7 @@ namespace danasim {
 		}
 
 		auto end = std::chrono::high_resolution_clock::now();
-		LOG_INFO("extractTilesData time: {}s", std::chrono::duration<double>(end - start).count());
+		LOG_DEBUG("extractTilesData time: {}s", std::chrono::duration<double>(end - start).count());
 	}
 
 	template <typename T>
@@ -206,7 +206,7 @@ namespace danasim {
 		}
 
 		auto end = std::chrono::high_resolution_clock::now();
-		LOG_INFO("updateTilesData time: {}s", std::chrono::duration<double>(end - start).count());
+		LOG_DEBUG("updateTilesData time: {}s", std::chrono::duration<double>(end - start).count());
 	}
 
 } // namespace danasim

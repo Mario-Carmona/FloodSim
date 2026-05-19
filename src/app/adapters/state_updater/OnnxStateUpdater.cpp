@@ -446,7 +446,7 @@ namespace danasim {
                 return;
             }
 
-            LOG_INFO("Active tiles (Batch Size) for ONNX: {}", batch_size);
+            LOG_DEBUG("Active tiles (Batch Size) for ONNX: {}", batch_size);
 
             std::vector<int64_t> tensor_shape = { batch_size, tensorDim_, tensorDim_ };
 

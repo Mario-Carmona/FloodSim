@@ -247,7 +247,7 @@ namespace danasim {
                         nlohmann::json chunk_ack_payload = payloadSerializer_->parseChunkAckPayload(msg_ack->get_payload_ref().to_string());
 
                         if (chunk_ack_payload.contains("process") && chunk_ack_payload["process"] == "ChunkAck") {
-                            LOG_INFO("[MQTT] Chunk Ack recibido");
+                            LOG_DEBUG("[MQTT] Chunk Ack recibido");
                         }
                     }
 
@@ -370,7 +370,7 @@ namespace danasim {
                         nlohmann::json chunk_ack_payload = payloadSerializer_->parseChunkAckPayload(msg_ack->get_payload_ref().to_string());
 
                         if (chunk_ack_payload.contains("process") && chunk_ack_payload["process"] == "ChunkAck") {
-                            LOG_INFO("[MQTT] Chunk Ack recibido");
+                            LOG_DEBUG("[MQTT] Chunk Ack recibido");
                         }
                     }
 

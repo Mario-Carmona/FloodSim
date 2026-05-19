@@ -13,9 +13,6 @@ find_path(PORTABLE_FILE_DIALOGS_INCLUDE_DIRS "portable-file-dialogs.h")
 add_subdirectory(tabs)
 
 
-set(GUI_EXE_NAME "${PROJECT_NAME}GUI")
-
-
 if(WIN32)
     # Compilamos con mainGUI.cpp y el archivo de recursos .rc
     add_executable(${GUI_EXE_NAME} mainGUI.cpp app_icon.rc)

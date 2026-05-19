@@ -4,7 +4,7 @@ scenario:
   append_start_timestamp: false
 
 logging:
-  level: debug
+  level: info
   async: false
   silent: false
   save_log_file: true

@@ -1,7 +1,4 @@
 
-set(CLI_EXE_NAME "${PROJECT_NAME}CLI")
-
-
 if(WIN32)
     # Compilamos con mainCLI.cpp y el archivo de recursos .rc
     add_executable(${CLI_EXE_NAME} mainCLI.cpp app_icon.rc)

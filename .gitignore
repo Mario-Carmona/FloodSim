@@ -76,3 +76,4 @@ __pycache__
 /THIRD-PARTY-NOTICES.md
 
 /python/data_pipeline/outputs
+/cmake/res/linux/floodsim.desktop

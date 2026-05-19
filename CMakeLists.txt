@@ -107,6 +107,9 @@ add_compile_definitions(
 
 
 if(BUILD_APP OR BUILD_TESTS)
+    set(CLI_EXE_NAME "${PROJECT_NAME}CLI")
+    set(GUI_EXE_NAME "${PROJECT_NAME}GUI")
+
     add_subdirectory(src)
 endif()
 
