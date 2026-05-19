@@ -24,11 +24,19 @@
 namespace {
 
     /**
-     * \brief Prints basic usage instructions to standard error.
+     * \brief Prints basic usage instructions.
      * \param program_name The name of the executable (usually argv[0]).
+     * \param out The output stream to write to (defaults to std::cout).
      */
-    void PrintUsage(std::string_view program_name) {
-        std::cerr << "Usage: " << program_name << " [--config /path/to/config.yaml]\n"
+    void PrintUsage(std::string_view program_name, std::ostream& out = std::cout) {
+        out << "Usage:\n"
+            << "  " << program_name << " [--config /path/to/config.yaml]\n"
+            << "  " << program_name << " [--version]\n"
+            << "  " << program_name << " [--help]\n\n"
+            << "Options:\n"
+            << "  --config <path>   Path to the YAML configuration file.\n"
+            << "  --version         Show the application version and exit.\n"
+            << "  --help            Show this help message and exit.\n\n"
             << "If no arguments are provided, the configuration path will be prompted interactively.\n";
     }
 
@@ -49,7 +57,16 @@ int main(int argc, char* argv[]) {
         std::string config_input_str;
 
         // 1. Command-line Argument Parsing
-        if (argc == 3 && std::string(argv[1]) == "--config") {
+        if (argc == 2 && std::string(argv[1]) == "--help") {
+            // Imprime la ayuda en la salida estándar y sale limpiamente
+            PrintUsage(argv[0], std::cout);
+            return EXIT_SUCCESS;
+        }
+        else if (argc == 2 && std::string(argv[1]) == "--version") {
+            std::cout << "Danasim version 1.0 (2026)\n";
+            return EXIT_SUCCESS;
+        }
+        else if (argc == 3 && std::string(argv[1]) == "--config") {
             config_input_str = argv[2];
         }
         else if (argc == 1) {
@@ -60,7 +77,8 @@ int main(int argc, char* argv[]) {
             }
         }
         else {
-            PrintUsage(argv[0]);
+            // Argumentos inválidos: imprime la ayuda en la salida de errores y devuelve fallo
+            PrintUsage(argv[0], std::cerr);
             return EXIT_FAILURE;
         }
 
