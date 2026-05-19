@@ -21,8 +21,8 @@
 #include <imgui.h>
 #include <nlohmann/json.hpp>
 
-#include "app/adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
-#include "app/adapters/input/readers/file/static/FileStaticFormat.hpp"
+#include "app/io/formats/file/FileDynamicFormat.hpp"
+#include "app/io/formats/file/FileStaticFormat.hpp"
 
 namespace {
 

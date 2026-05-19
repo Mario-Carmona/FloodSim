@@ -21,8 +21,8 @@
 
 #include "Types.hpp"
 #include "logging/LoggerLevel.hpp"
-#include "app/adapters/input/readers/file/static/FileStaticFormat.hpp"
-#include "app/adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
+#include "app/io/formats/file/FileStaticFormat.hpp"
+#include "app/io/formats/file/FileDynamicFormat.hpp"
 
 
 namespace danasim {
@@ -54,13 +54,13 @@ namespace danasim {
     struct OutputConfig {
 
         enum class OutputConfigEntryType {
-            X3D_FILE,
             MQTT,
-            IMAGE
+            IMAGE,
+            CHECKPOINT
         };
 
-        struct X3dFileOutputConfigEntry {
-            // Placeholder for future X3D config
+        struct CheckpointOutputConfigEntry {
+            FileStaticFormat staticFormat;
         };
 
         struct MqttOutputConfigEntry {
@@ -80,7 +80,7 @@ namespace danasim {
         };
 
         /// Variant for polymorphic output types.
-        using OutputConfigEntry = std::variant<X3dFileOutputConfigEntry, MqttOutputConfigEntry, ImageOutputConfigEntry>;
+        using OutputConfigEntry = std::variant<CheckpointOutputConfigEntry, MqttOutputConfigEntry, ImageOutputConfigEntry>;
 
         /**
          * @struct SnapshotConfig

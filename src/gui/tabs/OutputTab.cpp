@@ -121,7 +121,7 @@ namespace floodsim::gui {
                         // Determine the current type inspecting the std::variant
                         danasim::OutputConfig::OutputConfigEntryType current_type;
                         std::visit(Overloaded{
-                                [&current_type](danasim::OutputConfig::X3dFileOutputConfigEntry&) { current_type = danasim::OutputConfig::OutputConfigEntryType::X3D_FILE; },
+                                [&current_type](danasim::OutputConfig::CheckpointOutputConfigEntry&) { current_type = danasim::OutputConfig::OutputConfigEntryType::CHECKPOINT; },
                                 [&current_type](danasim::OutputConfig::MqttOutputConfigEntry&) { current_type = danasim::OutputConfig::OutputConfigEntryType::MQTT; },
                                 [&current_type](danasim::OutputConfig::ImageOutputConfigEntry&) { current_type = danasim::OutputConfig::OutputConfigEntryType::IMAGE; },
                                 [](auto&&) { throw std::runtime_error("OutputTab: Unimplemented output type variant."); }
@@ -135,8 +135,8 @@ namespace floodsim::gui {
                         // Re-assign a default-constructed struct to the variant if the type changed
                         if (current_type != prev_type) {
                             switch (current_type) {
-                                case danasim::OutputConfig::OutputConfigEntryType::X3D_FILE:
-                                    output_config.outputs[i] = danasim::OutputConfig::X3dFileOutputConfigEntry{};
+                                case danasim::OutputConfig::OutputConfigEntryType::CHECKPOINT:
+                                    output_config.outputs[i] = danasim::OutputConfig::CheckpointOutputConfigEntry{};
                                     break;
                                 case danasim::OutputConfig::OutputConfigEntryType::MQTT:
                                     output_config.outputs[i] = danasim::OutputConfig::MqttOutputConfigEntry{};
@@ -151,6 +151,22 @@ namespace floodsim::gui {
                     // --- 2.2 SPECIFIC CONFIGURATION RENDERER ---
                     std::visit(
                         Overloaded{
+                            [](danasim::OutputConfig::CheckpointOutputConfigEntry& specific_output) {
+                                {
+                                    const char* label = "Static Format";
+                                    const char* tooltip = "Data format for static spatial maps (e.g., topography DEMs).";
+
+                                    ImGui::TableNextRow();
+                                    ImGui::TableSetColumnIndex(0);
+                                    ImGui::AlignTextToFramePadding();
+                                    ImGui::Text("%s", label);
+
+                                    ImGui::TableSetColumnIndex(1);
+                                    ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
+                                    EnumComboBox<FileStaticFormat>(label, specific_output.staticFormat, tooltip);
+                                }
+                            },
+
                             // --- MQTT OUTPUT ---
                             [](danasim::OutputConfig::MqttOutputConfigEntry& specific_output) {
                                 {

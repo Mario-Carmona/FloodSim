@@ -8,7 +8,7 @@
 #include <omp.h>
 
 #include "app/core/grid/LayerTypes.hpp"
-#include "app/adapters/input/readers/Reader.hpp"
+#include "app/io/readers/Reader.hpp"
 
 namespace danasim {
 

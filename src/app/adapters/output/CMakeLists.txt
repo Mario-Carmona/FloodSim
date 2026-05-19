@@ -14,7 +14,7 @@ add_library(danasim_output_adapters)
 
 target_sources(danasim_output_adapters
     PRIVATE
-        X3DFileOutput.cpp
+        CheckpointOutput.cpp
         MQTTOutput.cpp
         ImageOutput.cpp
         OutputFactory.cpp
@@ -30,6 +30,7 @@ target_link_libraries(danasim_output_adapters
     PUBLIC
         danasim_options
         danasim_core
+        danasim_io_writers
         danasim_output_mqtt
         ${OpenCV_LIBS}
 )

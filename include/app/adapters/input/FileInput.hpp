@@ -17,8 +17,8 @@
 #include <vector>
 
 #include "app/core/ports/InputPort.hpp"
-#include "app/adapters/input/readers/file/static/FileStaticFormat.hpp"
-#include "app/adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
+#include "app/io/formats/file/FileStaticFormat.hpp"
+#include "app/io/formats/file/FileDynamicFormat.hpp"
 
 namespace danasim {
 

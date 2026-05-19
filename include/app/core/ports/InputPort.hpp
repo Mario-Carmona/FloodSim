@@ -12,7 +12,7 @@
 #include <memory>
 #include <concepts>
 
-#include "app/adapters/input/readers/Reader.hpp"
+#include "app/io/readers/Reader.hpp"
 
 namespace danasim {
 

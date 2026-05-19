@@ -7,7 +7,7 @@
 #include <string>
 
 #include "app/core/grid/Layer.hpp"
-#include "app/adapters/input/readers/DynamicReader.hpp"
+#include "app/io/readers/DynamicReader.hpp"
 #include "Types.hpp"
 
 namespace danasim {

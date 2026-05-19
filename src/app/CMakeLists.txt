@@ -1,4 +1,6 @@
 
+add_subdirectory(io)
+
 add_subdirectory(config)
 
 if(ENABLE_CORE)

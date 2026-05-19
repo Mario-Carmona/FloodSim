@@ -1,7 +1,4 @@
 
-add_subdirectory(readers)
-
-
 add_library(danasim_input_adapters)
 
 target_sources(danasim_input_adapters
@@ -18,5 +15,5 @@ target_link_libraries(danasim_input_adapters
     PUBLIC
         danasim_options
         danasim_core
-        danasim_readers
+        danasim_io_readers
 )

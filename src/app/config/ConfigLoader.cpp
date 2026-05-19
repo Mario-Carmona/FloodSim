@@ -146,8 +146,10 @@ namespace danasim {
                 OutputConfig::OutputConfigEntryType type = magic_enum::enum_cast<OutputConfig::OutputConfigEntryType>(extract<std::string>(outNode, "type"), magic_enum::case_insensitive).value();
 
                 switch (type) {
-                case OutputConfig::OutputConfigEntryType::X3D_FILE: {
-                    config.output.outputs.emplace_back(OutputConfig::X3dFileOutputConfigEntry{});
+                case OutputConfig::OutputConfigEntryType::CHECKPOINT: {
+                    config.output.outputs.emplace_back(OutputConfig::CheckpointOutputConfigEntry{
+                        .staticFormat = magic_enum::enum_cast<FileStaticFormat>(extract<std::string>(outNode, "static_format"), magic_enum::case_insensitive).value()
+                        });
                     break;
                 }
                 case OutputConfig::OutputConfigEntryType::MQTT: {
@@ -442,8 +444,9 @@ namespace danasim {
         for (const auto& outVar : config.output.outputs) {
             YAML::Node outItem;
             std::visit(overloaded{
-                [&outItem](const OutputConfig::X3dFileOutputConfigEntry& x3d) {
-                    outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::X3D_FILE));
+                [&outItem](const OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
+                    outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::CHECKPOINT));
+                    outItem["static_format"] = std::string(magic_enum::enum_name(checkpoint.staticFormat));
                 },
                 [&outItem](const OutputConfig::ImageOutputConfigEntry& img) {
                     outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::IMAGE));

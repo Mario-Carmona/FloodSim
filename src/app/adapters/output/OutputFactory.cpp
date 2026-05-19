@@ -14,9 +14,9 @@
 #include "app/config/Config.hpp"
 
 // Include concrete implementations
-#include "app/adapters/output/X3DFileOutput.hpp"
 #include "app/adapters/output/MQTTOutput.hpp"
 #include "app/adapters/output/ImageOutput.hpp"
+#include "app/adapters/output/CheckpointOutput.hpp"
 
 namespace danasim {
 
@@ -44,10 +44,10 @@ namespace danasim {
             // Dispatch creation logic based on the active variant type
             outputs.push_back(std::visit(overloaded{
 
-                // 1. X3D File Output
-                [](const OutputConfig::X3dFileOutputConfigEntry&) -> std::unique_ptr<OutputPort> {
-                    LOG_DEBUG("Initializing X3D Output");
-                    return std::make_unique<X3dFileOutput>();
+                // 1. Checkpoint Output
+                [](const OutputConfig::CheckpointOutputConfigEntry& arg) -> std::unique_ptr<OutputPort> {
+                    LOG_DEBUG("Initializing Checkpoint Output");
+                    return std::make_unique<CheckpointOutput>(arg.staticFormat);
                 },
 
                 // 2. MQTT Output

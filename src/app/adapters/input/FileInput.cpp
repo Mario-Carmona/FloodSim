@@ -17,9 +17,9 @@
 #include "app/core/grid/LayerTypes.hpp"
 #include "app/core/common/SimulationConstants.hpp"
 #include "app/core/grid/MapGrid.hpp"
-#include "app/adapters/input/readers/file/static/FileStaticReader.hpp"
-#include "app/adapters/input/readers/file/static/FileStaticReaderFactory.hpp"
-#include "app/adapters/input/readers/file/dynamic/FileDynamicReaderFactory.hpp"
+#include "app/io/readers/file/static/FileStaticReader.hpp"
+#include "app/io/readers/file/static/FileStaticReaderFactory.hpp"
+#include "app/io/readers/file/dynamic/FileDynamicReaderFactory.hpp"
 
 namespace danasim {
 

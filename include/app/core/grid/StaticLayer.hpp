@@ -2,7 +2,7 @@
 #pragma once
 
 #include "app/core/grid/Layer.hpp"
-#include "app/adapters/input/readers/StaticReader.hpp"
+#include "app/io/readers/StaticReader.hpp"
 
 #include <string>
 #include <memory>
