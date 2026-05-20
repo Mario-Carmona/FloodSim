@@ -1,67 +1,62 @@
-scenario:
-  output_dir: ../outputs
-  name: scenario_29_10_2024
-  append_start_timestamp: false
-
 logging:
   level: debug
   async: false
   silent: false
   save_log_file: true
-
-input:
-  file:
-    static_format: IDRISI
-    dynamic_format: HIF
-    dataset_folder: ../data
-    dataset_name: data_29_10_2024
-  scalars:
-    fluid_density: 1000.0
-    fluid_viscosity: 0.001
-
-output:
-  snapshot:
-    every_n_steps: 30
-  outputs:
-    - type: IMAGE
-
+scenario:
+  name: scenario_29_10_2024
+  output_dir: C:\Devs\DanaSim\outputs
+  append_start_timestamp: false
+simulation:
+  start_timestamp: 2024-10-29T10:00:00
+  time_step: 00:00:01
+  duration: 04:00:00
+  view_box:
+    use_full_grid: true
+    south_west:
+      lon: 0
+      lat: 0
+    north_east:
+      lon: 0
+      lat: 0
 state_updater:
   enable_rainfall: true
-  dry_tolerance: 0.001
+  dry_tolerance: 0.00100000005
   flood_risk:
     default_level:
       name: Dry
       color_hex: F5DEB3FF
     levels:
       - name: Very Shallow
-        threshold_start: 0.001
+        threshold_start: 0.00100000005
         color_hex: E0F3F8FF
       - name: Low Depth
-        threshold_start: 0.1
+        threshold_start: 0.100000001
         color_hex: 87CEEBFF
       - name: Medium Depth
-        threshold_start: 0.3
+        threshold_start: 0.300000012
         color_hex: 1E90FFFF
       - name: High Depth
-        threshold_start: 1.0
+        threshold_start: 1
         color_hex: 0000CDFF
       - name: Extreme Depth
-        threshold_start: 2.0
+        threshold_start: 2
         color_hex: 4B0082FF
   updater:
     type: ONNX
-    model_path: ../exported_models/first_model_cpu
+    model_path: C:\Devs\DanaSim\exported_models\first_model_cpu
     tensor_dim: 16
-
-simulation:
-  start_timestamp: 2024-10-29T10:00:00
-  time_step: 00:00:01
-  duration: 04:00:00
-  view_box: 
-    use_full_grid: true
-    south_west:
-      lon: -0.78291248
-      lat: 39.32434531
-    north_east:
-      lon: -0.22811569
-      lat: 39.56367382
+input:
+  file:
+    dataset_folder: C:\Devs\DanaSim\data
+    dataset_name: data_29_10_2024
+    static_format: IDRISI
+    dynamic_format: HIF
+  scalars:
+    fluid_density: 1000.0
+    fluid_viscosity: 0.001
+output:
+  snapshot:
+    every_n_steps: 30
+  outputs:
+    - type: IMAGE
