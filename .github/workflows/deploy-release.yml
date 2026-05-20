@@ -127,7 +127,7 @@ jobs:
           
       - name: Install system dependencies (Linux)
         if: matrix.run_install_deps == true
-        run: ./install-deps.sh --desktop
+        run: bash ./install-deps.sh --desktop
         shell: bash
 
       - name: Restore OS Cache
@@ -199,7 +199,7 @@ jobs:
           
       - name: Install system dependencies (Linux)
         if: matrix.run_install_deps == true
-        run: ./install-deps.sh --desktop
+        run: bash ./install-deps.sh --desktop
         shell: bash
 
       - name: Restore OS Cache
