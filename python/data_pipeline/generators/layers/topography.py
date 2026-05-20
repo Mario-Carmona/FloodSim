@@ -8,7 +8,7 @@ between the simulation pipeline and the IGN (Instituto Geográfico Nacional) cli
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 from pyproj import CRS
 
@@ -93,3 +93,15 @@ class TopographyGenerator(StaticLayerGenerator):
             bbox_crs=bbox_crs, 
             bbox=bbox
         )
+
+    def _get_legal_notices(self, cfg: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Retrieves legal notices and attributions for the topography data sources.
+
+        Args:
+            cfg (Dict[str, Any]): The configuration dictionary containing the resolution.
+
+        Returns:
+            Dict[str, str]: A dictionary containing legal notices and attributions for the data sources used.
+        """
+        return IgnClient.get_mdt_legal_notices(cfg['resolution'])

@@ -77,34 +77,16 @@ endif()
 # -----------------------
 # Subproyectos
 # -----------------------
-if(ENABLE_CORE)
-    add_subdirectory(core)
+if(BUILD_APP OR BUILD_TESTS)
+    add_subdirectory(app)
 endif()
-
-add_subdirectory(adapters)
 
 if(BUILD_APP)
-    add_subdirectory(app)
+    # 1. Siempre añadimos la CLI (es la base del simulador)
+    add_subdirectory(cli)
 
+    # 2. Añadimos la GUI de forma opcional
     if(ENABLE_GUI)
         add_subdirectory(gui)
-    else()
-        add_subdirectory(cli)
     endif()
 endif()
-
-
-
-# =========================================================
-# CONFIGURACIÓN DE EMPAQUETADO (CPack)
-# =========================================================
-
-# SOLUCIÓN: Carga el módulo de CPack para inicializar todas las variables
-include(CPack) 
-
-# (Opcional, pero recomendado para instaladores de Windows)
-# Incluye las librerías de tiempo de ejecución del sistema necesarias (como los runtimes de MSVC)
-# para que el instalador WIX/MSI las pueda incluir.
-include(InstallRequiredSystemLibraries)
-
-# =========================================================

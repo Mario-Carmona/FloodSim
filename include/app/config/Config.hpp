@@ -7,7 +7,7 @@
  *
  * @version 1.0
  * @date 2026
- * @copyright Copyright (c) 2026 Danasim
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #pragma once
@@ -21,8 +21,8 @@
 
 #include "Types.hpp"
 #include "logging/LoggerLevel.hpp"
-#include "adapters/input/readers/file/static/FileStaticFormat.hpp"
-#include "adapters/input/readers/file/dynamic/FileDynamicFormat.hpp"
+#include "app/io/formats/file/FileStaticFormat.hpp"
+#include "app/io/formats/file/FileDynamicFormat.hpp"
 
 
 namespace danasim {
@@ -35,6 +35,7 @@ namespace danasim {
         struct FileInputSourceConfig {
             FileStaticFormat staticFormat;
             FileDynamicFormat dynamicFormat;
+            std::filesystem::path datasetFolder;
             std::string datasetName; 
         };
 
@@ -53,13 +54,13 @@ namespace danasim {
     struct OutputConfig {
 
         enum class OutputConfigEntryType {
-            X3D_FILE,
             MQTT,
-            IMAGE
+            IMAGE,
+            CHECKPOINT
         };
 
-        struct X3dFileOutputConfigEntry {
-            // Placeholder for future X3D config
+        struct CheckpointOutputConfigEntry {
+            FileStaticFormat staticFormat;
         };
 
         struct MqttOutputConfigEntry {
@@ -79,7 +80,7 @@ namespace danasim {
         };
 
         /// Variant for polymorphic output types.
-        using OutputConfigEntry = std::variant<X3dFileOutputConfigEntry, MqttOutputConfigEntry, ImageOutputConfigEntry>;
+        using OutputConfigEntry = std::variant<CheckpointOutputConfigEntry, MqttOutputConfigEntry, ImageOutputConfigEntry>;
 
         /**
          * @struct SnapshotConfig

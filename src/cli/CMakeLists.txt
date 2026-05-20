@@ -1,15 +1,23 @@
 
-add_executable(danasim_cli
-    main_cli.cpp
-)
+if(WIN32)
+    # Compilamos con mainCLI.cpp y el archivo de recursos .rc
+    add_executable(${CLI_EXE_NAME} mainCLI.cpp app_icon.rc)
+else()
+    # En Linux no se usan archivos .rc
+    add_executable(${CLI_EXE_NAME} mainCLI.cpp)
+endif()
 
-target_link_libraries(danasim_cli
+
+set_target_properties(${CLI_EXE_NAME} PROPERTIES DEBUG_POSTFIX "d")
+
+target_link_libraries(${CLI_EXE_NAME}
     PRIVATE
         danasim_options
         danasim_app
 )
 
-set_target_properties(danasim_cli PROPERTIES
-    OUTPUT_NAME DanaSimCLI
-    DEBUG_POSTFIX "d"
+# Instalación profesional por componentes
+install(TARGETS ${CLI_EXE_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT CLI  # <--- Crucial para el empaquetado filtrado
 )

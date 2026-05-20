@@ -191,3 +191,21 @@ class RainfallGenerator(DynamicLayerGenerator):
         layer.timestamps.append(start_date + (time_step * num_steps))
 
         return layer
+
+    def _get_legal_notices(self, cfg: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Retrieves legal notices and attributions for the rainfall data sources.
+
+        Args:
+            cfg (Dict[str, Any]): Layer-specific configuration parameters.
+
+        Returns:
+            Dict[str, str]: A dictionary containing legal notices and attributions for the data sources used.
+        """
+        return {
+            "name": "Rainfall Data (SAIH)",
+            "source": "Confederación Hidrográfica del Júcar (CHJ) / Ministerio para la Transición Ecológica",
+            "license": "CC BY 4.0 / Condiciones de Reutilización (Ley 37/2007)",
+            "attribution": "Source of the data: Sistema Automático de Información Hidrológica (SAIH) - Confederación Hidrográfica del Júcar.",
+            "processing": "The raw rain gauge data was extracted, filtered by time window, and spatially interpolated using Kriging to generate a dynamic spatiotemporal precipitation raster. The statistical meaning of the original meteorological data has not been distorted."
+        }

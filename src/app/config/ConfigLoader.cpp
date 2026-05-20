@@ -17,7 +17,7 @@
 #include "logging/LoggerLevel.hpp"
 #include "misc/Paths.hpp"
 #include "misc/Time.hpp"
-#include "core/grid/LayerTypes.hpp"
+#include "app/core/grid/LayerTypes.hpp"
 
 namespace danasim {
 
@@ -109,6 +109,7 @@ namespace danasim {
                 config.input.file = InputConfig::FileInputSourceConfig{
                     .staticFormat = magic_enum::enum_cast<FileStaticFormat>(extract<std::string>(fileNode, "static_format"), magic_enum::case_insensitive).value(),
                     .dynamicFormat = magic_enum::enum_cast<FileDynamicFormat>(extract<std::string>(fileNode, "dynamic_format"), magic_enum::case_insensitive).value(),
+					.datasetFolder = (configFolder / extract<std::string>(fileNode, "dataset_folder")).lexically_normal(),
                     .datasetName = extract<std::string>(fileNode, "dataset_name")
                 };
             }
@@ -145,8 +146,10 @@ namespace danasim {
                 OutputConfig::OutputConfigEntryType type = magic_enum::enum_cast<OutputConfig::OutputConfigEntryType>(extract<std::string>(outNode, "type"), magic_enum::case_insensitive).value();
 
                 switch (type) {
-                case OutputConfig::OutputConfigEntryType::X3D_FILE: {
-                    config.output.outputs.emplace_back(OutputConfig::X3dFileOutputConfigEntry{});
+                case OutputConfig::OutputConfigEntryType::CHECKPOINT: {
+                    config.output.outputs.emplace_back(OutputConfig::CheckpointOutputConfigEntry{
+                        .staticFormat = magic_enum::enum_cast<FileStaticFormat>(extract<std::string>(outNode, "static_format"), magic_enum::case_insensitive).value()
+                        });
                     break;
                 }
                 case OutputConfig::OutputConfigEntryType::MQTT: {
@@ -414,6 +417,7 @@ namespace danasim {
         // ---------------------------------------------------------
         YAML::Node inputNode;
         YAML::Node fileNode;
+        fileNode["dataset_folder"] = config.input.file.datasetFolder.string();
         fileNode["dataset_name"] = config.input.file.datasetName;
         fileNode["static_format"] = std::string(magic_enum::enum_name(config.input.file.staticFormat));
         fileNode["dynamic_format"] = std::string(magic_enum::enum_name(config.input.file.dynamicFormat));
@@ -440,8 +444,9 @@ namespace danasim {
         for (const auto& outVar : config.output.outputs) {
             YAML::Node outItem;
             std::visit(overloaded{
-                [&outItem](const OutputConfig::X3dFileOutputConfigEntry& x3d) {
-                    outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::X3D_FILE));
+                [&outItem](const OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
+                    outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::CHECKPOINT));
+                    outItem["static_format"] = std::string(magic_enum::enum_name(checkpoint.staticFormat));
                 },
                 [&outItem](const OutputConfig::ImageOutputConfigEntry& img) {
                     outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::IMAGE));

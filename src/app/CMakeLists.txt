@@ -1,5 +1,14 @@
 
+add_subdirectory(io)
+
 add_subdirectory(config)
+
+if(ENABLE_CORE)
+    add_subdirectory(core)
+endif()
+
+add_subdirectory(adapters)
+
 
 
 add_library(danasim_app)

@@ -8,7 +8,7 @@ the execution flow (generate, save, visualize) for all specific data layers.
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 from loguru import logger
 
@@ -59,7 +59,7 @@ class DataGenerator(ABC):
         cfg_dir: Path, 
         output_dir: Path, 
         visualization: bool
-    ) -> Any:
+    ) -> Tuple[Any, Dict[str, str]]:
         """
         Executes the full lifecycle of the layer generator.
 
@@ -77,6 +77,7 @@ class DataGenerator(ABC):
 
         Returns:
             Any: The generated data layer object (e.g., StaticRaster, DynamicRaster).
+            Dict[str, str]: A dictionary containing legal notices and attributions for the data sources used.
         """
         logger.info(f"Starting execution lifecycle for layer: '{self._name}'")
     
@@ -104,8 +105,11 @@ class DataGenerator(ABC):
             logger.debug(f"[{self._name}] Generating visualization...")
             self._visualize(layer_output_dir, layer)
 
+        # Retrieve legal notices regardless of generation or reading path to ensure attribution is always available
+        notice = self._get_legal_notices(cfg)
+
         logger.success(f"Layer '{self._name}' processed successfully.")
-        return layer
+        return layer, notice
 
     @abstractmethod
     def _read(self, output_dir: Path) -> Any:
@@ -175,5 +179,20 @@ class DataGenerator(ABC):
         Args:
             output_dir (Path): The directory to save the visualization image.
             layer (Any): The data layer object to visualize.
+        """
+        pass
+
+    @abstractmethod
+    def _get_legal_notices(self, cfg: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Retrieves legal notices and attributions for the data sources used.
+
+        Must be implemented by subclasses.
+
+        Args:
+            cfg (Dict[str, Any]): Layer-specific configuration parameters.
+
+        Returns:
+            Dict[str, str]: A dictionary containing legal notices and attributions for the data sources used.
         """
         pass

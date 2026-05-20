@@ -13,6 +13,7 @@ input:
   file:
     static_format: IDRISI
     dynamic_format: HIF
+    dataset_folder: ../data
     dataset_name: data_29_10_2024
   scalars:
     fluid_density: 1000.0

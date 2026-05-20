@@ -1,10 +1,11 @@
 """Client for fetching bathymetry data from the EMODnet Web Coverage Service (WCS)."""
 
-from typing import Optional
+from typing import Optional, Tuple, Dict
 
 import numpy as np
 from loguru import logger
 from pyproj import CRS, Transformer
+from datetime import datetime, timezone
 
 from utils.types import SpatialContext, StaticRaster
 from utils.api_client import fetch_with_retries
@@ -96,3 +97,20 @@ class EmodnetClient:
 
         # Load the raw TIFF byte stream into a StaticRaster, casting values to float32
         return load_raster_from_bytes([content], data_type=np.float32)
+
+    @classmethod
+    def get_legal_notices(cls) -> Dict[str, str]:
+        """
+        Provides the legal attribution for the EMODnet Bathymetry data.
+
+        Returns:
+            Dict[str, str]: A dictionary containing the name, source, license, 
+                attribution, and processing notes for the EMODnet data used in this layer.
+        """
+        return {
+            "name": "EMODnet Digital Bathymetry (DTM)",
+            "source": "EMODnet Bathymetry Consortium / European Union",
+            "license": "CC BY 4.0 (Creative Commons Attribution 4.0 International)",
+            "attribution": f"© European Union, 1995-{datetime.now(timezone.utc).year}. EMODnet Bathymetry Consortium.",
+            "processing": "The original bathymetric data was cropped to the simulation bounding box, reprojected, and mathematically merged with the IGN topography to create a continuous Topo-Bathy surface."
+        }

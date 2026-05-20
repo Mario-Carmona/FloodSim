@@ -8,7 +8,7 @@ surface topography.
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import numpy as np
 from loguru import logger
@@ -49,7 +49,7 @@ class WaterDepthGenerator(StaticLayerGenerator):
         end_date: datetime, 
         cfg: Dict[str, Any], 
         cfg_dir: Path
-    ) -> Any:
+    ) -> StaticRaster:
         """Generates the initial water depth layer based on elevation differences.
 
         Args:
@@ -94,3 +94,21 @@ class WaterDepthGenerator(StaticLayerGenerator):
             data=clean_water_depth,
             spatial_context=dependent_layers['topography'].spatial_context
         )
+
+    def _get_legal_notices(self, cfg: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Retrieves legal notices and attributions for the water depth data sources.
+
+        Args:
+            cfg (Dict[str, Any]): Layer-specific configuration parameters.
+
+        Returns:
+            Dict[str, str]: A dictionary containing legal notices and attributions for the data sources used.
+        """
+        return {
+            "name": "Initial Standing Water Depth",
+            "source": "Internal Pipeline Generation",
+            "license": "CC BY 4.0 (Inherited from base Topography and Bathymetry layers)",
+            "attribution": "Derivative work based on IGN and EMODnet data.",
+            "processing": "Mathematically calculated by subtracting the merged topography-bathymetry model from the base surface topography."
+        }
