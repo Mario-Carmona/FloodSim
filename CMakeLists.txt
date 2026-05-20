@@ -121,6 +121,22 @@ endif()
 
 if(BUILD_PYTHON_ENVS)
     add_subdirectory(python)
+
+
+    if(WIN32)
+        # En Windows: C:\Archivos de Programa\FloodSim\config
+        set(PYTHON_SCRIPTS_DEST_PATH "${CMAKE_INSTALL_DATADIR}")
+    else()
+        # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
+        # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
+        set(PYTHON_SCRIPTS_DEST_PATH "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME_LOWER}")
+    endif()
+
+    # Instalar el directorio completo
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/python"
+            DESTINATION ${PYTHON_SCRIPTS_DEST_PATH}
+            COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
+    )
 endif()
 
 
@@ -140,15 +156,15 @@ if(BUILD_APP)
     # Definir dónde se guardará la configuración según el sistema operativo
     if(WIN32)
         # En Windows: C:\Archivos de Programa\FloodSim\config
-        set(CONFIG_DEST_PATH "config")
+        set(CONFIG_DEST_PATH "${CMAKE_INSTALL_SYSCONFDIR}")
     else()
         # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
         # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
-        set(CONFIG_DEST_PATH "etc/${PROJECT_NAME_LOWER}/config")
+        set(CONFIG_DEST_PATH "${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME_LOWER}")
     endif()
 
     # Instalar el directorio completo
-    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config/"
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config"
             DESTINATION ${CONFIG_DEST_PATH}
             COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
     )

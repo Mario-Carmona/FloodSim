@@ -13,7 +13,7 @@ input:
   file:
     static_format: IDRISI
     dynamic_format: HIF
-    dataset_folder: ../data
+    dataset_folder: /kaggle/working/data
     dataset_name: data_29_10_2024
   scalars:
     fluid_density: 1000.0
@@ -28,6 +28,8 @@ output:
       host: 127.0.0.1
       port: 1883
       format: JSON
+    - type: CHECKPOINT
+      static_format: IDRISI
 
 state_updater:
   enable_rainfall: true
@@ -54,7 +56,7 @@ state_updater:
         color_hex: 4B0082FF
   updater:
     type: ONNX
-    model_path: ../exported_models/first_model_cpu
+    model_path: /usr/share/floodsim/exported_models/first_model_cpu
     tensor_dim: 16
 
 simulation:

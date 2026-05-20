@@ -17,3 +17,20 @@ add_custom_command(
 
 # 4. Creamos un target intermedio para el comando
 add_custom_target(export_models_target ALL DEPENDS ${TIMESTAMP_FILE})
+
+
+
+if(WIN32)
+    # En Windows: C:\Archivos de Programa\FloodSim\config
+    set(EXPORTED_MODELS_DEST_PATH "${CMAKE_INSTALL_DATADIR}")
+else()
+    # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
+    # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
+    set(EXPORTED_MODELS_DEST_PATH "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME_LOWER}")
+endif()
+
+# Instalar el directorio completo
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/exported_models"
+        DESTINATION ${EXPORTED_MODELS_DEST_PATH}
+        COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
+)

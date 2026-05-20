@@ -69,7 +69,7 @@ fi
 # ---------------------------------------------------------
 # PHASE 2: Essential Build Tools
 # ---------------------------------------------------------
-CORE_DEPS="build-essential ninja-build tar curl zip unzip g++-12 gcc-12"
+CORE_DEPS="build-essential ninja-build tar curl zip unzip g++-12 gcc-12 python3-pip python3-venv virtualenv"
 
 # ---------------------------------------------------------
 # PHASE 3: Core Library Dependencies (Always required)

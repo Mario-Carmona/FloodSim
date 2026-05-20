@@ -16,10 +16,55 @@
       }
     },
     {
-      "name": "app",
+      "name": "python-envs",
       "hidden": true,
       "inherits": [
         "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_PYTHON_ENVS": "ON"
+      }
+    },
+    {
+      "name": "python-data",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "data_pipeline",
+        "ISOLATE_ENVIRONMENT": "OFF"
+      }
+    },
+    {
+      "name": "python-models",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "models",
+        "ISOLATE_ENVIRONMENT": "ON"
+      }
+    },
+    {
+      "name": "python-visualizer",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "visualizer",
+        "ISOLATE_ENVIRONMENT": "OFF"
+      }
+    },
+    {
+      "name": "app",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options",
+        "python-models"
       ],
       "description": "Defines settings for building project executables.",
       "cacheVariables": {
@@ -140,62 +185,32 @@
     },
     {
       "name": "windows-cli-only-debug",
-      "inherits": [
-        "windows",
-        "app",
-        "cli",
-        "debug"
-      ],
+      "inherits": [ "windows", "app", "cli", "debug" ],
       "description": ""
     },
     {
       "name": "windows-cli-only-release",
-      "inherits": [
-        "windows",
-        "app",
-        "cli",
-        "release"
-      ],
+      "inherits": [ "windows", "app", "cli", "release" ],
       "description": ""
     },
     {
       "name": "windows-cli-only-rel-with-deb-info",
-      "inherits": [
-        "windows",
-        "app",
-        "cli",
-        "rel-with-deb-info"
-      ],
+      "inherits": [ "windows", "app", "cli", "rel-with-deb-info" ],
       "description": ""
     },
     {
       "name": "windows-full-suite-debug",
-      "inherits": [
-        "windows",
-        "app",
-        "gui",
-        "debug"
-      ],
+      "inherits": [ "windows", "app", "gui", "debug" ],
       "description": ""
     },
     {
       "name": "windows-full-suite-release",
-      "inherits": [
-        "windows",
-        "app",
-        "gui",
-        "release"
-      ],
+      "inherits": [ "windows", "app", "gui", "release" ],
       "description": ""
     },
     {
       "name": "windows-full-suite-rel-with-deb-info",
-      "inherits": [
-        "windows",
-        "app",
-        "gui",
-        "rel-with-deb-info"
-      ],
+      "inherits": [ "windows", "app", "gui", "rel-with-deb-info" ],
       "description": ""
     },
     {
@@ -241,50 +256,6 @@
       "description": "",
       "cacheVariables": {
         "ENABLE_STATE_UPDATER_ADAPTERS": "ON"
-      }
-    },
-    {
-      "name": "python-envs",
-      "hidden": true,
-      "inherits": [
-        "common-configure-options"
-      ],
-      "description": "",
-      "cacheVariables": {
-        "BUILD_PYTHON_ENVS": "ON"
-      }
-    },
-    {
-      "name": "python-data",
-      "inherits": [
-        "python-envs"
-      ],
-      "description": "",
-      "cacheVariables": {
-        "PYTHON_SUBDIR_NAME": "data_pipeline",
-        "ISOLATE_ENVIRONMENT": "OFF"
-      }
-    },
-    {
-      "name": "python-models",
-      "inherits": [
-        "python-envs"
-      ],
-      "description": "",
-      "cacheVariables": {
-        "PYTHON_SUBDIR_NAME": "models",
-        "ISOLATE_ENVIRONMENT": "ON"
-      }
-    },
-    {
-      "name": "python-visualizer",
-      "inherits": [
-        "python-envs"
-      ],
-      "description": "",
-      "cacheVariables": {
-        "PYTHON_SUBDIR_NAME": "visualizer",
-        "ISOLATE_ENVIRONMENT": "OFF"
       }
     }
   ],
@@ -358,11 +329,6 @@
     {
       "name": "python-data",
       "configurePreset": "python-data",
-      "configuration": "Release"
-    },
-    {
-      "name": "python-models",
-      "configurePreset": "python-models",
       "configuration": "Release"
     },
     {
@@ -642,19 +608,6 @@
         {
           "type": "build",
           "name": "python-data"
-        }
-      ]
-    },
-    {
-      "name": "python-models",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "python-models"
-        },
-        {
-          "type": "build",
-          "name": "python-models"
         }
       ]
     },

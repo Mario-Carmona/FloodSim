@@ -9,7 +9,7 @@ function(create_python_env ENV_NAME ISOLATE_ENVIRONMENT)
     set(PYTHONPATH "${CMAKE_SOURCE_DIR}/python")
 
     # Definir la ruta donde vivirá el entorno (dentro de build/venvs)
-    set(VENV_PATH "${CMAKE_SOURCE_DIR}/build/venvs/${ENV_NAME}_env")
+    set(VENV_PATH "$ENV{HOST_BUILD_DIR}/venvs/${ENV_NAME}_env")
     
     # Detectar ejecutable del entorno virtual según S.O.
     if(WIN32)
