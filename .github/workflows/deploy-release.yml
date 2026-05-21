@@ -200,6 +200,11 @@ jobs:
       - name: Download the dataset to the 'data' folder
         run: git clone https://huggingface.co/datasets/Mario-Carmona/data_29_10_2024 data
           
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
       - name: Install system dependencies (Linux)
         if: matrix.run_install_deps == true
         run: bash ./install-deps.sh --desktop
