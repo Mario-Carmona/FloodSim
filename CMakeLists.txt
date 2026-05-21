@@ -170,6 +170,25 @@ if(BUILD_APP)
     )
 
 
+
+    # Definir dónde se guardará la configuración según el sistema operativo
+    if(WIN32)
+        # En Windows: C:\Archivos de Programa\FloodSim\config
+        set(DATA_DEST_PATH "${CMAKE_INSTALL_DATADIR}")
+    else()
+        # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
+        # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
+        set(DATA_DEST_PATH "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME_LOWER}")
+    endif()
+
+    # Instalación de la carpeta data
+    # Esto copiará TODO el contenido de tu carpeta local "data" al directorio del instalador
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
+            DESTINATION ${DATA_DEST_PATH}
+            COMPONENT Unspecified
+    )
+
+
     install(FILES 
         "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
         DESTINATION ${CMAKE_INSTALL_DOCDIR}
