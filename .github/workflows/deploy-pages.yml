@@ -1,0 +1,37 @@
+name: Deploy GitHub Pages Docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar Doxygen
+        run: sudo apt-get update && sudo apt-get install -y doxygen
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.1.1'
+
+      - name: Generar la web (Target docs)
+        run: cmake --workflow --preset docs
+
+      - name: Preparar artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/html # La carpeta exacta donde Doxygen genera el HTML
+
+      - name: Desplegar web en GitHub Pages
+        uses: actions/deploy-pages@v4

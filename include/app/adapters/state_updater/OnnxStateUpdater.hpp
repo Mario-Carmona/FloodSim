@@ -1,84 +1,167 @@
+/**
+ * @file OnnxStateUpdater.hpp
+ * @brief AI-based physics state updater using ONNX Runtime.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include <filesystem>
 #include <memory>
-#include <onnxruntime_cxx_api.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include <nlohmann/json.hpp>
+#include <onnxruntime_cxx_api.h>
 
-#include "app/core/ports/StateUpdaterPort.hpp"
 #include "app/core/grid/MapGrid.hpp"
+#include "app/core/ports/StateUpdaterPort.hpp"
 
-namespace danasim {
+namespace floodsim::app::adapters::state_updater {
 
-    struct TensorInfo {
-        std::string model_name;
-        std::string id_name;
-        DataType type;
-        bool isScalar;
-    };
+/**
+ * @brief Describes a tensor input/output parameter mapping.
+ */
+struct TensorInfo {
+    std::string model_name;
+    std::string id_name;
+    core::grid::DataType type;
+    bool is_scalar;
+};
 
+/**
+ * @brief Holds structural mappings for an ONNX model graph.
+ */
+struct ModelGraphInfo {
+    std::vector<TensorInfo> inputs;
+    std::vector<TensorInfo> outputs;
+};
 
-    struct ModelGraphInfo {
-        std::vector<TensorInfo> inputs;
-        std::vector<TensorInfo> outputs;
-    };
+/**
+ * @brief ONNX Neural Operator adapter for advancing fluid simulation states.
+ */
+class OnnxStateUpdater : public core::ports::StateUpdaterPort {
+public:
+    /**
+     * @brief Initializes the ONNX runtime environment and model sessions.
+     * @param enable_rainfall Flag to incorporate atmospheric precipitation data.
+     * @param dry_tolerance Height threshold to consider a cell as dry.
+     * @param flood_risk_levels Array mapping water height to risk categories.
+     * @param model_path Path to the trained .onnx network file.
+     * @param tensor_dim Square spatial dimension size for the model tensors.
+     * @throws std::runtime_error If the ONNX session fails to initialize.
+     */
+    explicit OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
+        const std::vector<config::FloodRiskLevel>& flood_risk_levels,
+        const std::filesystem::path& model_path,
+        int64_t tensor_dim);
 
-
-    class OnnxStateUpdater : public StateUpdaterPort {
-    public:
-        explicit OnnxStateUpdater(bool enableRainfall, float dryTolerance, const std::vector<FloodRiskLevel>& floodRiskLevels, const std::filesystem::path& modelPath, int64_t tensorDim);
-        ~OnnxStateUpdater() = default;
-
-        // Método para enviar datos estáticos (Elevación, Rugosidad, dt, dx) una sola vez
-        void initialize(MapGrid& grid) override;
-
-        void step(MapGrid& grid) override;
-
-        const ModelParamsInfo& getModelParamsInfo() const override { return paramsInfo_; };
-
-        const std::string& getFluidLayer() const override { return fluidLayerName_; };
-		const std::string& getFluidMovementStateLayer() const override { return fluidMovementStateLayerName_; };
-
-    private:
-        int64_t tensorDim_;
-        int64_t haloSize_;
-        int64_t tileSize_;
-
-        size_t max_tensor_elements_;
-
-        ModelParamsInfo paramsInfo_;
-
-        ModelGraphInfo preprocessModel_;
-        ModelGraphInfo stepModel_;
-
-        std::string fluidLayerName_;
-        std::string fluidMovementStateLayerName_;
-
-        std::unordered_map<std::string, std::unique_ptr<ScratchpadBase>> layersScratchpad;
-
-        // ONNX Runtime Environment
-        Ort::Env env_;
-        Ort::MemoryInfo memory_info_{ nullptr };
-
-        Ort::Session preprocess_session_{ nullptr };
-        Ort::Session step_session_{ nullptr };
-
-        void runModel(Ort::Session& session, MapGrid& grid, const Ort::RunOptions& options,
-            const ModelGraphInfo& graphInfo, const std::vector<int64_t>& tensor_shape, bool useDynamicBoundingBox,
-            const std::vector<Tile>& active_tiles);
-
-        void getActiveTiles(const MapGrid& grid, std::vector<Tile>& active_tiles) const;
-
-        ModelGraphInfo parseModelGraphInfo(const nlohmann::json& graphJson);
-
-        Ort::Value configureTensor(const TensorInfo& info, MapGrid& grid, const std::vector<int64_t>& tensor_shape, size_t tensor_size, bool useDynamicBoundingBox);
+    ~OnnxStateUpdater() override = default;
     
-        TensorInfo parseTensorInfo(const nlohmann::json& tensorJson, bool outputTensor);
+    /**
+     * @brief Pushes static topological data (Elevation, Roughness, dx, dt) 
+     * into the model context. Call once before simulation loop.
+     * @param grid Reference to the domain map structure.
+     */
+    void Initialize(core::grid::MapGrid& grid) override;
 
-        int8_t classifyRisk(float depth) const;
-    };
+    /**
+     * @brief Runs an inference step to advance fluid dynamics by one `dt`.
+     * @param grid Reference to the domain map structure containing current state.
+     */
+    void Step(core::grid::MapGrid& grid) override;
 
+    /**
+   * @brief Retrieves internal physical parameters of the parsed model.
+   * @return Constant reference to ModelParamsInfo.
+   */
+    const core::grid::ModelParamsInfo& GetModelParamsInfo() const override {
+        return params_info_;
+    }
 
-} // namespace danasim
+    /**
+     * @brief Returns the identifier name for the active fluid layer.
+     * @return Constant reference to the layer name string.
+     */
+    const std::string& GetFluidLayer() const override {
+        return fluid_layer_name_;
+    }
+
+    /**
+     * @brief Returns the identifier name for the fluid movement state mask.
+     * @return Constant reference to the movement state layer name string.
+     */
+    const std::string& GetFluidMovementStateLayer() const override {
+        return fluid_movement_state_layer_name_;
+    }
+
+private:
+    int64_t tensor_dim_;
+    int64_t halo_size_;
+    int64_t tile_size_;
+    size_t max_tensor_elements_;
+
+    core::grid::ModelParamsInfo params_info_;
+    ModelGraphInfo preprocess_model_;
+    ModelGraphInfo step_model_;
+
+    std::string fluid_layer_name_;
+    std::string fluid_movement_state_layer_name_;
+
+    // Scratchpads for holding memory buffers aligned for ONNX inference.
+    std::unordered_map<std::string, std::unique_ptr<core::grid::layers::ScratchpadBase>> layers_scratchpad_;
+
+    // ONNX Runtime Environment
+    Ort::Env env_;
+    Ort::MemoryInfo memory_info_{ nullptr };
+    Ort::Session preprocess_session_{ nullptr };
+    Ort::Session step_session_{ nullptr };
+
+    /**
+     * @brief Dispatches the model execution on the ONNX graph.
+     */
+    void RunModel(Ort::Session& session, core::grid::MapGrid& grid,
+        const Ort::RunOptions& options,
+        const ModelGraphInfo& graph_info,
+        const std::vector<int64_t>& tensor_shape,
+        bool use_dynamic_bounding_box,
+        const std::vector<core::grid::layers::Tile>& active_tiles);
+
+    /**
+     * @brief Scans the grid for tiles containing active dynamic fluid.
+     */
+    void GetActiveTiles(const core::grid::MapGrid& grid,
+        std::vector<core::grid::layers::Tile>& active_tiles) const;
+
+    /**
+     * @brief Extracts tensor definitions from the accompanying JSON metadata.
+     */
+    ModelGraphInfo ParseModelGraphInfo(const nlohmann::json& graph_json);
+
+    /**
+     * @brief Binds a grid layer or scratchpad to an ONNX Ort::Value tensor representation.
+     */
+    Ort::Value ConfigureTensor(const TensorInfo& info, core::grid::MapGrid& grid,
+        const std::vector<int64_t>& tensor_shape,
+        size_t tensor_size,
+        bool use_dynamic_bounding_box);
+    
+    /**
+	 * @brief Parses a single tensor's metadata from the JSON configuration.
+	 * @param tensor_json The JSON object containing the tensor's metadata.
+	 * @param output_tensor Flag indicating if the tensor is an output (affects naming conventions).
+	 * @return TensorInfo Struct containing the parsed tensor information.
+     */
+    TensorInfo ParseTensorInfo(const nlohmann::json& tensor_json, bool output_tensor);
+
+    /**
+	 * @brief Classifies the risk level based on fluid depth.
+	 * @param depth The fluid depth.
+	 * @return The risk level.
+     */
+    int8_t ClassifyRisk(float depth) const;
+};
+
+} // namespace floodsim::app::adapters::state_updater

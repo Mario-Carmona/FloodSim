@@ -1,7 +1,9 @@
-name: Deploy release
+name: Deploy Release
 
 on:
   workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
+  push:
+    branches: ["main"]
 
 permissions:
   contents: write # Required for creating releases and tags
@@ -197,6 +199,11 @@ jobs:
         with:
           submodules: recursive
           
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
       - name: Install system dependencies (Linux)
         if: matrix.run_install_deps == true
         run: bash ./install-deps.sh --desktop

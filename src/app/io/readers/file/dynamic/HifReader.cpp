@@ -1,108 +1,127 @@
+/**
+ * @file HifReader.cpp
+ * @brief Implementation details for the HifReader class.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #include "app/io/readers/file/dynamic/HifReader.hpp"
 
-#include <nlohmann/json.hpp>
-#include <fstream>
 #include <algorithm>
+#include <fstream>
+#include <stdexcept>
+#include <string>
+
 #include <fmt/core.h>
+#include <nlohmann/json.hpp>
 
-#include "misc/Time.hpp"
 #include "app/io/readers/file/static/IdrisiReader.hpp"
+#include "misc/TimeUtils.hpp"
 
-namespace danasim {
+namespace floodsim::app::io::readers::file {
 
-    HifReader::HifReader(const std::filesystem::path& dataPath, const std::string& dataFilename)
-        : FileDynamicReader(dataPath, dataFilename)
-    {
-        std::ifstream json_metadata(dataPath_ / (dataFilename + "_metadata.json"));
-        nlohmann::json data = nlohmann::json::parse(json_metadata);
+HifReader::HifReader(const std::filesystem::path& data_path,
+                     const std::string& data_filename)
+    : FileDynamicReader(data_path, data_filename), current_frame_(0) {
 
-        steps_ = data["steps"];
-        downgradeFactor_ = data["downgrade_factor"];
+    std::filesystem::path json_path = data_path_ / (data_filename + "_metadata.json");
+    std::ifstream json_metadata(json_path);
 
-        for (const std::string& ts : data["timestamps"]) {
-            timestamps_.push_back(parseTimestampString(ts));
-        }
-
-        filenames_ = data["filenames"].get<std::vector<std::string>>();
-
-        currentFrame_ = 0;
+    if (!json_metadata.is_open()) {
+        throw std::runtime_error(fmt::format(
+            "Failed to open HIF metadata file: {}", json_path.string()));
     }
 
-    void HifReader::read(std::vector<float>& data) const {
-        read<float>(data);
+    nlohmann::json data;
+    try {
+        data = nlohmann::json::parse(json_metadata);
+    }
+    catch (const nlohmann::json::parse_error& e) {
+        throw std::runtime_error(fmt::format(
+            "JSON parsing error in {}: {}", json_path.string(), e.what()));
     }
 
-    void HifReader::read(std::vector<int8_t>& data) const {
-        read<int8_t>(data);
+    steps_ = data.value("steps", 0);
+    downgrade_factor_ = data.value("downgrade_factor", 1);
+
+    for (const std::string& ts : data["timestamps"]) {
+        timestamps_.push_back(ParseTimestampString(ts));
     }
 
-    template <typename T>
-    void HifReader::read(std::vector<T>& data) const
-    {
-        if(currentFrame_ == filenames_.size()) {
-            std::fill(data.begin(), data.end(), T{});
-        }
-        else {
-            IdrisiReader frameReader(dataPath_, filenames_[currentFrame_]);
+    filenames_ = data["filenames"].get<std::vector<std::string>>();
+}
 
-            frameReader.read(data);
-        }
-	}
+void HifReader::Read(std::vector<float>& data) const {
+    ReadData<float>(data);
+}
 
-    GridMetadata HifReader::readMetadata() const {
-        std::filesystem::path hifFile = dataPath_ / (dataFilename_ + ".hif");
+void HifReader::Read(std::vector<int8_t>& data) const {
+    ReadData<int8_t>(data);
+}
 
-        std::ifstream file(hifFile);
-        if (!file.is_open()) {
-            throw std::runtime_error(fmt::format("No se pudo abrir el archivo de metadatos: {}", hifFile.string()));
-        }
-
-        GridMetadata metadata{};
-        std::string line;
-
-        // Leemos línea por línea buscando las claves
-        while (std::getline(file, line)) {
-            // Los archivos .doc de Idrisi tienen el formato: "clave     : valor"
-            auto delimiterPos = line.find(':');
-            if (delimiterPos == std::string::npos) continue;
-
-            std::string key = line.substr(0, delimiterPos);
-            std::string value = line.substr(delimiterPos + 1);
-
-            // Limpiamos espacios en blanco de la clave y el valor (trimming básico)
-            key.erase(key.find_last_not_of(" \t") + 1);
-            value.erase(0, value.find_first_not_of(" \t"));
-
-            // Asignamos según la clave
-            if (key == "columns")    metadata.width = std::stoi(value);
-            if (key == "rows")       metadata.height = std::stoi(value);
-            if (key == "min. X")     metadata.minX = std::stof(value);
-            if (key == "max. X")     metadata.maxX = std::stof(value);
-            if (key == "min. Y")     metadata.minY = std::stof(value);
-            if (key == "max. Y")     metadata.maxY = std::stof(value);
-            if (key == "resolution") metadata.cellSize = std::stof(value);
-            if (key == "ref. system") metadata.crs = value;
-        }
-
-        metadata.cellCount = metadata.width * metadata.height;
-
-        return metadata;
+template <typename T>
+void HifReader::ReadData(std::vector<T>& data) const {
+    if (filenames_.empty()) {
+        throw std::runtime_error("No frames available in HIF reader.");
     }
 
-    bool HifReader::update(std::chrono::system_clock::time_point currentTime) {
-        bool updated = false;
+    IdrisiReader reader(data_path_, filenames_[current_frame_]);
+    reader.Read(data);
+}
+
+core::grid::GridMetadata HifReader::ReadMetadata() const {
+    if (filenames_.empty()) {
+        throw std::runtime_error("Cannot read metadata: No frames available in HIF.");
+    }
+
+    std::filesystem::path doc_file = data_path_ / (data_filename_ + ".hif");
+    std::ifstream file(doc_file);
+
+    if (!file.is_open()) {
+        throw std::runtime_error(fmt::format(
+            "Failed to open metadata file: {}", doc_file.string()));
+    }
+
+    core::grid::GridMetadata metadata{};
+    std::string line;
+
+    while (std::getline(file, line)) {
+        auto delimiter_pos = line.find(':');
+        if (delimiter_pos == std::string::npos) continue;
+
+        std::string key = line.substr(0, delimiter_pos);
+        std::string value = line.substr(delimiter_pos + 1);
+
+        key.erase(key.find_last_not_of(" \t") + 1);
+        value.erase(0, value.find_first_not_of(" \t"));
+
+        if (key == "columns") metadata.width = std::stoi(value);
+        if (key == "rows") metadata.height = std::stoi(value);
+        if (key == "min. X") metadata.min_x = std::stof(value);
+        if (key == "max. X") metadata.max_x = std::stof(value);
+        if (key == "min. Y") metadata.min_y = std::stof(value);
+        if (key == "max. Y") metadata.max_y = std::stof(value);
+        if (key == "resolution") metadata.cell_size = std::stof(value);
+        if (key == "ref. system") metadata.crs = value;
+    }
+
+    metadata.cell_count = metadata.width * metadata.height;
+    return metadata;
+}
+
+bool HifReader::Update(std::chrono::system_clock::time_point current_time) {
+    bool updated = false;
         
-        while (currentTime >= timestamps_[currentFrame_ + 1] && currentFrame_ < filenames_.size()) {
-            currentFrame_++;
-            updated = true;
-        }
-
-        return updated;
+    while (current_time >= timestamps_[current_frame_ + 1] && current_frame_ < filenames_.size()) {
+        current_frame_++;
+        updated = true;
     }
 
-    unsigned int HifReader::getDowngradeFactor() const {
-        return downgradeFactor_;
-    }
+    return updated;
+}
 
-} // namespace danasim
+unsigned int HifReader::GetDowngradeFactor() const {
+    return downgrade_factor_;
+}
+
+} // namespace floodsim::app::io::readers::file

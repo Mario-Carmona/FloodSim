@@ -111,6 +111,19 @@ if(BUILD_APP OR BUILD_TESTS)
     set(GUI_EXE_NAME "${PROJECT_NAME}GUI")
 
     add_subdirectory(src)
+
+
+    include(cmake/third_party_notices.cmake)
+
+    generate_third_party_notices(
+        "${VCPKG_INSTALLED_DIR}" 
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${ONNX_LICENSE_FILE}"
+    )
+endif()
+
+if(BUILD_DOCS)
+    add_subdirectory(docs)
 endif()
 
 if(BUILD_TESTS)
@@ -141,16 +154,6 @@ endif()
 
 
 
-include(cmake/third_party_notices.cmake)
-
-generate_third_party_notices(
-    "${VCPKG_INSTALLED_DIR}" 
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${ONNX_LICENSE_FILE}"
-)
-
-
-
 if(BUILD_APP)
 
     # Definir dónde se guardará la configuración según el sistema operativo
@@ -168,6 +171,25 @@ if(BUILD_APP)
             DESTINATION ${CONFIG_DEST_PATH}
             COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
     )
+
+
+
+    # Definir dónde se guardará la configuración según el sistema operativo
+    if(WIN32)
+        # En Windows: C:\Archivos de Programa\FloodSim\config
+        set(DATA_DEST_PATH "${CMAKE_INSTALL_DATADIR}")
+    else()
+        # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
+        # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
+        set(DATA_DEST_PATH "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME_LOWER}")
+    endif()
+
+    # Instalación de la carpeta data
+    # Esto copiará TODO el contenido de tu carpeta local "data" al directorio del instalador
+    #install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
+    #        DESTINATION ${DATA_DEST_PATH}
+    #        COMPONENT Unspecified
+    #)
 
 
     install(FILES 

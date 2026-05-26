@@ -14,7 +14,7 @@ mqtt:
   frame_timeout: 720      # seconds to wait for FrameEnd before discarding (12 min)
 
 renderer:
-  type: x3d          # options: csv, x3d, 2d
+  type: csv          # options: csv, x3d, 2d
   output_folder: sim_outputs
   depth_provider: palette  # options: palette, direct
 

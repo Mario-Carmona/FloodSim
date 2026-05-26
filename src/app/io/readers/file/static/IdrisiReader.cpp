@@ -1,122 +1,132 @@
+/**
+ * @file IdrisiReader.cpp
+ * @brief Implementation details for the IdrisiReader class.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #include "app/io/readers/file/static/IdrisiReader.hpp"
 
-#include <fmt/core.h>
-#include <fstream>
+#include <cctype>
+#include <charconv>
 #include <cstdlib>
-#include <charconv> // Fundamental para std::from_chars
-#include <cctype>   // Para std::isspace
+#include <fstream>
+#include <stdexcept>
+#include <string>
+
+#include <fmt/core.h>
 
 #include "logging/Logger.hpp"
 
-namespace danasim {
+namespace floodsim::app::io::readers::file {
 
-    bool IdrisiReader::isStaticLayer(const std::filesystem::path& dataPath, const std::string& dataFilename) {
-        return std::filesystem::exists(dataPath / (dataFilename + ".img"));
+bool IdrisiReader::IsStaticLayer(const std::filesystem::path& data_path,
+                                 const std::string& data_filename) {
+    return std::filesystem::exists(data_path / (data_filename + ".img"));
+}
+
+IdrisiReader::IdrisiReader(const std::filesystem::path& data_path,
+                           const std::string& data_filename)
+    : FileStaticReader(data_path, data_filename) {}
+
+void IdrisiReader::Read(std::vector<float>& data) const {
+    ReadData<float>(data);
+}
+
+void IdrisiReader::Read(std::vector<int8_t>& data) const {
+    ReadData<int8_t>(data);
+}
+
+template <typename T>
+void IdrisiReader::ReadData(std::vector<T>& data) const {
+    std::filesystem::path img_file = data_path_ / (data_filename_ + ".img");
+
+    // We use `ios::binary` and `ios::ate` to get the exact size without line break translations
+    std::ifstream file(img_file, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        throw std::runtime_error(fmt::format(
+            "Failed to open data file: {}", img_file.string()));
     }
 
-    IdrisiReader::IdrisiReader(const std::filesystem::path& dataPath, const std::string& dataFilename)
-        : FileStaticReader(dataPath, dataFilename)
-    {
+    // 1. Determine the file size and load the ENTIRE file into RAM in a single step
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
 
+    std::string file_buffer(size, '\0');
+    if (!file.read(file_buffer.data(), size)) {
+        throw std::runtime_error("Error reading file into memory buffer.");
+    }
+    file.close();  // We'll release the album right away
+
+    // 2. Ultra-High-Performance Parsing from RAM
+    const char* ptr = file_buffer.data();
+    const char* end = file_buffer.data() + file_buffer.size();
+
+    for (size_t i = 0; i < data.size(); ++i) {
+        // std::from_chars does not ignore whitespace. We must skip it manually.
+        while (ptr < end && std::isspace(static_cast<unsigned char>(*ptr))) {
+            ++ptr;
+        }
+
+        // If we reach the end of the buffer before filling the vector, the file is incomplete
+        if (ptr == end) {
+            throw std::runtime_error(fmt::format(
+                "Missing data in file. Expected: {}, Found: {}", data.size(), i));
+        }
+
+        // Convert the text to the exact data type[i] without allocating memory or checking the locale
+        auto result = std::from_chars(ptr, end, data[i]);
+
+        if (result.ec != std::errc()) {
+            throw std::runtime_error(fmt::format("Format error reading cell {}", i));
+        }
+
+        // Move the cursor right to the end of the number we just read
+        ptr = result.ptr;
+    }
+}
+
+core::grid::GridMetadata IdrisiReader::ReadMetadata() const {
+    std::filesystem::path doc_file = data_path_ / (data_filename_ + ".doc");
+
+    std::ifstream file(doc_file);
+    if (!file.is_open()) {
+        throw std::runtime_error(fmt::format(
+            "Failed to open metadata file: {}", doc_file.string()));
     }
 
-    void IdrisiReader::read(std::vector<float>& data) const {
-        read<float>(data);
+    core::grid::GridMetadata metadata{};
+    std::string line;
+
+    // We read line by line, looking for clues
+    while (std::getline(file, line)) {
+        // Idrisi .doc files use the following format: “key     : value”
+        auto delimiter_pos = line.find(':');
+        if (delimiter_pos == std::string::npos) continue;
+
+        std::string key = line.substr(0, delimiter_pos);
+        std::string value = line.substr(delimiter_pos + 1);
+
+        // We remove leading and trailing spaces from the key and value
+        key.erase(key.find_last_not_of(" \t") + 1);
+        value.erase(0, value.find_first_not_of(" \t"));
+
+        // We assign based on the key
+        if (key == "columns") metadata.width = std::stoi(value);
+        if (key == "rows") metadata.height = std::stoi(value);
+        if (key == "ref. system") metadata.crs = value;
+        if (key == "ref. units") metadata.units = value;
+        if (key == "unit dist.") metadata.unit_dist = std::stof(value);
+        if (key == "min. X") metadata.min_x = std::stof(value);
+        if (key == "max. X") metadata.max_x = std::stof(value);
+        if (key == "min. Y") metadata.min_y = std::stof(value);
+        if (key == "max. Y") metadata.max_y = std::stof(value);
+        if (key == "resolution") metadata.cell_size = std::stof(value);
     }
 
-    void IdrisiReader::read(std::vector<int8_t>& data) const {
-        read<int8_t>(data);
-    }
+    metadata.cell_count = metadata.width * metadata.height;
 
-    template <typename T>
-    void IdrisiReader::read(std::vector<T>& data) const
-    {
-        std::filesystem::path imgFile = dataPath_ / (dataFilename_ + ".img");
+    return metadata;
+}
 
-        // Usamos ios::binary y ios::ate para obtener el tamaño exacto sin traducciones de salto de línea de Windows
-        std::ifstream file(imgFile, std::ios::binary | std::ios::ate);
-        if (!file.is_open()) {
-            throw std::runtime_error(fmt::format("No se pudo abrir el archivo de datos: {}", imgFile.string()));
-        }
-
-        // 1. Averiguar el tamaño del archivo y leerlo TODO a la RAM en un solo paso
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
-
-        std::string fileBuffer(size, '\0');
-        if (!file.read(fileBuffer.data(), size)) {
-            throw std::runtime_error("Error leyendo el archivo a memoria");
-        }
-        file.close(); // Liberamos el disco de inmediato
-
-        // 2. Parseo de Ultra-Alto Rendimiento desde la RAM
-        const char* ptr = fileBuffer.data();
-        const char* end = fileBuffer.data() + fileBuffer.size();
-
-        for (size_t i = 0; i < data.size(); ++i) {
-            // std::from_chars es tan puro que no ignora los espacios en blanco. Debemos saltarlos manualmente.
-            while (ptr < end && std::isspace(static_cast<unsigned char>(*ptr))) {
-                ++ptr;
-            }
-
-            // Si llegamos al final del buffer antes de llenar el vector, el archivo está incompleto
-            if (ptr == end) {
-                throw std::runtime_error(fmt::format("Faltan datos en el archivo. Esperados: {}, Encontrados: {}", data.size(), i));
-            }
-
-            // Magia de C++17: Convierte el texto al tipo exacto de data[i] sin alojar memoria ni chequear locale
-            auto result = std::from_chars(ptr, end, data[i]);
-
-            if (result.ec != std::errc()) {
-                throw std::runtime_error(fmt::format("Error de formato leyendo la celda {}", i));
-            }
-
-            // Avanzar el puntero justo al final del número que acabamos de leer
-            ptr = result.ptr;
-        }
-	}
-
-    GridMetadata IdrisiReader::readMetadata() const {
-        std::filesystem::path docFile = dataPath_ / (dataFilename_ + ".doc");
-
-        std::ifstream file(docFile);
-        if (!file.is_open()) {
-            throw std::runtime_error(fmt::format("No se pudo abrir el archivo de metadatos: {}", docFile.string()));
-        }
-
-        GridMetadata metadata{};
-        std::string line;
-
-        // Leemos línea por línea buscando las claves
-        while (std::getline(file, line)) {
-            // Los archivos .doc de Idrisi tienen el formato: "clave     : valor"
-            auto delimiterPos = line.find(':');
-            if (delimiterPos == std::string::npos) continue;
-
-            std::string key = line.substr(0, delimiterPos);
-            std::string value = line.substr(delimiterPos + 1);
-
-            // Limpiamos espacios en blanco de la clave y el valor (trimming básico)
-            key.erase(key.find_last_not_of(" \t") + 1);
-            value.erase(0, value.find_first_not_of(" \t"));
-
-            // Asignamos según la clave
-            if (key == "columns")       metadata.width = std::stoi(value);
-            if (key == "rows")          metadata.height = std::stoi(value);
-            if (key == "ref. system")   metadata.crs = value;
-            if (key == "ref. units")    metadata.units = value;
-            if (key == "unit dist.")    metadata.unitDist = std::stof(value);
-            if (key == "min. X")        metadata.minX = std::stof(value);
-            if (key == "max. X")        metadata.maxX = std::stof(value);
-            if (key == "min. Y")        metadata.minY = std::stof(value);
-            if (key == "max. Y")        metadata.maxY = std::stof(value);
-            if (key == "resolution")    metadata.cellSize = std::stof(value);
-        }
-
-        metadata.cellCount = metadata.width * metadata.height;
-
-        return metadata;
-    }
-
-} // namespace danasim
+} // namespace floodsim::app::io::readers::file

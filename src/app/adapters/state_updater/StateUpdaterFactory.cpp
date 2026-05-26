@@ -1,65 +1,72 @@
-
 /**
  * @file StateUpdaterFactory.cpp
  * @brief Implementation of the StateUpdater factory using C++20 visitor pattern.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #include "app/adapters/state_updater/StateUpdaterFactory.hpp"
 
-#include <variant>
-#include <stdexcept>
-#include <fmt/core.h>
 #include <filesystem>
+#include <stdexcept>
+#include <variant>
 
+#include <fmt/core.h>
+
+#include "app/adapters/state_updater/OnnxStateUpdater.hpp"
 #include "app/config/Config.hpp"
 #include "logging/Logger.hpp"
-#include "app/core/ports/StateUpdaterPort.hpp"
 
-// Include concrete implementations
-#include "app/adapters/state_updater/OnnxStateUpdater.hpp"
+namespace floodsim::app::adapters::state_updater {
 
-namespace danasim {
+namespace {
 
-    namespace {
-        // ---------------------------------------------------------------------
-        // C++20 Visitor Helper
-        // ---------------------------------------------------------------------
-        template<class... Ts>
-        struct overloaded : Ts... { using Ts::operator()...; };
+/**
+ * @brief C++20 Visitor Helper to resolve std::variant matching.
+ */
+template <class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
 
-        template<class... Ts>
-        overloaded(Ts...) -> overloaded<Ts...>;
-    }
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
-    std::unique_ptr<StateUpdaterPort>
-        StateUpdaterFactory::create(const StateUpdaterConfig& config)
-    {
-        return std::visit(overloaded{
+}  // namespace
 
-            // Onnx Strategy
-            [&config](const OnnxUpdaterConfig& cfg) -> std::unique_ptr<StateUpdaterPort> {
-                // Validation: Ensure the model file actually exists before passing it to TF
-                if (!std::filesystem::exists(cfg.modelPath)) {
-                    auto msg = fmt::format("StateUpdaterFactory: Model file not found at '{}'",
-                                           cfg.modelPath.string());
-                    LOG_ERROR("{}", msg);
-                    throw std::runtime_error(msg);
-                }
-
-                LOG_DEBUG("Initializing Onnx State Updater using model: {}", cfg.modelPath.string());
-                return std::make_unique<OnnxStateUpdater>(
-                    config.enableRainfall, config.dryTolerance, config.floodRiskLevels,
-                    cfg.modelPath, cfg.tensorDim
-                );
-            },
-
-            // Catch-all for unhandled types
-            [](auto&&) -> std::unique_ptr<StateUpdaterPort> {
-                LOG_ERROR("StateUpdaterFactory: Unknown configuration type encountered.");
-                throw std::runtime_error("StateUpdaterFactory: Unimplemented updater type.");
+std::unique_ptr<core::ports::StateUpdaterPort> StateUpdaterFactory::Create(
+        const config::StateUpdaterConfig& config) {
+    return std::visit(
+        overloaded{
+            // ONNX Strategy
+            [&config](const config::OnnxUpdaterConfig& cfg)
+                -> std::unique_ptr<core::ports::StateUpdaterPort> {
+            // Validation: Ensure the model file actually exists before passing it to ONNX Runtime
+            if (!std::filesystem::exists(cfg.model_path)) {
+              auto msg = fmt::format(
+                  "StateUpdaterFactory: Model file not found at '{}'",
+                  cfg.model_path.string());
+              LOG_ERROR("{}", msg);
+              throw std::runtime_error(msg);
             }
 
-        }, config.updater);
-    }
+            LOG_DEBUG("Initializing ONNX State Updater using model: {}",
+                      cfg.model_path.string());
 
-} // namespace danasim
+            return std::make_unique<OnnxStateUpdater>(
+                config.enable_rainfall, config.dry_tolerance,
+                config.flood_risk_levels, cfg.model_path, cfg.tensor_dim);
+          },
+
+        // Catch-all for unhandled configuration types
+        [](auto&&) -> std::unique_ptr<core::ports::StateUpdaterPort> {
+          LOG_ERROR(
+              "StateUpdaterFactory: Unknown configuration type encountered.");
+          throw std::runtime_error(
+              "StateUpdaterFactory: Unimplemented updater type.");
+        }
+        },
+        config.updater);
+}
+
+} // namespace floodsim::app::adapters::state_updater

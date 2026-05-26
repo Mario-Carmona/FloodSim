@@ -1,3 +1,6 @@
 [submodule "external/vcpkg"]
 	path = external/vcpkg
 	url = https://github.com/microsoft/vcpkg
+[submodule "data"]
+	path = data
+	url = https://huggingface.co/datasets/floodsim/data

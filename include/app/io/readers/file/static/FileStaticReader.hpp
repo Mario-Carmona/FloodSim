@@ -1,26 +1,49 @@
+/**
+ * @file FileStaticReader.hpp
+ * @brief Interface for file-based static layer readers.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #pragma once
 
-#include "app/io/readers/StaticReader.hpp"
-
-#include <string>
 #include <filesystem>
+#include <string>
 
 #include "app/io/formats/file/FileStaticFormat.hpp"
+#include "app/io/readers/StaticReader.hpp"
 
-namespace danasim {
+namespace floodsim::app::io::readers::file {
 
-    class FileStaticReader : public StaticReader {
-    public:
-        static bool isStaticLayer(const std::filesystem::path& dataPath, const std::string& dataFilename, const FileStaticFormat& format);
+/**
+ * @brief Reader implementation for processing static geographical data files.
+ */
+class FileStaticReader : public StaticReader {
+public:
+    /**
+     * @brief Validates if the file at the given path matches the specified static format.
+     * @param data_path Target directory containing the dataset.
+     * @param data_filename File name of the dataset.
+     * @param format The format descriptor to check against.
+     * @return True if the file matches the layout requirements of the format, false otherwise.
+     * @throws std::runtime_error If an unsupported file format is supplied.
+     */
+    static bool IsStaticLayer(const std::filesystem::path& data_path,
+                              const std::string& data_filename,
+                              const formats::file::FileStaticFormat& format);
 
+    /**
+     * @brief Constructs a new FileStaticReader.
+     * @param data_path Target directory containing the data.
+     * @param data_filename File name of the target resource.
+     */
+    FileStaticReader(const std::filesystem::path& data_path,
+                     const std::string& data_filename);
+    virtual ~FileStaticReader() override = default;
 
-        FileStaticReader(const std::filesystem::path& dataPath, const std::string& dataFilename);
-        virtual ~FileStaticReader() = default;
+protected:
+    std::filesystem::path data_path_;
+    std::string data_filename_;
+};
 
-    protected:
-        std::filesystem::path dataPath_;
-        std::string dataFilename_;
-    };
-
-} // namespace danasim
+} // namespace floodsim::app::io::readers::file

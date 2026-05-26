@@ -1,9 +1,11 @@
 /**
- * \file OutputTab.cpp
- * \brief Implementation of the Output configuration tab.
+ * @file OutputTab.cpp
+ * @brief Implementation of the Output configuration tab.
  *
  * Provides the GUI layout to configure simulation outputs, including
  * snapshot frequencies and multiple dynamic output destinations.
+ * 
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #include "gui/tabs/Tabs.hpp"
@@ -20,8 +22,8 @@
 namespace {
 
     /**
-     * \brief C++20 Visitor Helper for std::visit.
-     * \details Essential for unboxing configuration structs from std::variant cleanly.
+     * @brief C++20 Visitor Helper for std::visit.
+     * @details Essential for unboxing configuration structs from std::variant cleanly.
      */
     template<class... Ts> struct Overloaded : Ts... { using Ts::operator()...; };
     template<class... Ts> Overloaded(Ts...) -> Overloaded<Ts...>;
@@ -30,28 +32,71 @@ namespace {
 
 namespace floodsim::gui {
 
-    // ---------------------------------------------------------------------
-    // C++20 Visitor Helper (Igual que en StateUpdaterFactory.cpp)
-    // ---------------------------------------------------------------------
-    template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-    template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+void RenderOutputTab(app::config::OutputConfig& output_config) {
+    try {
+        // ==========================================
+        // 1. SNAPSHOT CONFIGURATION
+        // ==========================================
+        ImGui::Spacing();
+        ImGui::SeparatorText("Snapshot Configuration");
+        ImGui::Spacing();
 
-    void RenderOutputTab(danasim::OutputConfig& output_config) {
-        try {
-            // ==========================================
-            // 1. SNAPSHOT CONFIGURATION
-            // ==========================================
-            ImGui::Spacing();
-            ImGui::SeparatorText("Snapshot Configuration");
-            ImGui::Spacing();
+        if (ImGui::BeginTable("SnapshotConfigTable", 2, ImGuiTableFlags_SizingStretchProp)) {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 180.0f);
+            ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
 
-            if (ImGui::BeginTable("SnapshotConfigTable", 2, ImGuiTableFlags_SizingStretchProp)) {
+            {
+                const char* label = "Every N Steps";
+                const char* tooltip = "Save a snapshot every N simulation steps.";
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("%s", label);
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::SetNextItemWidth(std::min(150.0f, ImGui::GetContentRegionAvail().x));
+
+                Int64Input(label, output_config.snapshot.every_n_steps, tooltip);
+
+                // Safety clamp to ensure a valid frequency
+                if (output_config.snapshot.every_n_steps < 1) {
+                    output_config.snapshot.every_n_steps = 1;
+                }
+            }
+
+            ImGui::EndTable();
+        }
+
+        // ==========================================
+        // 2. DYNAMIC OUTPUTS DESTINATIONS
+        // ==========================================
+        ImGui::Spacing();
+        ImGui::SeparatorText("Configured Outputs");
+        ImGui::Spacing();
+
+        int item_to_delete = -1;
+
+        for (size_t i = 0; i < output_config.outputs.size(); ++i) {
+            ImGui::PushID(static_cast<int>(i));
+
+            ImGui::Text("Output #%zu", i + 1);
+            ImGui::SameLine(ImGui::GetContentRegionAvail().x - 70.0f);
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
+            if (ImGui::Button("Delete", ImVec2(70.0f, 0))) {
+                item_to_delete = static_cast<int>(i);
+            }
+            ImGui::PopStyleColor(2);
+
+            if (ImGui::BeginTable("OutputSettingsTable", 2, ImGuiTableFlags_SizingStretchProp)) {
                 ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 180.0f);
                 ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
 
                 {
-                    const char* label = "Every N Steps";
-                    const char* tooltip = "Save a snapshot every N simulation steps.";
+                    const char* label = "Output Type";
+                    const char* tooltip = "Select the type of output to configure.";
 
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
@@ -61,191 +106,129 @@ namespace floodsim::gui {
                     ImGui::TableSetColumnIndex(1);
                     ImGui::SetNextItemWidth(std::min(150.0f, ImGui::GetContentRegionAvail().x));
 
-                    Int64Input(label, output_config.snapshot.everyNSteps, tooltip);
-
-                    // Safety clamp to ensure a valid frequency
-                    if (output_config.snapshot.everyNSteps < 1) {
-                        output_config.snapshot.everyNSteps = 1;
-                    }
-                }
-
-                ImGui::EndTable();
-            }
-
-            ImGui::Spacing();
-            ImGui::Spacing();
-
-            // ==========================================
-            // 2. OUTPUT DESTINATIONS CONFIGURATION
-            // ==========================================
-            ImGui::SeparatorText("Output Destinations");
-            ImGui::Spacing();
-
-            int item_to_delete = -1;
-
-            for (size_t i = 0; i < output_config.outputs.size(); ++i) {
-                // Push unique ID per output to prevent ImGui input crossover
-                ImGui::PushID(static_cast<int>(i));
-
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("Output #%zu", i + 1);
-
-                ImGui::SameLine();
-
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
-                if (ImGui::Button("Remove", ImVec2(70.0f, 0))) {
-                    item_to_delete = static_cast<int>(i);
-                }
-                ImGui::PopStyleColor(2);
-
-                ImGui::Spacing();
-
-                if (ImGui::BeginTable("OutputItemTable", 2, ImGuiTableFlags_SizingStretchProp)) {
-                    ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 180.0f);
-                    ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
-
-                    // --- 2.1 OUTPUT TYPE SELECTOR ---
-                    {
-                        const char* label = "Output Type";
-                        const char* tooltip = "Select the format and destination for this output.";
-
-                        ImGui::TableNextRow();
-                        ImGui::TableSetColumnIndex(0);
-                        ImGui::AlignTextToFramePadding();
-                        ImGui::Text("%s", label);
-
-                        ImGui::TableSetColumnIndex(1);
-                        ImGui::SetNextItemWidth(std::min(150.0f, ImGui::GetContentRegionAvail().x));
-
-                        // Determine the current type inspecting the std::variant
-                        danasim::OutputConfig::OutputConfigEntryType current_type;
-                        std::visit(Overloaded{
-                                [&current_type](danasim::OutputConfig::CheckpointOutputConfigEntry&) { current_type = danasim::OutputConfig::OutputConfigEntryType::CHECKPOINT; },
-                                [&current_type](danasim::OutputConfig::MqttOutputConfigEntry&) { current_type = danasim::OutputConfig::OutputConfigEntryType::MQTT; },
-                                [&current_type](danasim::OutputConfig::ImageOutputConfigEntry&) { current_type = danasim::OutputConfig::OutputConfigEntryType::IMAGE; },
-                                [](auto&&) { throw std::runtime_error("OutputTab: Unimplemented output type variant."); }
-                            },
-                            output_config.outputs[i]
-                        );
-
-                        danasim::OutputConfig::OutputConfigEntryType prev_type = current_type;
-                        EnumComboBox<danasim::OutputConfig::OutputConfigEntryType>(label, current_type, tooltip);
-
-                        // Re-assign a default-constructed struct to the variant if the type changed
-                        if (current_type != prev_type) {
-                            switch (current_type) {
-                                case danasim::OutputConfig::OutputConfigEntryType::CHECKPOINT:
-                                    output_config.outputs[i] = danasim::OutputConfig::CheckpointOutputConfigEntry{};
-                                    break;
-                                case danasim::OutputConfig::OutputConfigEntryType::MQTT:
-                                    output_config.outputs[i] = danasim::OutputConfig::MqttOutputConfigEntry{};
-                                    break;
-                                case danasim::OutputConfig::OutputConfigEntryType::IMAGE:
-                                    output_config.outputs[i] = danasim::OutputConfig::ImageOutputConfigEntry{};
-                                    break;
-                            }
-                        }
-                    }
-
-                    // --- 2.2 SPECIFIC CONFIGURATION RENDERER ---
-                    std::visit(
-                        Overloaded{
-                            [](danasim::OutputConfig::CheckpointOutputConfigEntry& specific_output) {
-                                {
-                                    const char* label = "Static Format";
-                                    const char* tooltip = "Data format for static spatial maps (e.g., topography DEMs).";
-
-                                    ImGui::TableNextRow();
-                                    ImGui::TableSetColumnIndex(0);
-                                    ImGui::AlignTextToFramePadding();
-                                    ImGui::Text("%s", label);
-
-                                    ImGui::TableSetColumnIndex(1);
-                                    ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
-                                    EnumComboBox<FileStaticFormat>(label, specific_output.staticFormat, tooltip);
-                                }
-                            },
-
-                            // --- MQTT OUTPUT ---
-                            [](danasim::OutputConfig::MqttOutputConfigEntry& specific_output) {
-                                {
-                                    const char* label = "Broker Address";
-                                    const char* tooltip = "Connection settings for the MQTT broker.";
-
-                                    ImGui::TableNextRow();
-                                    ImGui::TableSetColumnIndex(0);
-                                    ImGui::AlignTextToFramePadding();
-                                    ImGui::Text("%s", label);
-
-                                    ImGui::TableSetColumnIndex(1);
-                                    static const std::vector<std::string> mqtt_protocols = { "mqtt://", "mqtts://", "ws://", "wss://" };
-                                    ServerAddressInput(
-                                        label,
-                                        specific_output.protocol,
-                                        specific_output.host,
-                                        specific_output.port,
-                                        mqtt_protocols,
-                                        std::min(800.0f, ImGui::GetContentRegionAvail().x),
-                                        tooltip
-                                    );
-                                }
-
-                                {
-                                    const char* label = "Payload Format";
-                                    const char* tooltip = "Format of the published messages.";
-
-                                    ImGui::TableNextRow();
-                                    ImGui::TableSetColumnIndex(0);
-                                    ImGui::AlignTextToFramePadding();
-                                    ImGui::Text("%s", label);
-
-                                    ImGui::TableSetColumnIndex(1);
-                                    ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
-                                    EnumComboBox<danasim::OutputConfig::MqttOutputConfigEntry::PayloadFormat>(label, specific_output.payloadFormat, tooltip);
-                                }
-                            },
-
-                            [](auto&&) {
-                                ImGui::TableNextRow();
-
-                                ImGui::TableSetColumnIndex(0);
-                                ImGui::TextDisabled("Configuration");
-
-                                ImGui::TableSetColumnIndex(1);
-                                ImGui::TextDisabled("No specific settings for this output type.");
-                            }
+                    // Determine the current type inspecting the std::variant
+                    app::config::OutputConfig::OutputConfigEntryType current_type;
+                    std::visit(Overloaded{
+                            [&current_type](app::config::OutputConfig::CheckpointOutputConfigEntry&) { current_type = app::config::OutputConfig::OutputConfigEntryType::kCheckpoint; },
+                            [&current_type](app::config::OutputConfig::MqttOutputConfigEntry&) { current_type = app::config::OutputConfig::OutputConfigEntryType::kMqtt; },
+                            [&current_type](app::config::OutputConfig::ImageOutputConfigEntry&) { current_type = app::config::OutputConfig::OutputConfigEntryType::kImage; },
+                            [](auto&&) { throw std::runtime_error("OutputTab: Unimplemented output type variant."); }
                         },
                         output_config.outputs[i]
                     );
 
-                    ImGui::EndTable();
+                    app::config::OutputConfig::OutputConfigEntryType prev_type = current_type;
+                    EnumComboBox<app::config::OutputConfig::OutputConfigEntryType>(label, current_type, tooltip);
+
+                    // Re-assign a default-constructed struct to the variant if the type changed
+                    if (current_type != prev_type) {
+                        switch (current_type) {
+                        case app::config::OutputConfig::OutputConfigEntryType::kCheckpoint:
+                            output_config.outputs[i] = app::config::OutputConfig::CheckpointOutputConfigEntry{};
+                            break;
+                        case app::config::OutputConfig::OutputConfigEntryType::kMqtt:
+                            output_config.outputs[i] = app::config::OutputConfig::MqttOutputConfigEntry{};
+                            break;
+                        case app::config::OutputConfig::OutputConfigEntryType::kImage:
+                            output_config.outputs[i] = app::config::OutputConfig::ImageOutputConfigEntry{};
+                            break;
+                        }
+                    }
                 }
 
-                ImGui::Separator();
-                ImGui::Spacing();
-                ImGui::PopID();
+                std::visit(
+                    Overloaded{
+                        [&](app::config::OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
+                            {
+                                const char* label = "Static Format";
+                                const char* tooltip = "Data format for static spatial maps (e.g., topography DEMs).";
+
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::AlignTextToFramePadding();
+                                ImGui::Text("%s", label);
+
+                                ImGui::TableSetColumnIndex(1);
+                                ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
+                                EnumComboBox<app::io::formats::file::FileStaticFormat>(label, checkpoint.static_format, tooltip);
+                            }
+                        },
+                        [&](app::config::OutputConfig::MqttOutputConfigEntry& mqtt) {
+                            {
+                                const char* label = "Broker Address";
+                                const char* tooltip = "Connection settings for the MQTT broker.";
+
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::AlignTextToFramePadding();
+                                ImGui::Text("%s", label);
+
+                                ImGui::TableSetColumnIndex(1);
+                                static const std::vector<std::string> mqtt_protocols = { "mqtt://", "mqtts://", "ws://", "wss://" };
+                                ServerAddressInput(
+                                    label,
+                                    mqtt.protocol,
+                                    mqtt.host,
+                                    mqtt.port,
+                                    mqtt_protocols,
+                                    std::min(800.0f, ImGui::GetContentRegionAvail().x),
+                                    tooltip
+                                );
+                            }
+
+                            {
+                                const char* label = "Payload Format";
+                                const char* tooltip = "Format of the published messages.";
+
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::AlignTextToFramePadding();
+                                ImGui::Text("%s", label);
+
+                                ImGui::TableSetColumnIndex(1);
+                                ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
+                                EnumComboBox<app::config::OutputConfig::MqttOutputConfigEntry::PayloadFormat>(label, mqtt.payload_format, tooltip);
+                            }
+                        },
+                        [&](auto&) {
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            ImGui::Text("Settings");
+
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::TextDisabled("No specific settings for this output type.");
+                        }
+                    },
+                    output_config.outputs[i]
+                );
+
+                ImGui::EndTable();
             }
 
-            // Handle item deletion safely outside the loop
-            if (item_to_delete != -1) {
-                output_config.outputs.erase(output_config.outputs.begin() + item_to_delete);
-            }
+            ImGui::Separator();
+            ImGui::Spacing();
+            ImGui::PopID();
+        }
 
-            // --- ADD OUTPUT BUTTON ---
-            if (ImGui::Button("+ Add Output", ImVec2(-FLT_MIN, 0))) {
-                // Appends a new default output element
-                output_config.outputs.push_back(danasim::OutputConfig::ImageOutputConfigEntry{});
-            }
+		// Delete the item safely outside of the ImGui loop to avoid invalidating indices
+        if (item_to_delete != -1) {
+            output_config.outputs.erase(output_config.outputs.begin() + item_to_delete);
         }
-        catch (const std::exception& e) {
-            std::cerr << "[Error] Exception caught while rendering Output Tab: " << e.what() << "\n";
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "An error occurred rendering the Output Tab.");
+
+        // --- ADD OUTPUT BUTTON ---
+        if (ImGui::Button("+ Add Output", ImVec2(-FLT_MIN, 0))) {
+			// Add a default output
+            output_config.outputs.push_back(app::config::OutputConfig::ImageOutputConfigEntry{});
         }
-        catch (...) {
-            std::cerr << "[Error] Unknown exception caught while rendering Output Tab.\n";
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "A critical unknown error occurred rendering the Output Tab.");
-        }
-	}
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception caught while rendering Output Tab: " << e.what() << "\n";
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "An error occurred rendering the Output Tab.");
+    }
+    catch (...) {
+        std::cerr << "[GUI Error] Unknown exception caught while rendering Output Tab.\n";
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "A critical unknown error occurred rendering the Output Tab.");
+    }
+}
 
 }  // namespace floodsim::gui

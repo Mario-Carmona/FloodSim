@@ -1,17 +1,15 @@
+/**
+ * @file FileStaticWriter.cpp
+ * @brief Implementation details for the FileStaticWriter class.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #include "app/io/writers/file/static/FileStaticWriter.hpp"
 
-#include "app/io/writers/file/static/IdrisiWriter.hpp"
+namespace floodsim::app::io::writers::file {
 
-#include <fmt/core.h>
-#include <magic_enum/magic_enum.hpp>
+FileStaticWriter::FileStaticWriter(const std::string& data_filename)
+    : StaticWriter(), data_filename_(data_filename) {}
 
-namespace danasim {
-
-	FileStaticWriter::FileStaticWriter(const std::string& dataFilename)
-		: StaticWriter(), dataFilename_(dataFilename)
-    {
-        
-	}
-
-} // namespace danasim
+} // namespace floodsim::app::io::writers::file

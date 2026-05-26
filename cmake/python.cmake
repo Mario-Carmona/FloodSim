@@ -2,7 +2,7 @@
 # ---------------------------------------------------------
 # Python Virtual Environment Automation
 # ---------------------------------------------------------
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(Python3 3.10 EXACT REQUIRED COMPONENTS Interpreter)
 
 # --- Función para crear entornos Python aislados ---
 function(create_python_env ENV_NAME ISOLATE_ENVIRONMENT)

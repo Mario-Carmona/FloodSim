@@ -1,9 +1,11 @@
 /**
- * \file ScenarioTab.cpp
- * \brief Implementation of the Scenario configuration tab.
+ * @file ScenarioTab.cpp
+ * @brief Implementation of the Scenario configuration tab.
  *
  * Provides the GUI layout and fields necessary to define the core
  * scenario properties such as scenario name and output directories.
+ * 
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #include "gui/tabs/Tabs.hpp"
@@ -13,12 +15,10 @@
 #include <iostream>
 
 #include <imgui.h>
-#include <imgui_stdlib.h>
-#include <portable-file-dialogs.h>
 
 namespace floodsim::gui {
 
-    void RenderScenarioTab(danasim::ScenarioConfig& scenario_config) {
+    void RenderScenarioTab(app::config::ScenarioConfig& scenario_config) {
         try {
             ImGui::Spacing();
             ImGui::SeparatorText("Basic Information");
@@ -28,12 +28,12 @@ namespace floodsim::gui {
                 ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 180.0f);
                 ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
 
+                // --- Scenario Name ---
                 {
                     const char* label = "Scenario Name";
                     const char* tooltip = "Enter a unique name for this simulation run.";
 
                     ImGui::TableNextRow();
-
                     ImGui::TableSetColumnIndex(0);
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text("%s", label);
@@ -41,7 +41,8 @@ namespace floodsim::gui {
                     ImGui::TableSetColumnIndex(1);
                     ImGui::SetNextItemWidth(std::min(400.0f, ImGui::GetContentRegionAvail().x));
 
-                    TextInput(label, scenario_config.name, tooltip);
+                    // Nota: Se usa ## para ocultar el label interno de ImGui
+                    TextInput("##ScenarioName", scenario_config.name, tooltip);
                 }
 
                 ImGui::EndTable();
@@ -55,35 +56,32 @@ namespace floodsim::gui {
                 ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 180.0f);
                 ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
 
+                // --- Output Directory ---
                 {
                     const char* label = "Output Directory";
-                    const char* tooltip = "Select the folder where the simulation results and logs will be saved.";
+                    const char* tooltip = "Select the root folder where scenario results will be saved.";
 
                     ImGui::TableNextRow();
-
                     ImGui::TableSetColumnIndex(0);
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text("%s", label);
 
                     ImGui::TableSetColumnIndex(1);
-
-                    // std::filesystem::path variable expected as per the refactored Helpers
-                    FolderInput(label, scenario_config.outputDir, std::min(900.0f, ImGui::GetContentRegionAvail().x), tooltip);
+                    FolderInput("##OutputDirectory", scenario_config.output_dir, std::min(900.0f, ImGui::GetContentRegionAvail().x), tooltip);
                 }
 
+                // --- Append Timestamp ---
                 {
                     const char* label = "Append Timestamp";
                     const char* tooltip = "If enabled, the simulation start time will be added to the output folder name.";
 
                     ImGui::TableNextRow();
-
                     ImGui::TableSetColumnIndex(0);
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text("%s", label);
 
                     ImGui::TableSetColumnIndex(1);
-
-                    Checkbox(label, scenario_config.appendStartTimestamp, tooltip);
+                    Checkbox("##AppendTimestamp", scenario_config.append_start_timestamp, tooltip);
                 }
 
                 ImGui::EndTable();
@@ -91,12 +89,12 @@ namespace floodsim::gui {
 
         }
         catch (const std::exception& e) {
-            std::cerr << "[Error] Exception caught while rendering Scenario Tab: " << e.what() << "\n";
+            std::cerr << "[GUI Error] Exception in Scenario Tab: " << e.what() << '\n';
             ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "An error occurred rendering the Scenario Tab.");
         }
         catch (...) {
-            std::cerr << "[Error] Unknown exception caught while rendering Scenario Tab.\n";
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "A critical unknown error occurred rendering the Scenario Tab.");
+            std::cerr << "[GUI Error] Unknown exception in Scenario Tab.\n";
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "A critical unknown error occurred.");
         }
     }
 

@@ -63,8 +63,7 @@
       "name": "app",
       "hidden": true,
       "inherits": [
-        "common-configure-options",
-        "python-models"
+        "common-configure-options"
       ],
       "description": "Defines settings for building project executables.",
       "cacheVariables": {
@@ -234,6 +233,38 @@
       "description": "Release build for Linux GUI"
     },
     {
+      "name": "windows-pack-server",
+      "inherits": [
+        "windows-cli-only-release",
+        "python-models"
+      ],
+      "description": "Release build for Linux GUI"
+    },
+    {
+      "name": "windows-pack-desktop",
+      "inherits": [
+        "windows-full-suite-release",
+        "python-models"
+      ],
+      "description": "Release build for Linux GUI"
+    },
+    {
+      "name": "linux-pack-server",
+      "inherits": [
+        "linux-cli-only-release",
+        "python-models"
+      ],
+      "description": "Release build for Linux GUI"
+    },
+    {
+      "name": "linux-pack-desktop",
+      "inherits": [
+        "linux-full-suite-release",
+        "python-models"
+      ],
+      "description": "Release build for Linux GUI"
+    },
+    {
       "name": "tests",
       "hidden": true,
       "inherits": [ "common-configure-options", "cli", "debug" ],
@@ -256,6 +287,16 @@
       "description": "",
       "cacheVariables": {
         "ENABLE_STATE_UPDATER_ADAPTERS": "ON"
+      }
+    },
+    {
+      "name": "docs",
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_DOCS": "ON"
       }
     }
   ],
@@ -317,6 +358,26 @@
       "configuration": "Release"
     },
     {
+      "name": "windows-pack-server",
+      "configurePreset": "windows-pack-server",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-pack-desktop",
+      "configurePreset": "windows-pack-desktop",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-pack-server",
+      "configurePreset": "linux-pack-server",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-pack-desktop",
+      "configurePreset": "linux-pack-desktop",
+      "configuration": "Release"
+    },
+    {
       "name": "windows-tests-all",
       "configurePreset": "windows-tests-all",
       "configuration": "Debug"
@@ -327,6 +388,11 @@
       "configuration": "Debug"
     },
     {
+      "name": "python-models",
+      "configurePreset": "python-models",
+      "configuration": "Release"
+    },
+    {
       "name": "python-data",
       "configurePreset": "python-data",
       "configuration": "Release"
@@ -335,6 +401,12 @@
       "name": "python-visualizer",
       "configurePreset": "python-visualizer",
       "configuration": "Release"
+    },
+    {
+      "name": "docs",
+      "configurePreset": "docs",
+      "configuration": "Release",
+      "targets": [ "docs" ]
     }
   ],
   "packagePresets": [
@@ -346,7 +418,7 @@
       }
     },
     {
-      "name": "cli-only",
+      "name": "server",
       "hidden": true,
       "inherits": [ "common-package-options" ],
       "variables": {
@@ -354,7 +426,7 @@
       }
     },
     {
-      "name": "full-suite",
+      "name": "desktop",
       "hidden": true,
       "inherits": [ "common-package-options" ],
       "variables": {
@@ -362,28 +434,28 @@
       }
     },
     {
-      "name": "windows-cli-only",
+      "name": "windows-pack-server",
       "displayName": "Installer - CLI Only",
-      "inherits": [ "cli-only" ],
-      "configurePreset": "windows-cli-only-release"
+      "inherits": [ "server" ],
+      "configurePreset": "windows-pack-server"
     },
     {
-      "name": "windows-full-suite",
+      "name": "windows-pack-desktop",
       "displayName": "Installer - GUI & CLI",
-      "inherits": [ "full-suite" ],
-      "configurePreset": "windows-full-suite-release"
+      "inherits": [ "desktop" ],
+      "configurePreset": "windows-pack-desktop"
     },
     {
-      "name": "linux-cli-only",
+      "name": "linux-pack-server",
       "displayName": "Installer - CLI Only",
-      "inherits": [ "cli-only" ],
-      "configurePreset": "linux-cli-only-release"
+      "inherits": [ "server" ],
+      "configurePreset": "linux-pack-server"
     },
     {
-      "name": "linux-full-suite",
+      "name": "linux-pack-desktop",
       "displayName": "Installer - GUI & CLI",
-      "inherits": [ "full-suite" ],
-      "configurePreset": "linux-full-suite-release"
+      "inherits": [ "desktop" ],
+      "configurePreset": "linux-pack-desktop"
     }
   ],
   "workflowPresets": [
@@ -509,15 +581,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "windows-cli-only-release"
+          "name": "windows-pack-server"
         },
         {
           "type": "build",
-          "name": "windows-cli-only-release"
+          "name": "windows-pack-server"
         },
         {
           "type": "package",
-          "name": "windows-cli-only"
+          "name": "windows-pack-server"
         }
       ]
     },
@@ -526,15 +598,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "windows-full-suite-release"
+          "name": "windows-pack-desktop"
         },
         {
           "type": "build",
-          "name": "windows-full-suite-release"
+          "name": "windows-pack-desktop"
         },
         {
           "type": "package",
-          "name": "windows-full-suite"
+          "name": "windows-pack-desktop"
         }
       ]
     },
@@ -543,15 +615,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "linux-cli-only-release"
+          "name": "linux-pack-server"
         },
         {
           "type": "build",
-          "name": "linux-cli-only-release"
+          "name": "linux-pack-server"
         },
         {
           "type": "package",
-          "name": "linux-cli-only"
+          "name": "linux-pack-server"
         }
       ]
     },
@@ -560,15 +632,15 @@
       "steps": [
         {
           "type": "configure",
-          "name": "linux-full-suite-release"
+          "name": "linux-pack-desktop"
         },
         {
           "type": "build",
-          "name": "linux-full-suite-release"
+          "name": "linux-pack-desktop"
         },
         {
           "type": "package",
-          "name": "linux-full-suite"
+          "name": "linux-pack-desktop"
         }
       ]
     },
@@ -599,6 +671,19 @@
       ]
     },
     {
+      "name": "python-models",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "python-models"
+        },
+        {
+          "type": "build",
+          "name": "python-models"
+        }
+      ]
+    },
+    {
       "name": "python-data",
       "steps": [
         {
@@ -621,6 +706,19 @@
         {
           "type": "build",
           "name": "python-visualizer"
+        }
+      ]
+    },
+    {
+      "name": "docs",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "docs"
+        },
+        {
+          "type": "build",
+          "name": "docs"
         }
       ]
     }

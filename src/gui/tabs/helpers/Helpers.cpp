@@ -1,428 +1,432 @@
 /**
- * \file Helpers.cpp
- * \brief Implementation of ImGui widget wrappers and helper functions.
+ * @file Helpers.cpp
+ * @brief Implementation of ImGui widget wrappers and helper functions.
+ *
+ * This file contains the implementation of standardized UI components using ImGui,
+ * ensuring safe access, consistent styling, and proper resource management.
+ * 
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #include "gui/tabs/helpers/Helpers.hpp"
 
+#include <cstring>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <exception>
 
 #include <portable-file-dialogs.h>
 
 namespace floodsim::gui {
 
-    namespace {
+namespace {
 
-        /**
-            * \brief Retrieves the number of days in a given month/year accounting for leap years.
-            */
-        int GetDaysInMonth(int year, int month) {
-            if (month < 1 || month > 12) return 30; // Failsafe
-            static const int kDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-            if (month == 2) {
-                bool is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-                return is_leap ? 29 : 28;
-            }
-            return kDays[month - 1];
-        }
+/**
+ * @brief Retrieves the number of days in a given month/year accounting for leap years.
+ * @param year The year to check.
+ * @param month The month to check (1-12).
+ * @return The number of days in the specified month.
+*/
+int GetDaysInMonth(int year, int month) {
+    if (month < 1 || month > 12) return 30; // Failsafe
+    static constexpr int kDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-        /**
-            * \brief Retrieves the string representation of a month.
-            */
-        const char* GetMonthName(int month) {
-            if (month < 1 || month > 12) return "Unknown";
-            static const char* kNames[] = { "January", "February", "March", "April", "May", "June",
-                                            "July", "August", "September", "October", "November", "December" };
-            return kNames[month - 1];
-        }
-
-        /**
-            * \brief Safely extracts local time, falling back to Unix epoch on error.
-            */
-        std::tm GetSafeLocalTime(std::time_t t) {
-            std::tm* tm_ptr = std::localtime(&t);
-            std::tm current_tm = {};
-            if (tm_ptr != nullptr) {
-                current_tm = *tm_ptr;
-            }
-            else {
-                current_tm.tm_year = 70; current_tm.tm_mon = 0; current_tm.tm_mday = 1;
-                current_tm.tm_hour = 0;  current_tm.tm_min = 0; current_tm.tm_sec = 0;
-            }
-            return current_tm;
-        }
-
-        /**
-            * \brief Renders the Date Picker internal UI component.
-            */
-        bool RenderDatePickerUI(std::tm& current_tm, int& view_year, int& view_month) {
-            bool changed = false;
-
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 4));
-            if (ImGui::Button("<", ImVec2(24, 0))) {
-                view_month -= 1;
-                if (view_month < 1) { view_month = 12; view_year -= 1; }
-            }
-            ImGui::SameLine();
-
-            char month_str[64];
-            std::snprintf(month_str, sizeof(month_str), "%s %d", GetMonthName(view_month), view_year);
-            float text_width = ImGui::CalcTextSize(month_str).x;
-            float center_pos = (ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x - text_width) * 0.5f;
-
-            ImGui::SetCursorPosX(center_pos > 0 ? center_pos : 0.0f);
-            ImGui::Text("%s", month_str);
-
-            ImGui::SameLine();
-            ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - 24);
-            if (ImGui::Button(">", ImVec2(24, 0))) {
-                view_month += 1;
-                if (view_month > 12) { view_month = 1; view_year += 1; }
-            }
-            ImGui::PopStyleVar();
-            ImGui::Separator();
-
-            if (ImGui::BeginTable("DaysTable", 7, ImGuiTableFlags_SizingStretchSame)) {
-                const char* days[] = { "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" };
-                for (int i = 0; i < 7; ++i) ImGui::TableSetupColumn(days[i]);
-                ImGui::TableHeadersRow();
-
-                std::tm time_in = { 0, 0, 0, 1, view_month - 1, view_year - 1900 };
-                std::mktime(&time_in); // Normalize
-                int start_day_offset = (time_in.tm_wday + 6) % 7;
-                int days_in_month = GetDaysInMonth(view_year, view_month);
-
-                ImGui::TableNextRow();
-                for (int i = 0; i < start_day_offset; ++i) {
-                    ImGui::TableSetColumnIndex(i);
-                    ImGui::Text("");
-                }
-
-                for (int day = 1; day <= days_in_month; ++day) {
-                    int col = (start_day_offset + day - 1) % 7;
-                    ImGui::TableSetColumnIndex(col);
-
-                    char day_str[4];
-                    std::snprintf(day_str, sizeof(day_str), "%d", day);
-
-                    bool is_selected_date = (day == current_tm.tm_mday &&
-                        view_month == current_tm.tm_mon + 1 &&
-                        view_year == current_tm.tm_year + 1900);
-
-                    if (is_selected_date) {
-                        ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-                    }
-
-                    if (ImGui::Button(day_str, ImVec2(-FLT_MIN, 0))) {
-                        current_tm.tm_mday = day;
-                        current_tm.tm_mon = view_month - 1;
-                        current_tm.tm_year = view_year - 1900;
-                        changed = true;
-                    }
-
-                    if (is_selected_date) ImGui::PopStyleColor();
-                    if (col == 6 && day < days_in_month) ImGui::TableNextRow();
-                }
-                ImGui::EndTable();
-            }
-            return changed;
-        }
-
-        /**
-            * \brief Renders the Time Picker internal UI component.
-            */
-        bool RenderTimePickerUI(std::tm& current_tm) {
-            bool changed = false;
-            ImGui::TextDisabled("Time (HH:MM:SS)");
-
-            int h = current_tm.tm_hour;
-            int m = current_tm.tm_min;
-            int s = current_tm.tm_sec;
-
-            auto time_combo_box = [](const char* id, int& val, int max_val) -> bool {
-                bool local_changed = false;
-                char preview[8];
-                std::snprintf(preview, sizeof(preview), "%02d", val);
-
-                ImGui::PushItemWidth(50.0f);
-                if (ImGui::BeginCombo(id, preview, ImGuiComboFlags_HeightLargest)) {
-                    for (int i = 0; i <= max_val; ++i) {
-                        char item[8];
-                        std::snprintf(item, sizeof(item), "%02d", i);
-                        bool is_selected = (val == i);
-                        if (ImGui::Selectable(item, is_selected)) {
-                            val = i;
-                            local_changed = true;
-                        }
-                        if (is_selected) ImGui::SetItemDefaultFocus();
-                    }
-                    ImGui::EndCombo();
-                }
-                ImGui::PopItemWidth();
-                return local_changed;
-                };
-
-            if (time_combo_box("##h", h, 23)) changed = true;
-            ImGui::SameLine(0, 4.0f); ImGui::Text(":"); ImGui::SameLine(0, 4.0f);
-            if (time_combo_box("##m", m, 59)) changed = true;
-            ImGui::SameLine(0, 4.0f); ImGui::Text(":"); ImGui::SameLine(0, 4.0f);
-            if (time_combo_box("##s", s, 59)) changed = true;
-
-            if (changed) {
-                current_tm.tm_hour = h;
-                current_tm.tm_min = m;
-                current_tm.tm_sec = s;
-            }
-
-            return changed;
-        }
-
-    } // anonymous namespace
-
-
-    void TextInput(const char* label, std::string& value, const char* tooltip) {
-        if (!label) return;
-        ImGui::PushID(label);
-        ImGui::InputText("##input", &value);
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
-        ImGui::PopID();
+    if (month == 2) {
+        bool is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        return is_leap ? 29 : 28;
     }
+    return kDays[month - 1];
+}
 
-    void FloatInput(const char* label, float& value, const char* tooltip) {
-        if (!label) return;
-        ImGui::PushID(label);
-        ImGui::InputFloat("##input", &value, 0.0f, 0.0f, "%.7g");
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
-        ImGui::PopID();
+/**
+ * @brief Retrieves the string representation of a month.
+ * @param month The month number (1-12).
+ * @return A C-string containing the 3-letter abbreviation of the month.
+ */
+const char* GetMonthName(int month) {
+    if (month < 1 || month > 12) return "Unknown";
+    static constexpr const char* kMonthNames[] = {
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    };
+    return kMonthNames[month - 1];
+}
+
+/**
+ * @brief Thread-safe cross-platform conversion from time_t to std::tm.
+ * @param t The epoch time to convert.
+ * @return A populated std::tm structure.
+ */
+std::tm GetSafeLocalTime(std::time_t t) {
+    std::tm tm_time;
+#if defined(_WIN32)
+    localtime_s(&tm_time, &t); // Windows secure version
+#else
+    localtime_r(&t, &tm_time); // POSIX thread-safe version
+#endif
+    return tm_time;
+}
+
+/**
+ * @brief Renders the Date Picker UI components without handling chrono conversions.
+ * @return True if any value was modified by the user.
+ */
+bool RenderDatePickerUI(int& year, int& month, int& day, bool& is_hovered) {
+    bool changed = false;
+    const float kYearWidth = 60.0f;
+    const float kMonthWidth = 60.0f;
+    const float kDayWidth = 40.0f;
+
+    ImGui::SetNextItemWidth(kDayWidth);
+    if (ImGui::DragInt("##Day", &day, 0.2f, 1, 31, "%d")) changed = true;
+    is_hovered |= ImGui::IsItemHovered();
+
+    ImGui::SameLine(0, 4.0f);
+
+    ImGui::SetNextItemWidth(kMonthWidth);
+    // Asumo que GetMonthName sigue estando en tu namespace anónimo
+    if (ImGui::BeginCombo("##Month", GetMonthName(month))) {
+        for (int m = 1; m <= 12; ++m) {
+            bool is_selected = (month == m);
+            if (ImGui::Selectable(GetMonthName(m), is_selected)) {
+                month = m;
+                changed = true;
+            }
+            if (is_selected) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
     }
+    is_hovered |= ImGui::IsItemHovered();
 
-    void DoubleInput(const char* label, double& value, const char* tooltip) {
-        if (!label) return;
-        ImGui::PushID(label);
-        ImGui::InputDouble("##input", &value, 0.0, 0.0, "%.8g");
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
-        ImGui::PopID();
+    ImGui::SameLine(0, 4.0f);
+
+    ImGui::SetNextItemWidth(kYearWidth);
+    if (ImGui::DragInt("##Year", &year, 0.5f, 1900, 2100, "%d")) changed = true;
+    is_hovered |= ImGui::IsItemHovered();
+
+    return changed;
+}
+
+/**
+ * @brief Renders the Time Picker UI components without handling chrono conversions.
+ * @return True if any value was modified by the user.
+ */
+bool RenderTimePickerUI(int& hour, int& minute, int& second, bool& is_hovered) {
+    bool changed = false;
+    const float kTimeUnitWidth = 40.0f;
+
+    ImGui::SetNextItemWidth(kTimeUnitWidth);
+    if (ImGui::DragInt("##Hour", &hour, 0.2f, 0, 23, "%02d")) changed = true;
+    is_hovered |= ImGui::IsItemHovered();
+
+    ImGui::SameLine(0, 4.0f);
+    ImGui::Text(":");
+    ImGui::SameLine(0, 4.0f);
+
+    ImGui::SetNextItemWidth(kTimeUnitWidth);
+    if (ImGui::DragInt("##Minute", &minute, 0.2f, 0, 59, "%02d")) changed = true;
+    is_hovered |= ImGui::IsItemHovered();
+
+    ImGui::SameLine(0, 4.0f);
+    ImGui::Text(":");
+    ImGui::SameLine(0, 4.0f);
+
+    ImGui::SetNextItemWidth(kTimeUnitWidth);
+    if (ImGui::DragInt("##Second", &second, 0.2f, 0, 59, "%02d")) changed = true;
+    is_hovered |= ImGui::IsItemHovered();
+
+    return changed;
+}
+
+} // anonymous namespace
+
+void TextInput(const char* label, std::string& value, const char* tooltip) {
+    if (!label) return;
+
+    try {
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        ImGui::InputText(label, &value);
+        if (tooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
     }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in TextInput: " << e.what() << '\n';
+    }
+}
 
-    void Int64Input(const char* label, int64_t& value, const char* tooltip) {
-        if (!label) return;
-        ImGui::PushID(label);
+void FloatInput(const char* label, float& value, const char* tooltip) {
+    if (!label) return;
+
+    try {
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        ImGui::InputFloat(label, &value);
+        if (tooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in FloatInput: " << e.what() << '\n';
+    }
+}
+
+void DoubleInput(const char* label, double& value, const char* tooltip) {
+    if (!label) return;
+
+    try {
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        ImGui::InputDouble(label, &value);
+        if (tooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in DoubleInput: " << e.what() << '\n';
+    }
+}
+
+void Int64Input(const char* label, int64_t& value, const char* tooltip) {
+    if (!label) return;
+
+    try {
         int64_t step = 1;
         int64_t step_fast = 100;
         ImGui::InputScalar("##input", ImGuiDataType_S64, &value, &step, &step_fast);
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
-        ImGui::PopID();
-    }
-
-    void Checkbox(const char* label, bool& value, const char* tooltip) {
-        if (!label) return;
-        ImGui::PushID(label);
-        ImGui::Checkbox("##checkbox", &value);
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
-        ImGui::PopID();
-    }
-
-    void FolderInput(const char* label, std::filesystem::path& value, float item_width, const char* tooltip) {
-        if (!label) return;
-        ImGui::PushID(label);
-
-        std::string temp_str = value.string();
-        float browse_button_width = 80.0f;
-
-        if (ImGui::Button("Browse", ImVec2(browse_button_width, 0))) {
-            try {
-                auto folder = pfd::select_folder("Select Directory", temp_str).result();
-                if (!folder.empty()) {
-                    value = folder;
-                }
-            }
-            catch (const std::exception& e) {
-                std::cerr << "[Error] Folder selection failed: " << e.what() << "\n";
-            }
+        if (tooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", tooltip);
         }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in Int64Input: " << e.what() << '\n';
+    }
+}
+
+void Checkbox(const char* label, bool& value, const char* tooltip) {
+    if (!label) return;
+
+    try {
+        ImGui::Checkbox(label, &value);
+        if (tooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in Checkbox: " << e.what() << '\n';
+    }
+}
+
+void FolderInput(const char* label, std::filesystem::path& path, float width, const char* tooltip) {
+    if (!label) return;
+
+    try {
+        ImGui::PushID(label);
+
+        std::string path_str = path.string();
+
+        ImGui::SetNextItemWidth(width - 40.0f); // Leave room for browse button
+        ImGui::InputText("##FolderPath", &path_str, ImGuiInputTextFlags_ReadOnly);
 
         if (tooltip && ImGui::IsItemHovered()) {
             ImGui::SetTooltip("%s", tooltip);
         }
 
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(item_width - browse_button_width);
-        ImGui::InputText("##input", &temp_str, ImGuiInputTextFlags_ReadOnly);
-        ImGui::PopID();
-    }
 
-    void ColorInput(const char* label, std::string& hex_color, const char* tooltip, ImGuiColorEditFlags extra_flags) {
-        if (!label) return;
-        ImGui::PushID(label);
-
-        unsigned int r = 255, g = 255, b = 255, a = 255;
-
-        // Safely parse hex string, verifying sscanf return bounds
-        if (hex_color.length() >= 6) {
-            int parsed = std::sscanf(hex_color.c_str(), "%02x%02x%02x", &r, &g, &b);
-            if (parsed != 3) { r = g = b = 255; }
-        }
-        if (hex_color.length() >= 8) {
-            int parsed = std::sscanf(hex_color.c_str() + 6, "%02x", &a);
-            if (parsed != 1) { a = 255; }
-        }
-
-        float col[4] = { r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f };
-        ImGuiColorEditFlags flags = ImGuiColorEditFlags_DisplayHex | ImGuiColorEditFlags_AlphaPreview | extra_flags;
-
-        if (ImGui::ColorEdit4("##ColorPicker", col, flags)) {
-            char buffer[10];
-            int written = std::snprintf(buffer, sizeof(buffer), "%02X%02X%02X%02X",
-                static_cast<int>(col[0] * 255.0f), static_cast<int>(col[1] * 255.0f),
-                static_cast<int>(col[2] * 255.0f), static_cast<int>(col[3] * 255.0f));
-
-            if (written > 0 && written < static_cast<int>(sizeof(buffer))) {
-                hex_color = buffer;
+        if (ImGui::Button("...", ImVec2(35.0f, 0))) {
+            // Using portable-file-dialogs for cross-platform folder dialog
+            auto dir = pfd::select_folder("Select Directory", path_str).result();
+            if (!dir.empty()) {
+                path = std::filesystem::path(dir).lexically_normal();
             }
         }
 
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
         ImGui::PopID();
     }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in FolderInput: " << e.what() << '\n';
+        ImGui::PopID();
+    }
+}
 
-    void TimestampPicker(const char* label, std::chrono::sys_seconds& timestamp, const char* tooltip) {
-        if (!label) return;
+void ColorInput(const char* label, std::string& hex_color, const char* tooltip, ImGuiColorEditFlags extra_flags) {
+    if (!label) return;
+
+    try {
+        // 1. Convertir el string hexadecimal a un array float[4] para ImGui
+        float col[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        const char* hex_str = hex_color.c_str();
+
+        // Ignorar el '#' si está presente
+        if (hex_str[0] == '#') {
+            hex_str++;
+        }
+
+        size_t len = std::strlen(hex_str);
+        if (len == 6 || len == 8) {
+            unsigned int r = 0, g = 0, b = 0, a = 255;
+            if (len == 6) {
+                std::sscanf(hex_str, "%02x%02x%02x", &r, &g, &b);
+            }
+            else {
+                std::sscanf(hex_str, "%02x%02x%02x%02x", &r, &g, &b, &a);
+            }
+            col[0] = static_cast<float>(r) / 255.0f;
+            col[1] = static_cast<float>(g) / 255.0f;
+            col[2] = static_cast<float>(b) / 255.0f;
+            col[3] = static_cast<float>(a) / 255.0f;
+        }
+
+        // 2. Renderizar el widget ImGui
+        if (ImGui::ColorEdit4(label, col, extra_flags)) {
+            // 3. Si el usuario modifica el color, actualizar el string original
+            char buf[10];
+            std::snprintf(buf, sizeof(buf), "#%02X%02X%02X%02X",
+                static_cast<unsigned int>(col[0] * 255.0f),
+                static_cast<unsigned int>(col[1] * 255.0f),
+                static_cast<unsigned int>(col[2] * 255.0f),
+                static_cast<unsigned int>(col[3] * 255.0f));
+            hex_color = buf;
+        }
+
+        if (tooltip && ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in ColorInput: " << e.what() << '\n';
+    }
+}
+
+void TimestampPicker(const char* label, std::chrono::sys_seconds& timestamp, const char* tooltip) {
+    if (!label) return;
+
+    try {
         ImGui::PushID(label);
 
-        std::time_t t = timestamp.time_since_epoch().count();
-        if (t < 0) {
-            t = 0;
-            timestamp = std::chrono::sys_seconds(std::chrono::seconds(0));
+        std::time_t t_c = std::chrono::system_clock::to_time_t(timestamp);
+        std::tm tm_time = GetSafeLocalTime(t_c);
+
+        std::chrono::seconds time_of_day(tm_time.tm_hour * 3600 + tm_time.tm_min * 60 + tm_time.tm_sec);
+
+        DatePicker("##SubDate", timestamp, tooltip);
+        ImGui::SameLine(0, 12.0f);
+        TimePicker("##SubTime", time_of_day, tooltip);
+
+        // Reconstruir la hora si TimePicker la modificó
+        std::time_t t_c_new = std::chrono::system_clock::to_time_t(timestamp);
+        tm_time = GetSafeLocalTime(t_c_new);
+
+        auto new_time_count = time_of_day.count();
+        tm_time.tm_hour = static_cast<int>((new_time_count / 3600) % 24);
+        tm_time.tm_min = static_cast<int>((new_time_count / 60) % 60);
+        tm_time.tm_sec = static_cast<int>(new_time_count % 60);
+        tm_time.tm_isdst = -1;
+
+        t_c_new = std::mktime(&tm_time);
+        if (t_c_new != -1) {
+            timestamp = std::chrono::time_point_cast<std::chrono::seconds>(
+                std::chrono::system_clock::from_time_t(t_c_new));
         }
-        std::tm current_tm = GetSafeLocalTime(t);
 
-        char buffer[64];
-        std::snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d %02d:%02d:%02d",
-            current_tm.tm_year + 1900, current_tm.tm_mon + 1, current_tm.tm_mday,
-            current_tm.tm_hour, current_tm.tm_min, current_tm.tm_sec);
-
-        if (ImGui::Button(buffer, ImVec2(ImGui::CalcItemWidth(), 0))) {
-            ImGui::OpenPopup("TimestampPopup");
-        }
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
-
-        if (ImGui::BeginPopup("TimestampPopup")) {
-            ImGuiStorage* storage = ImGui::GetStateStorage();
-            int* view_year = storage->GetIntRef(ImGui::GetID("view_year"), current_tm.tm_year + 1900);
-            int* view_month = storage->GetIntRef(ImGui::GetID("view_month"), current_tm.tm_mon + 1);
-
-            bool date_edited = RenderDatePickerUI(current_tm, *view_year, *view_month);
-            ImGui::Separator();
-            bool time_edited = RenderTimePickerUI(current_tm);
-
-            if (date_edited || time_edited) {
-                current_tm.tm_isdst = -1;
-                std::time_t new_time = std::mktime(&current_tm);
-                if (new_time >= 0) {
-                    timestamp = std::chrono::sys_seconds(std::chrono::seconds(new_time));
-                }
-            }
-            ImGui::EndPopup();
-        }
         ImGui::PopID();
     }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in TimestampPicker: " << e.what() << '\n';
+        ImGui::PopID();
+    }
+}
 
-    void DatePicker(const char* label, std::chrono::sys_seconds& date, const char* tooltip) {
-        if (!label) return;
+void DatePicker(const char* label, std::chrono::sys_seconds& date, const char* tooltip) {
+    if (!label) return;
+
+    try {
         ImGui::PushID(label);
 
-        std::time_t t = date.time_since_epoch().count();
-        if (t < 0) {
-            t = 0;
-            date = std::chrono::sys_seconds(std::chrono::seconds(0));
-        }
-        std::tm current_tm = GetSafeLocalTime(t);
+        std::time_t t_c = std::chrono::system_clock::to_time_t(date);
+        std::tm tm_time = GetSafeLocalTime(t_c);
 
-        char buffer[64];
-        std::snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d",
-            current_tm.tm_year + 1900, current_tm.tm_mon + 1, current_tm.tm_mday);
+        int year = tm_time.tm_year + 1900;
+        int month = tm_time.tm_mon + 1;
+        int day = tm_time.tm_mday;
+        bool is_hovered = false;
 
-        if (ImGui::Button(buffer, ImVec2(ImGui::CalcItemWidth(), 0))) {
-            ImGui::OpenPopup("DatePopup");
-        }
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
+        if (RenderDatePickerUI(year, month, day, is_hovered)) {
+            // Validación estricta tras la entrada del usuario
+            day = std::clamp(day, 1, GetDaysInMonth(year, month));
+            tm_time.tm_year = year - 1900;
+            tm_time.tm_mon = month - 1;
+            tm_time.tm_mday = day;
+            tm_time.tm_isdst = -1; // Mantener configuración local de horario de verano
 
-        if (ImGui::BeginPopup("DatePopup")) {
-            ImGuiStorage* storage = ImGui::GetStateStorage();
-            int* view_year = storage->GetIntRef(ImGui::GetID("view_year"), current_tm.tm_year + 1900);
-            int* view_month = storage->GetIntRef(ImGui::GetID("view_month"), current_tm.tm_mon + 1);
-
-            if (RenderDatePickerUI(current_tm, *view_year, *view_month)) {
-                current_tm.tm_isdst = -1;
-                std::time_t new_time = std::mktime(&current_tm);
-                if (new_time >= 0) {
-                    date = std::chrono::sys_seconds(std::chrono::seconds(new_time));
-                }
+            t_c = std::mktime(&tm_time);
+            if (t_c != -1) {
+                date = std::chrono::time_point_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::from_time_t(t_c));
             }
-            ImGui::EndPopup();
         }
+
+        if (tooltip && is_hovered) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
+
         ImGui::PopID();
     }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in DatePicker: " << e.what() << '\n';
+        ImGui::PopID();
+    }
+}
 
-    void TimePicker(const char* label, std::chrono::seconds& time, const char* tooltip) {
-        if (!label) return;
+void TimePicker(const char* label, std::chrono::seconds& time, const char* tooltip) {
+    if (!label) return;
+
+    try {
         ImGui::PushID(label);
 
-        auto total_seconds = time.count();
-        if (total_seconds < 0) {
-            total_seconds = 0;
-            time = std::chrono::seconds(0);
+        auto time_count = time.count();
+        int hour = static_cast<int>((time_count / 3600) % 24);
+        int minute = static_cast<int>((time_count / 60) % 60);
+        int second = static_cast<int>(time_count % 60);
+        bool is_hovered = false;
+
+        if (RenderTimePickerUI(hour, minute, second, is_hovered)) {
+            time = std::chrono::seconds(hour * 3600 + minute * 60 + second);
         }
 
-        int h = static_cast<int>(total_seconds / 3600);
-        int m = static_cast<int>((total_seconds % 3600) / 60);
-        int s = static_cast<int>(total_seconds % 60);
-
-        std::tm current_tm = {};
-        current_tm.tm_hour = h;
-        current_tm.tm_min = m;
-        current_tm.tm_sec = s;
-
-        char buffer[64];
-        std::snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d",
-            current_tm.tm_hour, current_tm.tm_min, current_tm.tm_sec);
-
-        if (ImGui::Button(buffer, ImVec2(ImGui::CalcItemWidth(), 0))) {
-            ImGui::OpenPopup("TimePopup");
+        if (tooltip && is_hovered) {
+            ImGui::SetTooltip("%s", tooltip);
         }
-        if (tooltip && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
 
-        if (ImGui::BeginPopup("TimePopup")) {
-            if (RenderTimePickerUI(current_tm)) {
-                int new_total_seconds = (current_tm.tm_hour * 3600) +
-                    (current_tm.tm_min * 60) +
-                    current_tm.tm_sec;
-                time = std::chrono::seconds(new_total_seconds);
-            }
-            ImGui::EndPopup();
-        }
         ImGui::PopID();
     }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in TimePicker: " << e.what() << '\n';
+        ImGui::PopID();
+    }
+}
 
-    void ServerAddressInput(const char* label, std::string& protocol, std::string& host, int& port, const std::vector<std::string>& protocols, float item_width, const char* tooltip) {
-        if (!label) return;
+void ServerAddressInput(const char* label, std::string& protocol, std::string& host, int& port, const std::vector<std::string>& protocols, float item_width, const char* tooltip) {
+    if (!label) return;
+
+    try {
         ImGui::PushID(label);
 
         bool is_hovered = false;
-        float protocol_width = 120.0f;
-        float port_width = 100.0f;
+        const float kProtocolWidth = 120.0f;
+        const float kPortWidth = 100.0f;
 
-        ImGui::SetNextItemWidth(protocol_width);
+        ImGui::SetNextItemWidth(kProtocolWidth);
         if (ImGui::BeginCombo("##Protocol", protocol.c_str())) {
             for (const auto& p : protocols) {
                 bool is_selected = (protocol == p);
                 if (ImGui::Selectable(p.c_str(), is_selected)) {
                     protocol = p;
                 }
-                if (is_selected) ImGui::SetItemDefaultFocus();
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
             }
             ImGui::EndCombo();
         }
@@ -430,14 +434,15 @@ namespace floodsim::gui {
 
         ImGui::SameLine(0, 4.0f);
 
-        ImGui::SetNextItemWidth(item_width - protocol_width - port_width - 8.0f);
+        // Calculate available space dynamically for host text field
+        ImGui::SetNextItemWidth(item_width - kProtocolWidth - kPortWidth - 8.0f);
         ImGui::InputText("##Host", &host);
         is_hovered |= ImGui::IsItemHovered();
 
         ImGui::SameLine(0, 4.0f);
 
-        ImGui::SetNextItemWidth(port_width);
-        ImGui::InputInt("##Port", &port, 0, 0);
+        ImGui::SetNextItemWidth(kPortWidth);
+        ImGui::InputInt("##Port", &port, 0, 0); // 0 step means no +/- buttons
         is_hovered |= ImGui::IsItemHovered();
 
         if (tooltip && is_hovered) {
@@ -446,5 +451,11 @@ namespace floodsim::gui {
 
         ImGui::PopID();
     }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in ServerAddressInput: " << e.what() << '\n';
+        // Try to safely pop ID if ImGui state was partially manipulated
+        ImGui::PopID();
+    }
+}
 
 } // namespace floodsim::gui

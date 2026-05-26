@@ -1,271 +1,241 @@
 /**
  * @file MapGrid.cpp
  * @brief Implementation of the MapGrid and static descriptor initialization.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #include "app/core/grid/MapGrid.hpp"
 
 #include <algorithm>
-#include <cstring>
 #include <cmath>
+#include <cstring>
 #include <stdexcept>
+
 #include <GeographicLib/UTMUPS.hpp>
 
 #include "logging/Logger.hpp"
 
-namespace danasim {
+namespace floodsim::app::core::grid {
 
-    MapGrid::MapGrid()
-    {
-        
-    }
+void MapGrid::Load(const ModelParamsInfo& params_info,
+                   ports::InputPort* main_input_source,
+                   const std::unordered_map<std::string, ports::InputPort*>& layers_alternative_input_source,
+                   const std::unordered_map<std::string, std::string>& scalars_config,
+                   std::chrono::seconds time_step,
+                   std::chrono::system_clock::time_point current_time) {
 
-    void MapGrid::load(const ModelParamsInfo& paramsInfo, InputPort* mainInputSource,
-            const std::unordered_map<std::string, InputPort*>& layersAlternativeInputSource,
-            const std::unordered_map<std::string, std::string>& scalarsConfig,
-            std::chrono::seconds timeStep, std::chrono::system_clock::time_point currentTime) {
-        
-        LOG_INFO("Loading simulation layers...");
+    LOG_INFO("Loading simulation layers...");
 
+    // Zero-initialize metadata
+    metadata_ = GridMetadata{};
 
-        metadata_ = {
-            .cellCount = 0
-        };
+    // 1. Initialize layers structure and determine global metadata
+    for (const ModelParam& param : params_info.layers) {
 
-        for (const ModelParam& param : paramsInfo.layers) {
+        ports::InputPort* layer_source = layers_alternative_input_source.contains(param.name)
+            ? layers_alternative_input_source.at(param.name)
+            : main_input_source;
 
-            InputPort* layerSource;
-
-            if (layersAlternativeInputSource.contains(param.name)) {
-                layerSource = layersAlternativeInputSource.at(param.name);
-            }
-            else {
-                layerSource = mainInputSource;
-            }
-
-            bool isStaticLayer;
-
-            if (param.loadRequired) {
-                isStaticLayer = layerSource->isStaticLayer(param.name);
-            }
-            else {
-                isStaticLayer = true;
-            }
-
-            switch (param.dataType) {
-            case DataType::FLOAT32:
-                addLayer<float>(param.name, isStaticLayer);
-                break;
-            case DataType::INT8:
-                addLayer<int8_t>(param.name, isStaticLayer);
-                break;
-            }
-
-            if (param.loadRequired) {
-                GridMetadata layerMetadata = layerSource->generateReader(param.name, getLayer(param.name)->isStatic())->readMetadata();
-
-                if (layerMetadata.cellCount > metadata_.cellCount) {
-                    metadata_ = layerMetadata;
-                }
-            }
+        bool is_static_layer = true;
+        if (param.load_required) {
+            is_static_layer = layer_source->IsStaticLayer(param.name);
         }
 
-
-        for (const ModelParam& param : paramsInfo.scalars) {
-            switch (param.dataType) {
-            case DataType::FLOAT32:
-                addScalar<float>(param.name);
-                break;
-            case DataType::INT8:
-                addScalar<int8_t>(param.name);
-                break;
-            }
+        switch (param.data_type) {
+        case DataType::kFloat32:
+            AddLayer<float>(param.name, is_static_layer);
+            break;
+        case DataType::kInt8:
+            AddLayer<int8_t>(param.name, is_static_layer);
+            break;
         }
 
+        if (param.load_required) {
+            bool is_static = GetLayer(param.name)->IsStatic();
+            GridMetadata layer_metadata = layer_source->GenerateReader(param.name, is_static)->ReadMetadata();
 
-        for (const auto& [name, scalar] : scalars_) {
-            if (name == "delta_x") {
-                getScalar<float>(name)->setValue(metadata_.cellSize);
-            }
-            else if (name == "delta_t") {
-                getScalar<float>(name)->setValue(static_cast<float>(timeStep.count()));
-            }
-            else {
-                scalar->setValue(scalarsConfig.at(name));
-            }
-        }
-
-
-        for (const ModelParam& param : paramsInfo.layers) {
-            if (param.loadRequired) {
-                InputPort* layerSource;
-
-                if (layersAlternativeInputSource.contains(param.name)) {
-                    layerSource = layersAlternativeInputSource.at(param.name);
-                }
-                else {
-                    layerSource = mainInputSource;
-                }
-
-                LayerBase* layer = getLayer(param.name);
-
-                std::unique_ptr<Reader> layerReader = layerSource->generateReader(layer->getName(), layer->isStatic());
-
-                layer->setReader(metadata_, std::move(layerReader), currentTime);
-
-                normalizeUnits(param.name);
-            }
-            else {
-                LayerBase* layer = getLayer(param.name);
-
-                layer->resize(metadata_.cellCount);
+            if (layer_metadata.cell_count > metadata_.cell_count) {
+                metadata_ = layer_metadata;
             }
         }
     }
 
-    void MapGrid::updateDynamicLayers(std::chrono::system_clock::time_point currentTime) {
-        for (const auto& [name, layer] : layers_) {
-            if (!layer->isStatic()) {
-                layer->update(currentTime);
-
-                normalizeUnits(name);
-            }
+    // 2. Initialize scalars
+    for (const ModelParam& param : params_info.scalars) {
+        switch (param.data_type) {
+        case DataType::kFloat32:
+            AddScalar<float>(param.name);
+            break;
+        case DataType::kInt8:
+            AddScalar<int8_t>(param.name);
+            break;
         }
     }
 
-    void MapGrid::normalizeUnits(const std::string& name) {
-        if (name == "rainfall") {
-            constexpr float MM_TO_M_FACTOR = 0.001f;
-            constexpr float HOUR_TO_SEC_INV = 1.0f / 3600.0f;
-
-            // 1. Obtenemos el puntero base
-            LayerBase* baseLayer = layers_[name].get();
-
-            // 2. Casteamos a Layer<float> para poder acceder a getData()
-            if (auto* floatLayer = dynamic_cast<Layer<float>*>(baseLayer)) {
-
-                auto& data = floatLayer->getData(); // Ahora sí tenemos acceso al vector
-
-                // 1. Extraemos el valor numérico de chrono y lo pasamos a float.
-                // Lo hacemos FUERA del std::transform para que no se calcule 
-                // repetidamente por cada celda de la malla.
-                float timeStepSecs = getScalar<float>("delta_t")->getValue();
-
-                std::transform(data.begin(), data.end(), data.begin(),
-                    [MM_TO_M_FACTOR, HOUR_TO_SEC_INV, timeStepSecs](float val) {
-                        return (val * MM_TO_M_FACTOR) * (timeStepSecs * HOUR_TO_SEC_INV);
-                    });
-            }
-            else {
-                LOG_ERROR("La capa Rainfall no es de tipo float");
-            }
+    // 3. Assign internal and configured scalar values
+    for (const auto& [name, scalar] : scalars_) {
+        if (name == "delta_x") {
+            GetScalar<float>(name)->SetValue(metadata_.cell_size);
+        }
+        else if (name == "delta_t") {
+            GetScalar<float>(name)->SetValue(static_cast<float>(time_step.count()));
+        }
+        else {
+            scalar->SetValue(scalars_config.at(name));
         }
     }
 
-    std::optional<UTMZoneInfo> MapGrid::parseUTMZoneFromEPSG(const std::string& epsgString) const {
-        // 1. Extraer solo la parte numérica (ignorar "EPSG:" si está presente)
-        size_t colonPos = epsgString.find(':');
-        std::string numPart = (colonPos != std::string::npos) ?
-            epsgString.substr(colonPos + 1) : epsgString;
+    // 4. Load spatial data or allocate memory for all layers
+    for (const ModelParam& param : params_info.layers) {
+        layers::LayerBase* layer = GetLayer(param.name);
 
-        int epsgCode;
-        try {
-            epsgCode = std::stoi(numPart);
+        if (param.load_required) {
+            ports::InputPort* layer_source = layers_alternative_input_source.contains(param.name)
+                ? layers_alternative_input_source.at(param.name)
+                : main_input_source;
+
+            std::unique_ptr<io::readers::Reader> layer_reader = layer_source->GenerateReader(layer->GetName(), layer->IsStatic());
+
+            layer->SetReader(metadata_, std::move(layer_reader), current_time);
+            NormalizeUnits(param.name);
         }
-        catch (...) {
-            return std::nullopt; // No es un número válido
-        }
-
-        // 2. Extraer la zona (los dos últimos dígitos)
-        int zone = epsgCode % 100;
-
-        // Validación básica de zona UTM
-        if (zone < 1 || zone > 60) {
-            return std::nullopt;
-        }
-
-        // 3. Determinar el sistema y hemisferio
-        int baseCode = epsgCode - zone; // Ej: 25830 - 30 = 25800
-
-        switch (baseCode) {
-        case 32600: // WGS 84 North
-        case 25800: // ETRS89 North (Europa)
-        case 23000: // ED50 North (Europa)
-            return UTMZoneInfo{ zone, true };
-
-        case 32700: // WGS 84 South
-            return UTMZoneInfo{ zone, false };
-
-        default:
-            // Es un código EPSG válido numéricamente, pero no es de un bloque UTM reconocido
-            return std::nullopt;
+        else {
+            layer->Resize(metadata_.cell_count);
         }
     }
+}
 
-    GridViewBox::Point MapGrid::transformViewPoint(ViewBox::Point sourcePoint, const std::string& targetCRS) const {
-
-        auto utmInfo = parseUTMZoneFromEPSG(targetCRS);
-        if (!utmInfo.has_value()) {
-            throw std::runtime_error("El CRS destino (" + targetCRS + ") no es un sistema UTM soportado matemáticamente.");
+void MapGrid::UpdateDynamicLayers(std::chrono::system_clock::time_point current_time) {
+    for (const auto& [name, layer] : layers_) {
+        if (!layer->IsStatic()) {
+            layer->Update(current_time);
+            NormalizeUnits(name);
         }
+    }
+}
 
-        int computedZone;
-        bool computedNorthp;
+void MapGrid::NormalizeUnits(const std::string& name) {
+    if (name == "rainfall") {
+        constexpr float MM_TO_M_FACTOR = 0.001f;
+        constexpr float HOUR_TO_SEC_INV = 1.0f / 3600.0f;
 
-        GridViewBox::Point gridViewPoint;
+        // 1. Retrieve the type-erased base pointer
+        layers::LayerBase* base_layer = layers_[name].get();
 
-        try {
-            // Le pasamos la zona extraída dinámicamente del string (ej. 30)
-            GeographicLib::UTMUPS::Forward(sourcePoint.lat, sourcePoint.lon, computedZone, computedNorthp, gridViewPoint.x, gridViewPoint.y, utmInfo->zone);
+        // 2. Safely downcast to Layer<float> to access the underlying data
+        if (auto* float_layer = dynamic_cast<layers::Layer<float>*>(base_layer)) {
+            auto& data = float_layer->GetData();
 
-            // Verificamos que la coordenada real cae en el hemisferio que el EPSG espera
-            if (computedNorthp != utmInfo->isNorth) {
-                // Nota: En algunos casos limítrofes (cerca del ecuador) esto podría flexibilizarse,
-                // pero estrictamente hablando, si el EPSG pide Norte y cae en Sur, hay una discrepancia.
-                throw std::runtime_error("Las coordenadas caen en el hemisferio incorrecto para este EPSG.");
-            }
+            // Extract the time step scalar to a float.
+            // Executed OUTSIDE the transform loop to prevent redundant evaluations.
+            float time_step_secs = GetScalar<float>("delta_t")->GetValue();
 
+            std::transform(data.begin(), data.end(), data.begin(),
+                [MM_TO_M_FACTOR, HOUR_TO_SEC_INV, time_step_secs](float val) {
+                    return (val * MM_TO_M_FACTOR) * (time_step_secs * HOUR_TO_SEC_INV);
+                });
         }
-        catch (const GeographicLib::GeographicErr& e) {
-            throw std::runtime_error(std::string("Error en GeographicLib: ") + e.what());
+        else {
+            LOG_ERROR("MapGrid: Rainfall layer is not of type float.");
         }
+    }
+}
 
-        return gridViewPoint;
+std::optional<UTMZoneInfo> MapGrid::ParseUTMZoneFromEPSG(const std::string& epsg_string) const {
+    // 1. Extract only the numeric part (ignoring "EPSG:" prefix if present)
+    size_t colon_pos = epsg_string.find(':');
+    std::string num_part = (colon_pos != std::string::npos)
+        ? epsg_string.substr(colon_pos + 1)
+        : epsg_string;
+
+    int epsg_code;
+    try {
+        epsg_code = std::stoi(num_part);
+    }
+    catch (...) {
+        return std::nullopt; // Not a valid number
     }
 
-    ViewBox::Point MapGrid::transformGridViewPoint(GridViewBox::Point sourcePoint, const std::string& targetCRS) const {
+    // 2. Extract the UTM zone (the last two digits)
+    int zone = epsg_code % 100;
 
-        auto utmInfo = parseUTMZoneFromEPSG(targetCRS);
-        if (!utmInfo.has_value()) {
-            throw std::runtime_error("El CRS destino (" + targetCRS + ") no es un sistema UTM soportado matemáticamente.");
-        }
-
-        int computedZone;
-        bool computedNorthp;
-
-        ViewBox::Point viewPoint;
-
-        try {
-            // Le pasamos la zona extraída dinámicamente del string (ej. 30)
-            GeographicLib::UTMUPS::Reverse(
-                utmInfo->zone,
-                utmInfo->isNorth,
-                sourcePoint.x,
-                sourcePoint.y,
-                viewPoint.lat,
-                viewPoint.lon
-            );
-
-        }
-        catch (const GeographicLib::GeographicErr& e) {
-            throw std::runtime_error(std::string("Error en GeographicLib: ") + e.what());
-        }
-
-        return viewPoint;
+    // Basic UTM zone validation
+    if (zone < 1 || zone > 60) {
+        return std::nullopt;
     }
 
-    ViewBox::Point MapGrid::georeference() const {
-        return transformGridViewPoint(GridViewBox::Point{metadata_.minX, metadata_.maxY}, metadata_.crs);
+    // 3. Determine the geographic system and hemisphere
+    int base_code = epsg_code - zone; // E.g., 25830 - 30 = 25800
+
+    switch (base_code) {
+    case 32600: // WGS 84 North
+    case 25800: // ETRS89 North (Europe)
+    case 23000: // ED50 North (Europe)
+        return UTMZoneInfo{ zone, true };
+
+    case 32700: // WGS 84 South
+        return UTMZoneInfo{ zone, false };
+
+    default:
+        // A valid EPSG code numerically, but not from a recognized UTM block
+        return std::nullopt;
+    }
+}
+
+GridViewBox::Point MapGrid::TransformViewPoint(config::ViewBox::Point source_point, const std::string& target_crs) const {
+    auto utm_info = ParseUTMZoneFromEPSG(target_crs);
+    if (!utm_info.has_value()) {
+        throw std::runtime_error("MapGrid: Destination CRS (" + target_crs + ") is not a mathematically supported UTM system.");
     }
 
-} // namespace danasim
+    int computed_zone;
+    bool computed_northp;
+    GridViewBox::Point grid_view_point;
+
+    try {
+        // Enforce the dynamically extracted zone from the EPSG string
+        GeographicLib::UTMUPS::Forward(source_point.lat, source_point.lon,
+            computed_zone, computed_northp,
+            grid_view_point.x, grid_view_point.y,
+            utm_info->zone);
+
+        // Verify that the actual coordinate falls within the expected hemisphere
+        if (computed_northp != utm_info->is_north) {
+            // Note: In some boundary cases (near the equator) this could be relaxed,
+            // but strictly speaking, if the EPSG requires North and it falls South, there is a discrepancy.
+            throw std::runtime_error("MapGrid: Coordinates fall in the wrong hemisphere for this EPSG projection.");
+        }
+    } catch (const GeographicLib::GeographicErr& e) {
+        throw std::runtime_error(std::string("GeographicLib Error: ") + e.what());
+    }
+
+    return grid_view_point;
+}
+
+config::ViewBox::Point MapGrid::TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const {
+    auto utm_info = ParseUTMZoneFromEPSG(target_crs);
+    if (!utm_info.has_value()) {
+        throw std::runtime_error("MapGrid: Destination CRS (" + target_crs + ") is not a mathematically supported UTM system.");
+    }
+
+    config::ViewBox::Point view_point;
+
+    try {
+        // Enforce the dynamically extracted zone and hemisphere
+        GeographicLib::UTMUPS::Reverse(utm_info->zone, utm_info->is_north,
+            source_point.x, source_point.y,
+            view_point.lat, view_point.lon);
+    }
+    catch (const GeographicLib::GeographicErr& e) {
+        throw std::runtime_error(std::string("GeographicLib Error: ") + e.what());
+    }
+
+    return view_point;
+}
+
+config::ViewBox::Point MapGrid::GetGeoreference() const {
+    return TransformGridViewPoint(GridViewBox::Point{ metadata_.min_x, metadata_.max_y }, metadata_.crs);
+}
+
+} // namespace floodsim::app::core::grid

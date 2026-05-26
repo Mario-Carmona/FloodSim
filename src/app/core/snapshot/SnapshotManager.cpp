@@ -1,102 +1,117 @@
+/**
+ * @file SnapshotManager.cpp
+ * @brief Implementation of the SnapshotManager class for thread-safe snapshot distribution.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #include "app/core/snapshot/SnapshotManager.hpp"
 
-#include "logging/Logger.hpp"
-
 #include <limits>
 
-namespace danasim {
+#include "logging/Logger.hpp"
 
-    using DataPair = std::pair<const Snapshot&, const ChangeList&>;
+namespace floodsim::app::core::snapshot {
 
-    SnapshotManager::SnapshotManager(const OutputConfig::SnapshotConfig& config, size_t numOutputs)
-        : totalOutputs_(numOutputs)
-        , remaining_(0)
-        , running_(true)
-        , everyNSteps_(config.everyNSteps)
-        , currentSnapshot_(nullptr)
-        , changes_(nullptr)
+using DataPair = std::pair<const Snapshot&, const ChangeList&>;
+
+SnapshotManager::SnapshotManager(const config::OutputConfig::SnapshotConfig& config, size_t num_outputs)
+    : total_outputs_(num_outputs)
+    , remaining_(0)
+    , running_(true)
+    , every_n_steps_(config.every_n_steps)
+    , current_snapshot_(nullptr)
+    , changes_(nullptr) {}
+
+SnapshotManager::~SnapshotManager() {
+    Stop();
+}
+
+void SnapshotManager::WaitForReady() {
+    LOG_INFO("Wait for ready");
+
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    // Wait conditions:
+    // 1. All outputs have finished processing (remaining == 0)
+    // 2. OR the system has been stopped (!running_)
+    cv_core_.wait(lock, [this] {
+        return remaining_ == 0 || !running_.load();
+        });
+
+    LOG_INFO("Wait for ready [DONE]");
+}
+
+void SnapshotManager::Publish(const Snapshot* snapshot, const ChangeList* changes) {
     {
-    }
-
-    SnapshotManager::~SnapshotManager() {
-        stop();
-    }
-
-    void SnapshotManager::waitForReady() {
-        LOG_INFO("Wait for ready");
-
-        std::unique_lock<std::mutex> lock(mutex_);
-        // Esperamos si:
-        // 1. Todavía hay outputs procesando (remaining > 0)
-        // 2. Y el sistema sigue corriendo
-        cvCore_.wait(lock, [this] {
-            return remaining_ == 0 || !running_;
-            });
-
-        LOG_INFO("Wait for ready [DONE]");
-    }
-
-    void SnapshotManager::publish(const Snapshot* snapshot, const ChangeList* changes) {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            if (!running_) return;
-
-            currentSnapshot_ = snapshot;
-            changes_ = changes;
-
-            // Reiniciamos la barrera: todos los outputs deben leer esto
-            remaining_ = totalOutputs_;
-        }
-        // Despertamos a TODOS los hilos de salida
-        cvOutputs_.notify_all();
-    }
-
-    std::pair<std::pair<const Snapshot&, const ChangeList&>, std::unique_ptr<SnapshotReadGuard>> SnapshotManager::waitForSnapshot(std::chrono::system_clock::time_point lastStep) {
-        std::unique_lock<std::mutex> lock(mutex_);
-
-        cvOutputs_.wait(lock, [this, lastStep] {
-            if (!running_) return true; // Salir si paramos
-            if (currentSnapshot_ == nullptr) return false; // Esperar si no hay datos
-
-            // Lógica normal: solo avanzamos si hay un paso nuevo
-            return currentSnapshot_->time() > lastStep;
-            });
-
-        // Si estamos parando, retornamos null
-        if (!running_) {
-            return { DataPair(*currentSnapshot_, *changes_), nullptr };
-        }
-
-        // Creamos el Guard. Cuando el Output lo destruya, llamará a internalSignalDone
-        auto guard = std::make_unique<SnapshotReadGuard>([this]() {
-            this->internalSignalDone();
-            });
-
-        return { DataPair(*currentSnapshot_, *changes_), std::move(guard) };
-    }
-
-    void SnapshotManager::internalSignalDone() {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (remaining_ > 0) {
-            remaining_--;
-            // Si todos han terminado, despertamos al Core
-            if (remaining_ == 0) {
-                cvCore_.notify_one();
-            }
-        }
+        if (!running_.load()) return;
+
+        current_snapshot_ = snapshot;
+        changes_ = changes;
+
+        // Reset the remaining outputs counter to the total expected
+        remaining_ = total_outputs_;
     }
 
-    void SnapshotManager::stop() {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            running_ = false;
-            // Importante: Resetear remaining para que el Core no se quede bloqueado si estaba esperando
-            remaining_ = 0;
-        }
-        // Despertar a TODO el mundo para que salgan de sus wait()
-        cvOutputs_.notify_all();
-        cvCore_.notify_all();
+    // Notify all waiting output threads that a new snapshot is available
+    cv_outputs_.notify_all();
+}
+
+std::pair<DataPair, std::unique_ptr<SnapshotReadGuard>> SnapshotManager::WaitForSnapshot(
+        std::chrono::system_clock::time_point last_step) {
+
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    cv_outputs_.wait(lock, [this, last_step] {
+        // Unblock if stopped
+        if (!running_.load()) return true;
+
+        // Wait if there is no data available
+        if (current_snapshot_ == nullptr) return false;
+
+        // Standard logic: only unblock if the available step is newer
+        return current_snapshot_->Time() > last_step;
+        });
+
+    // If we are stopping, return empty safety guards and current data
+    if (!running_.load()) {
+        return { DataPair(*current_snapshot_, *changes_), nullptr };
     }
 
-} // namespace danasim
+    // Create the RAII Guard. When the output adapter destroys it, 
+    // it will automatically invoke InternalSignalDone().
+    auto guard = std::make_unique<SnapshotReadGuard>([this]() {
+        this->InternalSignalDone();
+        });
+
+    return { DataPair(*current_snapshot_, *changes_), std::move(guard) };
+}
+
+void SnapshotManager::InternalSignalDone() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (remaining_ > 0) {
+        remaining_--;
+
+        // Wake up the core thread if all outputs have finished processing
+        if (remaining_ == 0) {
+            cv_core_.notify_one();
+        }
+    }
+}
+
+void SnapshotManager::Stop() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        running_ = false;
+
+        // Crucial: Reset remaining count so the core thread does not remain deadlocked
+        remaining_ = 0;
+    }
+
+    // Wake up all waiting threads (core and outputs) so they can gracefully exit
+    cv_core_.notify_all();
+    cv_outputs_.notify_all();
+}
+
+} // namespace floodsim::app::core::snapshot
