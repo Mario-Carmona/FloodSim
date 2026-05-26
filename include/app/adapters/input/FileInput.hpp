@@ -1,58 +1,76 @@
 /**
  * @file FileInput.hpp
- * @brief Input adapter for loading GIS and Simulation data from files.
+ * @brief Input adapter for loading GIS and simulation data from files.
  *
- * Handles the reading of static rasters (via GDAL) and dynamic data
- * (via HDF5), populating the MapGrid structures accordingly.
+ * Implements the InputPort interface to handle the ingestion of static rasters
+ * and dynamic time-series data from structured file system directories.
  *
- * @version 1.0
- * @date 2026
- * @copyright Copyright (c) 2026 Danasim
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #pragma once
 
-#include <string>
 #include <filesystem>
-#include <vector>
+#include <memory>
+#include <string>
 
 #include "app/core/ports/InputPort.hpp"
-#include "app/io/formats/file/FileStaticFormat.hpp"
 #include "app/io/formats/file/FileDynamicFormat.hpp"
+#include "app/io/formats/file/FileStaticFormat.hpp"
+#include "app/io/readers/Reader.hpp"
 
-namespace danasim {
+namespace floodsim {
+
+/**
+ * @class FileInput
+ * @brief Concrete implementation of InputPort for file-system-based data sources.
+ *
+ * Dispatches layer loading to specialized static or dynamic file readers
+ * based on format configurations.
+ */
+class FileInput : public InputPort {
+public:
+    /**
+     * @brief Constructs the file input adapter.
+     * @param data_path The root directory containing the dataset folders.
+     * @param dataset_name The identification name of the target dataset folder.
+     * @param static_format Target format type for static geographical layers.
+     * @param dynamic_format Target format type for time-variant simulation layers.
+     */
+    FileInput(const std::filesystem::path& data_path,
+              const std::string& dataset_name,
+              const FileStaticFormat& static_format,
+              const FileDynamicFormat& dynamic_format);
+
+    virtual ~FileInput() override = default;
 
     /**
-     * @class FileInput
-     * @brief Concrete implementation of InputPort for file-based data sources.
-     *
-     * This class uses the GDAL library to read standard GIS formats (GeoTiff, RST)
-     * and custom logic for HDF5 time-series data.
+     * @brief Generates a specific Reader instance for the given layer.
+     * @param name Name of the layer file/dataset to read.
+     * @param is_static True if the target layer data is time-invariant.
+     * @return A std::unique_ptr containing the concrete Reader instance.
      */
-    class FileInput : public InputPort {
-    public:
-        /**
-         * @brief Constructs the file input adapter.
-         * @param inputPath The root directory containing the scenario data.
-         * @throw std::runtime_error If GDAL drivers cannot be registered.
-         */
-        explicit FileInput(const std::filesystem::path& dataPath, const std::string& datasetName, const FileStaticFormat& staticFormat, const FileDynamicFormat& dynamicFormat);
+    std::unique_ptr<Reader> GenerateReader(const std::string& name,
+                                           bool is_static) const override;
 
-        virtual ~FileInput() = default;
+    /**
+     * @brief Validates if a specific layer is registered as static.
+     * @param name Name of the layer to check.
+     * @return true if the layer format is static, false otherwise.
+     */
+    bool IsStaticLayer(const std::string& name) const override;
 
-        std::unique_ptr<Reader> generateReader(std::string name, bool isStatic) const override;
+    /**
+     * @brief Retrieves the active dataset identifier name.
+     * @return Constant reference to the dataset name string.
+     */
+    const std::string& GetDatasetName() const override { return dataset_name_; }
 
-        bool isStaticLayer(const std::string& name) const override;
+private:
+    std::filesystem::path input_path_;
+    std::string dataset_name_;
+    FileStaticFormat static_format_;
+    FileDynamicFormat dynamic_format_;
+};
 
-        inline const std::string& getDatasetName() const { return datasetName_; }
-
-    private:
-        std::filesystem::path inputPath_;
-
-        std::string datasetName_;
-
-        FileStaticFormat staticFormat_;
-        FileDynamicFormat dynamicFormat_;
-    };
-
-} // namespace danasim
+} // namespace floodsim

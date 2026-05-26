@@ -1,21 +1,37 @@
+/**
+ * @file FileDynamicReader.hpp
+ * @brief Interface for file-based dynamic layer readers.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #pragma once
 
+#include <filesystem>
+#include <string>
+
 #include "app/io/readers/DynamicReader.hpp"
 
-#include <string>
-#include <filesystem>
+namespace floodsim {
 
-namespace danasim {
+/**
+ * @brief Base reader implementation for processing dynamic timeseries data files.
+ */
+class FileDynamicReader : public DynamicReader {
+public:
+    /**
+     * @brief Constructs a new FileDynamicReader.
+     * @param data_path Target directory containing the dynamic files.
+     * @param data_filename Base file name of the dynamic resource.
+     */
+    FileDynamicReader(const std::filesystem::path& data_path,
+                      const std::string& data_filename);
 
-    class FileDynamicReader : public DynamicReader {
-    public:
-        FileDynamicReader(const std::filesystem::path& dataPath, const std::string& dataFilename);
-        virtual ~FileDynamicReader() = default;
+    virtual ~FileDynamicReader() override = default;
 
-    protected:
-        std::filesystem::path dataPath_;
-        std::string dataFilename_;
-    };
+protected:
+    std::filesystem::path data_path_;
+    std::string data_filename_;
+};
 
-} // namespace danasim
+} // namespace floodsim

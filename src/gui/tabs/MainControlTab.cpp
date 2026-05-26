@@ -1,9 +1,11 @@
 /**
- * \file MainControlTab.cpp
- * \brief Implementation of the Main Control tab.
+ * @file MainControlTab.cpp
+ * @brief Implementation of the Main Control tab.
  *
  * Provides the GUI layout for configuration management, simulation
  * start/stop controls, and the embedded terminal output for application logs.
+ * 
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #include "gui/tabs/Tabs.hpp"
@@ -18,246 +20,264 @@
 #include <portable-file-dialogs.h>
 
 #include "app/config/ConfigLoader.hpp"
+#include "logging/LoggerLevel.hpp"
 
 namespace floodsim::gui {
 
+namespace {
+
+/**
+ * @struct LogMessage
+ * @brief Represents a single parsed log entry in the GUI console.
+ */
+struct LogMessage {
+    std::string prefix;     ///< The timestamp and thread info (e.g., "[2026-05-02 19:41:00] [Main]")
+    std::string level_tag;  ///< The log level tag (e.g., "[info]")
+    std::string payload;    ///< The actual message content
+    ImVec4 color;           ///< Color assigned based on the log severity
+};
+
+/**
+ * @class AppLog
+ * @brief Thread-safe manager for the embedded GUI log console.
+ */
+class AppLog {
+public:
     /**
-    * \struct AppLog
-    * \brief Manages and renders the internal simulation log console.
-    */
-    struct AppLog {
-        struct LogMessage {
-            std::string prefix;     // Contains: "[2026-05-02 19:41...] [Core    ] "
-            std::string level_tag;  // Contains: "[info]"
-            std::string payload;    // Contains: " Configuring ONNX Runtime..."
-            ImVec4 color;
-        };
+     * @brief Clears all current log messages.
+     */
+    void Clear() {
+        std::lock_guard<std::mutex> lock(log_mutex_);
+        items_.clear();
+    }
 
-        std::vector<LogMessage> items;
-        std::mutex log_mutex;
+    /**
+     * @brief Appends a new log message to the console.
+     * @param level The severity level of the log (mapped to spdlog/LoggerLevel).
+     * @param raw_msg The complete formatted string from the logging backend.
+     */
+    void AddLog(int level, const std::string& raw_msg) {
+        std::lock_guard<std::mutex> lock(log_mutex_);
 
-        bool auto_scroll = true;       // Controls smart scrolling behavior
-        bool scroll_to_bottom = false; // Manual trigger to force scrolling (single use)
+        LogMessage msg;
 
-        void Clear() {
-            std::lock_guard<std::mutex> lock(log_mutex);
-            items.clear();
+        // Simple mapping from spdlog int levels to ImGui colors
+        // Assuming: 0=Trace, 1=Debug, 2=Info, 3=Warn, 4=Err, 5=Critical
+        switch (level) {
+        case 0: msg.color = ImVec4(0.6f, 0.6f, 0.6f, 1.0f); break; // Trace (Gray)
+        case 1: msg.color = ImVec4(0.2f, 0.8f, 0.8f, 1.0f); break; // Debug (Cyan)
+        case 2: msg.color = ImVec4(0.4f, 0.9f, 0.4f, 1.0f); break; // Info (Green)
+        case 3: msg.color = ImVec4(0.9f, 0.9f, 0.2f, 1.0f); break; // Warn (Yellow)
+        case 4: msg.color = ImVec4(0.9f, 0.3f, 0.3f, 1.0f); break; // Error (Red)
+        case 5: msg.color = ImVec4(1.0f, 0.0f, 1.0f, 1.0f); break; // Critical (Magenta)
+        default: msg.color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); break; // Default (White)
         }
 
-        void AddLog(int spdlog_level, const std::string& raw_msg) {
-            try {
-                // 1. spdlog always appends a '\n' to the formatted message.
-                // We remove it for ImGui to prevent extra blank lines.
-                std::string msg = raw_msg;
-                if (!msg.empty() && msg.back() == '\n') {
-                    msg.pop_back();
-                }
-
-                // 2. Map colors based on the spdlog level
-                ImVec4 color;
-                switch (spdlog_level) {
-                    case 1: color = ImVec4(0.2f, 0.6f, 1.0f, 1.0f); break; // Debug (Blue)
-                    case 2: color = ImVec4(0.4f, 1.0f, 0.4f, 1.0f); break; // Info (Green)
-                    case 3: color = ImVec4(1.0f, 0.8f, 0.0f, 1.0f); break; // Warn (Yellow)
-                    case 4: color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); break; // Error (Red)
-                    case 5: color = ImVec4(1.0f, 0.2f, 0.2f, 1.0f); break; // Critical (Intense Red)
-                    default: color = ImVec4(0.9f, 0.9f, 0.9f, 1.0f); break;
-                }
-
-                // 3. PATTERN PARSING: Find the third pair of brackets
-                size_t pos1 = msg.find('[');
-                size_t pos2 = msg.find('[', pos1 + 1);
-                size_t pos3 = msg.find('[', pos2 + 1);
-                size_t pos3_close = msg.find(']', pos3 + 1);
-
-                std::string prefix, tag, payload;
-
-                if (pos3 != std::string::npos && pos3_close != std::string::npos) {
-                    // Successfully split
-                    prefix = msg.substr(0, pos3);                  // From start up to the 3rd '['
-                    tag = msg.substr(pos3, pos3_close - pos3 + 1); // Exactly "[info]" or "[debug]"
-                    payload = msg.substr(pos3_close + 1);          // Everything else
-                }
-                else {
-                    // Security fallback if the log doesn't follow the exact pattern
-                    prefix = "";
-                    tag = "";
-                    payload = msg;
-                }
-
-                std::lock_guard<std::mutex> lock(log_mutex);
-                items.push_back({ prefix, tag, payload, color });
-
+        // Extremely basic parse to separate the tag for coloring purposes.
+        // Expecting format: "[Date Time] [Thread] [level] Message"
+        size_t last_bracket = raw_msg.find_last_of(']');
+        if (last_bracket != std::string::npos && raw_msg.length() > last_bracket + 2) {
+            size_t second_last_bracket = raw_msg.find_last_of('[', last_bracket);
+            if (second_last_bracket != std::string::npos) {
+                msg.prefix = raw_msg.substr(0, second_last_bracket);
+                msg.level_tag = raw_msg.substr(second_last_bracket, last_bracket - second_last_bracket + 1);
+                msg.payload = raw_msg.substr(last_bracket + 1);
             }
-            catch (const std::exception& e) {
-                std::cerr << "[Error] Exception caught while adding log: " << e.what() << "\n";
+            else {
+                msg.payload = raw_msg;
             }
         }
+        else {
+            msg.payload = raw_msg;
+        }
 
-        void Draw(const char* title) {
-            ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "Terminal Output");
-            ImGui::Spacing();
+        items_.push_back(msg);
+        if (auto_scroll_) {
+            scroll_to_bottom_ = true;
+        }
+    }
 
-            if (ImGui::Checkbox("Auto-scroll", &auto_scroll)) {
-                // If newly activated, force scroll to bottom
-                if (auto_scroll) {
-                    scroll_to_bottom = true;
-                }
-            }
-
-            ImGui::SameLine();
-
+    /**
+     * @brief Renders the log console widget.
+     * @param title The ImGui ID for the child window.
+     */
+    void Draw(const char* title) {
+        try {
             if (ImGui::Button("Clear Log")) {
                 Clear();
             }
+            ImGui::SameLine();
+            bool current_auto_scroll = auto_scroll_;
+            if (ImGui::Checkbox("Auto-scroll", &current_auto_scroll)) {
+                auto_scroll_ = current_auto_scroll;
+            }
 
-            ImGui::BeginChild(title, ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+            ImGui::Separator();
+
+            // Draw the scrolling region
+            ImGui::BeginChild(title, ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
             {
-                std::lock_guard<std::mutex> lock(log_mutex);
-                for (const auto& item : items) {
+                std::lock_guard<std::mutex> lock(log_mutex_);
+                for (const auto& item : items_) {
                     if (!item.prefix.empty()) {
-                        // 1. Draw prefix (Date + Thread) with default disabled color
-                        ImGui::TextDisabled("%s", item.prefix.c_str());
-
-                        // 2. Instruct ImGui to draw the next element on the same line
+                        ImGui::TextUnformatted(item.prefix.c_str());
                         ImGui::SameLine(0, 0);
-
-                        // 3. Draw the level tag with its specific color
+                    }
+                    if (!item.level_tag.empty()) {
                         ImGui::PushStyleColor(ImGuiCol_Text, item.color);
                         ImGui::TextUnformatted(item.level_tag.c_str());
                         ImGui::PopStyleColor();
-
                         ImGui::SameLine(0, 0);
-
-                        // 4. Draw the payload text with normal interface color
-                        ImGui::TextUnformatted(item.payload.c_str());
                     }
-                    else {
-                        // Fallback: If not separated, paint everything based on level color
-                        ImGui::PushStyleColor(ImGuiCol_Text, item.color);
-                        ImGui::TextUnformatted(item.payload.c_str());
-                        ImGui::PopStyleColor();
-                    }
+                    ImGui::TextUnformatted(item.payload.c_str());
                 }
             }
 
-            // --- SMART SCROLLING LOGIC ---
-            // If manual scroll is triggered OR (auto-scroll is active AND we are at the bottom)
-            if (scroll_to_bottom || (auto_scroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())) {
+            if (scroll_to_bottom_ || (auto_scroll_ && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())) {
                 ImGui::SetScrollHereY(1.0f);
+                scroll_to_bottom_ = false;
             }
-
-            // Reset manual trigger to avoid locking the mouse on the next frame
-            scroll_to_bottom = false;
 
             ImGui::EndChild();
         }
-    };
-
-    // Static variable to persist logs during execution
-    static AppLog gui_console;
-
-    void RenderMainControlTab(
-        const danasim::Config& config,
-        std::atomic<bool>& is_simulation_running,
-        std::shared_ptr<danasim::Application>& current_simulation,
-        std::jthread& simulation_thread) {
-
-        try {
-            ImGui::Spacing();
-
-            // --- SECTION 1: CONFIGURATION MANAGEMENT ---
-            ImGui::SeparatorText("Configuration Management");
-            ImGui::Spacing();
-
-            if (ImGui::Button("Save Configuration As...")) {
-                auto destination = pfd::save_file("Save Scenario Config", "", { "YAML Files", "*.yaml" }).result();
-                if (!destination.empty()) {
-                    // Assuming ConfigLoader API remained the same externally
-                    danasim::ConfigLoader::saveToFile(destination, config);
-                }
-            }
-
-            ImGui::Spacing();
-            ImGui::Spacing();
-
-            // --- SECTION 2: CONTROL BUTTONS ---
-            ImGui::SeparatorText("Simulation Control");
-            ImGui::Spacing();
-
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-
-            // 1. Capture current state at the start of the frame
-            bool is_running = is_simulation_running.load(std::memory_order_relaxed);
-
-            // --- START BUTTON ---
-            if (is_running) { ImGui::BeginDisabled(); }
-
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
-            if (ImGui::Button("START SIMULATION", ImVec2(180, 45))) {
-                gui_console.Clear();
-
-                // Change state (local variable 'is_running' remains false for this frame)
-                is_simulation_running.store(true, std::memory_order_relaxed);
-
-                // 1. Prepare Callback
-                auto log_to_gui = [](int level, const std::string& msg) {
-                    gui_console.AddLog(level, msg);
-                };
-
-                // 2. Instantiate the engine
-                current_simulation = std::make_shared<danasim::Application>(config, log_to_gui);
-
-                // 3. Launch secondary thread
-                simulation_thread = std::jthread([&current_simulation, &is_simulation_running]() {
-                    // This block runs independently without affecting the GUI
-                    if (current_simulation) {
-                        current_simulation->run(); // Starts the heavy cycle
-                    }
-
-                    // When run() ends, notify completion
-                    is_simulation_running.store(false, std::memory_order_relaxed);
-                });
-            }
-            ImGui::PopStyleColor();
-
-            if (is_running) { ImGui::EndDisabled(); }
-
-            ImGui::SameLine();
-
-            // --- STOP BUTTON ---
-            // Logic inverted: if it is NOT running, disable it
-            if (!is_running) { ImGui::BeginDisabled(); }
-
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.2f, 0.2f, 1.0f));
-            if (ImGui::Button("STOP", ImVec2(120, 45))) {
-                if (current_simulation) {
-                    current_simulation->stop();
-                }
-            }
-            ImGui::PopStyleColor();
-
-            if (!is_running) { ImGui::EndDisabled(); }
-
-            ImGui::PopStyleVar();
-
-            ImGui::Spacing();
-            ImGui::Spacing();
-
-            // --- SECTION 3: OUTPUT CONSOLE ---
-            // Uses the remaining available space for the terminal
-            gui_console.Draw("ConsoleWindow");
-
-        }
         catch (const std::exception& e) {
-            std::cerr << "[Error] Exception caught while rendering Main Control Tab: " << e.what() << "\n";
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "An error occurred rendering the Main Control Tab.");
-        }
-        catch (...) {
-            std::cerr << "[Error] Unknown exception caught while rendering Main Control Tab.\n";
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "A critical unknown error occurred rendering the Main Control Tab.");
+            std::cerr << "[GUI Error] Exception in AppLog::Draw: " << e.what() << '\n';
         }
     }
+
+private:
+    std::vector<LogMessage> items_;
+    std::mutex log_mutex_;
+    bool auto_scroll_ = true;
+    bool scroll_to_bottom_ = false;
+};
+
+// Global instance for the GUI logger
+AppLog g_gui_console;
+
+} // anonymous namespace
+
+/**
+ * @brief Global callback passed to the logging system to route messages to the GUI.
+ * @param level The log severity level.
+ * @param raw_msg The fully formatted log string.
+ */
+void GlobalGuiLogCallback(int level, const std::string& raw_msg) {
+    g_gui_console.AddLog(level, raw_msg);
+}
+
+void RenderMainControlTab(Config& config, std::atomic<bool>& is_simulation_running, std::shared_ptr<Application>& current_simulation, std::jthread& simulation_thread) {
+    try {
+        bool is_running = is_simulation_running.load(std::memory_order_relaxed);
+
+        // ==========================================
+        // 1. CONFIGURATION MANAGEMENT
+        // ==========================================
+        ImGui::Spacing();
+        ImGui::SeparatorText("Configuration Management");
+        ImGui::Spacing();
+
+        // Disable load/save if simulation is running to prevent data races on config
+        if (is_running) ImGui::BeginDisabled();
+
+        if (ImGui::Button("Load Configuration", ImVec2(200, 30))) {
+            try {
+                auto result = pfd::open_file("Select Configuration File", "", { "YAML Files", "*.yaml *.yml", "All Files", "*" }).result();
+                if (!result.empty()) {
+                    config = ConfigLoader::Load(result[0]);
+                    g_gui_console.AddLog(2, "[GUI] Configuration loaded successfully from: " + result[0] + "\n");
+                }
+            }
+            catch (const std::exception& e) {
+                g_gui_console.AddLog(4, std::string("[GUI Error] Failed to load configuration: ") + e.what() + "\n");
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Save Configuration", ImVec2(200, 30))) {
+            try {
+                auto destination = pfd::save_file("Save Configuration As", "config.yaml", { "YAML Files", "*.yaml *.yml" }).result();
+                if (!destination.empty()) {
+                    ConfigLoader::SaveToFile(destination, config);
+                    g_gui_console.AddLog(2, "[GUI] Configuration saved successfully to: " + destination + "\n");
+                }
+            }
+            catch (const std::exception& e) {
+                g_gui_console.AddLog(4, std::string("[GUI Error] Failed to save configuration: ") + e.what() + "\n");
+            }
+        }
+
+        if (is_running) ImGui::EndDisabled();
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        // ==========================================
+        // 2. SIMULATION CONTROLS
+        // ==========================================
+        ImGui::SeparatorText("Simulation Control");
+        ImGui::Spacing();
+
+        // --- START BUTTON ---
+        if (is_running) ImGui::BeginDisabled();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+        if (ImGui::Button("START", ImVec2(120, 45))) {
+            try {
+                current_simulation = std::make_shared<Application>(config, GlobalGuiLogCallback);
+                is_simulation_running.store(true);
+                simulation_thread = std::jthread([&]() { current_simulation->Run(); is_simulation_running.store(false); });
+                g_gui_console.AddLog(2, "[GUI] Simulation startup sequence initiated.\n");
+            }
+            catch (const std::exception& e) {
+                g_gui_console.AddLog(5, std::string("[GUI Fatal Error] Could not start simulation: ") + e.what() + "\n");
+            }
+        }
+        ImGui::PopStyleColor();
+
+        if (is_running) ImGui::EndDisabled();
+
+        ImGui::SameLine();
+
+        // --- STOP BUTTON ---
+        if (!is_running) ImGui::BeginDisabled();
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.2f, 0.2f, 1.0f));
+        if (ImGui::Button("STOP", ImVec2(120, 45))) {
+            try {
+                if (current_simulation) {
+                    current_simulation->Stop();
+                    g_gui_console.AddLog(3, "[GUI] Stop signal sent to the simulation engine. Waiting for safe halt...\n");
+                }
+            }
+            catch (const std::exception& e) {
+                g_gui_console.AddLog(5, std::string("[GUI Fatal Error] Exception during simulation stop sequence: ") + e.what() + "\n");
+            }
+        }
+        ImGui::PopStyleColor();
+
+        if (!is_running) ImGui::EndDisabled();
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        // ==========================================
+        // 3. OUTPUT CONSOLE
+        // ==========================================
+        ImGui::SeparatorText("Application Log Terminal");
+        g_gui_console.Draw("ConsoleWindow");
+
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[Error] Exception caught while rendering Main Control Tab: " << e.what() << "\n";
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "An error occurred rendering the Main Control Tab.");
+    }
+    catch (...) {
+        std::cerr << "[Error] Unknown exception caught while rendering Main Control Tab.\n";
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "A critical unknown error occurred rendering the Main Control Tab.");
+    }
+}
 
 }  // namespace floodsim::gui

@@ -1,57 +1,130 @@
+/**
+ * @file MQTTOutput.hpp
+ * @brief Output port adapter for publishing simulation snapshots to an MQTT broker.
+ *
+ * Handles connecting to an MQTT broker, performing a handshake, and publishing
+ * simulation changes incrementally in chunks to optimize network bandwidth.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #pragma once
 
+#include <chrono>
+#include <filesystem>
 #include <memory>
 #include <string>
 
-#include "app/config/Config.hpp"
-#include "app/core/ports/OutputPort.hpp"
-
 #include <mqtt/async_client.h>
 
-namespace danasim {
+#include "app/config/Config.hpp"
+#include "app/core/ports/OutputPort.hpp"
+#include "app/adapters/output/mqtt/payload/PayloadSerializer.hpp"
 
-    // Forward declaration to reduce compile-time dependencies.
-    class PayloadSerializer;
+namespace floodsim {
+
+/**
+ * @class MqttOutput
+ * @brief Publishes snapshots to an MQTT broker using chunked message payloads.
+ */
+class MqttOutput : public OutputPort {
+public:
+    /**
+     * @brief Constructs a new Mqtt Output instance.
+     *
+     * @param address The URI of the MQTT broker (e.g., tcp://localhost:1883).
+     * @param scenario_name The simulation scenario name, used as the base topic.
+     * @param payload_format The serialization format (e.g., JSON).
+     * @throws std::invalid_argument If address or scenario_name are empty.
+     * @throws std::runtime_error If the payload serializer fails to initialize.
+     */
+    MqttOutput(const std::string& address, const std::string& scenario_name,
+        OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format);
 
     /**
-     * @brief Publishes snapshots to an MQTT broker.
+     * @brief Destroys the MQTT client, gracefully disconnecting and stopping consumption.
      */
-    class MqttOutput : public OutputPort {
-    public:
-        MqttOutput(const std::string& address,
-            const std::string& scenarioName,
-            OutputConfig::MqttOutputConfigEntry::PayloadFormat payloadFormat);
+    ~MqttOutput() override;
 
-        ~MqttOutput();
+    /**
+     * @brief Main execution loop for the MQTT output thread.
+     *
+     * Consumes snapshots from the manager and publishes the changes to the broker.
+     *
+     * @param snapshot_manager Reference to the manager providing simulation snapshots.
+     * @param output_path Not actively used by MQTT, but required by interface.
+     */
+    void Run(SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
 
-        void run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) override;
+    /**
+     * @brief Initializes the output port by publishing the map baseline.
+     *
+     * @param grid The simulation map grid.
+     * @param dataset_name The name of the dataset.
+     * @param start_timestamp The initial time of the simulation.
+     */
+    void SetInitConfig(const MapGrid& grid, const std::string& dataset_name,
+                       std::chrono::sys_seconds start_timestamp) override;
 
-        void setInitConfig(const MapGrid& grid, const std::string& datasetName, std::chrono::sys_seconds startTimestamp) override;
+    /**
+     * @brief Retrieves the identifier name for this thread.
+     *
+     * @return std::string The predefined thread name.
+     */
+    std::string GetThreadName() const override { return "Out_MQTT"; }
 
-        std::string getThreadName() const override { return "Out_MQTT"; }
+private:
+    /**
+     * @brief Creates the payload serializer based on the requested format.
+     *
+     * @param format The requested payload serialization format.
+     * @return std::unique_ptr<PayloadSerializer> Instantiated serializer.
+     * @throws std::invalid_argument If the format is unknown.
+     */
+    [[nodiscard]] static std::unique_ptr<PayloadSerializer> CreatePayloadSerializer(
+        const OutputConfig::MqttOutputConfigEntry::PayloadFormat& format);
 
-    private:
-        [[nodiscard]] // Warns if the returned pointer is ignored (C++17/20)
-        static std::unique_ptr<PayloadSerializer> createPayloadSerializer(const OutputConfig::MqttOutputConfigEntry::PayloadFormat& format);
+    /**
+     * @brief Establishes connection to the configured MQTT broker.
+     */
+    void Connect();
 
-        void connect();
-        void handshake();
+    /**
+     * @brief Executes a ping-pong handshake protocol with connected consumers.
+     */
+    void Handshake();
 
-        GridIndexType sendInitState(const MapGrid& grid);
+    /**
+     * @brief Sends the initial state of the grid via MQTT.
+     *
+     * @param grid The initialized map grid.
+     * @return GridIndexType The total number of chunks sent.
+     */
+    GridIndexType SendInitState(const MapGrid& grid);
 
-        void publishInChunks(const Snapshot& snapshot, const ChangeList& changes);
+    /**
+     * @brief Publishes state changes in a snapshot as MQTT message chunks.
+     *
+     * @param snapshot The full simulation state.
+     * @param changes The differential changes mapped in the current step.
+     */
+    void PublishInChunks(const Snapshot& snapshot, const ChangeList& changes);
 
-        std::string getCurrentTimestampUTC();
+    /**
+     * @brief Utility to generate an ISO-8601 formatted UTC timestamp.
+     *
+     * @return std::string Current UTC timestamp.
+     */
+    std::string GetCurrentTimestampUTC();
 
-        const int BATCH_SIZE = 10;
-        const GridIndexType CHUNK_SIZE = 40000;
+    const int kBatchSize = 10;
+    const GridIndexType kChunkSize = 40000;
 
-        const std::string baseTopic_;
-        std::string clientID_;
-        mqtt::async_client client_;
+    const std::string base_topic_;
+    std::string client_id_;
+    mqtt::async_client client_;
 
-        std::unique_ptr<PayloadSerializer> payloadSerializer_;
-    };
+    std::unique_ptr<PayloadSerializer> payload_serializer_;
+};
 
-} // namespace danasim
+} // namespace floodsim

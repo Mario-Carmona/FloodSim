@@ -1,207 +1,227 @@
+/**
+ * @file SimulationCore.cpp
+ * @brief Implementation of the primary simulation engine.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #include "app/core/SimulationCore.hpp"
 
-#include <cmath>
-#include <fmt/chrono.h>
 #include <algorithm>
+#include <cmath>
+#include <thread>
+
+#include <fmt/chrono.h>
 #include <GeographicLib/UTMUPS.hpp>
 
-#include "logging/Logger.hpp"
 #include "app/core/snapshot/Snapshot.hpp"
-#include "app/core/common/SimulationConstants.hpp"
+#include "logging/Logger.hpp"
 
-namespace danasim {
+namespace floodsim {
 
-    SimulationCore::SimulationCore(
-        StateUpdaterPort* stateUpdater,
-        InputPort* mainInputSource,
-        const std::unordered_map<std::string, InputPort*>& layersAlternativeInputSource,
-        const std::unordered_map<std::string, std::string>& scalarsConfig,
-        std::vector<OutputPort*> outputs,
-        SnapshotManager* snapshotManager,
-        const SimulationConfig& config,
-        const std::string& scenarioName
-    )
-        : stateUpdater_(stateUpdater)
-        , mainInputSource_(mainInputSource)
-        , layersAlternativeInputSource_(layersAlternativeInputSource)
-        , scalarsConfig_(scalarsConfig)
-        , outputs_(outputs)
-        , snapshotManager_(snapshotManager)
-        , startTimestamp_(config.startTimestamp)
-        , timeStep_(config.timeStep)
-        , simulationDuration_(config.duration)
-        , scenarioName_(scenarioName)
-        , view_(config.viewBox)
-    {
-        // Initialize State
-        currentGrid_.load(stateUpdater_->getModelParamsInfo(), mainInputSource_, layersAlternativeInputSource_, scalarsConfig_, timeStep_, startTimestamp_);
+SimulationCore::SimulationCore(
+    StateUpdaterPort* state_updater,
+    InputPort* main_input_source,
+    const std::unordered_map<std::string, InputPort*>& layers_alternative_input_source,
+    const std::unordered_map<std::string, std::string>& scalars_config,
+    std::vector<OutputPort*> outputs,
+    SnapshotManager* snapshot_manager,
+    const SimulationConfig& config,
+    const std::string& scenario_name
+)
+    : state_updater_(state_updater)
+    , main_input_source_(main_input_source)
+    , layers_alternative_input_source_(layers_alternative_input_source)
+    , scalars_config_(scalars_config)
+    , outputs_(std::move(outputs))
+    , snapshot_manager_(snapshot_manager)
+    , start_timestamp_(config.start_timestamp)
+    , simulation_duration_(config.duration)
+    , time_step_(config.time_step)
+    , scenario_name_(scenario_name)
+    , view_(config.view_box)
+{
+    // Initialize primary grid state
+    current_grid_.Load(
+        state_updater_->GetModelParamsInfo(),
+        main_input_source_,
+        layers_alternative_input_source_,
+        scalars_config_,
+        time_step_,
+        start_timestamp_
+    );
 
-        calculateGridView();
+    CalculateGridView();
 
-        stateUpdater_->initialize(currentGrid_);
+    state_updater_->Initialize(current_grid_);
 
-        for (auto& output : outputs_) {
-            output->setInitConfig(currentGrid_, mainInputSource_->getDatasetName(), startTimestamp_);
-        }
+    for (auto& output : outputs_) {
+        output->SetInitConfig(current_grid_, main_input_source_->GetDatasetName(), start_timestamp_);
     }
+}
 
-    void SimulationCore::run(const std::atomic<bool>& stopFlag)
-    {
-        LOG_INFO("Simulation started");
+void SimulationCore::Run(const std::atomic<bool>& stop_flag) {
+    LOG_INFO("Simulation started");
 
-        std::chrono::sys_seconds currentTime = startTimestamp_;
-        std::chrono::sys_seconds finishTimestamp = currentTime + simulationDuration_;
+    std::chrono::sys_seconds current_time = start_timestamp_;
+    std::chrono::sys_seconds finish_timestamp = current_time + simulation_duration_;
 
-        currentSnapshot_.set(currentTime, currentGrid_);
+    current_snapshot_.Set(current_time, current_grid_);
 
-        while (currentTime < finishTimestamp) {
-            // --- PASO 1: CARGAR DATOS EXTERNOS ---
-            // Esto lee del HDF5 y escribe en active_.layers_[RainIntensity]
-            currentGrid_.updateDynamicLayers(currentTime);
+    while (current_time < finish_timestamp) {
+        // --- STEP 1: LOAD EXTERNAL DATA ---
+        // Reads from data sources (e.g., HDF5) and updates dynamic layers (like Rainfall)
+        current_grid_.UpdateDynamicLayers(current_time);
 
-            auto start = std::chrono::high_resolution_clock::now();
+        auto start = std::chrono::high_resolution_clock::now();
 
-            for (StepType i = 0; i < snapshotManager_->everyNSteps(); ++i) {
-                stateUpdater_->step(currentGrid_);
+        StepType steps_taken = 0;
+        StepType total_steps_batch = snapshot_manager_->EveryNSteps();
 
-                if (stopFlag.load(std::memory_order_relaxed)) {
-                    break; // Salimos del bucle pacíficamente
-                }
+        // --- STEP 2: SOLVER/NN EXECUTION ---
+        for (StepType i = 0; i < total_steps_batch; ++i) {
+            state_updater_->Step(current_grid_);
+            steps_taken++;
+
+            if (stop_flag.load(std::memory_order_relaxed)) {
+                break; // Gracefully exit the loop
             }
+        }
 
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-            LOG_INFO("TF Graph Execution time: {}s", elapsed.count());
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        LOG_INFO("Model Execution time: {}s", elapsed.count());
             
-            if (stopFlag.load(std::memory_order_relaxed)) {
-                LOG_WARN("Simulation halted early by user request.");
-                break; // Salimos del bucle pacíficamente
+        // Advance time accurately based on the actual steps processed
+        current_time += (steps_taken * time_step_);
+
+        if (stop_flag.load(std::memory_order_relaxed)) {
+            LOG_WARN("Simulation halted early by user request.");
+            break;
+        }
+
+        // --- STEP 3: OUTPUT ---
+        PublishCurrentState(current_time);
+    }
+
+    LOG_INFO("Simulation finished");
+}
+
+void SimulationCore::PublishCurrentState(std::chrono::sys_seconds time) {
+    // 1. Wait for consumers to release the previous buffer
+    snapshot_manager_->WaitForReady();
+
+    // 2. Compute spatial differences (deltas) for active regions
+    CalculateViewChanges();
+    current_snapshot_.Set(time, current_grid_);
+
+    // 3. Publish the new state and changes
+    snapshot_manager_->Publish(&current_snapshot_, &changes_);
+
+    LOG_INFO("Published snapshot at time {:%FT%T}", time);
+}
+
+void SimulationCore::CalculateGridView() {
+    if (view_.use_full_grid) {
+        grid_index_view_.min_col = 0u;
+        grid_index_view_.max_col = current_grid_.GetCols();
+
+        grid_index_view_.min_row = 0u;
+        grid_index_view_.max_row = current_grid_.GetRows();
+    }
+    else {
+        GridViewBox grid_view{
+            .south_west = current_grid_.TransformViewPoint(view_.south_west, current_grid_.GetCrs()),
+            .north_east = current_grid_.TransformViewPoint(view_.north_east, current_grid_.GetCrs())
+        };
+
+        grid_index_view_.min_col = static_cast<GridIndexType>(std::floor((grid_view.south_west.x - current_grid_.GetMapOriginX()) / current_grid_.GetCellSize()));
+        grid_index_view_.max_col = static_cast<GridIndexType>(std::ceil((grid_view.north_east.x - current_grid_.GetMapOriginX()) / current_grid_.GetCellSize()));
+
+        grid_index_view_.min_col = std::clamp(grid_index_view_.min_col, static_cast<GridIndexType>(0), current_grid_.GetCols());
+        grid_index_view_.max_col = std::clamp(grid_index_view_.max_col, static_cast<GridIndexType>(0), current_grid_.GetCols());
+
+        grid_index_view_.min_row = static_cast<GridIndexType>(std::floor((current_grid_.GetMapOriginY() - grid_view.north_east.y) / current_grid_.GetCellSize()));
+        grid_index_view_.max_row = static_cast<GridIndexType>(std::ceil((current_grid_.GetMapOriginY() - grid_view.south_west.y) / current_grid_.GetCellSize()));
+
+        grid_index_view_.min_row = std::clamp(grid_index_view_.min_row, static_cast<GridIndexType>(0), current_grid_.GetRows());
+        grid_index_view_.max_row = std::clamp(grid_index_view_.max_row, static_cast<GridIndexType>(0), current_grid_.GetRows());
+    }
+}
+
+void SimulationCore::CalculateViewChanges() {
+    // 1. Thread preparation
+    std::vector<std::thread> threads;
+    unsigned int hw_threads = std::thread::hardware_concurrency();
+    unsigned int num_threads = (hw_threads > 4) ? hw_threads - 1 : std::max(1u, hw_threads);
+
+    std::vector<ThreadResult> results(num_threads);
+
+    // 2. Distribute workload (rows) among threads
+    GridIndexType total_view_rows = grid_index_view_.max_row - grid_index_view_.min_row;
+    GridIndexType rows_per_thread = total_view_rows / num_threads;
+    GridIndexType remainder = total_view_rows % num_threads;
+
+    GridIndexType current_start_row = grid_index_view_.min_row;
+
+    // 3. Launch threads (Fork)
+    for (unsigned int i = 0; i < num_threads; ++i) {
+        GridIndexType count = rows_per_thread + (i < remainder ? 1 : 0);
+        GridIndexType end_row = current_start_row + count;
+
+        if (count > 0) {
+            threads.emplace_back(&SimulationCore::ProcessChunk, this,
+                current_start_row,
+                end_row,
+                std::ref(results[i])
+            );
+        }
+        current_start_row = end_row;
+    }
+
+    // 4. Wait for threads to complete (Join)
+    for (auto& t : threads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+
+    // 5. Merge Results (Reduce)
+
+    // Calculate total size beforehand to execute a single reservation
+    size_t total_changes = 0;
+    for (const auto& res : results) {
+        total_changes += res.local_indexes.size();
+    }
+
+    changes_.indexes.clear();
+    changes_.indexes.reserve(total_changes);
+
+    // Append data contiguously
+    for (const auto& res : results) {
+        changes_.indexes.insert(changes_.indexes.end(), res.local_indexes.begin(), res.local_indexes.end());
+    }
+}
+
+void SimulationCore::ProcessChunk(GridIndexType start_row, GridIndexType end_row, ThreadResult& result) {
+    // Pre-allocate local memory to avoid constant reallocations.
+    // Assuming roughly a 5% change density initially to preserve RAM.
+    size_t estimated_changes = static_cast<size_t>((end_row - start_row) * (grid_index_view_.max_col - grid_index_view_.min_col) * 0.05);
+    result.local_indexes.reserve(estimated_changes);
+
+    // Single-pass check over the region of interest
+    for (GridIndexType y = start_row; y < end_row; ++y) {
+        size_t row_offset = static_cast<size_t>(y * current_grid_.GetCols());
+        const int8_t* curr_row = current_grid_.GetLayer<int8_t>("flood_risk")->GetData().data() + row_offset;
+        const int8_t* prev_row = current_snapshot_.FloodRisk().data() + row_offset;
+
+        // Verify elements inside the mapped view bounds
+        for (GridIndexType x = grid_index_view_.min_col; x < grid_index_view_.max_col; ++x) {
+            if (prev_row[x] != curr_row[x]) {
+                result.local_indexes.push_back(y * current_grid_.GetCols() + x);
             }
-
-            currentTime += (snapshotManager_->everyNSteps() * timeStep_);
-
-            // --- PASO 3: OUTPUT ---
-            publishCurrentState(currentTime);
-        }
-
-        LOG_INFO("Simulation finished");
-    }
-
-    void SimulationCore::publishCurrentState(std::chrono::sys_seconds time) {
-        // 1. Esperar a que los consumidores liberen el buffer anterior
-        snapshotManager_->waitForReady();
-
-        calculateViewChanges();
-
-        currentSnapshot_.set(time, currentGrid_);
-
-        // 3. Publicar
-        snapshotManager_->publish(&currentSnapshot_, &changes_);
-
-        LOG_INFO("Publish snapshot at time {:%FT%T}", time);
-    }
-
-    void SimulationCore::calculateGridView() {
-        if (view_.useFullGrid) {
-            gridIndexView_.minCol = 0u;
-            gridIndexView_.maxCol = currentGrid_.cols();
-
-            gridIndexView_.minRow = 0u;
-            gridIndexView_.maxRow = currentGrid_.rows();
-        }
-        else {
-            GridViewBox gridView{
-                .southWest = currentGrid_.transformViewPoint(view_.southWest, currentGrid_.crs()),
-                .northEast = currentGrid_.transformViewPoint(view_.northEast, currentGrid_.crs())
-            };
-
-            gridIndexView_.minCol = static_cast<GridIndexType>(std::floor((gridView.southWest.x - currentGrid_.mapOriginX()) / currentGrid_.cellSize()));
-            gridIndexView_.maxCol = static_cast<GridIndexType>(std::ceil((gridView.northEast.x - currentGrid_.mapOriginX()) / currentGrid_.cellSize()));
-
-            gridIndexView_.minCol = std::clamp(gridIndexView_.minCol, static_cast<GridIndexType>(0), currentGrid_.cols());
-            gridIndexView_.maxCol = std::clamp(gridIndexView_.maxCol, static_cast<GridIndexType>(0), currentGrid_.cols());
-
-            gridIndexView_.minRow = static_cast<GridIndexType>(std::floor((currentGrid_.mapOriginY() - gridView.northEast.y) / currentGrid_.cellSize()));
-            gridIndexView_.maxRow = static_cast<GridIndexType>(std::ceil((currentGrid_.mapOriginY() - gridView.southWest.y) / currentGrid_.cellSize()));
-
-            gridIndexView_.minRow = std::clamp(gridIndexView_.minRow, static_cast<GridIndexType>(0), currentGrid_.rows());
-            gridIndexView_.maxRow = std::clamp(gridIndexView_.maxRow, static_cast<GridIndexType>(0), currentGrid_.rows());
         }
     }
+}
 
-    void SimulationCore::calculateViewChanges() {
-        // 3. Preparar Hilos
-        std::vector<std::thread> threads;
-
-        unsigned int hw_threads = std::thread::hardware_concurrency();
-        unsigned int num_threads = (hw_threads > 4) ? hw_threads - 1 : std::max(1u, hw_threads);
-
-        std::vector<ThreadResult> results(num_threads);
-
-        // Calculamos cuántas filas le tocan a cada hilo (del total de filas visibles)
-        GridIndexType total_view_rows = gridIndexView_.maxRow - gridIndexView_.minRow;
-        GridIndexType rows_per_thread = total_view_rows / num_threads;
-        GridIndexType remainder = total_view_rows % num_threads;
-
-        GridIndexType current_start_row = gridIndexView_.minRow;
-
-        // 4. Lanzar Hilos (Fork)
-        for (unsigned int i = 0; i < num_threads; ++i) {
-            GridIndexType count = rows_per_thread + (i < remainder ? 1 : 0);
-            GridIndexType end_row = current_start_row + count;
-
-            if (count > 0) {
-                threads.emplace_back(&SimulationCore::processChunk, this,
-                    current_start_row,
-                    end_row,
-                    std::ref(results[i])
-                );
-            }
-            current_start_row = end_row;
-        }
-
-        // 5. Esperar Hilos (Join)
-        for (auto& t : threads) {
-            if (t.joinable()) t.join();
-        }
-
-        // 6. Fusionar Resultados (Reduce)
-
-        // Calcular tamaño total primero para hacer un solo reserve
-        size_t total_changes = 0;
-        for (const auto& res : results) total_changes += res.local_indexes.size();
-
-        changes_.indexes.clear();
-
-        changes_.indexes.reserve(total_changes);
-
-        // Copiar datos
-        for (const auto& res : results) {
-            changes_.indexes.insert(changes_.indexes.end(), res.local_indexes.begin(), res.local_indexes.end());
-        }
-    }
-
-    void SimulationCore::processChunk(GridIndexType start_row, GridIndexType end_row, ThreadResult& result) {
-        // Pre-reservamos memoria local para evitar reallocs constantes
-        // Estimamos un 5% de cambios para no desperdiciar RAM
-        size_t estimated_changes = static_cast<size_t>((end_row - start_row) * (gridIndexView_.maxCol - gridIndexView_.minCol) * 0.05);
-        result.local_indexes.reserve(estimated_changes);
-
-        // --- BUCLE CORREGIDO Y OPTIMIZADO ---
-        // Eliminamos el memcpy de arriba y hacemos todo en un pase.
-        for (GridIndexType y = start_row; y < end_row; ++y) {
-            size_t row_offset = static_cast<size_t>(y * currentGrid_.cols());
-            const int8_t* curr_row = currentGrid_.getLayer<int8_t>("flood_risk")->getData().data() + row_offset;
-            const int8_t* prev_row = currentSnapshot_.floodRisk().data() + row_offset;
-
-            // Parte 2: DENTRO de la vista (Comparar + Copiar + Detectar)
-            for (GridIndexType x = gridIndexView_.minCol; x < gridIndexView_.maxCol; ++x) {
-                if (prev_row[x] != curr_row[x]) {
-                    result.local_indexes.push_back(y * currentGrid_.cols() + x);
-                }
-            }
-        }
-    }
-
-} // namespace danasim
+} // namespace floodsim

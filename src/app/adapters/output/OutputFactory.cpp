@@ -5,78 +5,90 @@
 
 #include "app/adapters/output/OutputFactory.hpp"
 
-#include <variant>
 #include <stdexcept>
+#include <variant>
+
 #include <fmt/core.h>
 
-#include "logging/Logger.hpp"
-#include "app/core/ports/OutputPort.hpp"
-#include "app/config/Config.hpp"
-
-// Include concrete implementations
-#include "app/adapters/output/MQTTOutput.hpp"
-#include "app/adapters/output/ImageOutput.hpp"
 #include "app/adapters/output/CheckpointOutput.hpp"
+#include "app/adapters/output/ImageOutput.hpp"
+#include "app/adapters/output/MQTTOutput.hpp"
+#include "app/config/Config.hpp"
+#include "logging/Logger.hpp"
 
-namespace danasim {
+namespace floodsim {
 
-    namespace {
-        // ---------------------------------------------------------------------
-        // C++20 Overloaded Visitor Helper
-        // ---------------------------------------------------------------------
-        template<class... Ts>
-        struct overloaded : Ts... { using Ts::operator()...; };
+namespace {
 
-        template<class... Ts>
-        overloaded(Ts...) -> overloaded<Ts...>;
+    /**
+     * @brief Helper struct for C++20 std::visit overload pattern.
+     * * Allows passing multiple lambdas to std::visit for handling different
+     * types in a std::variant cleanly.
+     *
+     * @tparam Ts Types of the callable objects (lambdas).
+     */
+    template <class... Ts>
+    struct Overloaded : Ts... {
+        using Ts::operator()...;
+    };
+
+    template <class... Ts>
+    Overloaded(Ts...) -> Overloaded<Ts...>;
+
+}  // namespace
+
+std::vector<std::unique_ptr<OutputPort>> OutputFactory::CreateOutputs(
+        const OutputConfig& config, const std::string& scenario_name) {
+
+    // Exception handling: Validate critical input arguments
+    if (scenario_name.empty()) {
+        LOG_ERROR("Scenario name cannot be empty when creating outputs.");
+        throw std::invalid_argument("OutputFactory: scenario_name is empty.");
     }
 
-    std::vector<std::unique_ptr<OutputPort>>
-        OutputFactory::createOutputs(const OutputConfig& config, const std::string& scenarioName)
-    {
-        std::vector<std::unique_ptr<OutputPort>> outputs;
+    std::vector<std::unique_ptr<OutputPort>> outputs;
 
-        // Reserve memory to avoid reallocations
-        outputs.reserve(config.outputs.size());
+    // Reserve memory to avoid reallocations
+    outputs.reserve(config.outputs.size());
 
-        for (const auto& outCfg : config.outputs) {
+    for (const auto& out_cfg : config.outputs) {
             
-            // Dispatch creation logic based on the active variant type
-            outputs.push_back(std::visit(overloaded{
-
+        // Dispatch creation logic based on the active variant type
+        outputs.push_back(std::visit(
+            Overloaded{
                 // 1. Checkpoint Output
-                [](const OutputConfig::CheckpointOutputConfigEntry& arg) -> std::unique_ptr<OutputPort> {
+                [](const OutputConfig::CheckpointOutputConfigEntry& arg)
+                    -> std::unique_ptr<OutputPort> {
                     LOG_DEBUG("Initializing Checkpoint Output");
-                    return std::make_unique<CheckpointOutput>(arg.staticFormat);
+                    return std::make_unique<CheckpointOutput>(arg.static_format);
                 },
 
-                // 2. MQTT Output
-                [&scenarioName](const OutputConfig::MqttOutputConfigEntry& arg) -> std::unique_ptr<OutputPort> {
-                    LOG_DEBUG("Initializing MQTT Output");
+            // 2. MQTT Output
+            [&scenario_name](const OutputConfig::MqttOutputConfigEntry& arg)
+                -> std::unique_ptr<OutputPort> {
+                LOG_DEBUG("Initializing MQTT Output");
+                return std::make_unique<MqttOutput>(
+                    arg.protocol + arg.host + ":" + std::to_string(arg.port),
+                    scenario_name, arg.payload_format);
+            },
 
-                    return std::make_unique<MqttOutput>(
-                        arg.protocol + arg.host + ":" + std::to_string(arg.port),
-                        scenarioName,
-                        arg.payloadFormat
-                    );
-                },
+            // 3. Image Output
+            [](const OutputConfig::ImageOutputConfigEntry&)
+                -> std::unique_ptr<OutputPort> {
+                LOG_DEBUG("Initializing Image Output");
+                return std::make_unique<ImageOutput>();
+            },
 
-                // 3. Image Output
-                [](const OutputConfig::ImageOutputConfigEntry&) -> std::unique_ptr<OutputPort> {
-                    LOG_DEBUG("Initializing Image Output");
-                    return std::make_unique<ImageOutput>();
-                },
-
-                // 4. Safety catch-all for unhandled types
-                [](auto&&) -> std::unique_ptr<OutputPort> {
-                    LOG_ERROR("OutputFactory encountered an unknown configuration type.");
-                    throw std::runtime_error("OutputFactory: Unknown or unimplemented output type.");
-                }
-
-            }, outCfg));
-        }
-
-        return outputs;
+            // 4. Safety catch-all for unhandled types
+            [](auto&&) -> std::unique_ptr<OutputPort> {
+                LOG_ERROR("OutputFactory encountered an unknown configuration type.");
+                throw std::runtime_error(
+                    "OutputFactory: Unknown or unimplemented output type.");
+            } },
+            out_cfg));
     }
 
-} // namespace danasim
+    return outputs;
+}
+
+} // namespace floodsim

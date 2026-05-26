@@ -1,22 +1,27 @@
 /**
- * @file Snapshot.hpp
- * @brief Immutable value object representing the simulation state at a specific time step.
+ * @file ChangeList.hpp
+ * @brief Defines the structure for tracking modified cells in a simulation step.
  *
- * @version 1.0
- * @date 2026
- * @copyright Copyright (c) 2026 Danasim
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #pragma once
 
 #include <vector>
 
-#include "Types.hpp"
+#include "misc/Types.hpp"
 
-namespace danasim {
+namespace floodsim {
 
-    struct ChangeList {
-        std::vector<GridIndexType> indexes;
-    };
+/**
+ * @struct ChangeList
+ * @brief Holds a list of spatial indices representing cells that have changed.
+ *
+ * Used to communicate minimal state updates (deltas) between the physics engine
+ * and the output consumers, optimizing network and disk I/O.
+ */
+struct ChangeList {
+    std::vector<GridIndexType> indexes; ///< List of linear grid indices that were updated.
+};
 
-} // namespace danasim
+} // namespace floodsim

@@ -2,181 +2,242 @@
  * @file MapGrid.hpp
  * @brief Central data structure holding the simulation state.
  *
- * Acts as a container for all spatial data layers. It uses std::variant to
- * support heterogeneous data types (float/int) while maintaining
- * contiguous memory vectors for cache efficiency.
+ * Acts as a container for all spatial data layers and scalars. It manages
+ * heterogeneous data types while maintaining contiguous memory vectors for
+ * cache efficiency. Also handles georeferencing and coordinate transformations.
  *
- * @version 1.0
- * @date 2026
- * @copyright Copyright (c) 2026 Danasim
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #pragma once
 
-#include <vector>
 #include <array>
-#include <string>
-#include <variant>
-#include <cstdint>
-#include <stdexcept>
-#include <thread>
-#include <mutex>
 #include <atomic>
-#include <unordered_map>
 #include <chrono>
-
-#include <magic_enum/magic_enum.hpp>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <variant>
+#include <vector>
 
 #include <fmt/core.h>
+#include <magic_enum/magic_enum.hpp>
 
-#include "logging/Logger.hpp"
-#include "app/core/grid/LayerTypes.hpp"
-#include "app/core/grid/ScalarTypes.hpp"
-#include "Types.hpp"
-#include "app/core/ports/InputPort.hpp"
-#include "app/core/grid/Layer.hpp"
-#include "app/core/grid/Scalar.hpp"
 #include "app/config/Config.hpp"
-#include "app/core/grid/StaticLayer.hpp"
-#include "app/core/grid/DynamicLayer.hpp"
+#include "app/core/grid/layers/DynamicLayer.hpp"
+#include "app/core/grid/layers/Layer.hpp"
+#include "app/core/grid/layers/StaticLayer.hpp"
+#include "app/core/grid/scalars/Scalar.hpp"
+#include "app/core/ports/InputPort.hpp"
+#include "logging/Logger.hpp"
 
-namespace danasim {
+namespace floodsim {
 
-    enum class DataType {
-        FLOAT32,
-        INT8
+/**
+ * @enum DataType
+ * @brief Defines supported primitive data types for simulation parameters.
+ */
+enum class DataType {
+    kFloat32,
+    kInt8
+};
+
+/**
+ * @struct ModelParam
+ * @brief Configuration parameters for a single simulation variable (layer or scalar).
+ */
+struct ModelParam {
+    std::string name;       ///< Identifier of the parameter.
+    DataType data_type;     ///< Underlying data type (e.g., float32, int8).
+    bool load_required;     ///< Flag indicating if the parameter must be loaded initially.
+};
+
+/**
+ * @struct ModelParamsInfo
+ * @brief Aggregation of all required layers and scalars for the simulation model.
+ */
+struct ModelParamsInfo {
+    std::vector<ModelParam> layers;  ///< List of required spatial layers.
+    std::vector<ModelParam> scalars; ///< List of required global scalars.
+};
+
+/**
+ * @struct GridViewBox
+ * @brief Defines a rectangular bounding box using projected grid coordinates.
+ */
+struct GridViewBox {
+    /**
+     * @struct Point
+     * @brief Represents a 2D coordinate point in projected space.
+     */
+    struct Point {
+        double x;
+        double y;
     };
 
-    struct ModelParam {
-        std::string name;
-        DataType dataType;
-        bool loadRequired;
-    };
+    Point south_west; ///< Bottom-left corner coordinate.
+    Point north_east; ///< Top-right corner coordinate.
+};
 
-    struct ModelParamsInfo {
-        std::vector<ModelParam> layers;
-        std::vector<ModelParam> scalars;
-    };
+/**
+ * @struct UTMZoneInfo
+ * @brief Holds parsed Universal Transverse Mercator (UTM) projection data.
+ */
+struct UTMZoneInfo {
+    int zone;      ///< The UTM zone number.
+    bool is_north; ///< True if in the northern hemisphere, false otherwise.
+};
 
-    struct GridViewBox {
-
-        struct Point {
-            double x;
-            double y;
-        };
-
-        Point southWest;
-        Point northEast;
-    };
-
-    struct UTMZoneInfo {
-        int zone;
-        bool isNorth;
-    };
+/**
+ * @class MapGrid
+ * @brief The primary grid container and orchestrator.
+ *
+ * Acts as the central hub managing all spatial layers, dynamic updates,
+ * scalar values, and coordinate transformations for the simulation environment.
+ */
+class MapGrid {
+public:
+    MapGrid() = default;
+    ~MapGrid() = default;
 
     /**
-     * @class MapGrid
-     * @brief The primary grid container.
+     * @brief Loads and initializes the required simulation layers and scalars.
+     *
+     * @param params_info Definitions of the layers and scalars needed.
+     * @param main_input_source The primary port to read input data from.
+     * @param layers_alternative_input_source Map of specific input ports for customized layer loading.
+     * @param scalars_config Configuration map for scalar initializations.
+     * @param time_step The fundamental time step of the simulation.
+     * @param current_time The initial simulation clock time.
      */
-    class MapGrid {
-    public:
-        MapGrid();
-        ~MapGrid() = default;
+    void Load(const ModelParamsInfo& params_info,
+        InputPort* main_input_source,
+        const std::unordered_map<std::string, InputPort*>& layers_alternative_input_source,
+        const std::unordered_map<std::string, std::string>& scalars_config,
+        std::chrono::seconds time_step,
+        std::chrono::system_clock::time_point current_time);
 
-        void load(
-            const ModelParamsInfo& paramsInfo, InputPort* mainInputSource,
-            const std::unordered_map<std::string, InputPort*>& layersAlternativeInputSource,
-            const std::unordered_map<std::string, std::string>& scalarsConfig,
-            std::chrono::seconds timeStep, std::chrono::system_clock::time_point currentTime
-        );
+    /**
+     * @brief Polls and updates all dynamic layers based on the current simulation time.
+     *
+     * @param current_time The current simulation clock time.
+     */
+    void UpdateDynamicLayers(std::chrono::system_clock::time_point current_time);
 
-        void updateDynamicLayers(std::chrono::system_clock::time_point currentTime);
+    // -------------------------------------------------------------------------
+    // Layer Accessors
+    // -------------------------------------------------------------------------
 
+    [[nodiscard]] LayerBase* GetLayer(const std::string& name) {
+        return layers_.at(name).get();
+    }
 
-        LayerBase* getLayer(const std::string& name) {
-            return layers_.at(name).get();
-        }
+    [[nodiscard]] const LayerBase* GetLayer(const std::string& name) const {
+        return layers_.at(name).get();
+    }
 
-        const LayerBase* getLayer(const std::string& name) const {
-            return layers_.at(name).get();
-        }
+    template <typename T>
+    [[nodiscard]] Layer<T>* GetLayer(const std::string& name) {
+        return dynamic_cast<Layer<T>*>(layers_.at(name).get());
+    }
 
+    template <typename T>
+    [[nodiscard]] const Layer<T>* GetLayer(const std::string& name) const {
+        return dynamic_cast<const Layer<T>*>(layers_.at(name).get());
+    }
 
-        template <typename T>
-        Layer<T>* getLayer(const std::string& name) {
-            return dynamic_cast<Layer<T>*>(layers_.at(name).get());
-        }
+    // -------------------------------------------------------------------------
+    // Scalar Accessors
+    // -------------------------------------------------------------------------
 
-        template <typename T>
-        const Layer<T>* getLayer(const std::string& name) const {
-            return dynamic_cast<const Layer<T>*>(layers_.at(name).get());
-        }
+    [[nodiscard]] ScalarBase* GetScalar(const std::string& name) {
+        return scalars_.at(name).get();
+    }
 
+    [[nodiscard]] const ScalarBase* GetScalar(const std::string& name) const {
+        return scalars_.at(name).get();
+    }
 
-        ScalarBase* getScalar(const std::string& name) {
-            return scalars_.at(name).get();
-        }
+    template <typename T>
+    [[nodiscard]] Scalar<T>* GetScalar(const std::string& name) {
+        return dynamic_cast<Scalar<T>*>(scalars_.at(name).get());
+    }
 
-        const ScalarBase* getScalar(const std::string& name) const {
-            return scalars_.at(name).get();
-        }
+    template <typename T>
+    [[nodiscard]] const Scalar<T>* GetScalar(const std::string& name) const {
+        return dynamic_cast<const Scalar<T>*>(scalars_.at(name).get());
+    }
 
-        template <typename T>
-        Scalar<T>* getScalar(const std::string& name) {
-            return dynamic_cast<Scalar<T>*>(scalars_.at(name).get());
-        }
+    // -------------------------------------------------------------------------
+    // Metadata & Georeferencing Getters
+    // -------------------------------------------------------------------------
 
-        template <typename T>
-        const Scalar<T>* getScalar(const std::string& name) const {
-            return dynamic_cast<const Scalar<T>*>(scalars_.at(name).get());
-        }
+    [[nodiscard]] const GridMetadata& GetMetadata() const { return metadata_; }
 
-        // --- Getters ---
-
-        const GridMetadata& getMetadata() const { return metadata_; }
-
-        [[nodiscard]] GridIndexType rows() const noexcept { return metadata_.height; }
-        [[nodiscard]] GridIndexType cols() const noexcept { return metadata_.width; }
-        [[nodiscard]] float cellSize() const noexcept { return metadata_.cellSize; }
-        [[nodiscard]] std::string crs() const noexcept { return metadata_.crs; }
-        [[nodiscard]] double mapOriginX() const noexcept { return metadata_.minX; }
-        [[nodiscard]] double mapOriginY() const noexcept { return metadata_.maxY; }
+    [[nodiscard]] GridIndexType GetRows() const noexcept { return metadata_.height; }
+    [[nodiscard]] GridIndexType GetCols() const noexcept { return metadata_.width; }
+    [[nodiscard]] float GetCellSize() const noexcept { return metadata_.cell_size; }
+    [[nodiscard]] std::string GetCrs() const noexcept { return metadata_.crs; }
+    [[nodiscard]] double GetMapOriginX() const noexcept { return metadata_.min_x; }
+    [[nodiscard]] double GetMapOriginY() const noexcept { return metadata_.max_y; }
         
-        ViewBox::Point georeference() const;
+    [[nodiscard]] ViewBox::Point GetGeoreference() const;
 
-        GridViewBox::Point transformViewPoint(ViewBox::Point sourcePoint, const std::string& targetCRS) const;
-        ViewBox::Point transformGridViewPoint(GridViewBox::Point sourcePoint, const std::string& targetCRS) const;
+    [[nodiscard]] GridViewBox::Point TransformViewPoint(ViewBox::Point source_point, const std::string& target_crs) const;
+    [[nodiscard]] ViewBox::Point TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const;
 
-    private:
-        // Storage for all layers defined in the enum
-        std::unordered_map<std::string, std::unique_ptr<LayerBase>> layers_;
+private:
+    std::unordered_map<std::string, std::unique_ptr<LayerBase>> layers_;   ///< Storage for all spatial layers.
+    std::unordered_map<std::string, std::unique_ptr<ScalarBase>> scalars_; ///< Storage for global scalar variables.
 
-        std::unordered_map<std::string, std::unique_ptr<ScalarBase>> scalars_;
+    GridMetadata metadata_; ///< Shared spatial metadata for the grid map.
 
-        GridMetadata metadata_;
-
-
-        template <typename T>
-        void addLayer(const std::string& name, bool isStaticLayer) {
-            if (isStaticLayer) {
-                layers_[name] = std::make_unique<StaticLayer<T>>(name);
-            }
-            else {
-                layers_[name] = std::make_unique<DynamicLayer<T>>(name);
-            }
+    /**
+     * @brief Instantiates and registers a new layer.
+     *
+     * @tparam T The primitive data type of the layer.
+     * @param name Identifier of the layer.
+     * @param is_static_layer True to create a StaticLayer, false for a DynamicLayer.
+     */
+    template <typename T>
+    void AddLayer(const std::string& name, bool is_static_layer) {
+        if (is_static_layer) {
+            layers_[name] = std::make_unique<StaticLayer<T>>(name);
         }
-
-        template <typename T>
-        void addScalar(const std::string& name) {
-            scalars_[name] = std::make_unique<Scalar<T>>(name);
+        else {
+            layers_[name] = std::make_unique<DynamicLayer<T>>(name);
         }
+    }
 
+    /**
+     * @brief Instantiates and registers a new scalar.
+     *
+     * @tparam T The primitive data type of the scalar.
+     * @param name Identifier of the scalar.
+     */
+    template <typename T>
+    void AddScalar(const std::string& name) {
+        scalars_[name] = std::make_unique<Scalar<T>>(name);
+    }
 
-        void normalizeUnits(const std::string& name);
+    /**
+     * @brief Standardizes the measurement units for a given layer or scalar.
+     *
+     * @param name Identifier of the target parameter.
+     */
+    void NormalizeUnits(const std::string& name);
 
+    /**
+     * @brief Parses an EPSG code string to extract UTM zone configuration.
+     *
+     * @param epsg_string The Coordinate Reference System EPSG string.
+     * @return std::optional<UTMZoneInfo> Parsed data if valid, std::nullopt otherwise.
+     */
+    std::optional<UTMZoneInfo> ParseUTMZoneFromEPSG(const std::string& epsg_string) const;
+};
 
-
-        std::optional<UTMZoneInfo> parseUTMZoneFromEPSG(const std::string& epsgString) const;
-    };
-
-} // namespace danasim
+} // namespace floodsim

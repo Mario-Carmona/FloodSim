@@ -1,6 +1,8 @@
 /**
  * @file ConfigLoader.cpp
- * @brief Implementation of the YAML configuration loader.
+ * @brief Implementation of the YAML configuration loader, including exception handling.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #include "app/config/ConfigLoader.hpp"
@@ -11,117 +13,177 @@
 #include <filesystem>
 #include <fmt/core.h>
 #include <magic_enum/magic_enum.hpp>
+#include <whereami.h>
 #include <fmt/chrono.h>
 #include <fstream>
 
 #include "logging/LoggerLevel.hpp"
-#include "misc/Paths.hpp"
-#include "misc/Time.hpp"
-#include "app/core/grid/LayerTypes.hpp"
+#include "misc/TimeUtils.hpp" 
 
-namespace danasim {
+namespace floodsim {
 
-    namespace {
+namespace {
 
-        /**
-         * @class ConfigurationException
-         * @brief Exception thrown when a configuration error occurs (parsing or validation).
-         */
-        class ConfigurationException : public std::runtime_error {
-        public:
-            explicit ConfigurationException(const std::string& message)
-                : std::runtime_error("Configuration Error: " + message)
-            {
-                
-            }
-        };
+/**
+ * @brief Retrieves the standard operating system directory for storing application data.
+ *
+ * Resolves the appropriate user-specific data folder based on the OS (Windows APPDATA,
+ * macOS Library/Application Support, or Linux XDG Base Directory specification).
+ *
+ * @param app_name The name of your application to create a dedicated subfolder.
+ * @return std::filesystem::path The absolute path to the application's data directory.
+ */
+[[nodiscard]] inline std::filesystem::path GetAppDataDirectory(std::string_view app_name) {
+    std::filesystem::path app_data_path;
 
-
-
-        // ---------------------------------------------------------
-        // YAML Node Extraction Helpers
-        // ---------------------------------------------------------
-
-        /**
-         * @brief Checks if a YAML node exists, throws descriptive error if not.
-         */
-        YAML::Node requireNode(const YAML::Node& parent, const std::string& key)
-        {
-            if (!parent[key]) {
-                throw ConfigurationException("Missing required configuration section: '" + key + "'");
-            }
-            return parent[key];
+#if defined(_WIN32)
+    // --- WINDOWS ---
+    const char* app_data = std::getenv("APPDATA");
+    if (app_data != nullptr) {
+        app_data_path = std::filesystem::path(app_data);
+    }
+    else {
+        // Unlikely fallback on Windows, but safe
+        app_data_path = std::filesystem::current_path();
+    }
+#elif defined(__APPLE__)
+    // --- macOS ---
+    const char* home = std::getenv("HOME");
+    if (home != nullptr) {
+        app_data_path = std::filesystem::path(home) / "Library" / "Application Support";
+    }
+#elif defined(__linux__) || defined(__unix__)
+    // --- LINUX / UNIX ---
+    const char* xdg_data_home = std::getenv("XDG_DATA_HOME");
+    if (xdg_data_home != nullptr && xdg_data_home[0] != '\0') {
+        app_data_path = std::filesystem::path(xdg_data_home);
+    }
+    else {
+        // Standard XDG fallback if the environment variable is not defined
+        const char* home = std::getenv("HOME");
+        if (home != nullptr) {
+            app_data_path = std::filesystem::path(home) / ".local" / "share";
         }
+    }
+#else
+#error "Operating system not supported"
+#endif
 
-        /**
-         * @brief Safely extracts a value from a node with type checking.
-         */
-        template <typename T>
-        T extract(const YAML::Node& node, const std::string& key)
-        {
-            if (!node[key]) {
-                throw ConfigurationException("Missing required field: '" + key + "'");
-            }
-            try {
-                return node[key].as<T>();
-            }
-            catch (const YAML::BadConversion&) {
-                throw ConfigurationException("Field '" + key + "' has invalid data type.");
-            }
-        }
+    // If we successfully obtained a valid base path, append our app's folder
+    if (!app_data_path.empty() && !app_name.empty()) {
+        app_data_path /= app_name;
+    }
 
-        void validate(bool condition, const std::string& message)
-        {
-            if (!condition) {
-                throw ConfigurationException(message);
-            }
-        }
+    return app_data_path;
+}
 
-    } // anonymous namespace
+/**
+ * @class ConfigurationException
+ * @brief Exception thrown when a configuration error occurs (parsing, validation, or I/O).
+ */
+class ConfigurationException : public std::runtime_error {
+public:
+    explicit ConfigurationException(const std::string& message)
+        : std::runtime_error("Configuration Error: " + message) {}
+};
 
-    Config ConfigLoader::load(const std::filesystem::path& configPath)
-    {
-        if (!std::filesystem::exists(configPath)) {
-            throw ConfigurationException("Configuration file not found: " + configPath.string());
-        }
+/**
+ * @brief Checks if a YAML node exists, throws descriptive error if not.
+ */
+YAML::Node RequireNode(const YAML::Node& parent, const std::string& key) {
+    if (!parent[key]) {
+        throw ConfigurationException("Missing required configuration section: '" + key + "'");
+    }
+    return parent[key];
+}
 
-        YAML::Node root;
-        try {
-            root = YAML::LoadFile(configPath.string());
-        }
-        catch (const YAML::ParserException& e) {
-            throw ConfigurationException("YAML Syntax Error: " + std::string(e.what()));
-        }
+/**
+* @brief Safely extracts a value from a node with type checking.
+*/
+template <typename T>
+T Extract(const YAML::Node& node, const std::string& key) {
+    if (!node[key]) {
+        throw ConfigurationException("Missing required field: '" + key + "'");
+    }
+    try {
+        return node[key].as<T>();
+    }
+    catch (const YAML::BadConversion&) {
+        throw ConfigurationException("Field '" + key + "' has invalid data type.");
+    }
+}
 
-        const std::filesystem::path configFolder = configPath.parent_path();
+/**
+ * @brief Safely extracts an enum from a string, handling Google C++ Style "k" prefixes automatically.
+ */
+template <typename EnumType>
+EnumType ExtractEnum(const YAML::Node& node, const std::string& key) {
+    std::string raw_value = Extract<std::string>(node, key);
 
-        Config config;
+    std::string k_prefixed = "k" + raw_value;
+    auto enum_opt = magic_enum::enum_cast<EnumType>(k_prefixed, magic_enum::case_insensitive);
+    if (enum_opt.has_value()) {
+        return enum_opt.value();
+    }
 
+    throw ConfigurationException(fmt::format("Field '{}' contains invalid enum value: '{}'", key, raw_value));
+}
+
+void Validate(bool condition, const std::string& message) {
+    if (!condition) {
+        throw ConfigurationException(message);
+    }
+}
+
+// Helper para std::visit
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+} // anonymous namespace
+
+Config ConfigLoader::Load(const std::filesystem::path& config_path) {
+    if (!std::filesystem::exists(config_path)) {
+        throw ConfigurationException("Configuration file not found: " + config_path.string());
+    }
+
+    YAML::Node root;
+    try {
+        root = YAML::LoadFile(config_path.string());
+    }
+    catch (const YAML::ParserException& e) {
+        throw ConfigurationException("YAML Syntax Error: " + std::string(e.what()));
+    }
+    catch (const std::exception& e) {
+        throw ConfigurationException("Unexpected error loading file: " + std::string(e.what()));
+    }
+
+    const std::filesystem::path config_folder = config_path.parent_path();
+    Config config;
+
+    try {
         // -----------------------------
         // INPUT
         // -----------------------------
         {
-            const auto node = requireNode(root, "input");
+            const auto node = RequireNode(root, "input");
 
             {
-                const auto fileNode = requireNode(node, "file");
+                const auto file_node = RequireNode(node, "file");
 
                 config.input.file = InputConfig::FileInputSourceConfig{
-                    .staticFormat = magic_enum::enum_cast<FileStaticFormat>(extract<std::string>(fileNode, "static_format"), magic_enum::case_insensitive).value(),
-                    .dynamicFormat = magic_enum::enum_cast<FileDynamicFormat>(extract<std::string>(fileNode, "dynamic_format"), magic_enum::case_insensitive).value(),
-					.datasetFolder = (configFolder / extract<std::string>(fileNode, "dataset_folder")).lexically_normal(),
-                    .datasetName = extract<std::string>(fileNode, "dataset_name")
+                  .static_format = ExtractEnum<FileStaticFormat>(file_node, "static_format"),
+                  .dynamic_format = ExtractEnum<FileDynamicFormat>(file_node, "dynamic_format"),
+                  .dataset_folder = (config_folder / Extract<std::string>(file_node, "dataset_folder")).lexically_normal(),
+                  .dataset_name = Extract<std::string>(file_node, "dataset_name")
                 };
             }
 
             {
-                const auto scalarsNode = requireNode(node, "scalars");
+                const auto scalars_node = RequireNode(node, "scalars");
 
-                for (const auto& it : scalarsNode) {
-                    // it.first es la clave, it.second es el valor
+                for (const auto& it : scalars_node) {
                     std::string key = it.first.as<std::string>();
                     std::string value = it.second.as<std::string>();
-
                     config.input.scalars[key] = value;
                 }
             }
@@ -131,354 +193,349 @@ namespace danasim {
         // OUTPUT
         // -----------------------------
         {
-            const auto node = requireNode(root, "output");
+            const auto node = RequireNode(root, "output");
 
-            // Snapshot settings
-            const auto snapshotNode = requireNode(node, "snapshot");
-            config.output.snapshot.everyNSteps = extract<std::size_t>(snapshotNode, "every_n_steps");
+            const auto snapshot_node = RequireNode(node, "snapshot");
+            config.output.snapshot.every_n_steps = Extract<std::size_t>(snapshot_node, "every_n_steps");
 
-            validate(config.output.snapshot.everyNSteps > 0, "snapshot.every_n_steps must be > 0");
+            Validate(config.output.snapshot.every_n_steps > 0, "snapshot.every_n_steps must be > 0");
 
-            // Output List
-            const auto outputsNode = requireNode(node, "outputs");
+            const auto outputs_node = RequireNode(node, "outputs");
 
-            for (const auto& outNode : outputsNode) {
-                OutputConfig::OutputConfigEntryType type = magic_enum::enum_cast<OutputConfig::OutputConfigEntryType>(extract<std::string>(outNode, "type"), magic_enum::case_insensitive).value();
+            for (const auto& out_node : outputs_node) {
+                OutputConfig::OutputConfigEntryType type = ExtractEnum<OutputConfig::OutputConfigEntryType>(out_node, "type");
 
                 switch (type) {
-                case OutputConfig::OutputConfigEntryType::CHECKPOINT: {
+                case OutputConfig::OutputConfigEntryType::kCheckpoint: {
                     config.output.outputs.emplace_back(OutputConfig::CheckpointOutputConfigEntry{
-                        .staticFormat = magic_enum::enum_cast<FileStaticFormat>(extract<std::string>(outNode, "static_format"), magic_enum::case_insensitive).value()
+                      .static_format = ExtractEnum<FileStaticFormat>(out_node, "static_format")
                         });
                     break;
                 }
-                case OutputConfig::OutputConfigEntryType::MQTT: {
+                case OutputConfig::OutputConfigEntryType::kMqtt: {
                     config.output.outputs.emplace_back(OutputConfig::MqttOutputConfigEntry{
-                        .protocol = extract<std::string>(outNode, "protocol"),
-                        .host = extract<std::string>(outNode, "host"),
-                        .port = extract<int>(outNode, "port"),
-                        .payloadFormat = magic_enum::enum_cast<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(extract<std::string>(outNode, "format"), magic_enum::case_insensitive).value()
+                      .protocol = Extract<std::string>(out_node, "protocol"),
+                      .host = Extract<std::string>(out_node, "host"),
+                      .port = Extract<int>(out_node, "port"),
+                      .payload_format = ExtractEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(out_node, "format")
                         });
                     break;
                 }
-                case OutputConfig::OutputConfigEntryType::IMAGE: {
+                case OutputConfig::OutputConfigEntryType::kImage: {
                     config.output.outputs.emplace_back(OutputConfig::ImageOutputConfigEntry{});
                     break;
                 }
                 }
             }
 
-            validate(!config.output.outputs.empty(), "At least one output must be defined");
+            Validate(!config.output.outputs.empty(), "At least one output must be defined");
         }
 
         // -----------------------------
         // SIMULATION
         // -----------------------------
         {
-            const auto node = requireNode(root, "simulation");
+            const auto node = RequireNode(root, "simulation");
 
-            config.simulation.startTimestamp = parseTimestampString(extract<std::string>(node, "start_timestamp"));
-            config.simulation.timeStep = parseDurationString(extract<std::string>(node, "time_step"));
-            config.simulation.duration = parseDurationString(extract<std::string>(node, "duration"));
+            config.simulation.start_timestamp = ParseTimestampString(Extract<std::string>(node, "start_timestamp"));
+            config.simulation.time_step = ParseDurationString(Extract<std::string>(node, "time_step"));
+            config.simulation.duration = ParseDurationString(Extract<std::string>(node, "duration"));
 
             {
-                const auto viewNode = requireNode(node, "view_box");
+                const auto view_node = RequireNode(node, "view_box");
 
-                config.simulation.viewBox.useFullGrid = extract<bool>(viewNode, "use_full_grid");
+                config.simulation.view_box.use_full_grid = Extract<bool>(view_node, "use_full_grid");
 
-                if (!config.simulation.viewBox.useFullGrid) {
+                if (!config.simulation.view_box.use_full_grid) {
                     {
-                        const auto southWestNode = requireNode(viewNode, "south_west");
-
-                        config.simulation.viewBox.southWest.lon = extract<float>(southWestNode, "lon");
-                        config.simulation.viewBox.southWest.lat = extract<float>(southWestNode, "lat");
+                        const auto south_west_node = RequireNode(view_node, "south_west");
+                        config.simulation.view_box.south_west.lon = Extract<double>(south_west_node, "lon");
+                        config.simulation.view_box.south_west.lat = Extract<double>(south_west_node, "lat");
                     }
 
                     {
-                        const auto northEastNode = requireNode(viewNode, "north_east");
-
-                        config.simulation.viewBox.northEast.lon = extract<float>(northEastNode, "lon");
-                        config.simulation.viewBox.northEast.lat = extract<float>(northEastNode, "lat");
+                        const auto north_east_node = RequireNode(view_node, "north_east");
+                        config.simulation.view_box.north_east.lon = Extract<double>(north_east_node, "lon");
+                        config.simulation.view_box.north_east.lat = Extract<double>(north_east_node, "lat");
                     }
                 }
             }
 
-            validate(config.simulation.timeStep > config.simulation.timeStep.zero(), "simulation.time_step must be > 0s");
-            validate(config.simulation.duration > config.simulation.duration.zero(), "simulation.duration must be > 0s");
+            Validate(config.simulation.time_step > config.simulation.time_step.zero(), "simulation.time_step must be > 0s");
+            Validate(config.simulation.duration > config.simulation.duration.zero(), "simulation.duration must be > 0s");
         }
 
         // -----------------------------
         // LOGGING
         // -----------------------------
         {
-            const auto node = requireNode(root, "logging");
+            const auto node = RequireNode(root, "logging");
 
-            config.logging.level = magic_enum::enum_cast<LoggerLevel>(extract<std::string>(node, "level"), magic_enum::case_insensitive).value();
-            config.logging.async = extract<bool>(node, "async");
-            config.logging.silent = extract<bool>(node, "silent");
-            config.logging.saveLogFile = extract<bool>(node, "save_log_file");
+            config.logging.level = ExtractEnum<LoggerLevel>(node, "level");
+            config.logging.async = Extract<bool>(node, "async");
+            config.logging.silent = Extract<bool>(node, "silent");
+            config.logging.save_log_file = Extract<bool>(node, "save_log_file");
         }
 
         // -----------------------------
         // SCENARIO
         // -----------------------------
         {
-            const auto node = requireNode(root, "scenario");
+            const auto node = RequireNode(root, "scenario");
 
             if (node["output_dir"]) {
-                config.scenario.outputDir = (configFolder / extract<std::string>(node, "output_dir")).lexically_normal();
+                config.scenario.output_dir = (config_folder / Extract<std::string>(node, "output_dir")).lexically_normal();
             }
             else {
-                config.scenario.outputDir = GetAppDataDirectory("Danasim");
+                config.scenario.output_dir = GetAppDataDirectory(FLOODSIM_PROGRAM_NAME);
             }
 
-            config.scenario.name = extract<std::string>(node, "name");
-
-            config.scenario.appendStartTimestamp = extract<bool>(node, "append_start_timestamp");
+            config.scenario.name = Extract<std::string>(node, "name");
+            config.scenario.append_start_timestamp = Extract<bool>(node, "append_start_timestamp");
         }
 
         // -----------------------------
         // STATE UPDATER
         // -----------------------------
         {
-            const auto node = requireNode(root, "state_updater");
-            
+            const auto node = RequireNode(root, "state_updater");
 
             {
-                const auto updaterNode = requireNode(node, "updater");
+                const auto updater_node = RequireNode(node, "updater");
 
-                UpdaterConfigType type = magic_enum::enum_cast<UpdaterConfigType>(extract<std::string>(updaterNode, "type"), magic_enum::case_insensitive).value();
+                UpdaterConfigType type = ExtractEnum<UpdaterConfigType>(updater_node, "type");
 
                 switch (type) {
-                case UpdaterConfigType::ONNX: {
-                    config.stateUpdater.updater = OnnxUpdaterConfig{
-                        .modelPath = (configFolder / extract<std::string>(updaterNode, "model_path")).lexically_normal(),
-                        .tensorDim = extract<int64_t>(updaterNode, "tensor_dim")
+                case UpdaterConfigType::kOnnx: {
+                    config.state_updater.updater = OnnxUpdaterConfig{
+                      .model_path = (config_folder / Extract<std::string>(updater_node, "model_path")).lexically_normal(),
+                      .tensor_dim = Extract<int64_t>(updater_node, "tensor_dim")
                     };
                     break;
                 }
                 }
             }
 
-
-			config.stateUpdater.enableRainfall = extract<bool>(node, "enable_rainfall");
-
-            config.stateUpdater.dryTolerance = extract<float>(node, "dry_tolerance");
+            config.state_updater.enable_rainfall = Extract<bool>(node, "enable_rainfall");
+            config.state_updater.dry_tolerance = Extract<float>(node, "dry_tolerance");
 
             {
-                const auto floodRiskNode = requireNode(node, "flood_risk");
+                const auto flood_risk_node = RequireNode(node, "flood_risk");
+                const auto default_level_node = RequireNode(flood_risk_node, "default_level");
 
-                const auto defaultLevelNode = requireNode(floodRiskNode, "default_level");
-
-                FloodRiskLevel defaultLevel{
-                    .name = extract<std::string>(defaultLevelNode, "name"),
-                    .thresholdStart = 0.0,
-                    .colorHex = extract<std::string>(defaultLevelNode, "color_hex")
+                FloodRiskLevel default_level{
+                  .name = Extract<std::string>(default_level_node, "name"),
+                  .threshold_start = 0.0f,
+                  .color_hex = Extract<std::string>(default_level_node, "color_hex")
                 };
 
+                config.state_updater.flood_risk_levels.emplace_back(default_level);
 
-                config.stateUpdater.floodRiskLevels.emplace_back(defaultLevel);
+                const auto levels_node = RequireNode(flood_risk_node, "levels");
 
-
-                const auto levelsNode = requireNode(floodRiskNode, "levels");
-
-                for (const auto& elemNode : levelsNode) {
-                    config.stateUpdater.floodRiskLevels.emplace_back(FloodRiskLevel{
-                        .name = extract<std::string>(elemNode, "name"),
-                        .thresholdStart = extract<float>(elemNode, "threshold_start"),
-                        .colorHex = extract<std::string>(elemNode, "color_hex")
-                    });
+                for (const auto& elem_node : levels_node) {
+                    config.state_updater.flood_risk_levels.emplace_back(FloodRiskLevel{
+                      .name = Extract<std::string>(elem_node, "name"),
+                      .threshold_start = Extract<float>(elem_node, "threshold_start"),
+                      .color_hex = Extract<std::string>(elem_node, "color_hex")
+                        });
                 }
 
-
-                validate(!config.stateUpdater.floodRiskLevels.empty(), "At least one flood risk level must be defined");
-
+                Validate(!config.state_updater.flood_risk_levels.empty(), "At least one flood risk level must be defined");
 
                 std::sort(
-                    config.stateUpdater.floodRiskLevels.begin(),
-                    config.stateUpdater.floodRiskLevels.end(),
+                    config.state_updater.flood_risk_levels.begin(),
+                    config.state_updater.flood_risk_levels.end(),
                     [](const FloodRiskLevel& a, const FloodRiskLevel& b) {
-                        return a.thresholdStart < b.thresholdStart;
+                        return a.threshold_start < b.threshold_start;
                     }
                 );
 
-
-                validate(config.stateUpdater.floodRiskLevels[0].name == defaultLevel.name, "First flood risk level must be the default level");
+                Validate(config.state_updater.flood_risk_levels[0].name == default_level.name, "First flood risk level must be the default level");
             }
         }
 
-        return config;
+    }
+    catch (const ConfigurationException&) {
+        throw; // Rethrow custom exceptions
+    }
+    catch (const std::exception& e) {
+        throw ConfigurationException("Error parsing configuration structure: " + std::string(e.what()));
     }
 
-    // Helper para std::visit (si no lo tienes ya definido a nivel global o en este archivo)
-    template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-    template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+    return config;
+}
 
-    void ConfigLoader::saveToFile(const std::filesystem::path& destination, const Config& config) {
+void ConfigLoader::SaveToFile(const std::filesystem::path& destination, const Config& config) {
+    try {
         YAML::Node root;
 
         // ---------------------------------------------------------
         // 1. Logging Config
         // ---------------------------------------------------------
-        YAML::Node loggingNode;
-        loggingNode["level"] = std::string(magic_enum::enum_name(config.logging.level));
-        loggingNode["async"] = config.logging.async;
-        loggingNode["silent"] = config.logging.silent;
-        loggingNode["save_log_file"] = config.logging.saveLogFile;
-        root["logging"] = loggingNode;
+        YAML::Node logging_node;
+        logging_node["level"] = std::string(magic_enum::enum_name(config.logging.level));
+        logging_node["async"] = config.logging.async;
+        logging_node["silent"] = config.logging.silent;
+        logging_node["save_log_file"] = config.logging.save_log_file;
+        root["logging"] = logging_node;
 
         // ---------------------------------------------------------
         // 2. Scenario Config
         // ---------------------------------------------------------
-        YAML::Node scenarioNode;
-        scenarioNode["name"] = config.scenario.name;
-        scenarioNode["output_dir"] = config.scenario.outputDir.string();
-        scenarioNode["append_start_timestamp"] = config.scenario.appendStartTimestamp;
-        root["scenario"] = scenarioNode;
+        YAML::Node scenario_node;
+        scenario_node["name"] = config.scenario.name;
+        scenario_node["output_dir"] = config.scenario.output_dir.string();
+        scenario_node["append_start_timestamp"] = config.scenario.append_start_timestamp;
+        root["scenario"] = scenario_node;
 
         // ---------------------------------------------------------
         // 3. Simulation Config
         // ---------------------------------------------------------
-        YAML::Node simNode;
-        // Guardar timestamp usando fmt::chrono o como lo maneje tu misc/Time.hpp
-        simNode["start_timestamp"] = fmt::format("{:%Y-%m-%dT%H:%M:%S}", config.simulation.startTimestamp);
-        simNode["time_step"] = fmt::format("{:%H:%M:%S}", config.simulation.timeStep);
-        simNode["duration"] = fmt::format("{:%H:%M:%S}", config.simulation.duration);
+        YAML::Node sim_node;
+        sim_node["start_timestamp"] = fmt::format("{:%Y-%m-%dT%H:%M:%S}", config.simulation.start_timestamp);
+        sim_node["time_step"] = fmt::format("{:%H:%M:%S}", config.simulation.time_step);
+        sim_node["duration"] = fmt::format("{:%H:%M:%S}", config.simulation.duration);
 
-        YAML::Node viewBoxNode;
-        viewBoxNode["use_full_grid"] = config.simulation.viewBox.useFullGrid;
+        YAML::Node view_box_node;
+        view_box_node["use_full_grid"] = config.simulation.view_box.use_full_grid;
 
-        YAML::Node swNode;
-        swNode["lon"] = config.simulation.viewBox.southWest.lon;
-        swNode["lat"] = config.simulation.viewBox.southWest.lat;
-        viewBoxNode["south_west"] = swNode;
+        YAML::Node sw_node;
+        sw_node["lon"] = config.simulation.view_box.south_west.lon;
+        sw_node["lat"] = config.simulation.view_box.south_west.lat;
+        view_box_node["south_west"] = sw_node;
 
-        YAML::Node neNode;
-        neNode["lon"] = config.simulation.viewBox.northEast.lon;
-        neNode["lat"] = config.simulation.viewBox.northEast.lat;
-        viewBoxNode["north_east"] = neNode;
+        YAML::Node ne_node;
+        ne_node["lon"] = config.simulation.view_box.north_east.lon;
+        ne_node["lat"] = config.simulation.view_box.north_east.lat;
+        view_box_node["north_east"] = ne_node;
 
-        simNode["view_box"] = viewBoxNode;
-        root["simulation"] = simNode;
+        sim_node["view_box"] = view_box_node;
+        root["simulation"] = sim_node;
 
         // ---------------------------------------------------------
         // 4. State Updater Config
         // ---------------------------------------------------------
-        YAML::Node stateUpdaterNode;
-        stateUpdaterNode["enable_rainfall"] = config.stateUpdater.enableRainfall;
-        stateUpdaterNode["dry_tolerance"] = config.stateUpdater.dryTolerance;
+        YAML::Node state_updater_node;
+        state_updater_node["enable_rainfall"] = config.state_updater.enable_rainfall;
+        state_updater_node["dry_tolerance"] = config.state_updater.dry_tolerance;
 
-        // Construir la estructura de risk levels según el formato original
-        YAML::Node floodRiskNode;
+        YAML::Node flood_risk_node;
 
-        // El primero es el default
-        const auto& defLevel = config.stateUpdater.floodRiskLevels[0];
-        YAML::Node defaultLevelNode;
-        defaultLevelNode["name"] = defLevel.name;
-        defaultLevelNode["color_hex"] = defLevel.colorHex;
-        floodRiskNode["default_level"] = defaultLevelNode;
+        const auto& def_level = config.state_updater.flood_risk_levels[0];
+        YAML::Node default_level_node;
+        default_level_node["name"] = def_level.name;
+        default_level_node["color_hex"] = def_level.color_hex;
+        flood_risk_node["default_level"] = default_level_node;
 
-        // El resto van al array "levels"
-        YAML::Node levelsNode;
-        for (size_t i = 1; i < config.stateUpdater.floodRiskLevels.size(); ++i) {
-            const auto& lvl = config.stateUpdater.floodRiskLevels[i];
-            YAML::Node lNode;
-            lNode["name"] = lvl.name;
-            lNode["threshold_start"] = lvl.thresholdStart;
-            lNode["color_hex"] = lvl.colorHex;
-            levelsNode.push_back(lNode);
+        YAML::Node levels_node;
+        for (size_t i = 1; i < config.state_updater.flood_risk_levels.size(); ++i) {
+            const auto& lvl = config.state_updater.flood_risk_levels[i];
+            YAML::Node l_node;
+            l_node["name"] = lvl.name;
+            l_node["threshold_start"] = lvl.threshold_start;
+            l_node["color_hex"] = lvl.color_hex;
+            levels_node.push_back(l_node);
         }
-        floodRiskNode["levels"] = levelsNode;
-        stateUpdaterNode["flood_risk"] = floodRiskNode;
+        flood_risk_node["levels"] = levels_node;
+        state_updater_node["flood_risk"] = flood_risk_node;
 
-        YAML::Node updaterNode;
+        YAML::Node updater_node;
         std::visit(overloaded{
-            [&updaterNode](const OnnxUpdaterConfig& onnxCfg) {
-                // El nombre del tipo que usas en el YAML para que el loader sepa qué instanciar
-                updaterNode["type"] = std::string(magic_enum::enum_name(UpdaterConfigType::ONNX));
+          [&updater_node](const OnnxUpdaterConfig& onnx_cfg) {
+            updater_node["type"] = std::string(magic_enum::enum_name(UpdaterConfigType::kOnnx));
+            updater_node["model_path"] = onnx_cfg.model_path.string();
+            updater_node["tensor_dim"] = onnx_cfg.tensor_dim;
+          },
+          [&updater_node](auto&&) {
+            updater_node["type"] = "Unknown";
+          }
+            }, config.state_updater.updater);
 
-                // Propiedades específicas del modelo ONNX (ajusta los nombres de las variables a tu struct real)
-                updaterNode["model_path"] = onnxCfg.modelPath.string();
-                updaterNode["tensor_dim"] = onnxCfg.tensorDim;
-            },
-            [&updaterNode](auto&&) {
-                // Fallback de seguridad por si se añade un tipo al variant pero no a la serialización
-                updaterNode["type"] = "Unknown";
-            }
-            }, 
-            config.stateUpdater.updater
-        );
-        stateUpdaterNode["updater"] = updaterNode;
-
-        root["state_updater"] = stateUpdaterNode;
+        state_updater_node["updater"] = updater_node;
+        root["state_updater"] = state_updater_node;
 
         // ---------------------------------------------------------
         // 5. Input Config
         // ---------------------------------------------------------
-        YAML::Node inputNode;
-        YAML::Node fileNode;
-        fileNode["dataset_folder"] = config.input.file.datasetFolder.string();
-        fileNode["dataset_name"] = config.input.file.datasetName;
-        fileNode["static_format"] = std::string(magic_enum::enum_name(config.input.file.staticFormat));
-        fileNode["dynamic_format"] = std::string(magic_enum::enum_name(config.input.file.dynamicFormat));
-        inputNode["file"] = fileNode;
+        YAML::Node input_node;
+        YAML::Node file_node;
+        file_node["dataset_folder"] = config.input.file.dataset_folder.string();
+        file_node["dataset_name"] = config.input.file.dataset_name;
+        file_node["static_format"] = std::string(magic_enum::enum_name(config.input.file.static_format));
+        file_node["dynamic_format"] = std::string(magic_enum::enum_name(config.input.file.dynamic_format));
+        input_node["file"] = file_node;
 
-        YAML::Node scalarsNode;
+        YAML::Node scalars_node;
         for (const auto& [key, val] : config.input.scalars) {
-            scalarsNode[key] = val;
+            scalars_node[key] = val;
         }
-        inputNode["scalars"] = scalarsNode;
-        root["input"] = inputNode;
+        input_node["scalars"] = scalars_node;
+        root["input"] = input_node;
 
         // ---------------------------------------------------------
         // 6. Output Config
         // ---------------------------------------------------------
-        YAML::Node outputNode;
-        // Asumiendo que config.output.outputs es un vector de std::variant
-        
-        YAML::Node snapshotNode;
-        snapshotNode["every_n_steps"] = config.output.snapshot.everyNSteps;
-        outputNode["snapshot"] = snapshotNode;
+        YAML::Node output_node;
 
-        YAML::Node outputsList;
-        for (const auto& outVar : config.output.outputs) {
-            YAML::Node outItem;
+        YAML::Node snapshot_node;
+        snapshot_node["every_n_steps"] = config.output.snapshot.every_n_steps;
+        output_node["snapshot"] = snapshot_node;
+
+        YAML::Node outputs_list;
+        for (const auto& out_var : config.output.outputs) {
+            YAML::Node out_item;
             std::visit(overloaded{
-                [&outItem](const OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
-                    outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::CHECKPOINT));
-                    outItem["static_format"] = std::string(magic_enum::enum_name(checkpoint.staticFormat));
-                },
-                [&outItem](const OutputConfig::ImageOutputConfigEntry& img) {
-                    outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::IMAGE));
-                },
-                [&outItem](const OutputConfig::MqttOutputConfigEntry& mqtt) {
-                    outItem["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::MQTT));
-                    outItem["protocol"] = mqtt.protocol;
-                    outItem["host"] = mqtt.host;
-                    outItem["port"] = mqtt.port;
-                    outItem["payloadFormat"] = std::string(magic_enum::enum_name(mqtt.payloadFormat));
-                },
-                [&outItem](auto&&) {
+              [&out_item](const OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
+                out_item["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::kCheckpoint));
+                out_item["static_format"] = std::string(magic_enum::enum_name(checkpoint.static_format));
+              },
+              [&out_item](const OutputConfig::ImageOutputConfigEntry& img) {
+                out_item["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::kImage));
+              },
+              [&out_item](const OutputConfig::MqttOutputConfigEntry& mqtt) {
+                out_item["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::kMqtt));
+                out_item["protocol"] = mqtt.protocol;
+                out_item["host"] = mqtt.host;
+                out_item["port"] = mqtt.port;
+                out_item["format"] = std::string(magic_enum::enum_name(mqtt.payload_format));
+              },
+              [&out_item](auto&&) {
                     // Fallback
-                }
-            }, outVar);
-            outputsList.push_back(outItem);
+                  }
+                }, out_var);
+            outputs_list.push_back(out_item);
         }
-        outputNode["outputs"] = outputsList;
-        root["output"] = outputNode;
-        
+        output_node["outputs"] = outputs_list;
+        root["output"] = output_node;
 
         // ---------------------------------------------------------
-        // ESCRITURA A ARCHIVO
+        // ESCRITURA A ARCHIVO (CON CAPTURA DE EXCEPCIONES)
         // ---------------------------------------------------------
-        std::ofstream fout(destination);
-        if (!fout.is_open()) {
-            throw std::runtime_error(fmt::format("Failed to open file for writing: {}", destination.string()));
+
+        // Configuramos los flags para que fstream lance excepciones si algo falla gravemente
+        std::ofstream fout;
+        fout.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+
+        try {
+            fout.open(destination);
+            fout << root;
+            fout.close();
+        }
+        catch (const std::ofstream::failure& e) {
+            throw ConfigurationException(fmt::format("Failed to write to file '{}': {}", destination.string(), e.what()));
         }
 
-        // yaml-cpp sobrecarga el operador << para emitir la estructura bonita
-        fout << root;
-        fout.close();
     }
+    catch (const ConfigurationException&) {
+        throw; // Rethrow direct configuration exceptions
+    }
+    catch (const YAML::Exception& e) {
+        throw ConfigurationException("YAML Error while saving config: " + std::string(e.what()));
+    }
+    catch (const std::exception& e) {
+        throw ConfigurationException("Unexpected error while saving config: " + std::string(e.what()));
+    }
+}
 
-} // namespace danasim
+} // namespace floodsim

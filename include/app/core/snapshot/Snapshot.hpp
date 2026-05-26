@@ -2,45 +2,67 @@
  * @file Snapshot.hpp
  * @brief Immutable value object representing the simulation state at a specific time step.
  *
- * @version 1.0
- * @date 2026
- * @copyright Copyright (c) 2026 Danasim
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #pragma once
 
-#include <cstdint>
 #include <chrono>
+#include <cstdint>
+#include <vector>
 
+#include "misc/Types.hpp"
 #include "app/core/grid/MapGrid.hpp"
-#include "Types.hpp"
 
-namespace danasim {
+namespace floodsim {
+
+/**
+ * @class Snapshot
+ * @brief A lightweight handle to a simulation frame.
+ *
+ * This class is designed to be cheap to copy and pass around.
+ * It does not own the original MapGrid memory, but caches the relevant
+ * simulation layers at a specific point in time for independent consumption.
+ */
+class Snapshot {
+public:
+    Snapshot() = default;
+    virtual ~Snapshot() = default;
 
     /**
-     * @class Snapshot
-     * @brief A lightweight handle to a simulation frame.
+     * @brief Populates the snapshot data from the current state of the map grid.
      *
-     * This class is designed to be cheap to copy and pass around.
-     * It does not own the MapGrid memory; it only references it.
+     * @param time The timestamp of the current simulation step.
+     * @param grid The main map grid containing the simulation layers.
      */
-    class Snapshot {
-    public:
-        Snapshot() = default;
-        virtual ~Snapshot() = default;
+    void Set(std::chrono::sys_seconds time, const MapGrid& grid);
 
-        void set(std::chrono::sys_seconds time, const MapGrid& grid);
+    /**
+     * @brief Retrieves the timestamp associated with this snapshot.
+     *
+     * @return std::chrono::sys_seconds The simulation time.
+     */
+    [[nodiscard]] std::chrono::sys_seconds Time() const noexcept { return time_; }
 
-        [[nodiscard]] std::chrono::sys_seconds time() const noexcept { return time_; }
+    /**
+     * @brief Retrieves the cached water depth layer.
+     *
+     * @return const std::vector<float>& Read-only reference to the water depth data.
+     */
+    [[nodiscard]] const std::vector<float>& WaterDepth() const noexcept { return water_depth_; }
 
-        [[nodiscard]] const std::vector<float>& waterDepth() const noexcept { return waterDepth_; }
-        [[nodiscard]] const std::vector<int8_t>& floodRisk() const noexcept { return floodRisk_; }
+    /**
+     * @brief Retrieves the cached flood risk layer.
+     *
+     * @return const std::vector<int8_t>& Read-only reference to the flood risk data.
+     */
+    [[nodiscard]] const std::vector<int8_t>& FloodRisk() const noexcept { return flood_risk_; }
 
-    private:
-        std::chrono::sys_seconds time_;
+private:
+    std::chrono::sys_seconds time_;     ///< Timestamp of the snapshot.
 
-        std::vector<float> waterDepth_;
-        std::vector<int8_t> floodRisk_;
-    };
+    std::vector<float> water_depth_;    ///< Cached copy of the water depth layer.
+    std::vector<int8_t> flood_risk_;    ///< Cached copy of the flood risk layer.
+};
 
-} // namespace danasim
+} // namespace floodsim

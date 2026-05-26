@@ -1,328 +1,337 @@
+/**
+ * @file ImageOutput.cpp
+ * @brief Implementation of the ImageOutput class for rendering simulation data via OpenCV.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #include "app/adapters/output/ImageOutput.hpp"
 
-#include <stdexcept>
+#include <algorithm>
 #include <limits>
+#include <stdexcept>
+
 #include <fmt/chrono.h>
+#include <fmt/core.h>
 
 #include "app/config/Config.hpp"
-#include "app/core/common/SimulationConstants.hpp"
-#include "logging/Logger.hpp"
 #include "app/core/grid/MapGrid.hpp"
+#include "logging/Logger.hpp"
 
-namespace danasim {
+namespace floodsim {
 
-    ImageOutput::ImageOutput() {
-        layerConfigs_["topo_bathy"] = Config{
-            .units = "Elevation (m)",
-            .minVal = 0.0,
-            .maxVal = 1000.0,  // Placeholder, se calcula dinámicamente
-            .colormap = cv::COLORMAP_BONE,
-            .doHillshade = true,
-            .maskZero = false
-        };
+namespace {
 
-        layerConfigs_["water_depth"] = Config{
-            .units = "Water Depth (m)",
-            .minVal = 0.0,
-            .maxVal = 10.0,
-            .colormap = cv::COLORMAP_JET,
-            .doHillshade = false,
-            .maskZero = true
-        };
-    }
+/**
+ * @brief Helper function to create a geographic color lookup table.
+ *
+ * Defines a custom palette transitioning through Dark Green -> Light Green -> Brown -> White.
+ *
+ * @return cv::Mat A 1x256 8UC3 matrix representing the Look-Up Table (LUT).
+ */
+cv::Mat GetTopographicLUT() {
+    cv::Mat lut(1, 256, CV_8UC3);
+    for (int i = 0; i < 256; ++i) {
+        cv::Vec3b color;
+        // Define 4 key points (BGR format):
+        // 0:   Dark Green  (30, 100, 30)
+        // 120: Light Green (80, 180, 100)
+        // 190: Brown       (60, 100, 160)
+        // 255: White       (255, 255, 255)
 
-    ImageOutput::~ImageOutput() {
-        
-    }
-
-    void ImageOutput::run(SnapshotManager& snapshotManager, const std::filesystem::path& outputPath) {
-        std::filesystem::path imagesOutputPath = outputPath / "images";
-
-        if (!std::filesystem::exists(imagesOutputPath)) {
-            std::filesystem::create_directories(imagesOutputPath);
+        if (i < 120) {
+            // Dark Green to Light Green (Valleys)
+            float t = static_cast<float>(i) / 120.0f;
+            color[0] = static_cast<uchar>(30 + t * (80 - 30));    // Blue
+            color[1] = static_cast<uchar>(100 + t * (180 - 100)); // Green
+            color[2] = static_cast<uchar>(30 + t * (100 - 30));   // Red
         }
-
-        std::chrono::system_clock::time_point lastProcessedStep = std::chrono::system_clock::time_point::min();
-
-        while (true) {
-            try {
-                // 1. Bloqueo hasta recibir datos
-                // Recibimos el snapshot Y el guardia de seguridad
-                auto [data, guard] = snapshotManager.waitForSnapshot(lastProcessedStep);
-                auto [snapshot, changes] = data;
-
-                // Si el guard es null, significa que snapshotManager se ha detenido
-                if (!guard) {
-                    LOG_INFO("Stopping thread (manager stopped).");
-                    break;
-                }
-
-                LOG_INFO("Consuming snapshot");
-
-                // 2. Procesamiento
-                // Si esto falla (excepción), 'guard' se destruye aquí y avisa al core automáticamente.
-                saveSnapshotAsImage(snapshot, changes, imagesOutputPath);
-
-                // Actualizamos tracking
-                lastProcessedStep = snapshot.time();
-
-                // AL FINAL DEL SCOPE: 'guard' se destruye -> llama a signalDone()
-            }
-            catch (const std::exception& ex) {
-                LOG_ERROR("Error: {}", ex.what());
-                // Incluso con error, el loop continúa y el guard liberó al Core.
-                // Si quieres que un error mate el hilo, pon un break aquí.
-            }
-        }
-    }
-
-    void ImageOutput::setInitConfig(const MapGrid& grid, const std::string& datasetName, std::chrono::sys_seconds /* startTimestamp */) {
-        rows_ = static_cast<int>(grid.rows());
-        cols_ = static_cast<int>(grid.cols());
-
-        topo_bathy_ = grid.getLayer<float>("topo_bathy")->getData().data();
-
-        const auto& elevData = grid.getLayer<float>("topo_bathy")->getData();
-        layerConfigs_["topo_bathy"].minVal = *std::min_element(elevData.begin(), elevData.end());
-        layerConfigs_["topo_bathy"].maxVal = *std::max_element(elevData.begin(), elevData.end());
-    }
-
-    // Función auxiliar para crear la paleta Geográfica (Verde -> Marrón -> Blanco)
-    cv::Mat getTopographicLUT() {
-        cv::Mat lut(1, 256, CV_8UC3);
-        for (int i = 0; i < 256; ++i) {
-            cv::Vec3b color;
-            // Definimos 4 puntos clave (BGR):
-            // 0:   Verde Oscuro (30, 100, 30)
-            // 120: Verde Claro  (80, 180, 100)
-            // 190: Marrón       (60, 100, 160)
-            // 255: Blanco       (255, 255, 255)
-
-            if (i < 120) {
-                // Transición Verde Oscuro -> Verde Claro (Valles)
-                float t = (float)i / 120.0f;
-                color[0] = (uchar)(30 + t * (80 - 30));   // Blue
-                color[1] = (uchar)(100 + t * (180 - 100));// Green
-                color[2] = (uchar)(30 + t * (100 - 30));  // Red
-            }
-            else if (i < 190) {
-                // Transición Verde Claro -> Marrón (Montañas medias)
-                float t = (float)(i - 120) / 70.0f;
-                color[0] = (uchar)(80 - t * (80 - 60));    // Blue (baja un poco)
-                color[1] = (uchar)(180 - t * (180 - 100)); // Green (baja para oscurecer)
-                color[2] = (uchar)(100 + t * (160 - 100)); // Red (sube para marrón)
-            }
-            else {
-                // Transición Marrón -> Blanco (Picos / Nieve)
-                float t = (float)(i - 190) / 65.0f;
-                color[0] = (uchar)(60 + t * (255 - 60));
-                color[1] = (uchar)(100 + t * (255 - 100));
-                color[2] = (uchar)(160 + t * (255 - 160));
-            }
-            lut.at<cv::Vec3b>(i) = color;
-        }
-        return lut;
-    }
-
-    // =========================================================================
-    // 1. HELPER: GENERACIÓN DEL TERRENO (ELEVACIÓN + HILLSHADE)
-    // =========================================================================
-    cv::Mat ImageOutput::createTerrainBackground(const Snapshot& snapshot, bool useColorMap) {
-        // Creamos Mat envolviendo los datos (sin copia inicial)
-        cv::Mat rawElev(rows_, cols_, CV_32F, const_cast<float*>(topo_bathy_));
-
-        // Configuración
-        const auto& cfg = layerConfigs_["topo_bathy"];
-
-        // 1. Normalizar Elevación (0-255)
-        cv::Mat normElev;
-        // Normalizamos respetando los límites fijos configurados para evitar "parpadeo" entre frames
-        // (val - min) / (max - min) * 255
-        cv::Mat diff = rawElev - cfg.minVal;
-        diff.convertTo(normElev, CV_8U, 255.0 / (cfg.maxVal - cfg.minVal));
-
-        // 2. Aplicar Mapa de Color (Terreno)
-        // Usamos un gris muy claro (240, 240, 240) para que parezca papel o maqueta.
-        cv::Mat baseTerrain;
-
-        if (useColorMap) {
-            // --- CORRECCIÓN DEL ERROR ---
-            // cv::LUT requiere que la imagen de entrada tenga los mismos canales que la LUT (3).
-            // Convertimos el gris de 1 canal a BGR de 3 canales.
-            cv::Mat normElev3Ch;
-            cv::cvtColor(normElev, normElev3Ch, cv::COLOR_GRAY2BGR);
-
-            static cv::Mat topoLUT = getTopographicLUT();
-            cv::LUT(normElev3Ch, topoLUT, baseTerrain);
+        else if (i < 190) {
+            // Light Green to Brown (Mid-level mountains)
+            float t = static_cast<float>(i - 120) / 70.0f;
+            color[0] = static_cast<uchar>(80 - t * (80 - 60));    // Blue
+            color[1] = static_cast<uchar>(180 - t * (180 - 100)); // Green
+            color[2] = static_cast<uchar>(100 + t * (160 - 100)); // Red
         }
         else {
-            // OPCIÓN B: Estilo Maqueta (Gris Claro / Blanco)
-            // Ideal para superponer datos de fluidos sin distorsión de color
-            baseTerrain = cv::Mat(rows_, cols_, CV_8UC3, cv::Scalar(240, 240, 240));
+            // Brown to White (Peaks / Snow)
+            float t = static_cast<float>(i - 190) / 65.0f;
+            color[0] = static_cast<uchar>(60 + t * (255 - 60));
+            color[1] = static_cast<uchar>(100 + t * (255 - 100));
+            color[2] = static_cast<uchar>(160 + t * (255 - 160));
         }
+        lut.at<cv::Vec3b>(i) = color;
+    }
+    return lut;
+}
 
-        // 3. Calcular Hillshade (Sombreado)
-        if (cfg.doHillshade) {
-            cv::Mat grad_x, grad_y;
-            cv::Sobel(normElev, grad_x, CV_32F, 1, 0, 3);
-            cv::Sobel(normElev, grad_y, CV_32F, 0, 1, 3);
+}  // namespace
 
-            cv::Mat magnitude = cv::abs(grad_x) + cv::abs(grad_y);
-            cv::Mat hillshade;
-            cv::normalize(magnitude, hillshade, 0, 255, cv::NORM_MINMAX, CV_8U);
-            cv::bitwise_not(hillshade, hillshade); // Invertir: Pendiente = Oscuro
+ImageOutput::ImageOutput() {
+    layer_configs_["topo_bathy"] = Config{
+        .units = "Elevation (m)",
+        .min_val = 0.0f,
+        .max_val = 1000.0f,  // Placeholder, dynamically calculated later
+        .colormap = cv::COLORMAP_BONE,
+        .do_hillshade = true,
+        .mask_zero = false };
 
-            cv::Mat hillshadeBGR;
-            cv::cvtColor(hillshade, hillshadeBGR, cv::COLOR_GRAY2BGR);
+    layer_configs_["water_depth"] = Config{
+        .units = "Water Depth (m)",
+        .min_val = 0.0f,
+        .max_val = 10.0f,
+        .colormap = cv::COLORMAP_JET,
+        .do_hillshade = false,
+        .mask_zero = true };
+}
 
-            // Mezclar Color * Sombra
-            cv::multiply(baseTerrain, hillshadeBGR, baseTerrain, 1.0 / 255.0);
-        }
-
-        return baseTerrain; // Devuelve la imagen base lista
+void ImageOutput::Run(SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) {
+    if (output_path.empty()) {
+        LOG_ERROR("Provided output path for images is empty.");
+        throw std::invalid_argument("ImageOutput: output_path cannot be empty.");
     }
 
-    // =========================================================================
-    // 2. HELPER: PINTAR INTERFAZ (TÍTULO Y LEYENDAS)
-    // =========================================================================
-    void ImageOutput::drawUI(cv::Mat& canvas, const Snapshot& snapshot, double baseScale, int thickness, int marginTitle, int sidebarWidth) {
-        int rows = canvas.rows - marginTitle; // Alto útil del mapa (aprox)
-        int cols = canvas.cols - sidebarWidth;
+    std::filesystem::path images_output_path = output_path / "images";
 
-        // A. TÍTULO
-        std::string title = fmt::format("Time: {:%FT%T}", snapshot.time());
-        int fontFace = cv::FONT_HERSHEY_DUPLEX;
-        double fontScale = baseScale * 1.2;
-        cv::Size textSize = cv::getTextSize(title, fontFace, fontScale, thickness, nullptr);
-        cv::putText(canvas, title,
-            cv::Point((canvas.cols - textSize.width) / 2, (marginTitle + textSize.height) / 2),
-            fontFace, fontScale, cv::Scalar(0, 0, 0), thickness, cv::LINE_AA);
+    if (!std::filesystem::exists(images_output_path)) {
+        std::filesystem::create_directories(images_output_path);
+    }
 
-        // B. LEYENDAS LATERALES
-        int halfSide = sidebarWidth / 2;
-        int sideH = rows;
-        int sideY = marginTitle;
-        int startX = cols; // Donde empieza la barra lateral
+    std::chrono::system_clock::time_point last_processed_step = std::chrono::system_clock::time_point::min();
 
-        // Lambda local para pintar una barra
-        auto paintBar = [&](int offsetX, const Config& cfg, const std::string& label) {
-            int barW = static_cast<int>(halfSide * 0.4);
-            int barH = static_cast<int>(sideH * 0.65);
-            int xPos = startX + offsetX + (halfSide - barW) / 2;
-            int yPos = sideY + (sideH - barH) / 2;
+    while (true) {
+        try {
+            // 1. Block until receiving data
+            auto [data, guard] = snapshot_manager.WaitForSnapshot(last_processed_step);
+            auto [snapshot, changes] = data;
 
-            int textPadding = static_cast<int>(40 * baseScale);
+            // If guard is null, the manager has stopped
+            if (!guard) {
+                LOG_INFO("Stopping ImageOutput thread (manager stopped).");
+                break;
+            }
 
-            // Etiqueta superior
-            cv::Size sz = cv::getTextSize(label, fontFace, baseScale, thickness, nullptr);
-            cv::putText(canvas, label, { xPos + barW / 2 - sz.width / 2, yPos - textPadding },
-                fontFace, baseScale, { 0,0,0 }, thickness, cv::LINE_AA);
+            LOG_INFO("Consuming snapshot for image rendering.");
 
-            // Generar degradado
-            cv::Mat grad(256, 1, CV_8U);
-            for (int i = 0; i < 256; ++i) grad.at<uint8_t>(i) = static_cast<uint8_t>(255 - i);
+            // 2. Processing
+            SaveSnapshotAsImage(snapshot, changes, images_output_path);
 
-            cv::Mat colorBar;
-            cv::applyColorMap(grad, colorBar, cfg.colormap);
+            // Update tracking time
+            last_processed_step = snapshot.Time();
+        }
+        catch (const std::exception& ex) {
+            LOG_ERROR("Error in ImageOutput loop: {}", ex.what());
+            // Loop continues; guard releases Core automatically.
+        }
+    }
+}
 
-            cv::resize(colorBar, colorBar, cv::Size(barW, barH));
-            colorBar.copyTo(canvas(cv::Rect(xPos, yPos, barW, barH)));
+void ImageOutput::SetInitConfig(const MapGrid& grid, const std::string& /* dataset_name */,
+        std::chrono::sys_seconds /* start_timestamp */) {
 
-            auto paintBarLabel = [](cv::Mat& canvas, float val, int pointX, int pointY, double scale, int fontFace, int thickness) {
-                cv::putText(
-                    canvas, fmt::format("{:.1f}m", val), { pointX, pointY },
-                    fontFace, scale, { 50,50,50 }, thickness, cv::LINE_AA
-                );
+    rows_ = static_cast<int>(grid.GetRows());
+    cols_ = static_cast<int>(grid.GetCols());
+
+    topo_bathy_ = grid.GetLayer<float>("topo_bathy")->GetData().data();
+
+    const auto& elev_data = grid.GetLayer<float>("topo_bathy")->GetData();
+    layer_configs_["topo_bathy"].min_val = *std::min_element(elev_data.begin(), elev_data.end());
+    layer_configs_["topo_bathy"].max_val = *std::max_element(elev_data.begin(), elev_data.end());
+}
+
+cv::Mat ImageOutput::CreateTerrainBackground(const Snapshot& /* snapshot */, bool use_colormap) {
+    // Wrap data in Mat (no initial copy)
+    cv::Mat raw_elev(rows_, cols_, CV_32F, const_cast<float*>(topo_bathy_));
+
+    const auto& cfg = layer_configs_["topo_bathy"];
+
+    // 1. Normalize Elevation (0-255) based on fixed min/max limits
+    cv::Mat norm_elev;
+    cv::Mat diff = raw_elev - cfg.min_val;
+    diff.convertTo(norm_elev, CV_8U, 255.0 / (cfg.max_val - cfg.min_val));
+
+    // 2. Apply Colormap
+    cv::Mat base_terrain;
+
+    if (use_colormap) {
+        // cv::LUT requires a 3-channel input matching the LUT.
+        // Convert grayscale 1-channel to BGR 3-channels.
+        cv::Mat norm_elev_3ch;
+        cv::cvtColor(norm_elev, norm_elev_3ch, cv::COLOR_GRAY2BGR);
+
+        static cv::Mat topo_lut = GetTopographicLUT();
+        cv::LUT(norm_elev_3ch, topo_lut, base_terrain);
+    }
+    else {
+        // Maquette Style (Light Gray) - Ideal for overlaying fluid data without color distortion
+        base_terrain = cv::Mat(rows_, cols_, CV_8UC3, cv::Scalar(240, 240, 240));
+    }
+
+    // 3. Compute Hillshade
+    if (cfg.do_hillshade) {
+        cv::Mat grad_x, grad_y;
+        cv::Sobel(norm_elev, grad_x, CV_32F, 1, 0, 3);
+        cv::Sobel(norm_elev, grad_y, CV_32F, 0, 1, 3);
+
+        cv::Mat magnitude = cv::abs(grad_x) + cv::abs(grad_y);
+        cv::Mat hillshade;
+        cv::normalize(magnitude, hillshade, 0, 255, cv::NORM_MINMAX, CV_8U);
+        cv::bitwise_not(hillshade, hillshade);  // Invert: Slope = Darker
+
+        cv::Mat hillshade_bgr;
+        cv::cvtColor(hillshade, hillshade_bgr, cv::COLOR_GRAY2BGR);
+
+        // Blend Color * Shadow
+        cv::multiply(base_terrain, hillshade_bgr, base_terrain, 1.0 / 255.0);
+    }
+
+    return base_terrain;
+}
+
+void ImageOutput::DrawUI(cv::Mat& canvas, const Snapshot& snapshot, double base_scale,
+        int thickness, int margin_title, int sidebar_width) {
+
+    int rows = canvas.rows - margin_title;
+    int cols = canvas.cols - sidebar_width;
+
+    // A. TITLE
+    std::string title = fmt::format("Time: {:%FT%T}", snapshot.Time());
+    int font_face = cv::FONT_HERSHEY_DUPLEX;
+    double font_scale = base_scale * 1.2;
+    cv::Size text_size = cv::getTextSize(title, font_face, font_scale, thickness, nullptr);
+
+    cv::putText(canvas, title,
+        cv::Point((canvas.cols - text_size.width) / 2, (margin_title + text_size.height) / 2),
+        font_face, font_scale, cv::Scalar(0, 0, 0), thickness, cv::LINE_AA);
+
+    // B. SIDEBAR LEGENDS
+    int half_side = sidebar_width / 2;
+    int side_h = rows;
+    int side_y = margin_title;
+    int start_x = cols;
+
+    // Lambda to draw a single color bar
+    auto paint_bar = [&](int offset_x, const Config& cfg, const std::string& label) {
+        int bar_w = static_cast<int>(half_side * 0.4);
+        int bar_h = static_cast<int>(side_h * 0.65);
+        int x_pos = start_x + offset_x + (half_side - bar_w) / 2;
+        int y_pos = side_y + (side_h - bar_h) / 2;
+
+        int text_padding = static_cast<int>(40 * base_scale);
+
+        // Top label
+        cv::Size sz = cv::getTextSize(label, font_face, base_scale, thickness, nullptr);
+        cv::putText(canvas, label, { x_pos + bar_w / 2 - sz.width / 2, y_pos - text_padding },
+            font_face, base_scale, { 0, 0, 0 }, thickness, cv::LINE_AA);
+
+        // Generate gradient
+        cv::Mat grad(256, 1, CV_8U);
+        for (int i = 0; i < 256; ++i) {
+            grad.at<uint8_t>(i) = static_cast<uint8_t>(255 - i);
+        }
+
+        cv::Mat color_bar;
+        cv::applyColorMap(grad, color_bar, cfg.colormap);
+
+        cv::resize(color_bar, color_bar, cv::Size(bar_w, bar_h));
+        color_bar.copyTo(canvas(cv::Rect(x_pos, y_pos, bar_w, bar_h)));
+
+        // Inner lambda to paint min/max/mid values
+        auto paint_bar_label = [](cv::Mat& canvas, float val, int point_x, int point_y,
+            double scale, int font_face, int thickness) {
+                cv::putText(canvas, fmt::format("{:.1f}m", val), { point_x, point_y },
+                    font_face, scale, { 50, 50, 50 }, thickness, cv::LINE_AA);
             };
 
-            // Textos Min/Max
-            double labelScale = baseScale * 0.55;
-            int fontHeight = static_cast<int>(10 * baseScale);
-            int textX = xPos + barW + 10;
-            float midVal = (cfg.minVal + cfg.maxVal) / 2.0f;
+        // Side Values Min/Max
+        double label_scale = base_scale * 0.55;
+        int font_height = static_cast<int>(10 * base_scale);
+        int text_x = x_pos + bar_w + 10;
+        float mid_val = (cfg.min_val + cfg.max_val) / 2.0f;
 
-            paintBarLabel(canvas, cfg.maxVal, textX, yPos + fontHeight, labelScale, fontFace, thickness);
-            paintBarLabel(canvas, midVal, textX, yPos + barH / 2 + fontHeight / 2, labelScale, fontFace, thickness);
-            paintBarLabel(canvas, cfg.minVal, textX, yPos + barH, labelScale, fontFace, thickness);
-        };
+        paint_bar_label(canvas, cfg.max_val, text_x, y_pos + font_height, label_scale, font_face, thickness);
+        paint_bar_label(canvas, mid_val, text_x, y_pos + bar_h / 2 + font_height / 2, label_scale, font_face, thickness);
+        paint_bar_label(canvas, cfg.min_val, text_x, y_pos + bar_h, label_scale, font_face, thickness);
+    };
 
-        paintBar(0, layerConfigs_["topo_bathy"], "TopoBathy");
-        paintBar(halfSide, layerConfigs_["water_depth"], "Water");
-    }
+    paint_bar(0, layer_configs_["topo_bathy"], "TopoBathy");
+    paint_bar(half_side, layer_configs_["water_depth"], "Water");
+}
 
-    // =========================================================================
-    // 3. FUNCIÓN PRINCIPAL 
-    // =========================================================================
-    void ImageOutput::saveSnapshotAsImage(const Snapshot& snapshot, const ChangeList& changes, const std::filesystem::path& imagesOutputPath) {
-        // 1. Configuración de Estilo Dinámico (Para máxima visibilidad)
-        // Calculamos el tamaño de fuente basándonos en el ancho de la imagen.
-        // Esto asegura que se lea bien en 4K o en 800x600.
-        double baseScale = std::max(0.6f, cols_ / 1000.0f);
-        int thickness = std::max(1, static_cast<int>(baseScale * 2));
-        int marginTitle = static_cast<int>(60 * baseScale);
-        int sidebarWidth = static_cast<int>(350 * baseScale); // Barra lateral ancha
+void ImageOutput::SaveSnapshotAsImage(const Snapshot& snapshot, const ChangeList& /* changes */,
+        const std::filesystem::path& images_output_path) {
 
-        // ---------------------------------------------------------------------
-        // PASO 1: Generar el Terreno Base (Solo una vez)
-        // ---------------------------------------------------------------------
-        // Esto encapsula toda la lógica del Hillshade y el MDT
-        cv::Mat maquetteTerrain = createTerrainBackground(snapshot, false);
-        cv::Mat combinedImg = maquetteTerrain.clone();
+    // 1. Dynamic UI Scaling (Adapts font size based on image width)
+    double base_scale = std::max(0.6f, cols_ / 1000.0f);
+    int thickness = std::max(1, static_cast<int>(base_scale * 2));
+    int margin_title = static_cast<int>(60 * base_scale);
+    int sidebar_width = static_cast<int>(350 * base_scale);
 
-        // Pintar Agua
-        layerConfigs_["water_depth"].maxVal = *std::max_element(snapshot.waterDepth().begin(), snapshot.waterDepth().end());
+    // ---------------------------------------------------------------------
+    // STEP 1: Generate Base Terrain
+    // ---------------------------------------------------------------------
+    cv::Mat maquette_terrain = CreateTerrainBackground(snapshot, false);
+    cv::Mat combined_img = maquette_terrain.clone();
 
-        const auto& wCfg = layerConfigs_["water_depth"];
+    // ---------------------------------------------------------------------
+    // STEP 2: Render Water Overlay
+    // ---------------------------------------------------------------------
+    layer_configs_["water_depth"].max_val =
+        *std::max_element(snapshot.WaterDepth().begin(), snapshot.WaterDepth().end());
 
-        cv::Mat rawWater(rows_, cols_, CV_32F, const_cast<float*>(snapshot.waterDepth().data()));
-        cv::Mat normWater;
+    const auto& w_cfg = layer_configs_["water_depth"];
 
-        rawWater.convertTo(normWater, CV_8U, 255.0 / wCfg.maxVal);
+    cv::Mat raw_water(rows_, cols_, CV_32F, const_cast<float*>(snapshot.WaterDepth().data()));
+    cv::Mat norm_water;
 
-        cv::Mat waterColorMap;
-        cv::applyColorMap(normWater, waterColorMap, wCfg.colormap);
+    raw_water.convertTo(norm_water, CV_8U, 255.0 / w_cfg.max_val);
 
-        const float* wPtr = snapshot.waterDepth().data();
+    cv::Mat water_color_map;
+    cv::applyColorMap(norm_water, water_color_map, w_cfg.colormap);
 
-        // Recorrido eficiente de píxeles
-        for (int r = 0; r < rows_; ++r) {
-            cv::Vec3b* dstPtr = combinedImg.ptr<cv::Vec3b>(r);
-            const cv::Vec3b* srcWaterPtr = waterColorMap.ptr<cv::Vec3b>(r);
-            const float* depthPtr = wPtr + (r * cols_);
+    const int8_t* flood_risk_ptr = snapshot.FloodRisk().data();
 
-            for (int c = 0; c < cols_; ++c) {
-                if (depthPtr[c] > DRY_TOLERANCE) {
-                    // Mezcla Alpha: 0.7 Agua + 0.3 Terreno
-                    cv::Vec3b wCol = srcWaterPtr[c];
-                    cv::Vec3b tCol = dstPtr[c];
+    // Efficient pixel traversal for Alpha Blending
+    for (int r = 0; r < rows_; ++r) {
+        cv::Vec3b* dst_ptr = combined_img.ptr<cv::Vec3b>(r);
+        const cv::Vec3b* src_water_ptr = water_color_map.ptr<cv::Vec3b>(r);
+        const int8_t* row_flood_risk_ptr = flood_risk_ptr + (r * cols_);
 
-                    dstPtr[c] = cv::Vec3b(
-                        static_cast<uchar>(wCol[0] * 0.85 + tCol[0] * 0.15),
-                        static_cast<uchar>(wCol[1] * 0.85 + tCol[1] * 0.15),
-                        static_cast<uchar>(wCol[2] * 0.85 + tCol[2] * 0.15)
-                    );
-                }
+        for (int c = 0; c < cols_; ++c) {
+            if (row_flood_risk_ptr[c] > 0) {
+                // Alpha Blend: 85% Water + 15% Terrain
+                cv::Vec3b w_col = src_water_ptr[c];
+                cv::Vec3b t_col = dst_ptr[c];
+
+                dst_ptr[c] = cv::Vec3b(
+                    static_cast<uchar>(w_col[0] * 0.85 + t_col[0] * 0.15),
+                    static_cast<uchar>(w_col[1] * 0.85 + t_col[1] * 0.15),
+                    static_cast<uchar>(w_col[2] * 0.85 + t_col[2] * 0.15)
+                );
             }
         }
-
-        // Crear Canvas Final (Con márgenes blancos) y copiar el mapa
-        cv::Mat finalCanvas(rows_ + marginTitle, cols_ + sidebarWidth, CV_8UC3, cv::Scalar(250, 250, 250));
-        combinedImg.copyTo(finalCanvas(cv::Rect(0, marginTitle, cols_, rows_)));
-
-        // Pintar UI (Título y Leyendas)
-        drawUI(finalCanvas, snapshot, baseScale, thickness, marginTitle, sidebarWidth);
-
-        // Guardar Imagen Principal
-        std::string filename = fmt::format("Combined_{:%FT%T}.png", snapshot.time());
-        std::replace(filename.begin(), filename.end(), ':', '-');
-
-        if (cv::imwrite((imagesOutputPath / filename).string(), finalCanvas)) {
-            LOG_INFO("Saved image: {}", filename);
-        }
-        else {
-            LOG_ERROR("Failed to write image: {}", (imagesOutputPath / filename).string());
-        }
     }
 
-} // namespace danasim
+    // ---------------------------------------------------------------------
+    // STEP 3: Create Final Canvas and Apply UI
+    // ---------------------------------------------------------------------
+    cv::Mat final_canvas(rows_ + margin_title, cols_ + sidebar_width, CV_8UC3, cv::Scalar(250, 250, 250));
+    combined_img.copyTo(final_canvas(cv::Rect(0, margin_title, cols_, rows_)));
+
+    DrawUI(final_canvas, snapshot, base_scale, thickness, margin_title, sidebar_width);
+
+    // ---------------------------------------------------------------------
+    // STEP 4: Save Image
+    // ---------------------------------------------------------------------
+    std::string filename = fmt::format("Combined_{:%FT%T}.png", snapshot.Time());
+    std::replace(filename.begin(), filename.end(), ':', '-');
+
+    if (cv::imwrite((images_output_path / filename).string(), final_canvas)) {
+        LOG_INFO("Saved image: {}", filename);
+    }
+    else {
+        LOG_ERROR("Failed to write image: {}", (images_output_path / filename).string());
+    }
+}
+
+} // namespace floodsim

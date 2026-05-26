@@ -1,68 +1,84 @@
 /**
  * @file StateUpdaterPort.hpp
- * @brief Interface for the core physics/AI simulation engine.
+ * @brief Interface for the core physics/numerical solver simulation engines.
  *
- * @version 1.0
- * @date 2026
- * @copyright Copyright (c) 2026 Danasim
+ * @copyright Copyright (c) 2026 FloodSim
  */
 
 #pragma once
 
 #include <cstddef>
+#include <string>
+#include <string_view>
+#include <vector>
 
+#include "misc/Types.hpp"
 #include "app/core/grid/MapGrid.hpp"
-#include "Types.hpp"
 #include "app/core/snapshot/Snapshot.hpp"
-#include "app/core/common/SimulationConstants.hpp"
 
-namespace danasim {
+namespace floodsim {
+
+/**
+ * @class StateUpdaterPort
+ * @brief Core abstract port used to advance the hydraulic state of the system.
+ *
+ * Encapsulates the explicit mathematical solver. Implementations may utilize
+ * Shallow Water Equations (SWE), Cellular Automata, or Neural Operators.
+ */
+class StateUpdaterPort {
+public:
+    /**
+     * @brief Constructs a new StateUpdaterPort configuration block.
+     * @param enable_rainfall Activates the meteo pluvial forcing data.
+     * @param dry_tolerance Minimum water height threshold to consider a cell dry.
+     * @param flood_risk_levels Categorization thresholds for hazardous areas.
+     */
+    StateUpdaterPort(bool enable_rainfall, float dry_tolerance,
+                     const std::vector<FloodRiskLevel>& flood_risk_levels)
+        : enable_rainfall_(enable_rainfall)
+        , dry_tolerance_(dry_tolerance)
+        , flood_risk_levels_(flood_risk_levels) {}
+
+    virtual ~StateUpdaterPort() = default;
 
     /**
-     * @interface StateUpdaterPort
-     * @brief Abstract interface for advancing the simulation state.
-     *
-     * This encapsulates the "Solver". Implementations may use physical formulas,
-     * cellular automata, or machine learning models (TensorFlow).
+     * @brief Allocates and links internal physical coefficients onto the grid map.
+     * @param grid Reference to the map grid structure to initialize.
      */
-    class StateUpdaterPort {
-    public:
-        StateUpdaterPort(bool enableRainfall, float dryTolerance, const std::vector<FloodRiskLevel>& floodRiskLevels)
-            : enableRainfall_(enableRainfall), dryTolerance_(dryTolerance), floodRiskLevels_(floodRiskLevels)
-        {
+    virtual void Initialize(MapGrid& grid) = 0;
 
-        }
+    /**
+     * @brief Executes a single finite-difference step over the simulation domain.
+     * @param grid Mutable reference to the domain layers to process.
+     */
+    virtual void Step(MapGrid& grid) = 0;
 
-        virtual ~StateUpdaterPort() = default;
+    virtual const ModelParamsInfo& GetModelParamsInfo() const = 0;
+    virtual const std::string& GetFluidLayer() const = 0;
+    virtual const std::string& GetFluidMovementStateLayer() const = 0;
 
-        virtual void initialize(MapGrid& grid) = 0;
+    bool IsRainfallEnabled() const { return enable_rainfall_; }
+    float GetDryTolerance() const { return dry_tolerance_; }
 
-        virtual void step(MapGrid& grid) = 0;
+    const std::vector<FloodRiskLevel>& GetFloodRiskLevels() const {
+        return flood_risk_levels_;
+    }
 
-        virtual const ModelParamsInfo& getModelParamsInfo() const = 0;
-
-        virtual const std::string& getFluidLayer() const = 0;
-        virtual const std::string& getFluidMovementStateLayer() const = 0;
-
-		virtual bool isRainfallEnabled() const { return enableRainfall_; }
-
-		virtual float getDryTolerance() const { return dryTolerance_; }
-
-		virtual const std::vector<FloodRiskLevel>& getFloodRiskLevels() const { return floodRiskLevels_; }
-
-    protected:
-        enum class WaterMovementState : int8_t {
-            STATIC_STATE,
-            DYNAMIC_STATE
-        };
-
-		const std::string RAINFALL_LAYER_NAME = "rainfall";
-		const std::string FLOOD_RISK_LAYER_NAME = "flood_risk";
-
-    private:
-        bool enableRainfall_;
-        float dryTolerance_;
-        std::vector<FloodRiskLevel> floodRiskLevels_;
+protected:
+    /**
+     * @brief Optimization enum tracking active kinetic nodes on the sparse grid matrix.
+     */
+    enum class WaterMovementState : int8_t {
+        kStaticState = 0,  ///< Fluid is stationary or dry. No fluxes computed.
+        kDynamicState      ///< Kinetic energy presence. Active flux processing.
     };
 
-} // namespace danasim
+    static constexpr std::string_view kRainfallLayerName = "rainfall";
+    static constexpr std::string_view kFloodRiskLayerName = "flood_risk";
+
+    bool enable_rainfall_;
+    float dry_tolerance_;
+    std::vector<FloodRiskLevel> flood_risk_levels_;
+};
+
+} // namespace floodsim

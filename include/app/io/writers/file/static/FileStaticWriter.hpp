@@ -1,20 +1,33 @@
+/**
+ * @file FileStaticWriter.hpp
+ * @brief Interface for file-based static layer writers.
+ *
+ * @copyright Copyright (c) 2026 FloodSim
+ */
 
 #pragma once
 
+#include <string>
+
 #include "app/io/writers/StaticWriter.hpp"
 
-#include <string>
-#include <filesystem>
+namespace floodsim {
 
-namespace danasim {
+/**
+ * @brief Base writer implementation for exporting static geographical data files.
+ */
+class FileStaticWriter : public StaticWriter {
+public:
+    /**
+     * @brief Constructs a new FileStaticWriter.
+     * @param data_filename File name of the target resource to be written.
+     */
+    explicit FileStaticWriter(const std::string& data_filename);
 
-    class FileStaticWriter : public StaticWriter {
-    public:
-        FileStaticWriter(const std::string& dataFilename);
-        virtual ~FileStaticWriter() = default;
+    virtual ~FileStaticWriter() override = default;
 
-    protected:
-        std::string dataFilename_;
-    };
+protected:
+    std::string data_filename_;
+};
 
-} // namespace danasim
+} // namespace floodsim
