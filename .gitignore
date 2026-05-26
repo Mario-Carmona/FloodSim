@@ -64,6 +64,8 @@ __pycache__
 /outputs
 /python/data_pipeline_scripts/outputs
 
+/sim_outputs
+
 # Tensorflow scripts logs
 /python/tensorflow_scripts/logs
 

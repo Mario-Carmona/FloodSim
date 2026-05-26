@@ -28,8 +28,15 @@ if _SIM_CONFIG_PATH and _SIM_CONFIG_PATH.exists():
     _levels = _sim_cfg.get("state_updater", {}).get("flood_risk", {}).get("levels", [])
     # Levels are implicitly indexed 1-N (index 0 = Dry lives in default_level)
     FLOOD_LEVELS: dict[int, float] = {i + 1: float(lvl["threshold_start"]) for i, lvl in enumerate(_levels)}
+    _dataset_name: str = _sim_cfg.get("input", {}).get("file", {}).get("dataset_name", "")
 else:
     FLOOD_LEVELS = {1: 0.001, 2: 0.1, 3: 0.3, 4: 1.0, 5: 2.0}
+    _dataset_name = ""
+
+# Path to the water_depth layer folder, derived from the sim config dataset name.
+# Used in file mode to load the initial flood state without relying on MQTT messages.
+WATER_DEPTH_DATA_PATH:     str | None = str(_PROJECT_ROOT / "data" / _dataset_name / "water_depth") if _dataset_name else None
+WATER_DEPTH_DATA_FILENAME: str        = "water_depth"
 
 def _get(section: str, key: str, env_var: str, default):
     """Return yml value, overridden by env var if set."""
@@ -59,6 +66,7 @@ QOS_EVENTS              = _get("mqtt", "qos_events",          "DANASIM_QOS_EVENT
 KEEPALIVE_SECONDS       = _get("mqtt", "keepalive",           "DANASIM_KEEPALIVE",            60)
 HANDSHAKE_TIMEOUT_SECONDS = _get("mqtt", "handshake_timeout", "DANASIM_HANDSHAKE_TIMEOUT",    5.0)
 HANDSHAKE_MAX_RETRIES   = _get("mqtt", "handshake_max_retries", "DANASIM_HANDSHAKE_MAX_RETRIES", 3)
+FRAME_TIMEOUT_SECONDS   = _get("mqtt", "frame_timeout",        "DANASIM_FRAME_TIMEOUT",        720.0)
 
 TOPIC_BASE             = f"FloodSim/{SCENARIO_NAME}"
 TOPIC_EVENTS           = f"{TOPIC_BASE}/events"
@@ -73,6 +81,10 @@ TOPIC_CONTROL_EVENTS   = f"{TOPIC_BASE}/control/events"
 RENDERER_TYPE        = _get("renderer", "type",           "DANASIM_RENDERER",          "csv")
 DEPTH_PROVIDER_TYPE  = _get("renderer", "depth_provider", "DANASIM_DEPTH_PROVIDER",    "palette")
 TERRAIN_LAYER_ID     = "topo_bathy"
+WATER_DEPTH_LAYER_ID = "water_depth"
+# "mqtt": initial flood state arrives via EYE_SetState_Layer messages (default)
+# "file": initial flood state is read directly from the water_depth file on disk
+INITIAL_STATE_SOURCE = _get("visualizer", "initial_state_source", "DANASIM_INITIAL_STATE_SOURCE", "mqtt")
 IDLE_SLEEP_SECONDS   = 0.1
 DEBUG_MODE           = True
 

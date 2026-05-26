@@ -100,6 +100,32 @@ class SimulationGrid:
             self._logger.error("Could not load terrain heights from data_path=%s data_filename=%s", data_path, data_filename)
             return False
 
+        if layer_id == config.WATER_DEPTH_LAYER_ID and config.INITIAL_STATE_SOURCE == "file":
+            raw = self._load_raw_floats_from_data_path(data_path, data_filename)
+            if raw is None:
+                self._logger.error(
+                    "Could not load water depth from data_path=%s data_filename=%s",
+                    data_path, data_filename,
+                )
+                return False
+            depths = raw.astype(np.float32)
+            # Treat nodata values (negative sentinel, e.g. -9999) as dry
+            depths = np.where(depths < 0, 0.0, depths)
+            if depths.shape != self.grid.shape:
+                resized = np.zeros(self.grid.shape, dtype=np.float32)
+                h = min(depths.shape[0], self.grid.shape[0])
+                w = min(depths.shape[1], self.grid.shape[1])
+                resized[:h, :w] = depths[:h, :w]
+                depths = resized
+            self.water_depths_m = depths
+            self.grid = self._water_depth_to_palette_levels(depths)
+            self.has_new_data = True
+            self.initialization["init_layers_received"] += 1
+            self._logger.info(
+                "Water depth loaded from file for id='%s' (%d cells)", layer_id, depths.size
+            )
+            return True
+
         layer = self._load_layer_from_data_path(data_path, data_filename)
         if layer is None:
             self._logger.error(
@@ -203,6 +229,9 @@ class SimulationGrid:
                 continue
             row = flat_index // max_x
             col = flat_index % max_x
+            if row >= max_y or col >= max_x:
+                self._logger.warning("Flat index %d out of bounds (row=%d, col=%d), skipped", flat_index, row, col)
+                continue
             cell_value = self._resolve_cell_value(cell)
             if cell_value is None:
                 continue
@@ -499,6 +528,13 @@ class SimulationGrid:
             except Exception:
                 pass
         return None
+
+    def _water_depth_to_palette_levels(self, depths: np.ndarray) -> np.ndarray:
+        """Map float water-depth values to palette indices using configured flood thresholds."""
+        levels = np.zeros(depths.shape, dtype=np.uint8)
+        for level_idx, threshold in sorted(config.FLOOD_LEVELS.items()):
+            levels[depths >= threshold] = np.uint8(level_idx)
+        return levels
 
     def _to_palette_levels(self, raw):
         arr = np.array(raw, dtype=float)

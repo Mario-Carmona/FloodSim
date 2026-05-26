@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
-from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -21,12 +21,18 @@ _NODATA = -9999.0
 
 
 class X3DRenderer(BaseRenderer):
-    """Writes flood PNGs directly during simulation, then generates the
-    full LOD-based player.html at close(). No intermediate CSVs."""
+    """Writes flood PNGs directly during simulation.
+
+    Generates player.html immediately at setup() with an empty frame list.
+    Each new frame writes a PNG and updates flood/manifest.json so a live
+    browser can poll for new frames without reloading the page.
+    At close(), manifest is marked live=false to signal end of simulation.
+    """
 
     def __init__(self, output_folder: str) -> None:
         self._output_dir = Path(output_folder) / "x3d_heightmap"
         self._flood_dir = self._output_dir / "flood"
+        self._manifest_path = self._flood_dir / "manifest.json"
         self._logger = logging.getLogger(__name__)
 
         self._meta: GridMeta | None = None
@@ -37,6 +43,36 @@ class X3DRenderer(BaseRenderer):
         self._png_cols: int = 0
         self._frame_names: list[str] = []
         self._state_colors: list[tuple[int, int, int]] = []
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _write_manifest(self, *, live: bool) -> None:
+        self._manifest_path.write_text(
+            json.dumps({"frames": self._frame_names, "live": live}, indent=2),
+            encoding="utf-8",
+        )
+
+    def _write_player(self) -> None:
+        player_html = generate_player(
+            png_cols=self._png_cols,
+            png_rows=self._png_rows,
+            png_res_m=self._meta.cell_size_m,
+            orig_cols=self._meta.cols,
+            orig_rows=self._meta.rows,
+            cell_size_m=self._meta.cell_size_m,
+            min_h=self._min_h,
+            max_h=self._max_h,
+            terrain_b64=self._terrain_b64,
+            frame_names=self._frame_names,
+            state_colors=self._state_colors,
+        )
+        (self._output_dir / "player.html").write_text(player_html, encoding="utf-8")
+
+    # ------------------------------------------------------------------
+    # BaseRenderer interface
+    # ------------------------------------------------------------------
 
     def setup(self, meta: GridMeta) -> None:
         self._meta = meta
@@ -58,9 +94,15 @@ class X3DRenderer(BaseRenderer):
         self._terrain_b64 = base64.b64encode(terrain_png).decode("ascii")
         self._png_rows, self._png_cols = terrain_2d.shape
 
+        # Generate player.html immediately so the browser can open it
+        # before any frame arrives. manifest starts empty and live=true.
+        copy_js_assets(self._output_dir)
+        self._write_player()
+        self._write_manifest(live=True)
+
         self._logger.info(
-            "X3DRenderer ready — output: %s  grid: %sx%s  heights: %.1f–%.1fm",
-            self._output_dir, meta.rows, meta.cols, self._min_h, self._max_h,
+            "X3DRenderer ready — player: %s  heights: %.1f–%.1fm",
+            self._output_dir / "player.html", self._min_h, self._max_h,
         )
 
     def save_snapshot(self, frame: FrameData, step_index: int) -> None:
@@ -72,28 +114,14 @@ class X3DRenderer(BaseRenderer):
         flood_png = _encode_flood_png(palette_2d)
         (self._flood_dir / f"{step_name}.png").write_bytes(flood_png)
         self._frame_names.append(step_name)
+        self._write_manifest(live=True)
         self._logger.debug("Flood PNG saved: %s (%.1fKB)", step_name, len(flood_png) / 1024)
 
     def close(self) -> None:
-        if not self._frame_names or self._meta is None:
+        if self._meta is None:
             return
-        self._logger.info("Generating player.html (%d frames)...", len(self._frame_names))
-        try:
-            player_html = generate_player(
-                png_cols=self._png_cols,
-                png_rows=self._png_rows,
-                png_res_m=self._meta.cell_size_m,
-                orig_cols=self._meta.cols,
-                orig_rows=self._meta.rows,
-                cell_size_m=self._meta.cell_size_m,
-                min_h=self._min_h,
-                max_h=self._max_h,
-                terrain_b64=self._terrain_b64,
-                frame_names=self._frame_names,
-                state_colors=self._state_colors,
-            )
-            (self._output_dir / "player.html").write_text(player_html, encoding="utf-8")
-            copy_js_assets(self._output_dir)
-            self._logger.info("Player ready: %s", self._output_dir / "player.html")
-        except Exception as exc:
-            self._logger.error("Failed to generate player: %s", exc)
+        self._write_manifest(live=False)
+        self._logger.info(
+            "Simulation ended — %d frames in %s",
+            len(self._frame_names), self._output_dir,
+        )

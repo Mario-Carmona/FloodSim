@@ -143,6 +143,8 @@ def main(argv: list[str] | None = None) -> int:
 
     for i, csv_path in enumerate(frame_paths):
         palette_grid, water_depths = load_frame(csv_path, rows, cols)
+        if water_depths is None:
+            water_depths = np.zeros((rows, cols), dtype=np.float32)
         frame = FrameData(palette_grid=palette_grid, water_depths=water_depths)
         html, token = serializer.serialize(frame)
         frame_tokens.append(token)

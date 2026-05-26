@@ -234,6 +234,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     csv_dir    = Path(args.csv).resolve()
+    if not csv_dir.exists():
+        log.error("csv_dir not found: %s", csv_dir)
+        return 1
     output_dir = Path(args.output).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
