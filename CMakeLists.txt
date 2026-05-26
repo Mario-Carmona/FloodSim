@@ -186,10 +186,10 @@ if(BUILD_APP)
 
     # Instalación de la carpeta data
     # Esto copiará TODO el contenido de tu carpeta local "data" al directorio del instalador
-    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
-            DESTINATION ${DATA_DEST_PATH}
-            COMPONENT Unspecified
-    )
+    #install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
+    #        DESTINATION ${DATA_DEST_PATH}
+    #        COMPONENT Unspecified
+    #)
 
 
     install(FILES 
