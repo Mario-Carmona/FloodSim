@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -340,3 +341,71 @@ class TestLegacyUpdateMethods:
         sim = _grid(size_x=5, size_y=4)
         event = {"changes": {"coord": {"x": 100, "y": 100}}}
         assert sim.update_from_object_event(event) is False
+
+
+# ---------------------------------------------------------------------------
+# apply_init_agent_layer — file-mode water depth
+# ---------------------------------------------------------------------------
+
+class TestFileInitWaterDepth:
+    def test_populates_depths_and_palette(self, tmp_path: Path) -> None:
+        # FLOOD_LEVELS default: {1: 0.001, 2: 0.1, 3: 0.3, 4: 1.0, 5: 2.0}
+        depths = np.array([[0.0, 0.05], [0.5, 2.5]], dtype=np.float32)
+        np.save(tmp_path / "water_depth.npy", depths)
+
+        with patch("python.visualizer.data_model.config.INITIAL_STATE_SOURCE", "file"):
+            sim = _grid(size_x=2, size_y=2)
+            ok = sim.apply_init_agent_layer({
+                "id": "water_depth",
+                "data_path": str(tmp_path),
+                "data_filename": "water_depth",
+            })
+
+        assert ok is True
+        assert sim.water_depths_m[0, 1] == pytest.approx(0.05)
+        assert sim.grid[0, 0] == 0  # 0.0  → dry
+        assert sim.grid[0, 1] == 1  # 0.05 → very shallow  (0.001–0.1)
+        assert sim.grid[1, 0] == 3  # 0.5  → medium depth  (0.3–1.0)
+        assert sim.grid[1, 1] == 5  # 2.5  → extreme depth (≥ 2.0)
+
+    def test_nodata_clamped_to_dry(self, tmp_path: Path) -> None:
+        depths = np.array([[-9999.0, 1.0]], dtype=np.float32)
+        np.save(tmp_path / "water_depth.npy", depths)
+
+        with patch("python.visualizer.data_model.config.INITIAL_STATE_SOURCE", "file"):
+            sim = _grid(size_x=2, size_y=1)
+            sim.apply_init_agent_layer({
+                "id": "water_depth",
+                "data_path": str(tmp_path),
+                "data_filename": "water_depth",
+            })
+
+        assert sim.water_depths_m[0, 0] == pytest.approx(0.0)
+        assert sim.grid[0, 0] == 0  # nodata → dry
+
+    def test_missing_file_returns_false(self) -> None:
+        with patch("python.visualizer.data_model.config.INITIAL_STATE_SOURCE", "file"):
+            sim = _grid(size_x=2, size_y=2)
+            ok = sim.apply_init_agent_layer({
+                "id": "water_depth",
+                "data_path": "/nonexistent/path",
+                "data_filename": "water_depth",
+            })
+        assert ok is False
+
+    def test_mqtt_mode_does_not_touch_water_depths(self, tmp_path: Path) -> None:
+        # In mqtt mode, water_depth layer goes through the normal palette path
+        # and does NOT populate water_depths_m (that comes later via EYE_SetState_Layer)
+        depths = np.array([[0.0, 1.0], [2.0, 3.0]], dtype=np.float32)
+        np.save(tmp_path / "water_depth.npy", depths)
+
+        with patch("python.visualizer.data_model.config.INITIAL_STATE_SOURCE", "mqtt"):
+            sim = _grid(size_x=2, size_y=2)
+            ok = sim.apply_init_agent_layer({
+                "id": "water_depth",
+                "data_path": str(tmp_path),
+                "data_filename": "water_depth",
+            })
+
+        assert ok is True
+        assert (sim.water_depths_m == 0.0).all()

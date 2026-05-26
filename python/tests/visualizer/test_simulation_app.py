@@ -234,6 +234,73 @@ class TestClose:
 
 
 # ===========================================================================
+# File-mode initial state guard
+# ===========================================================================
+
+class TestFileModeGuard:
+    def test_eye_set_state_layer_ignored_before_init_eof(self) -> None:
+        app = _make_app()
+        app.handle_event({"process": "InitMap_Config",
+                          "map": {"size_x": 5, "size_y": 4, "cell_resolution_m": 1.0}})
+        with patch("python.visualizer.simulation_app.config.INITIAL_STATE_SOURCE", "file"):
+            app.handle_event({"process": "EYE_SetState_Layer",
+                              "changes": {"cells": {"0": {"state": "FLOODED", "height": 1.5}}}})
+        assert app._pending_changes == []
+
+    def test_eye_set_state_ignored_before_init_eof(self) -> None:
+        app = _make_app()
+        app.handle_event({"process": "InitMap_Config",
+                          "map": {"size_x": 5, "size_y": 4, "cell_resolution_m": 1.0}})
+        with patch("python.visualizer.simulation_app.config.INITIAL_STATE_SOURCE", "file"):
+            app.handle_event({"process": "EYE_SetState",
+                              "changes": {"coord": {"x": 1, "y": 1}, "state": "FLOODED"}})
+        assert app._pending_changes == []
+
+    def test_eye_set_state_layer_collected_after_init_eof(self) -> None:
+        app = _make_app()
+        _init(app, size_x=5, size_y=4)  # sets init_complete = True
+        with patch("python.visualizer.simulation_app.config.INITIAL_STATE_SOURCE", "file"):
+            app.handle_event({"process": "FrameStart", "total_chunks": 1, "chunks_per_batch": 0})
+            app.handle_event({"process": "EYE_SetState_Layer",
+                              "changes": {"cells": {"0": {"state": "FLOODED", "height": 1.5}}}})
+        assert len(app._pending_changes) == 1
+
+    def test_mqtt_mode_collects_before_init_eof(self) -> None:
+        # In mqtt mode the guard is inactive — messages before Init_EOF go into pending_changes
+        app = _make_app()
+        app.handle_event({"process": "InitMap_Config",
+                          "map": {"size_x": 5, "size_y": 4, "cell_resolution_m": 1.0}})
+        with patch("python.visualizer.simulation_app.config.INITIAL_STATE_SOURCE", "mqtt"):
+            app.handle_event({"process": "EYE_SetState_Layer",
+                              "changes": {"cells": {"0": {"state": "FLOODED", "height": 1.5}}}})
+        assert len(app._pending_changes) == 1
+
+    def test_init_agent_eof_triggers_file_load(self, tmp_path) -> None:
+        depths = np.array([[0.0, 1.5], [2.5, 0.0]], dtype=np.float32)
+        np.save(tmp_path / "water_depth.npy", depths)
+        app = _make_app()
+        app.handle_event({"process": "InitMap_Config",
+                          "map": {"size_x": 2, "size_y": 2, "cell_resolution_m": 5.0}})
+        with (
+            patch("python.visualizer.simulation_app.config.INITIAL_STATE_SOURCE", "file"),
+            patch("python.visualizer.simulation_app.config.WATER_DEPTH_DATA_PATH", str(tmp_path)),
+            patch("python.visualizer.simulation_app.config.WATER_DEPTH_DATA_FILENAME", "water_depth"),
+        ):
+            app.handle_event({"process": "InitAgent_EOF"})
+        assert app._simulation.water_depths_m[0, 1] == pytest.approx(1.5)
+        assert app._simulation.grid[0, 1] != 0  # not dry
+
+    def test_init_agent_eof_no_file_load_in_mqtt_mode(self) -> None:
+        app = _make_app()
+        app.handle_event({"process": "InitMap_Config",
+                          "map": {"size_x": 5, "size_y": 4, "cell_resolution_m": 1.0}})
+        with patch("python.visualizer.simulation_app.config.INITIAL_STATE_SOURCE", "mqtt"):
+            app.handle_event({"process": "InitAgent_EOF"})
+        # grid untouched — all dry
+        assert (app._simulation.grid == 0).all()
+
+
+# ===========================================================================
 # main() wiring
 # ===========================================================================
 

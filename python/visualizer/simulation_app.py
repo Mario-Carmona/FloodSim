@@ -63,6 +63,8 @@ class SimulationApp:
 
         elif process == "InitAgent_EOF":
             self._simulation.mark_init_agent_eof(event)
+            if config.INITIAL_STATE_SOURCE == "file":
+                self._load_water_depth_from_file()
 
         elif process == "Init_EOF":
             self._simulation.mark_init_eof(event)
@@ -100,12 +102,24 @@ class SimulationApp:
             self._logger.info("FrameEnd: %d cambios aplicados al grid.", n)
 
         elif process == "EYE_SetState_Layer":
+            if (
+                config.INITIAL_STATE_SOURCE == "file"
+                and not self._simulation.initialization["init_complete"]
+            ):
+                self._logger.debug("EYE_SetState_Layer ignorado en modo file antes de Init_EOF")
+                return
             self._pending_changes.extend(
                 self._simulation.collect_from_layer_event(event)
             )
             self._maybe_publish_ack()
 
         elif process == "EYE_SetState":
+            if (
+                config.INITIAL_STATE_SOURCE == "file"
+                and not self._simulation.initialization["init_complete"]
+            ):
+                self._logger.debug("EYE_SetState ignorado en modo file antes de Init_EOF")
+                return
             self._pending_changes.extend(
                 self._simulation.collect_from_object_event(event)
             )
@@ -171,3 +185,26 @@ class SimulationApp:
         if self._chunks_since_ack >= self._chunks_per_batch:
             self._control.publish_chunk_ack()
             self._chunks_since_ack = 0
+
+    def _load_water_depth_from_file(self) -> None:
+        if config.WATER_DEPTH_DATA_PATH is None:
+            self._logger.error(
+                "Modo file activo pero WATER_DEPTH_DATA_PATH no está configurado "
+                "(comprueba que sim_config apunta a un yaml con input.file.dataset_name)"
+            )
+            return
+        ok = self._simulation.apply_init_agent_layer({
+            "id": config.WATER_DEPTH_LAYER_ID,
+            "data_path": config.WATER_DEPTH_DATA_PATH,
+            "data_filename": config.WATER_DEPTH_DATA_FILENAME,
+        })
+        if ok:
+            self._logger.info(
+                "Estado inicial de inundación cargado desde fichero: %s",
+                config.WATER_DEPTH_DATA_PATH,
+            )
+        else:
+            self._logger.error(
+                "No se pudo cargar el estado inicial desde fichero: %s",
+                config.WATER_DEPTH_DATA_PATH,
+            )
