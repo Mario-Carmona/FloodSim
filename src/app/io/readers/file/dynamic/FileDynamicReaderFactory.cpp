@@ -16,13 +16,13 @@
 #include "app/io/readers/file/dynamic/FileDynamicReader.hpp"
 #include "app/io/readers/file/dynamic/HifReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 std::unique_ptr<DynamicReader> FileDynamicReaderFactory::Create(
-        const FileDynamicFormat& format, const std::filesystem::path& data_path,
+        const formats::file::FileDynamicFormat& format, const std::filesystem::path& data_path,
         const std::string& data_filename) {
     switch (format) {
-    case FileDynamicFormat::kHif:
+    case formats::file::FileDynamicFormat::kHif:
         return std::make_unique<HifReader>(data_path, data_filename);
     default:
         throw std::runtime_error(fmt::format(
@@ -31,4 +31,4 @@ std::unique_ptr<DynamicReader> FileDynamicReaderFactory::Create(
     }
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

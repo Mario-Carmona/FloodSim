@@ -15,7 +15,7 @@
 
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 std::string JsonSerializer::GeneratePingPayload(const std::string& client_id,
     const std::string& timestamp_utc) const {
@@ -32,10 +32,10 @@ nlohmann::json JsonSerializer::ParsePongPayload(const std::string& payload) cons
     return nlohmann::json::parse(payload);
 }
 
-std::string JsonSerializer::GenerateInitMapConfigPayload(const MapGrid& grid,
+std::string JsonSerializer::GenerateInitMapConfigPayload(const core::grid::MapGrid& grid,
                                                          std::chrono::sys_seconds start_timestamp) const {
 
-    ViewBox::Point georef = grid.GetGeoreference();
+    config::ViewBox::Point georef = grid.GetGeoreference();
         
     nlohmann::json payload = {
         {"process", "InitMap_Config"},
@@ -58,7 +58,7 @@ std::string JsonSerializer::GenerateInitMapConfigPayload(const MapGrid& grid,
     return payload.dump();
 }
 
-std::string JsonSerializer::GenerateInitAgentLayerPayload(const MapGrid& grid,
+std::string JsonSerializer::GenerateInitAgentLayerPayload(const core::grid::MapGrid& grid,
                                                           const std::string& dataset_name,
                                                           const std::string& layer_name) const {
     nlohmann::json payload = {
@@ -103,7 +103,7 @@ void JsonSerializer::GenerateChunkChangesPayload(std::string& payload_str,
                                                  const std::vector<float>& water_depth,
                                                  const std::vector<int8_t>& flood_risk,
                                                  const std::string& layer_name,
-                                                 const ChangeList& changes,
+                                                 const core::snapshot::ChangeList& changes,
                                                  GridIndexType init_index,
                                                  GridIndexType chunk_size) const {
     nlohmann::json payload = {
@@ -157,4 +157,4 @@ std::string JsonSerializer::GenerateSimEndPayload() const {
     return payload.dump();
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

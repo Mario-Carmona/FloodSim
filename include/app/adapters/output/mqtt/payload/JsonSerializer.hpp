@@ -19,7 +19,7 @@
 
 #include "app/adapters/output/mqtt/payload/PayloadSerializer.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 /**
  * @class JsonSerializer
@@ -63,7 +63,7 @@ public:
      * @param start_timestamp Initial simulation date and time anchor.
      * @return std::string Serialized JSON string containing map configurations and grid setup.
      */
-    std::string GenerateInitMapConfigPayload(const MapGrid& grid,
+    std::string GenerateInitMapConfigPayload(const core::grid::MapGrid& grid,
         std::chrono::sys_seconds start_timestamp) const override;
 
     /**
@@ -74,7 +74,7 @@ public:
      * @param layer_name The specific layer key identifier (e.g., "topo_bathy").
      * @return std::string Serialized JSON configuration metadata for the specified layer.
      */
-    std::string GenerateInitAgentLayerPayload(const MapGrid& grid,
+    std::string GenerateInitAgentLayerPayload(const core::grid::MapGrid& grid,
         const std::string& dataset_name,
         const std::string& layer_name) const override;
 
@@ -118,7 +118,7 @@ public:
         const std::vector<float>& water_depth,
         const std::vector<int8_t>& flood_risk,
         const std::string& layer_name,
-        const ChangeList& changes,
+        const core::snapshot::ChangeList& changes,
         GridIndexType init_index,
         GridIndexType chunk_size) const override;
 
@@ -154,4 +154,4 @@ public:
     std::string GenerateSimEndPayload() const override;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

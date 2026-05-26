@@ -16,13 +16,13 @@
 #include "app/io/readers/file/static/FileStaticReader.hpp"
 #include "app/io/readers/file/static/IdrisiReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 std::unique_ptr<StaticReader> FileStaticReaderFactory::Create(
-        const FileStaticFormat& format, const std::filesystem::path& data_path,
+        const formats::file::FileStaticFormat& format, const std::filesystem::path& data_path,
         const std::string& data_filename) {
     switch (format) {
-    case FileStaticFormat::kIdrisi:
+    case formats::file::FileStaticFormat::kIdrisi:
         return std::make_unique<IdrisiReader>(data_path, data_filename);
     default:
         throw std::runtime_error(fmt::format(
@@ -31,4 +31,4 @@ std::unique_ptr<StaticReader> FileStaticReaderFactory::Create(
     }
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

@@ -24,7 +24,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace floodsim {
+namespace floodsim::logging {
 
 // Use an anonymous namespace for internal linkage
 namespace {
@@ -205,4 +205,4 @@ void Logger::SetThreadName(const std::string& name) {
     }
 }
 
-} // namespace floodsim
+} // namespace floodsim::logging

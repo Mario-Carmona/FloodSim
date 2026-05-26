@@ -28,7 +28,7 @@
 
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::state_updater {
 
 namespace {
     // Global atomic flag to signal abrupt termination to worker threads.
@@ -36,9 +36,9 @@ namespace {
 }
 
 OnnxStateUpdater::OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
-                                   const std::vector<FloodRiskLevel>& flood_risk_levels,
+                                   const std::vector<config::FloodRiskLevel>& flood_risk_levels,
                                    const std::filesystem::path& model_path, int64_t tensor_dim)
-    : StateUpdaterPort(enable_rainfall, dry_tolerance, flood_risk_levels)
+    : core::ports::StateUpdaterPort(enable_rainfall, dry_tolerance, flood_risk_levels)
     , tensor_dim_(tensor_dim)
     , halo_size_(1)
     , tile_size_(tensor_dim_ - (2 * halo_size_))
@@ -183,14 +183,14 @@ OnnxStateUpdater::OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
         if (IsRainfallEnabled()) {
             params_info_.layers.push_back({
                 .name = std::string(kRainfallLayerName),
-                .data_type = DataType::kFloat32,
+                .data_type = core::grid::DataType::kFloat32,
                 .load_required = true
                 });
         }
 
         params_info_.layers.push_back({
             .name = std::string(kFloodRiskLayerName),
-            .data_type = DataType::kInt8,
+            .data_type = core::grid::DataType::kInt8,
             .load_required = false
             });
     } catch (const Ort::Exception& e) {
@@ -203,7 +203,7 @@ OnnxStateUpdater::OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
 }
 
 int8_t OnnxStateUpdater::ClassifyRisk(float depth) const {
-    const std::vector<FloodRiskLevel>& flood_risk_levels = GetFloodRiskLevels();
+    const std::vector<config::FloodRiskLevel>& flood_risk_levels = GetFloodRiskLevels();
 
     int8_t level = 0;
 
@@ -219,12 +219,12 @@ int8_t OnnxStateUpdater::ClassifyRisk(float depth) const {
     return level;
 }
 
-void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
+void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid,
                                 const Ort::RunOptions& options,
                                 const ModelGraphInfo& graph_info,
                                 const std::vector<int64_t>& tensor_shape,
                                 bool use_dynamic_bounding_box,
-                                const std::vector<Tile>& active_tiles) {
+                                const std::vector<core::grid::layers::Tile>& active_tiles) {
 
     try {
         size_t tensor_size = 1;
@@ -232,7 +232,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
             tensor_size *= item;
         }
 
-        ScratchpadBase* first_scratchpad = layers_scratchpad_.begin()->second.get();
+        core::grid::layers::ScratchpadBase* first_scratchpad = layers_scratchpad_.begin()->second.get();
 
         if (tensor_size > first_scratchpad->GetSize()) {
             size_t new_size;
@@ -301,7 +301,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
     }
 }
 
-    void OnnxStateUpdater::Initialize(MapGrid& grid) {
+    void OnnxStateUpdater::Initialize(core::grid::MapGrid& grid) {
         int64_t num_tiles_x = (grid.GetCols() + tile_size_ - 1) / tile_size_;
         int64_t num_tiles_y = (grid.GetRows() + tile_size_ - 1) / tile_size_;
 
@@ -327,7 +327,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
         int64_t cols = static_cast<int64_t>(grid.GetCols());
 
         std::vector<int64_t> tensor_shape = { rows, cols };
-        std::vector<Tile> active_tiles;
+        std::vector<core::grid::layers::Tile> active_tiles;
         Ort::RunOptions preprocess_options{ nullptr };
 
         RunModel(preprocess_session_, grid, preprocess_options, preprocess_model_, tensor_shape, false, active_tiles);
@@ -360,7 +360,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
         }
     }
 
-    void OnnxStateUpdater::GetActiveTiles(const MapGrid& grid, std::vector<Tile>& active_tiles) const {
+    void OnnxStateUpdater::GetActiveTiles(const core::grid::MapGrid& grid, std::vector<core::grid::layers::Tile>& active_tiles) const {
         int64_t cols = grid.GetCols();
         int64_t rows = grid.GetRows();
 
@@ -404,7 +404,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
         }
     }
 
-    void OnnxStateUpdater::Step(MapGrid& grid) {
+    void OnnxStateUpdater::Step(core::grid::MapGrid& grid) {
         try {
             std::vector<float>& water_depth = grid.GetLayer<float>(GetFluidLayer())->GetData();
             std::vector<int8_t>& fluid_movement_state = grid.GetLayer<int8_t>(GetFluidMovementStateLayer())->GetData();
@@ -422,7 +422,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
                 }
             }
                 
-            std::vector<Tile> active_tiles;
+            std::vector<core::grid::layers::Tile> active_tiles;
             GetActiveTiles(grid, active_tiles);
 
             int64_t batch_size = active_tiles.size();
@@ -482,10 +482,10 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
         }
 
         if (tensor_json["type"] == "FLOAT") {
-            tensor.type = DataType::kFloat32;
+            tensor.type = core::grid::DataType::kFloat32;
         }
         else if (tensor_json["type"] == "INT8") {
-            tensor.type = DataType::kInt8;
+            tensor.type = core::grid::DataType::kInt8;
         }
         else {
             throw std::runtime_error("Error: ONNX tensor type '" + std::string(tensor_json["type"]) + "' is unsupported or missing C++ mapping.");
@@ -514,26 +514,26 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
         return graph_info;
     }
 
-    Ort::Value OnnxStateUpdater::ConfigureTensor(const TensorInfo& info, MapGrid& grid, const std::vector<int64_t>& tensor_shape, size_t tensor_size, bool use_dynamic_bounding_box) {
+    Ort::Value OnnxStateUpdater::ConfigureTensor(const TensorInfo& info, core::grid::MapGrid& grid, const std::vector<int64_t>& tensor_shape, size_t tensor_size, bool use_dynamic_bounding_box) {
         if (info.is_scalar) {
             std::vector<int64_t> scalar_shape = {};
 
             switch (info.type) {
-            case DataType::kFloat32:
+            case core::grid::DataType::kFloat32:
                 return Ort::Value::CreateTensor<float>(memory_info_, &grid.GetScalar<float>(info.id_name)->GetValue(), 1, scalar_shape.data(), scalar_shape.size());
                 break;
-            case DataType::kInt8:
+            case core::grid::DataType::kInt8:
                 return Ort::Value::CreateTensor<int8_t>(memory_info_, &grid.GetScalar<int8_t>(info.id_name)->GetValue(), 1, scalar_shape.data(), scalar_shape.size());
                 break;
             }
         }
         else {
             switch (info.type) {
-            case DataType::kFloat32:
+            case core::grid::DataType::kFloat32:
                 float* float_layer_data_prt;
 
                 if (use_dynamic_bounding_box) {
-                    float_layer_data_prt = dynamic_cast<Scratchpad<float>*>(layers_scratchpad_[info.id_name].get())->GetData().data();
+                    float_layer_data_prt = dynamic_cast<core::grid::layers::Scratchpad<float>*>(layers_scratchpad_[info.id_name].get())->GetData().data();
                 }
                 else {
                     float_layer_data_prt = grid.GetLayer<float>(info.id_name)->GetData().data();
@@ -545,11 +545,11 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
                     tensor_size, tensor_shape.data(), tensor_shape.size()
                 );
                 break;
-            case DataType::kInt8:
+            case core::grid::DataType::kInt8:
                 int8_t* int8_layer_data_prt;
 
                 if (use_dynamic_bounding_box) {
-                    int8_layer_data_prt = dynamic_cast<Scratchpad<int8_t>*>(layers_scratchpad_[info.id_name].get())->GetData().data();
+                    int8_layer_data_prt = dynamic_cast<core::grid::layers::Scratchpad<int8_t>*>(layers_scratchpad_[info.id_name].get())->GetData().data();
                 }
                 else {
                     int8_layer_data_prt = grid.GetLayer<int8_t>(info.id_name)->GetData().data();
@@ -565,4 +565,4 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, MapGrid& grid,
         }
     }
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::state_updater

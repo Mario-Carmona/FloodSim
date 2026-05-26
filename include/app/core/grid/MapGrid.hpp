@@ -35,7 +35,7 @@
 #include "app/core/ports/InputPort.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::grid {
 
 /**
  * @enum DataType
@@ -115,8 +115,8 @@ public:
      * @param current_time The initial simulation clock time.
      */
     void Load(const ModelParamsInfo& params_info,
-        InputPort* main_input_source,
-        const std::unordered_map<std::string, InputPort*>& layers_alternative_input_source,
+        ports::InputPort* main_input_source,
+        const std::unordered_map<std::string, ports::InputPort*>& layers_alternative_input_source,
         const std::unordered_map<std::string, std::string>& scalars_config,
         std::chrono::seconds time_step,
         std::chrono::system_clock::time_point current_time);
@@ -132,44 +132,44 @@ public:
     // Layer Accessors
     // -------------------------------------------------------------------------
 
-    [[nodiscard]] LayerBase* GetLayer(const std::string& name) {
+    [[nodiscard]] layers::LayerBase* GetLayer(const std::string& name) {
         return layers_.at(name).get();
     }
 
-    [[nodiscard]] const LayerBase* GetLayer(const std::string& name) const {
+    [[nodiscard]] const layers::LayerBase* GetLayer(const std::string& name) const {
         return layers_.at(name).get();
     }
 
     template <typename T>
-    [[nodiscard]] Layer<T>* GetLayer(const std::string& name) {
-        return dynamic_cast<Layer<T>*>(layers_.at(name).get());
+    [[nodiscard]] layers::Layer<T>* GetLayer(const std::string& name) {
+        return dynamic_cast<layers::Layer<T>*>(layers_.at(name).get());
     }
 
     template <typename T>
-    [[nodiscard]] const Layer<T>* GetLayer(const std::string& name) const {
-        return dynamic_cast<const Layer<T>*>(layers_.at(name).get());
+    [[nodiscard]] const layers::Layer<T>* GetLayer(const std::string& name) const {
+        return dynamic_cast<const layers::Layer<T>*>(layers_.at(name).get());
     }
 
     // -------------------------------------------------------------------------
     // Scalar Accessors
     // -------------------------------------------------------------------------
 
-    [[nodiscard]] ScalarBase* GetScalar(const std::string& name) {
+    [[nodiscard]] scalars::ScalarBase* GetScalar(const std::string& name) {
         return scalars_.at(name).get();
     }
 
-    [[nodiscard]] const ScalarBase* GetScalar(const std::string& name) const {
+    [[nodiscard]] const scalars::ScalarBase* GetScalar(const std::string& name) const {
         return scalars_.at(name).get();
     }
 
     template <typename T>
-    [[nodiscard]] Scalar<T>* GetScalar(const std::string& name) {
-        return dynamic_cast<Scalar<T>*>(scalars_.at(name).get());
+    [[nodiscard]] scalars::Scalar<T>* GetScalar(const std::string& name) {
+        return dynamic_cast<scalars::Scalar<T>*>(scalars_.at(name).get());
     }
 
     template <typename T>
-    [[nodiscard]] const Scalar<T>* GetScalar(const std::string& name) const {
-        return dynamic_cast<const Scalar<T>*>(scalars_.at(name).get());
+    [[nodiscard]] const scalars::Scalar<T>* GetScalar(const std::string& name) const {
+        return dynamic_cast<const scalars::Scalar<T>*>(scalars_.at(name).get());
     }
 
     // -------------------------------------------------------------------------
@@ -185,14 +185,14 @@ public:
     [[nodiscard]] double GetMapOriginX() const noexcept { return metadata_.min_x; }
     [[nodiscard]] double GetMapOriginY() const noexcept { return metadata_.max_y; }
         
-    [[nodiscard]] ViewBox::Point GetGeoreference() const;
+    [[nodiscard]] config::ViewBox::Point GetGeoreference() const;
 
-    [[nodiscard]] GridViewBox::Point TransformViewPoint(ViewBox::Point source_point, const std::string& target_crs) const;
-    [[nodiscard]] ViewBox::Point TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const;
+    [[nodiscard]] GridViewBox::Point TransformViewPoint(config::ViewBox::Point source_point, const std::string& target_crs) const;
+    [[nodiscard]] config::ViewBox::Point TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const;
 
 private:
-    std::unordered_map<std::string, std::unique_ptr<LayerBase>> layers_;   ///< Storage for all spatial layers.
-    std::unordered_map<std::string, std::unique_ptr<ScalarBase>> scalars_; ///< Storage for global scalar variables.
+    std::unordered_map<std::string, std::unique_ptr<layers::LayerBase>> layers_;   ///< Storage for all spatial layers.
+    std::unordered_map<std::string, std::unique_ptr<scalars::ScalarBase>> scalars_; ///< Storage for global scalar variables.
 
     GridMetadata metadata_; ///< Shared spatial metadata for the grid map.
 
@@ -206,10 +206,10 @@ private:
     template <typename T>
     void AddLayer(const std::string& name, bool is_static_layer) {
         if (is_static_layer) {
-            layers_[name] = std::make_unique<StaticLayer<T>>(name);
+            layers_[name] = std::make_unique<layers::StaticLayer<T>>(name);
         }
         else {
-            layers_[name] = std::make_unique<DynamicLayer<T>>(name);
+            layers_[name] = std::make_unique<layers::DynamicLayer<T>>(name);
         }
     }
 
@@ -221,7 +221,7 @@ private:
      */
     template <typename T>
     void AddScalar(const std::string& name) {
-        scalars_[name] = std::make_unique<Scalar<T>>(name);
+        scalars_[name] = std::make_unique<scalars::Scalar<T>>(name);
     }
 
     /**
@@ -240,4 +240,4 @@ private:
     std::optional<UTMZoneInfo> ParseUTMZoneFromEPSG(const std::string& epsg_string) const;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::core::grid

@@ -11,9 +11,9 @@
 
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::snapshot {
 
-void Snapshot::Set(std::chrono::sys_seconds time, const MapGrid& grid) {
+void Snapshot::Set(std::chrono::sys_seconds time, const grid::MapGrid& grid) {
     time_ = time;
 
     const auto& water_depth_grid = grid.GetLayer<float>("water_depth")->GetData();
@@ -36,4 +36,4 @@ void Snapshot::Set(std::chrono::sys_seconds time, const MapGrid& grid) {
         flood_risk_grid.size() * sizeof(int8_t));
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::core::snapshot

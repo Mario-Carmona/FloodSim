@@ -18,7 +18,7 @@
 #include "app/io/readers/file/static/IdrisiReader.hpp"
 #include "misc/TimeUtils.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 HifReader::HifReader(const std::filesystem::path& data_path,
                      const std::string& data_filename)
@@ -69,7 +69,7 @@ void HifReader::ReadData(std::vector<T>& data) const {
     reader.Read(data);
 }
 
-GridMetadata HifReader::ReadMetadata() const {
+core::grid::GridMetadata HifReader::ReadMetadata() const {
     if (filenames_.empty()) {
         throw std::runtime_error("Cannot read metadata: No frames available in HIF.");
     }
@@ -82,7 +82,7 @@ GridMetadata HifReader::ReadMetadata() const {
             "Failed to open metadata file: {}", doc_file.string()));
     }
 
-    GridMetadata metadata{};
+    core::grid::GridMetadata metadata{};
     std::string line;
 
     while (std::getline(file, line)) {
@@ -124,4 +124,4 @@ unsigned int HifReader::GetDowngradeFactor() const {
     return downgrade_factor_;
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

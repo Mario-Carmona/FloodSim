@@ -42,12 +42,12 @@ template<class... Ts> Overloaded(Ts...) -> Overloaded<Ts...>;
     * @param input_config The input configuration to modify with discovered scalars.
     * @param last_loaded_model_path Tracks the last processed model to avoid redundant disk I/O per frame.
     */
-void ExtractScalars(const floodsim::UpdaterConfig& updater_config,
-                    floodsim::InputConfig& input_config,
+void ExtractScalars(const floodsim::app::config::UpdaterConfig& updater_config,
+                    floodsim::app::config::InputConfig& input_config,
                     std::filesystem::path& last_loaded_model_path) {
 
     std::visit(Overloaded{
-        [&](const floodsim::OnnxUpdaterConfig& onnx_cfg) {
+        [&](const floodsim::app::config::OnnxUpdaterConfig& onnx_cfg) {
             // Return immediately if the model path hasn't changed to avoid disk I/O on every UI frame
             if (onnx_cfg.model_path.empty() || onnx_cfg.model_path == last_loaded_model_path) {
                 return;
@@ -115,7 +115,7 @@ void ExtractScalars(const floodsim::UpdaterConfig& updater_config,
 
 namespace floodsim::gui {
 
-void RenderInputTab(InputConfig& input_config, const UpdaterConfig& updater_config) {
+void RenderInputTab(app::config::InputConfig& input_config, const app::config::UpdaterConfig& updater_config) {
     // Static variable tied to the GUI context life cycle to track IO state
     static std::filesystem::path s_last_loaded_model_path;
 

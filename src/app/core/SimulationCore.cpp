@@ -17,16 +17,16 @@
 #include "app/core/snapshot/Snapshot.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core {
 
 SimulationCore::SimulationCore(
-    StateUpdaterPort* state_updater,
-    InputPort* main_input_source,
-    const std::unordered_map<std::string, InputPort*>& layers_alternative_input_source,
+    ports::StateUpdaterPort* state_updater,
+    ports::InputPort* main_input_source,
+    const std::unordered_map<std::string, ports::InputPort*>& layers_alternative_input_source,
     const std::unordered_map<std::string, std::string>& scalars_config,
-    std::vector<OutputPort*> outputs,
-    SnapshotManager* snapshot_manager,
-    const SimulationConfig& config,
+    std::vector<ports::OutputPort*> outputs,
+    snapshot::SnapshotManager* snapshot_manager,
+    const config::SimulationConfig& config,
     const std::string& scenario_name
 )
     : state_updater_(state_updater)
@@ -130,7 +130,7 @@ void SimulationCore::CalculateGridView() {
         grid_index_view_.max_row = current_grid_.GetRows();
     }
     else {
-        GridViewBox grid_view{
+        grid::GridViewBox grid_view{
             .south_west = current_grid_.TransformViewPoint(view_.south_west, current_grid_.GetCrs()),
             .north_east = current_grid_.TransformViewPoint(view_.north_east, current_grid_.GetCrs())
         };
@@ -224,4 +224,4 @@ void SimulationCore::ProcessChunk(GridIndexType start_row, GridIndexType end_row
     }
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::core

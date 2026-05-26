@@ -20,7 +20,7 @@
 
 namespace floodsim::gui {
 
-void RenderLoggingTab(LoggingConfig& logging_config) {
+void RenderLoggingTab(app::config::LoggingConfig& logging_config) {
     try {
         ImGui::Spacing();
         ImGui::SeparatorText("System Logging");

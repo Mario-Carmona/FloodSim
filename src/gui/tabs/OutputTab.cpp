@@ -32,7 +32,7 @@ namespace {
 
 namespace floodsim::gui {
 
-void RenderOutputTab(OutputConfig& output_config) {
+void RenderOutputTab(app::config::OutputConfig& output_config) {
     try {
         // ==========================================
         // 1. SNAPSHOT CONFIGURATION
@@ -107,30 +107,30 @@ void RenderOutputTab(OutputConfig& output_config) {
                     ImGui::SetNextItemWidth(std::min(150.0f, ImGui::GetContentRegionAvail().x));
 
                     // Determine the current type inspecting the std::variant
-                    OutputConfig::OutputConfigEntryType current_type;
+                    app::config::OutputConfig::OutputConfigEntryType current_type;
                     std::visit(Overloaded{
-                            [&current_type](OutputConfig::CheckpointOutputConfigEntry&) { current_type = OutputConfig::OutputConfigEntryType::kCheckpoint; },
-                            [&current_type](OutputConfig::MqttOutputConfigEntry&) { current_type = OutputConfig::OutputConfigEntryType::kMqtt; },
-                            [&current_type](OutputConfig::ImageOutputConfigEntry&) { current_type = OutputConfig::OutputConfigEntryType::kImage; },
+                            [&current_type](app::config::OutputConfig::CheckpointOutputConfigEntry&) { current_type = app::config::OutputConfig::OutputConfigEntryType::kCheckpoint; },
+                            [&current_type](app::config::OutputConfig::MqttOutputConfigEntry&) { current_type = app::config::OutputConfig::OutputConfigEntryType::kMqtt; },
+                            [&current_type](app::config::OutputConfig::ImageOutputConfigEntry&) { current_type = app::config::OutputConfig::OutputConfigEntryType::kImage; },
                             [](auto&&) { throw std::runtime_error("OutputTab: Unimplemented output type variant."); }
                         },
                         output_config.outputs[i]
                     );
 
-                    OutputConfig::OutputConfigEntryType prev_type = current_type;
-                    EnumComboBox<OutputConfig::OutputConfigEntryType>(label, current_type, tooltip);
+                    app::config::OutputConfig::OutputConfigEntryType prev_type = current_type;
+                    EnumComboBox<app::config::OutputConfig::OutputConfigEntryType>(label, current_type, tooltip);
 
                     // Re-assign a default-constructed struct to the variant if the type changed
                     if (current_type != prev_type) {
                         switch (current_type) {
-                        case OutputConfig::OutputConfigEntryType::kCheckpoint:
-                            output_config.outputs[i] = OutputConfig::CheckpointOutputConfigEntry{};
+                        case app::config::OutputConfig::OutputConfigEntryType::kCheckpoint:
+                            output_config.outputs[i] = app::config::OutputConfig::CheckpointOutputConfigEntry{};
                             break;
-                        case OutputConfig::OutputConfigEntryType::kMqtt:
-                            output_config.outputs[i] = OutputConfig::MqttOutputConfigEntry{};
+                        case app::config::OutputConfig::OutputConfigEntryType::kMqtt:
+                            output_config.outputs[i] = app::config::OutputConfig::MqttOutputConfigEntry{};
                             break;
-                        case OutputConfig::OutputConfigEntryType::kImage:
-                            output_config.outputs[i] = OutputConfig::ImageOutputConfigEntry{};
+                        case app::config::OutputConfig::OutputConfigEntryType::kImage:
+                            output_config.outputs[i] = app::config::OutputConfig::ImageOutputConfigEntry{};
                             break;
                         }
                     }
@@ -138,7 +138,7 @@ void RenderOutputTab(OutputConfig& output_config) {
 
                 std::visit(
                     Overloaded{
-                        [&](OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
+                        [&](app::config::OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
                             {
                                 const char* label = "Static Format";
                                 const char* tooltip = "Data format for static spatial maps (e.g., topography DEMs).";
@@ -150,10 +150,10 @@ void RenderOutputTab(OutputConfig& output_config) {
 
                                 ImGui::TableSetColumnIndex(1);
                                 ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
-                                EnumComboBox<FileStaticFormat>(label, checkpoint.static_format, tooltip);
+                                EnumComboBox<app::io::formats::file::FileStaticFormat>(label, checkpoint.static_format, tooltip);
                             }
                         },
-                        [&](OutputConfig::MqttOutputConfigEntry& mqtt) {
+                        [&](app::config::OutputConfig::MqttOutputConfigEntry& mqtt) {
                             {
                                 const char* label = "Broker Address";
                                 const char* tooltip = "Connection settings for the MQTT broker.";
@@ -187,7 +187,7 @@ void RenderOutputTab(OutputConfig& output_config) {
 
                                 ImGui::TableSetColumnIndex(1);
                                 ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
-                                EnumComboBox<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(label, mqtt.payload_format, tooltip);
+                                EnumComboBox<app::config::OutputConfig::MqttOutputConfigEntry::PayloadFormat>(label, mqtt.payload_format, tooltip);
                             }
                         },
                         [&](auto&) {
@@ -218,7 +218,7 @@ void RenderOutputTab(OutputConfig& output_config) {
         // --- ADD OUTPUT BUTTON ---
         if (ImGui::Button("+ Add Output", ImVec2(-FLT_MIN, 0))) {
 			// Add a default output
-            output_config.outputs.push_back(OutputConfig::ImageOutputConfigEntry{});
+            output_config.outputs.push_back(app::config::OutputConfig::ImageOutputConfigEntry{});
         }
     }
     catch (const std::exception& e) {

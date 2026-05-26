@@ -9,7 +9,7 @@
 
 #include <string>
 
-namespace floodsim {
+namespace floodsim::app::core::grid {
 
 /**
  * @struct GridMetadata

@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-namespace floodsim {
+namespace floodsim::logging {
 
 /**
  * @enum LoggerLevel
@@ -24,4 +24,4 @@ enum class LoggerLevel : uint8_t {
     kCritical
 };
 
-}  // namespace floodsim
+}  // namespace floodsim::logging

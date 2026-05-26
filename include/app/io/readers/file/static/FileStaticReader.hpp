@@ -13,7 +13,7 @@
 #include "app/io/formats/file/FileStaticFormat.hpp"
 #include "app/io/readers/StaticReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 /**
  * @brief Reader implementation for processing static geographical data files.
@@ -30,7 +30,7 @@ public:
      */
     static bool IsStaticLayer(const std::filesystem::path& data_path,
                               const std::string& data_filename,
-                              const FileStaticFormat& format);
+                              const formats::file::FileStaticFormat& format);
 
     /**
      * @brief Constructs a new FileStaticReader.
@@ -46,4 +46,4 @@ protected:
     std::string data_filename_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

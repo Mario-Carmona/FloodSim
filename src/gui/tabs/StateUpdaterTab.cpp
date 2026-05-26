@@ -34,7 +34,7 @@ namespace {
 
 namespace floodsim::gui {
 
-void RenderStateUpdaterTab(StateUpdaterConfig& state_updater_config) {
+void RenderStateUpdaterTab(app::config::StateUpdaterConfig& state_updater_config) {
     try {
         // ==========================================
         // 1. GENERAL UPDATER SETTINGS
@@ -93,23 +93,23 @@ void RenderStateUpdaterTab(StateUpdaterConfig& state_updater_config) {
             ImGui::TableSetColumnIndex(1);
 
             // Detect current type from the variant
-            UpdaterConfigType current_type = std::visit(Overloaded{
-                [](const OnnxUpdaterConfig&) { return UpdaterConfigType::kOnnx; }
+            app::config::UpdaterConfigType current_type = std::visit(Overloaded{
+                [](const app::config::OnnxUpdaterConfig&) { return app::config::UpdaterConfigType::kOnnx; }
                 }, state_updater_config.updater);
 
-            UpdaterConfigType selected_type = current_type;
+            app::config::UpdaterConfigType selected_type = current_type;
             EnumComboBox("##UpdaterType", selected_type, "Select the computational backend for state updates.");
 
             // If the user changed the type, re-initialize the variant
             if (selected_type != current_type) {
-                if (selected_type == UpdaterConfigType::kOnnx) {
-                    state_updater_config.updater = OnnxUpdaterConfig{};
+                if (selected_type == app::config::UpdaterConfigType::kOnnx) {
+                    state_updater_config.updater = app::config::OnnxUpdaterConfig{};
                 }
             }
 
             // --- Engine Specific Parameters ---
             std::visit(Overloaded{
-                [](OnnxUpdaterConfig& onnx_cfg) {
+                [](app::config::OnnxUpdaterConfig& onnx_cfg) {
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
                     ImGui::AlignTextToFramePadding();
@@ -215,7 +215,7 @@ void RenderStateUpdaterTab(StateUpdaterConfig& state_updater_config) {
         }
 
         if (ImGui::Button("+ Add Risk Level", ImVec2(-FLT_MIN, 40))) {
-            FloodRiskLevel new_level;
+            app::config::FloodRiskLevel new_level;
             new_level.name = "New Level";
             new_level.threshold_start = 1.0f; // Safe default threshold
             new_level.color_hex = "#FFFFFF";
@@ -229,7 +229,7 @@ void RenderStateUpdaterTab(StateUpdaterConfig& state_updater_config) {
             std::sort(
                 state_updater_config.flood_risk_levels.begin() + 1,
                 state_updater_config.flood_risk_levels.end(),
-                [](const FloodRiskLevel& a, const FloodRiskLevel& b) {
+                [](const app::config::FloodRiskLevel& a, const app::config::FloodRiskLevel& b) {
                     return a.threshold_start < b.threshold_start;
                 }
             );

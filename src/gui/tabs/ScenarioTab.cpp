@@ -18,7 +18,7 @@
 
 namespace floodsim::gui {
 
-    void RenderScenarioTab(ScenarioConfig& scenario_config) {
+    void RenderScenarioTab(app::config::ScenarioConfig& scenario_config) {
         try {
             ImGui::Spacing();
             ImGui::SeparatorText("Basic Information");

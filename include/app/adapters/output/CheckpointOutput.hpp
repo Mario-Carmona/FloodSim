@@ -19,13 +19,13 @@
 #include "app/core/ports/OutputPort.hpp"
 #include "app/io/writers/file/static/FileStaticWriterFactory.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 /**
  * @class CheckpointOutput
  * @brief Handles saving simulation states as persistent checkpoints.
  */
-class CheckpointOutput : public OutputPort {
+class CheckpointOutput : public core::ports::OutputPort {
 public:
     /**
      * @brief Constructs a new Checkpoint Output instance.
@@ -33,7 +33,7 @@ public:
      * @param static_format The format configuration for the static files.
      * @throws std::runtime_error If the underlying writer fails to instantiate.
      */
-    explicit CheckpointOutput(const FileStaticFormat& static_format);
+    explicit CheckpointOutput(const io::formats::file::FileStaticFormat& static_format);
 
     ~CheckpointOutput() = default;
 
@@ -47,7 +47,7 @@ public:
      * @param output_path The root directory where checkpoints will be saved.
      * @throws std::invalid_argument If the provided output_path is empty.
      */
-    void Run(SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
+    void Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
 
     /**
      * @brief Initializes the output port with base grid metadata.
@@ -56,7 +56,7 @@ public:
      * @param dataset_name The name of the current dataset (unused in this adapter).
      * @param start_timestamp The initial time of the simulation (unused in this adapter).
      */
-    void SetInitConfig(const MapGrid& grid, const std::string& dataset_name,
+    void SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
         std::chrono::sys_seconds start_timestamp) override;
 
     /**
@@ -76,12 +76,12 @@ private:
      * @param checkpoint_output_path The base directory for all checkpoints.
      * @throws std::filesystem::filesystem_error If directory creation fails.
      */
-    void SaveSnapshotAsCheckpoint(const Snapshot& snapshot,
+    void SaveSnapshotAsCheckpoint(const core::snapshot::Snapshot& snapshot,
         const std::filesystem::path& checkpoint_output_path);
 
-    FileStaticFormat static_format_;
-    std::unique_ptr<StaticWriter> water_depth_writer_;
-    GridMetadata metadata_;
+    io::formats::file::FileStaticFormat static_format_;
+    std::unique_ptr<io::writers::StaticWriter> water_depth_writer_;
+    core::grid::GridMetadata metadata_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

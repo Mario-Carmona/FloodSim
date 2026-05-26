@@ -21,7 +21,7 @@
 #include "app/core/snapshot/ChangeList.hpp"
 #include "app/core/snapshot/Snapshot.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 /**
  * @class PayloadSerializer
@@ -59,7 +59,7 @@ public:
      * @param start_timestamp The initial time of the simulation.
      * @return std::string The serialized map configuration payload.
      */
-    virtual std::string GenerateInitMapConfigPayload(const MapGrid& grid,
+    virtual std::string GenerateInitMapConfigPayload(const core::grid::MapGrid& grid,
         std::chrono::sys_seconds start_timestamp) const = 0;
 
     /**
@@ -70,7 +70,7 @@ public:
      * @param layer_name The name of the specific layer to serialize (e.g., "topo_bathy").
      * @return std::string The serialized agent layer payload.
      */
-    virtual std::string GenerateInitAgentLayerPayload(const MapGrid& grid,
+    virtual std::string GenerateInitAgentLayerPayload(const core::grid::MapGrid& grid,
         const std::string& dataset_name,
         const std::string& layer_name) const = 0;
 
@@ -114,7 +114,7 @@ public:
         const std::vector<float>& water_depth,
         const std::vector<int8_t>& flood_risk,
         const std::string& layer_name,
-        const ChangeList& changes,
+        const core::snapshot::ChangeList& changes,
         GridIndexType init_index,
         GridIndexType chunk_size) const = 0;
 
@@ -150,4 +150,4 @@ public:
     virtual std::string GenerateSimEndPayload() const = 0;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

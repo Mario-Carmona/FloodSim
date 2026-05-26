@@ -11,7 +11,7 @@
 
 #include "misc/Types.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::snapshot {
 
 /**
  * @struct ChangeList
@@ -24,4 +24,4 @@ struct ChangeList {
     std::vector<GridIndexType> indexes; ///< List of linear grid indices that were updated.
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::core::snapshot

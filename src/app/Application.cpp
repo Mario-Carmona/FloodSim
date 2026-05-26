@@ -31,11 +31,11 @@
 #include "app/core/grid/scalars/Scalar.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app {
 
 void SetCurrentThreadName(std::string_view name) {
     // Register name with the Logger first
-    Logger::SetThreadName(std::string(name));
+    logging::Logger::SetThreadName(std::string(name));
 
 #if defined(_WIN32)
     // Windows requires Wide Strings (Unicode)
@@ -72,7 +72,7 @@ std::filesystem::path GetExecutablePath() {
 #endif
 }
 
-Application::Application(const Config& config, std::function<void(int, const std::string&)> gui_callback)
+Application::Application(const config::Config& config, std::function<void(int, const std::string&)> gui_callback)
     : config_(config) {
 
     if (config_.scenario.append_start_timestamp) {
@@ -96,7 +96,7 @@ Application::Application(const Config& config, std::function<void(int, const std
     }
 
     // Initialize logging subsystem immediately after config load
-    Logger::Init(
+    logging::Logger::Init(
         config_.logging.level,
         config_.logging.async,
         config_.logging.silent,
@@ -131,26 +131,26 @@ int Application::Run() {
         // -------------------------------------------------
         LOG_INFO("Initializing input factory");
 
-        auto main_input_source = std::make_unique<FileInput>(
+        auto main_input_source = std::make_unique<adapters::input::FileInput>(
             config_.input.file.dataset_folder,
             config_.input.file.dataset_name,
             config_.input.file.static_format,
             config_.input.file.dynamic_format
         );
 
-        std::unordered_map<std::string, InputPort*> layers_alternative_input_source;
+        std::unordered_map<std::string, core::ports::InputPort*> layers_alternative_input_source;
 
         // -------------------------------------------------
         // 2. Output Modules Initialization
         // -------------------------------------------------
         LOG_INFO("Initializing output factory");
-        outputs_ = OutputFactory::CreateOutputs(config_.output, config_.scenario.name);
+        outputs_ = adapters::output::OutputFactory::CreateOutputs(config_.output, config_.scenario.name);
 
         // -------------------------------------------------
         // 3. Snapshot Manager (Async State Capture)
         // -------------------------------------------------
         // Size is based on the number of output ports expecting data
-        snapshot_manager_ = std::make_unique<SnapshotManager>(
+        snapshot_manager_ = std::make_unique<core::snapshot::SnapshotManager>(
             config_.output.snapshot,
             outputs_.size()
         );
@@ -159,21 +159,21 @@ int Application::Run() {
         // 4. State Updater (Simulation Logic)
         // -------------------------------------------------
         LOG_INFO("Initializing state updater");
-        auto state_updater = StateUpdaterFactory::Create(config_.state_updater);
+        auto state_updater = adapters::state_updater::StateUpdaterFactory::Create(config_.state_updater);
 
         // -------------------------------------------------
         // 5. Core Engine Construction
         // -------------------------------------------------
         LOG_INFO("Constructing simulation core");
 
-        std::vector<OutputPort*> outputs_ptr;
+        std::vector<core::ports::OutputPort*> outputs_ptr;
         outputs_ptr.reserve(outputs_.size());
 
         for (auto& output : outputs_) {
             outputs_ptr.push_back(output.get());
         }
 
-        core_ = std::make_unique<SimulationCore>(
+        core_ = std::make_unique<core::SimulationCore>(
             state_updater.get(),
             main_input_source.get(),
             layers_alternative_input_source,
@@ -203,13 +203,13 @@ int Application::Run() {
         snapshot_manager_->Stop(); // Flush remaining snapshots
         StopOutputThreads();       // Wait for consumers to finish writing
 
-        Logger::Shutdown();        // Close logs last
+        logging::Logger::Shutdown();        // Close logs last
 
         return 0;
     } catch (const std::exception& ex) {
         LOG_ERROR("Fatal application error: {}", ex.what());
         // Attempt clean shutdown of logs even on crash
-        Logger::Shutdown();
+        logging::Logger::Shutdown();
         return 1;
     }
 }
@@ -246,4 +246,4 @@ void Application::StopOutputThreads() {
     output_threads_.clear();
 }
 
-} // namespace floodsim
+} // namespace floodsim::app

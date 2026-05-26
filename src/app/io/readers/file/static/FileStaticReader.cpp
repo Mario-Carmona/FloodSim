@@ -14,13 +14,13 @@
 
 #include "app/io/readers/file/static/IdrisiReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 bool FileStaticReader::IsStaticLayer(const std::filesystem::path& data_path,
                                      const std::string& data_filename,
-                                     const FileStaticFormat& format) {
+                                     const formats::file::FileStaticFormat& format) {
     switch (format) {
-    case FileStaticFormat::kIdrisi:
+    case formats::file::FileStaticFormat::kIdrisi:
         return IdrisiReader::IsStaticLayer(data_path, data_filename);
     default:
         throw std::runtime_error(fmt::format(
@@ -33,4 +33,4 @@ FileStaticReader::FileStaticReader(const std::filesystem::path& data_path,
                                    const std::string& data_filename)
     : StaticReader(), data_path_(data_path), data_filename_(data_filename) {}
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

@@ -18,7 +18,7 @@
 #include "app/core/snapshot/ChangeList.hpp"
 #include "app/core/snapshot/Snapshot.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::snapshot {
 
 /**
  * @class SnapshotReadGuard
@@ -74,7 +74,7 @@ public:
      * @param config Configuration parameters for snapshot generation.
      * @param num_outputs The total number of output consumers waiting for data.
      */
-    SnapshotManager(const OutputConfig::SnapshotConfig& config, size_t num_outputs);
+    SnapshotManager(const config::OutputConfig::SnapshotConfig& config, size_t num_outputs);
 
     virtual ~SnapshotManager();
 
@@ -143,4 +143,4 @@ private:
     StepType every_n_steps_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::core::snapshot

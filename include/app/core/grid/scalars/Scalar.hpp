@@ -12,7 +12,7 @@
 #include <string>
 #include <utility>
 
-namespace floodsim {
+namespace floodsim::app::core::grid::scalars {
 
 /**
  * @class ScalarBase
@@ -134,4 +134,4 @@ void Scalar<T>::SetValue(const std::string& s) {
 	}
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::core::grid::scalars

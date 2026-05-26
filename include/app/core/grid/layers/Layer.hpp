@@ -20,7 +20,7 @@
 #include "app/io/readers/Reader.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::grid::layers {
 
 /**
  * @struct Tile
@@ -185,7 +185,7 @@ public:
 	 * @param current_time The initial simulation clock time.
 	 */
 	virtual void SetReader(const GridMetadata& main_metadata,
-		std::unique_ptr<Reader> reader,
+		std::unique_ptr<io::readers::Reader> reader,
 		std::chrono::system_clock::time_point current_time) = 0;
 
 	/**
@@ -432,4 +432,4 @@ void Layer<T>::UpdateTilesData(const ScratchpadBase* const scratchpad_base,
 	LOG_DEBUG("UpdateTilesData ({}) time: {}s", name_, std::chrono::duration<double>(end - start).count());
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::core::grid::layers

@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-namespace floodsim {
+namespace floodsim::app::io::formats::file {
 
     /**
      * @brief Supported dynamic data file formats.
@@ -18,4 +18,4 @@ namespace floodsim {
         kHif  ///< Format identifier for HIF data.
     };
 
-}  // namespace floodsim
+}  // namespace floodsim::app::io::formats::file

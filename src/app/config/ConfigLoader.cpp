@@ -20,7 +20,7 @@
 #include "logging/LoggerLevel.hpp"
 #include "misc/TimeUtils.hpp" 
 
-namespace floodsim {
+namespace floodsim::app::config {
 
 namespace {
 
@@ -171,8 +171,8 @@ Config ConfigLoader::Load(const std::filesystem::path& config_path) {
                 const auto file_node = RequireNode(node, "file");
 
                 config.input.file = InputConfig::FileInputSourceConfig{
-                  .static_format = ExtractEnum<FileStaticFormat>(file_node, "static_format"),
-                  .dynamic_format = ExtractEnum<FileDynamicFormat>(file_node, "dynamic_format"),
+                  .static_format = ExtractEnum<io::formats::file::FileStaticFormat>(file_node, "static_format"),
+                  .dynamic_format = ExtractEnum<io::formats::file::FileDynamicFormat>(file_node, "dynamic_format"),
                   .dataset_folder = (config_folder / Extract<std::string>(file_node, "dataset_folder")).lexically_normal(),
                   .dataset_name = Extract<std::string>(file_node, "dataset_name")
                 };
@@ -208,7 +208,7 @@ Config ConfigLoader::Load(const std::filesystem::path& config_path) {
                 switch (type) {
                 case OutputConfig::OutputConfigEntryType::kCheckpoint: {
                     config.output.outputs.emplace_back(OutputConfig::CheckpointOutputConfigEntry{
-                      .static_format = ExtractEnum<FileStaticFormat>(out_node, "static_format")
+                      .static_format = ExtractEnum<io::formats::file::FileStaticFormat>(out_node, "static_format")
                         });
                     break;
                 }
@@ -271,7 +271,7 @@ Config ConfigLoader::Load(const std::filesystem::path& config_path) {
         {
             const auto node = RequireNode(root, "logging");
 
-            config.logging.level = ExtractEnum<LoggerLevel>(node, "level");
+            config.logging.level = ExtractEnum<logging::LoggerLevel>(node, "level");
             config.logging.async = Extract<bool>(node, "async");
             config.logging.silent = Extract<bool>(node, "silent");
             config.logging.save_log_file = Extract<bool>(node, "save_log_file");
@@ -538,4 +538,4 @@ void ConfigLoader::SaveToFile(const std::filesystem::path& destination, const Co
     }
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::config

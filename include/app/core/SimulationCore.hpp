@@ -26,7 +26,7 @@
 #include "app/core/snapshot/ChangeList.hpp"
 #include "app/core/snapshot/SnapshotManager.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core {
 
 /**
  * @struct GridIndexViewBox
@@ -62,13 +62,13 @@ public:
      * @param scenario_name The identifier for the current simulation scenario.
      */
     SimulationCore(
-        StateUpdaterPort* state_updater,
-        InputPort* main_input_source,
-        const std::unordered_map<std::string, InputPort*>& layers_alternative_input_source,
+        ports::StateUpdaterPort* state_updater,
+        ports::InputPort* main_input_source,
+        const std::unordered_map<std::string, ports::InputPort*>& layers_alternative_input_source,
         const std::unordered_map<std::string, std::string>& scalars_config,
-        std::vector<OutputPort*> outputs,
-        SnapshotManager* snapshot_manager,
-        const SimulationConfig& config,
+        std::vector<ports::OutputPort*> outputs,
+        snapshot::SnapshotManager* snapshot_manager,
+        const config::SimulationConfig& config,
         const std::string& scenario_name
     );
 
@@ -86,12 +86,12 @@ private:
     // -------------------------------------------------------------------------
     // Dependencies (Injected via constructor)
     // -------------------------------------------------------------------------
-    StateUpdaterPort* state_updater_;
-    SnapshotManager* snapshot_manager_;
-    InputPort* main_input_source_;
-    std::unordered_map<std::string, InputPort*> layers_alternative_input_source_;
+    ports::StateUpdaterPort* state_updater_;
+    snapshot::SnapshotManager* snapshot_manager_;
+    ports::InputPort* main_input_source_;
+    std::unordered_map<std::string, ports::InputPort*> layers_alternative_input_source_;
     std::unordered_map<std::string, std::string> scalars_config_;
-    std::vector<OutputPort*> outputs_;
+    std::vector<ports::OutputPort*> outputs_;
 
     // -------------------------------------------------------------------------
     // Simulation parameters
@@ -108,11 +108,11 @@ private:
     // -------------------------------------------------------------------------
     // Simulation state (Mutable)
     // -------------------------------------------------------------------------
-    MapGrid current_grid_;
-    ViewBox view_;
+    grid::MapGrid current_grid_;
+    config::ViewBox view_;
     GridIndexViewBox grid_index_view_;
-    Snapshot current_snapshot_;
-    ChangeList changes_;
+    snapshot::Snapshot current_snapshot_;
+    snapshot::ChangeList changes_;
 
     /**
      * @struct ThreadResult
@@ -151,4 +151,4 @@ private:
     void PublishCurrentState(std::chrono::sys_seconds time);
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::core

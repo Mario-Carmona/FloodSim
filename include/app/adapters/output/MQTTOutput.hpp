@@ -21,13 +21,13 @@
 #include "app/core/ports/OutputPort.hpp"
 #include "app/adapters/output/mqtt/payload/PayloadSerializer.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 /**
  * @class MqttOutput
  * @brief Publishes snapshots to an MQTT broker using chunked message payloads.
  */
-class MqttOutput : public OutputPort {
+class MqttOutput : public core::ports::OutputPort {
 public:
     /**
      * @brief Constructs a new Mqtt Output instance.
@@ -39,7 +39,7 @@ public:
      * @throws std::runtime_error If the payload serializer fails to initialize.
      */
     MqttOutput(const std::string& address, const std::string& scenario_name,
-        OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format);
+        config::OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format);
 
     /**
      * @brief Destroys the MQTT client, gracefully disconnecting and stopping consumption.
@@ -54,7 +54,7 @@ public:
      * @param snapshot_manager Reference to the manager providing simulation snapshots.
      * @param output_path Not actively used by MQTT, but required by interface.
      */
-    void Run(SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
+    void Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
 
     /**
      * @brief Initializes the output port by publishing the map baseline.
@@ -63,7 +63,7 @@ public:
      * @param dataset_name The name of the dataset.
      * @param start_timestamp The initial time of the simulation.
      */
-    void SetInitConfig(const MapGrid& grid, const std::string& dataset_name,
+    void SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
                        std::chrono::sys_seconds start_timestamp) override;
 
     /**
@@ -82,7 +82,7 @@ private:
      * @throws std::invalid_argument If the format is unknown.
      */
     [[nodiscard]] static std::unique_ptr<PayloadSerializer> CreatePayloadSerializer(
-        const OutputConfig::MqttOutputConfigEntry::PayloadFormat& format);
+        const config::OutputConfig::MqttOutputConfigEntry::PayloadFormat& format);
 
     /**
      * @brief Establishes connection to the configured MQTT broker.
@@ -100,7 +100,7 @@ private:
      * @param grid The initialized map grid.
      * @return GridIndexType The total number of chunks sent.
      */
-    GridIndexType SendInitState(const MapGrid& grid);
+    GridIndexType SendInitState(const core::grid::MapGrid& grid);
 
     /**
      * @brief Publishes state changes in a snapshot as MQTT message chunks.
@@ -108,7 +108,7 @@ private:
      * @param snapshot The full simulation state.
      * @param changes The differential changes mapped in the current step.
      */
-    void PublishInChunks(const Snapshot& snapshot, const ChangeList& changes);
+    void PublishInChunks(const core::snapshot::Snapshot& snapshot, const core::snapshot::ChangeList& changes);
 
     /**
      * @brief Utility to generate an ISO-8601 formatted UTC timestamp.
@@ -127,4 +127,4 @@ private:
     std::unique_ptr<PayloadSerializer> payload_serializer_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

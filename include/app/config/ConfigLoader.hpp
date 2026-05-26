@@ -11,7 +11,7 @@
 
 #include "app/config/Config.hpp"
 
-namespace floodsim {
+namespace floodsim::app::config {
 
 /**
  * @class ConfigLoader
@@ -40,4 +40,4 @@ public:
     static void SaveToFile(const std::filesystem::path& destination, const Config& config);
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::config

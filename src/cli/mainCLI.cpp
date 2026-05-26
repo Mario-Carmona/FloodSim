@@ -98,8 +98,8 @@ int main(int argc, char* argv[]) {
 
         // 3. Application Initialization
         // ConfigLoader::Load will throw a ConfigurationException if parsing or validation fails
-        floodsim::Config config = floodsim::ConfigLoader::Load(absolute_config_path);
-        floodsim::Application app(std::move(config));
+        floodsim::app::config::Config config = floodsim::app::config::ConfigLoader::Load(absolute_config_path);
+        floodsim::app::Application app(std::move(config));
 
         // 4. Simulation Execution
         return app.Run();

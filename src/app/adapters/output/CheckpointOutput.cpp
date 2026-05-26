@@ -18,11 +18,11 @@
 #include "app/core/grid/MapGrid.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
-CheckpointOutput::CheckpointOutput(const FileStaticFormat& static_format)
+CheckpointOutput::CheckpointOutput(const io::formats::file::FileStaticFormat& static_format)
     : static_format_(static_format)
-    , water_depth_writer_(FileStaticWriterFactory::Create(static_format_, "water_depth")) {
+    , water_depth_writer_(io::writers::file::FileStaticWriterFactory::Create(static_format_, "water_depth")) {
 
     if (!water_depth_writer_) {
         LOG_ERROR("Failed to create StaticWriter for water_depth");
@@ -30,7 +30,7 @@ CheckpointOutput::CheckpointOutput(const FileStaticFormat& static_format)
     }
 }
 
-void CheckpointOutput::Run(SnapshotManager& snapshot_manager,
+void CheckpointOutput::Run(core::snapshot::SnapshotManager& snapshot_manager,
     const std::filesystem::path& output_path) {
 
     if (output_path.empty()) {
@@ -76,13 +76,13 @@ void CheckpointOutput::Run(SnapshotManager& snapshot_manager,
     }
 }
 
-void CheckpointOutput::SetInitConfig(const MapGrid& grid, const std::string& /* dataset_name */,
+void CheckpointOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::string& /* dataset_name */,
                                         std::chrono::sys_seconds /* start_timestamp */) {
     metadata_ = grid.GetMetadata();
 }
 
 void CheckpointOutput::SaveSnapshotAsCheckpoint(
-        const Snapshot& snapshot, const std::filesystem::path& checkpoint_output_path) {
+        const core::snapshot::Snapshot& snapshot, const std::filesystem::path& checkpoint_output_path) {
 
     std::string checkpoint_name = fmt::format("checkpoint_{:%FT%T}", snapshot.Time());
     // Replace colons with dashes to avoid issues on certain file systems (e.g., Windows)
@@ -97,4 +97,4 @@ void CheckpointOutput::SaveSnapshotAsCheckpoint(
     water_depth_writer_->Save(current_folder, snapshot.WaterDepth(), metadata_);
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

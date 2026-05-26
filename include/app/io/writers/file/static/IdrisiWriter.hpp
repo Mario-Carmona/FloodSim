@@ -14,7 +14,7 @@
 #include "app/core/grid/GridMetadata.hpp"
 #include "app/io/writers/file/static/FileStaticWriter.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::writers::file {
 
 /**
  * @brief Writer for IDRISI (.img / .doc) static grid files.
@@ -37,7 +37,7 @@ public:
      */
     void Save(const std::filesystem::path& data_path,
         const std::vector<float>& data,
-        const GridMetadata& metadata) const override;
+        const core::grid::GridMetadata& metadata) const override;
 
     /**
      * @brief Saves 8-bit integer data to an IDRISI image file along with its metadata document.
@@ -47,7 +47,7 @@ public:
      */
     void Save(const std::filesystem::path& data_path,
         const std::vector<int8_t>& data,
-        const GridMetadata& metadata) const override;
+        const core::grid::GridMetadata& metadata) const override;
 
 protected:
     /**
@@ -60,7 +60,7 @@ protected:
     template <typename T>
     void SaveData(const std::filesystem::path& data_path,
         const std::vector<T>& data,
-        const GridMetadata& metadata) const;
+        const core::grid::GridMetadata& metadata) const;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::writers::file

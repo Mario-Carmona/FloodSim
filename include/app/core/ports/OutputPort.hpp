@@ -13,7 +13,7 @@
 #include "app/core/grid/MapGrid.hpp"
 #include "app/core/snapshot/SnapshotManager.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::ports {
 
 /**
  * @class OutputPort
@@ -35,7 +35,7 @@ public:
      * @param snapshot_manager Reference to the active thread-safe snapshot queue.
      * @param output_path Target directory or file path for the output results.
      */
-    virtual void Run(SnapshotManager& snapshot_manager,
+    virtual void Run(snapshot::SnapshotManager& snapshot_manager,
                      const std::filesystem::path& output_path) = 0;
 
     /**
@@ -50,9 +50,9 @@ public:
      * @param dataset_name The identification name of the current dataset.
      * @param start_timestamp The initial time point of the simulation scenario.
      */
-    virtual void SetInitConfig(const MapGrid& grid,
+    virtual void SetInitConfig(const grid::MapGrid& grid,
                                const std::string& dataset_name,
                                std::chrono::sys_seconds start_timestamp) = 0;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::core::ports

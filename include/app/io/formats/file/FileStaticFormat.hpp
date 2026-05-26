@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-namespace floodsim {
+namespace floodsim::app::io::formats::file {
 
     /**
      * @brief Supported static data file formats.
@@ -18,4 +18,4 @@ namespace floodsim {
         kIdrisi  ///< Format identifier for IDRISI raster files.
     };
 
-}  // namespace floodsim
+}  // namespace floodsim::app::io::formats::file

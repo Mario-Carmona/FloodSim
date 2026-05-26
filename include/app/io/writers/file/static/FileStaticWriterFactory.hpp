@@ -13,7 +13,7 @@
 #include "app/io/formats/file/FileStaticFormat.hpp"
 #include "app/io/writers/StaticWriter.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::writers::file {
 
 /**
  * @brief Factory utility to safely instantiate concrete StaticWriter subclasses.
@@ -28,7 +28,7 @@ public:
      * @throws std::runtime_error If the requested format is unsupported.
      */
     static std::unique_ptr<StaticWriter> Create(
-        const FileStaticFormat& format, const std::string& data_filename);
+        const formats::file::FileStaticFormat& format, const std::string& data_filename);
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::writers::file

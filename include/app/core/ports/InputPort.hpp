@@ -15,7 +15,7 @@
 
 #include "app/io/readers/Reader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::ports {
 
 /**
  * @class InputPort
@@ -34,8 +34,8 @@ public:
      * @param is_static True if the layer holds time-invariant geographical data.
      * @return A std::unique_ptr pointing to the allocated Reader instance.
      */
-    virtual std::unique_ptr<Reader> GenerateReader(const std::string& name,
-                                                   bool is_static) const = 0;
+    virtual std::unique_ptr<io::readers::Reader> GenerateReader(const std::string& name,
+                                                                bool is_static) const = 0;
 
     /**
      * @brief Checks whether a given layer name corresponds to a static dataset.
@@ -51,4 +51,4 @@ public:
     virtual const std::string& GetDatasetName() const = 0;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::core::ports

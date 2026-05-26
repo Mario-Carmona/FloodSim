@@ -16,7 +16,7 @@
 #include "app/config/Config.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 namespace {
 
@@ -37,8 +37,8 @@ namespace {
 
 }  // namespace
 
-std::vector<std::unique_ptr<OutputPort>> OutputFactory::CreateOutputs(
-        const OutputConfig& config, const std::string& scenario_name) {
+std::vector<std::unique_ptr<core::ports::OutputPort>> OutputFactory::CreateOutputs(
+        const config::OutputConfig& config, const std::string& scenario_name) {
 
     // Exception handling: Validate critical input arguments
     if (scenario_name.empty()) {
@@ -46,7 +46,7 @@ std::vector<std::unique_ptr<OutputPort>> OutputFactory::CreateOutputs(
         throw std::invalid_argument("OutputFactory: scenario_name is empty.");
     }
 
-    std::vector<std::unique_ptr<OutputPort>> outputs;
+    std::vector<std::unique_ptr<core::ports::OutputPort>> outputs;
 
     // Reserve memory to avoid reallocations
     outputs.reserve(config.outputs.size());
@@ -57,15 +57,15 @@ std::vector<std::unique_ptr<OutputPort>> OutputFactory::CreateOutputs(
         outputs.push_back(std::visit(
             Overloaded{
                 // 1. Checkpoint Output
-                [](const OutputConfig::CheckpointOutputConfigEntry& arg)
-                    -> std::unique_ptr<OutputPort> {
+                [](const config::OutputConfig::CheckpointOutputConfigEntry& arg)
+                    -> std::unique_ptr<core::ports::OutputPort> {
                     LOG_DEBUG("Initializing Checkpoint Output");
                     return std::make_unique<CheckpointOutput>(arg.static_format);
                 },
 
             // 2. MQTT Output
-            [&scenario_name](const OutputConfig::MqttOutputConfigEntry& arg)
-                -> std::unique_ptr<OutputPort> {
+            [&scenario_name](const config::OutputConfig::MqttOutputConfigEntry& arg)
+                -> std::unique_ptr<core::ports::OutputPort> {
                 LOG_DEBUG("Initializing MQTT Output");
                 return std::make_unique<MqttOutput>(
                     arg.protocol + arg.host + ":" + std::to_string(arg.port),
@@ -73,14 +73,14 @@ std::vector<std::unique_ptr<OutputPort>> OutputFactory::CreateOutputs(
             },
 
             // 3. Image Output
-            [](const OutputConfig::ImageOutputConfigEntry&)
-                -> std::unique_ptr<OutputPort> {
+            [](const config::OutputConfig::ImageOutputConfigEntry&)
+                -> std::unique_ptr<core::ports::OutputPort> {
                 LOG_DEBUG("Initializing Image Output");
                 return std::make_unique<ImageOutput>();
             },
 
             // 4. Safety catch-all for unhandled types
-            [](auto&&) -> std::unique_ptr<OutputPort> {
+            [](auto&&) -> std::unique_ptr<core::ports::OutputPort> {
                 LOG_ERROR("OutputFactory encountered an unknown configuration type.");
                 throw std::runtime_error(
                     "OutputFactory: Unknown or unimplemented output type.");
@@ -91,4 +91,4 @@ std::vector<std::unique_ptr<OutputPort>> OutputFactory::CreateOutputs(
     return outputs;
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

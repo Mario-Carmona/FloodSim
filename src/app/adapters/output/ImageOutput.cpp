@@ -18,7 +18,7 @@
 #include "app/core/grid/MapGrid.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 namespace {
 
@@ -85,7 +85,7 @@ ImageOutput::ImageOutput() {
         .mask_zero = true };
 }
 
-void ImageOutput::Run(SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) {
+void ImageOutput::Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) {
     if (output_path.empty()) {
         LOG_ERROR("Provided output path for images is empty.");
         throw std::invalid_argument("ImageOutput: output_path cannot be empty.");
@@ -126,7 +126,7 @@ void ImageOutput::Run(SnapshotManager& snapshot_manager, const std::filesystem::
     }
 }
 
-void ImageOutput::SetInitConfig(const MapGrid& grid, const std::string& /* dataset_name */,
+void ImageOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::string& /* dataset_name */,
         std::chrono::sys_seconds /* start_timestamp */) {
 
     rows_ = static_cast<int>(grid.GetRows());
@@ -139,7 +139,7 @@ void ImageOutput::SetInitConfig(const MapGrid& grid, const std::string& /* datas
     layer_configs_["topo_bathy"].max_val = *std::max_element(elev_data.begin(), elev_data.end());
 }
 
-cv::Mat ImageOutput::CreateTerrainBackground(const Snapshot& /* snapshot */, bool use_colormap) {
+cv::Mat ImageOutput::CreateTerrainBackground(const core::snapshot::Snapshot& /* snapshot */, bool use_colormap) {
     // Wrap data in Mat (no initial copy)
     cv::Mat raw_elev(rows_, cols_, CV_32F, const_cast<float*>(topo_bathy_));
 
@@ -188,7 +188,7 @@ cv::Mat ImageOutput::CreateTerrainBackground(const Snapshot& /* snapshot */, boo
     return base_terrain;
 }
 
-void ImageOutput::DrawUI(cv::Mat& canvas, const Snapshot& snapshot, double base_scale,
+void ImageOutput::DrawUI(cv::Mat& canvas, const core::snapshot::Snapshot& snapshot, double base_scale,
         int thickness, int margin_title, int sidebar_width) {
 
     int rows = canvas.rows - margin_title;
@@ -258,7 +258,7 @@ void ImageOutput::DrawUI(cv::Mat& canvas, const Snapshot& snapshot, double base_
     paint_bar(half_side, layer_configs_["water_depth"], "Water");
 }
 
-void ImageOutput::SaveSnapshotAsImage(const Snapshot& snapshot, const ChangeList& /* changes */,
+void ImageOutput::SaveSnapshotAsImage(const core::snapshot::Snapshot& snapshot, const core::snapshot::ChangeList& /* changes */,
         const std::filesystem::path& images_output_path) {
 
     // 1. Dynamic UI Scaling (Adapts font size based on image width)
@@ -334,4 +334,4 @@ void ImageOutput::SaveSnapshotAsImage(const Snapshot& snapshot, const ChangeList
     }
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

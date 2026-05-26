@@ -15,7 +15,7 @@
 #include "app/core/grid/GridMetadata.hpp"
 #include "app/io/readers/file/dynamic/FileDynamicReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 /**
  * @brief Dynamic reader for HIF (Hierarchical Image Format) timeseries data.
@@ -51,7 +51,7 @@ public:
      * @brief Retrieves spatial and structural metadata for the dynamic layer.
      * @return A GridMetadata object.
      */
-    GridMetadata ReadMetadata() const override;
+    core::grid::GridMetadata ReadMetadata() const override;
 
     /**
      * @brief Updates the internal frame pointer based on the simulation time.
@@ -82,4 +82,4 @@ protected:
     void ReadData(std::vector<T>& data) const;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

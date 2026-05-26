@@ -9,7 +9,7 @@
 
 #include "app/io/writers/Writer.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::writers {
 
 /**
  * @brief Abstract class for writing static (non-time-varying) simulation data.
@@ -22,4 +22,4 @@ public:
     virtual ~StaticWriter() override = default;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::writers

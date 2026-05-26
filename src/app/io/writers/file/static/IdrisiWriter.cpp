@@ -19,27 +19,27 @@
 
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::writers::file {
 
 IdrisiWriter::IdrisiWriter(const std::string& data_filename)
     : FileStaticWriter(data_filename) {}
 
 void IdrisiWriter::Save(const std::filesystem::path& data_path,
                         const std::vector<float>& data,
-                        const GridMetadata& metadata) const {
+                        const core::grid::GridMetadata& metadata) const {
     SaveData<float>(data_path, data, metadata);
 }
 
 void IdrisiWriter::Save(const std::filesystem::path& data_path,
                         const std::vector<int8_t>& data,
-                        const GridMetadata& metadata) const {
+                        const core::grid::GridMetadata& metadata) const {
     SaveData<int8_t>(data_path, data, metadata);
 }
 
 template <typename T>
 void IdrisiWriter::SaveData(const std::filesystem::path& data_path,
                             const std::vector<T>& data,
-                            const GridMetadata& metadata) const {
+                            const core::grid::GridMetadata& metadata) const {
     std::filesystem::path img_filepath = data_path / (data_filename_ + ".img");
     std::filesystem::path doc_filepath = data_path / (data_filename_ + ".doc");
 
@@ -101,4 +101,4 @@ void IdrisiWriter::SaveData(const std::filesystem::path& data_path,
     doc_file.close();
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::io::writers::file

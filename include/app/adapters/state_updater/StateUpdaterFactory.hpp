@@ -15,7 +15,7 @@
 #include "app/config/Config.hpp"
 #include "app/core/ports/StateUpdaterPort.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::state_updater {
 
 /**
  * @brief Static factory for StateUpdaterPort instances.
@@ -32,8 +32,8 @@ public:
      * @return std::unique_ptr<StateUpdaterPort> The initialized state updater strategy.
      * @throws std::runtime_error If the specific updater configuration is invalid (e.g., missing model file).
      */
-    [[nodiscard]] static std::unique_ptr<StateUpdaterPort> Create(
-        const StateUpdaterConfig& config);
+    [[nodiscard]] static std::unique_ptr<core::ports::StateUpdaterPort> Create(
+        const config::StateUpdaterConfig& config);
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::state_updater

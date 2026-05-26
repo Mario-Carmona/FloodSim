@@ -15,7 +15,7 @@
 #include "app/core/grid/layers/Layer.hpp"
 #include "app/io/readers/StaticReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::grid::layers {
 
 /**
  * @class StaticLayer
@@ -54,7 +54,7 @@ public:
      * @throws std::invalid_argument If the provided reader is null.
      */
     void SetReader(const GridMetadata& main_metadata,
-                   std::unique_ptr<Reader> reader,
+                   std::unique_ptr<io::readers::Reader> reader,
                    std::chrono::system_clock::time_point current_time) override;
 
     /**
@@ -77,7 +77,7 @@ StaticLayer<T>::StaticLayer(std::string name)
 
 template <typename T>
 void StaticLayer<T>::SetReader(const GridMetadata& main_metadata,
-                               std::unique_ptr<Reader> reader,
+                               std::unique_ptr<io::readers::Reader> reader,
                                std::chrono::system_clock::time_point /* current_time */) {
 
     if (!reader) {
@@ -96,4 +96,4 @@ void StaticLayer<T>::Update(std::chrono::system_clock::time_point /* current_tim
     // No-op: Static layers do not change over time.
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::core::grid::layers

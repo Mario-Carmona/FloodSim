@@ -14,7 +14,7 @@
 #include "misc/Types.hpp"
 #include "app/core/grid/MapGrid.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::snapshot {
 
 /**
  * @class Snapshot
@@ -35,7 +35,7 @@ public:
      * @param time The timestamp of the current simulation step.
      * @param grid The main map grid containing the simulation layers.
      */
-    void Set(std::chrono::sys_seconds time, const MapGrid& grid);
+    void Set(std::chrono::sys_seconds time, const grid::MapGrid& grid);
 
     /**
      * @brief Retrieves the timestamp associated with this snapshot.
@@ -65,4 +65,4 @@ private:
     std::vector<int8_t> flood_risk_;    ///< Cached copy of the flood risk layer.
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::core::snapshot

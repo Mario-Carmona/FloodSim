@@ -14,7 +14,7 @@
 #include "app/io/formats/file/FileStaticFormat.hpp"
 #include "app/io/readers/StaticReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 /**
  * @brief Factory pattern utility to safely instantiate distinct StaticReader types.
@@ -30,8 +30,8 @@ public:
      * @throws std::runtime_error If requested format cannot be built or is unsupported.
      */
     static std::unique_ptr<StaticReader> Create(
-        const FileStaticFormat& format, const std::filesystem::path& data_path,
+        const formats::file::FileStaticFormat& format, const std::filesystem::path& data_path,
         const std::string& data_filename);
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

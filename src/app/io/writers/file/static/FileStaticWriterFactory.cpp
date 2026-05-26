@@ -15,12 +15,12 @@
 #include "app/io/writers/file/static/FileStaticWriter.hpp"
 #include "app/io/writers/file/static/IdrisiWriter.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::writers::file {
 
 std::unique_ptr<StaticWriter> FileStaticWriterFactory::Create(
-        const FileStaticFormat& format, const std::string& data_filename) {
+        const formats::file::FileStaticFormat& format, const std::string& data_filename) {
     switch (format) {
-    case FileStaticFormat::kIdrisi:
+    case formats::file::FileStaticFormat::kIdrisi:
         return std::make_unique<IdrisiWriter>(data_filename);
     default:
         throw std::runtime_error(fmt::format(
@@ -29,4 +29,4 @@ std::unique_ptr<StaticWriter> FileStaticWriterFactory::Create(
     }
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::io::writers::file

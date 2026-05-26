@@ -18,7 +18,7 @@
 
 #include "logging/LoggerLevel.hpp"
 
-namespace floodsim {
+namespace floodsim::logging {
 
 /**
  * @class Logger
@@ -66,14 +66,14 @@ private:
     static spdlog::level::level_enum ToSpdLevel(LoggerLevel level);
 };
 
-} // namespace floodsim
+} // namespace floodsim::logging
 
 // --- EFFICIENT ACCESS MACROS ---
 // We use macros to capture __FILE__ and __LINE__ if needed in the future,
 // and to avoid argument evaluation if the log level is disabled.
 
-#define LOG_DEBUG(...)    SPDLOG_LOGGER_DEBUG(floodsim::Logger::Get(), __VA_ARGS__)
-#define LOG_INFO(...)     SPDLOG_LOGGER_INFO(floodsim::Logger::Get(), __VA_ARGS__)
-#define LOG_WARN(...)     SPDLOG_LOGGER_WARN(floodsim::Logger::Get(), __VA_ARGS__)
-#define LOG_ERROR(...)    SPDLOG_LOGGER_ERROR(floodsim::Logger::Get(), __VA_ARGS__)
-#define LOG_CRITICAL(...) SPDLOG_LOGGER_CRITICAL(floodsim::Logger::Get(), __VA_ARGS__)
+#define LOG_DEBUG(...)    SPDLOG_LOGGER_DEBUG(floodsim::logging::Logger::Get(), __VA_ARGS__)
+#define LOG_INFO(...)     SPDLOG_LOGGER_INFO(floodsim::logging::Logger::Get(), __VA_ARGS__)
+#define LOG_WARN(...)     SPDLOG_LOGGER_WARN(floodsim::logging::Logger::Get(), __VA_ARGS__)
+#define LOG_ERROR(...)    SPDLOG_LOGGER_ERROR(floodsim::logging::Logger::Get(), __VA_ARGS__)
+#define LOG_CRITICAL(...) SPDLOG_LOGGER_CRITICAL(floodsim::logging::Logger::Get(), __VA_ARGS__)

@@ -22,7 +22,7 @@
 #include "app/io/formats/file/FileStaticFormat.hpp"
 #include "logging/LoggerLevel.hpp"
 
-namespace floodsim {
+namespace floodsim::app::config {
 
 /**
  * @brief Holds the input configuration including dataset paths and scalar mappings.
@@ -32,8 +32,8 @@ struct InputConfig {
      * @brief Configuration for file-based input sources.
      */
     struct FileInputSourceConfig {
-        FileStaticFormat static_format;
-        FileDynamicFormat dynamic_format;
+        io::formats::file::FileStaticFormat static_format;
+        io::formats::file::FileDynamicFormat dynamic_format;
         std::filesystem::path dataset_folder;
         std::string dataset_name;
     };
@@ -59,7 +59,7 @@ struct OutputConfig {
      * @brief Configuration specific to saving simulation state checkpoints.
      */
     struct CheckpointOutputConfigEntry {
-        FileStaticFormat static_format;
+        io::formats::file::FileStaticFormat static_format;
     };
 
     /**
@@ -182,7 +182,7 @@ struct ScenarioConfig {
  * @brief Configuration for the application's internal logging system.
  */
 struct LoggingConfig {
-    LoggerLevel level;
+    logging::LoggerLevel level;
     bool async;
     bool silent;
     bool save_log_file;
@@ -200,4 +200,4 @@ struct Config {
     ScenarioConfig scenario;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::config

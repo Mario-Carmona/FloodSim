@@ -16,11 +16,11 @@
 
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::grid {
 
 void MapGrid::Load(const ModelParamsInfo& params_info,
-                   InputPort* main_input_source,
-                   const std::unordered_map<std::string, InputPort*>& layers_alternative_input_source,
+                   ports::InputPort* main_input_source,
+                   const std::unordered_map<std::string, ports::InputPort*>& layers_alternative_input_source,
                    const std::unordered_map<std::string, std::string>& scalars_config,
                    std::chrono::seconds time_step,
                    std::chrono::system_clock::time_point current_time) {
@@ -33,7 +33,7 @@ void MapGrid::Load(const ModelParamsInfo& params_info,
     // 1. Initialize layers structure and determine global metadata
     for (const ModelParam& param : params_info.layers) {
 
-        InputPort* layer_source = layers_alternative_input_source.contains(param.name)
+        ports::InputPort* layer_source = layers_alternative_input_source.contains(param.name)
             ? layers_alternative_input_source.at(param.name)
             : main_input_source;
 
@@ -88,14 +88,14 @@ void MapGrid::Load(const ModelParamsInfo& params_info,
 
     // 4. Load spatial data or allocate memory for all layers
     for (const ModelParam& param : params_info.layers) {
-        LayerBase* layer = GetLayer(param.name);
+        layers::LayerBase* layer = GetLayer(param.name);
 
         if (param.load_required) {
-            InputPort* layer_source = layers_alternative_input_source.contains(param.name)
+            ports::InputPort* layer_source = layers_alternative_input_source.contains(param.name)
                 ? layers_alternative_input_source.at(param.name)
                 : main_input_source;
 
-            std::unique_ptr<Reader> layer_reader = layer_source->GenerateReader(layer->GetName(), layer->IsStatic());
+            std::unique_ptr<io::readers::Reader> layer_reader = layer_source->GenerateReader(layer->GetName(), layer->IsStatic());
 
             layer->SetReader(metadata_, std::move(layer_reader), current_time);
             NormalizeUnits(param.name);
@@ -121,10 +121,10 @@ void MapGrid::NormalizeUnits(const std::string& name) {
         constexpr float HOUR_TO_SEC_INV = 1.0f / 3600.0f;
 
         // 1. Retrieve the type-erased base pointer
-        LayerBase* base_layer = layers_[name].get();
+        layers::LayerBase* base_layer = layers_[name].get();
 
         // 2. Safely downcast to Layer<float> to access the underlying data
-        if (auto* float_layer = dynamic_cast<Layer<float>*>(base_layer)) {
+        if (auto* float_layer = dynamic_cast<layers::Layer<float>*>(base_layer)) {
             auto& data = float_layer->GetData();
 
             // Extract the time step scalar to a float.
@@ -183,7 +183,7 @@ std::optional<UTMZoneInfo> MapGrid::ParseUTMZoneFromEPSG(const std::string& epsg
     }
 }
 
-GridViewBox::Point MapGrid::TransformViewPoint(ViewBox::Point source_point, const std::string& target_crs) const {
+GridViewBox::Point MapGrid::TransformViewPoint(config::ViewBox::Point source_point, const std::string& target_crs) const {
     auto utm_info = ParseUTMZoneFromEPSG(target_crs);
     if (!utm_info.has_value()) {
         throw std::runtime_error("MapGrid: Destination CRS (" + target_crs + ") is not a mathematically supported UTM system.");
@@ -213,13 +213,13 @@ GridViewBox::Point MapGrid::TransformViewPoint(ViewBox::Point source_point, cons
     return grid_view_point;
 }
 
-ViewBox::Point MapGrid::TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const {
+config::ViewBox::Point MapGrid::TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const {
     auto utm_info = ParseUTMZoneFromEPSG(target_crs);
     if (!utm_info.has_value()) {
         throw std::runtime_error("MapGrid: Destination CRS (" + target_crs + ") is not a mathematically supported UTM system.");
     }
 
-    ViewBox::Point view_point;
+    config::ViewBox::Point view_point;
 
     try {
         // Enforce the dynamically extracted zone and hemisphere
@@ -234,8 +234,8 @@ ViewBox::Point MapGrid::TransformGridViewPoint(GridViewBox::Point source_point, 
     return view_point;
 }
 
-ViewBox::Point MapGrid::GetGeoreference() const {
+config::ViewBox::Point MapGrid::GetGeoreference() const {
     return TransformGridViewPoint(GridViewBox::Point{ metadata_.min_x, metadata_.max_y }, metadata_.crs);
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::core::grid

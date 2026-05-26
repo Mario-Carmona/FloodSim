@@ -15,7 +15,7 @@
 #include "app/core/grid/GridMetadata.hpp"
 #include "app/io/readers/file/static/FileStaticReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 /**
  * @brief Reader for IDRISI (.img / .doc) static grid files.
@@ -57,7 +57,7 @@ public:
      * @brief Parses the IDRISI documentation (.doc) file to extract grid metadata.
      * @return A GridMetadata object describing spatial and structural properties.
      */
-    GridMetadata ReadMetadata() const override;
+    core::grid::GridMetadata ReadMetadata() const override;
 
 protected:
     /**
@@ -69,4 +69,4 @@ protected:
     void ReadData(std::vector<T>& data) const;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

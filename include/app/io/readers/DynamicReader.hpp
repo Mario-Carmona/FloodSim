@@ -11,7 +11,7 @@
 
 #include "app/io/readers/Reader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers {
 
 /**
  * @brief Abstract class for readers dealing with dynamic/temporal simulation data.
@@ -35,4 +35,4 @@ public:
     virtual unsigned int GetDowngradeFactor() const = 0;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers

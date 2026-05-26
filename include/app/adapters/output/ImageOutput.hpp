@@ -20,13 +20,13 @@
 
 #include "app/core/ports/OutputPort.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 /**
  * @class ImageOutput
  * @brief Renders simulation snapshots into 2D images and saves them to disk.
  */
-class ImageOutput : public OutputPort {
+class ImageOutput : public core::ports::OutputPort {
 public:
     /**
      * @struct Config
@@ -58,7 +58,7 @@ public:
      * @param output_path The root directory where output images will be saved.
      * @throws std::invalid_argument If the provided output_path is empty.
      */
-    void Run(SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
+    void Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
 
     /**
      * @brief Initializes the image output port with baseline grid data.
@@ -70,7 +70,7 @@ public:
      * @param dataset_name The name of the dataset.
      * @param start_timestamp The initial time of the simulation.
      */
-    void SetInitConfig(const MapGrid& grid, const std::string& dataset_name,
+    void SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
         std::chrono::sys_seconds start_timestamp) override;
 
     /**
@@ -88,7 +88,7 @@ private:
      * @param changes List of state changes (required by snapshot data structure).
      * @param images_output_path Directory to save the resulting image.
      */
-    void SaveSnapshotAsImage(const Snapshot& snapshot, const ChangeList& changes,
+    void SaveSnapshotAsImage(const core::snapshot::Snapshot& snapshot, const core::snapshot::ChangeList& changes,
         const std::filesystem::path& images_output_path);
 
     /**
@@ -100,7 +100,7 @@ private:
      * @param use_colormap Whether to apply a topographic color map instead of a flat maquette style.
      * @return cv::Mat The generated background image matrix.
      */
-    cv::Mat CreateTerrainBackground(const Snapshot& snapshot, bool use_colormap);
+    cv::Mat CreateTerrainBackground(const core::snapshot::Snapshot& snapshot, bool use_colormap);
 
     /**
      * @brief Draws user interface elements (titles, legends) onto the canvas.
@@ -112,7 +112,7 @@ private:
      * @param margin_title Top margin allocated for the title header.
      * @param sidebar_width Right margin allocated for color legends.
      */
-    void DrawUI(cv::Mat& canvas, const Snapshot& snapshot, double base_scale,
+    void DrawUI(cv::Mat& canvas, const core::snapshot::Snapshot& snapshot, double base_scale,
         int thickness, int margin_title, int sidebar_width);
         
     int rows_ = 0;
@@ -122,4 +122,4 @@ private:
     std::unordered_map<std::string, Config> layer_configs_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

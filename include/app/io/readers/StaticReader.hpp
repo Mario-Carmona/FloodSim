@@ -9,7 +9,7 @@
 
 #include "app/io/readers/Reader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers {
 
 /**
  * @brief Abstract class for readers dealing with static (non-time-varying) simulation data.
@@ -21,4 +21,4 @@ public:
     virtual ~StaticReader() = default;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers

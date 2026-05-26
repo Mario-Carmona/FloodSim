@@ -17,7 +17,7 @@
 #include "app/config/Config.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::state_updater {
 
 namespace {
 
@@ -34,13 +34,13 @@ overloaded(Ts...) -> overloaded<Ts...>;
 
 }  // namespace
 
-std::unique_ptr<StateUpdaterPort> StateUpdaterFactory::Create(
-        const StateUpdaterConfig& config) {
+std::unique_ptr<core::ports::StateUpdaterPort> StateUpdaterFactory::Create(
+        const config::StateUpdaterConfig& config) {
     return std::visit(
         overloaded{
             // ONNX Strategy
-            [&config](const OnnxUpdaterConfig& cfg)
-                -> std::unique_ptr<StateUpdaterPort> {
+            [&config](const config::OnnxUpdaterConfig& cfg)
+                -> std::unique_ptr<core::ports::StateUpdaterPort> {
             // Validation: Ensure the model file actually exists before passing it to ONNX Runtime
             if (!std::filesystem::exists(cfg.model_path)) {
               auto msg = fmt::format(
@@ -59,7 +59,7 @@ std::unique_ptr<StateUpdaterPort> StateUpdaterFactory::Create(
           },
 
         // Catch-all for unhandled configuration types
-        [](auto&&) -> std::unique_ptr<StateUpdaterPort> {
+        [](auto&&) -> std::unique_ptr<core::ports::StateUpdaterPort> {
           LOG_ERROR(
               "StateUpdaterFactory: Unknown configuration type encountered.");
           throw std::runtime_error(
@@ -69,4 +69,4 @@ std::unique_ptr<StateUpdaterPort> StateUpdaterFactory::Create(
         config.updater);
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::state_updater

@@ -18,7 +18,7 @@
 
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 bool IdrisiReader::IsStaticLayer(const std::filesystem::path& data_path,
                                  const std::string& data_filename) {
@@ -86,7 +86,7 @@ void IdrisiReader::ReadData(std::vector<T>& data) const {
     }
 }
 
-GridMetadata IdrisiReader::ReadMetadata() const {
+core::grid::GridMetadata IdrisiReader::ReadMetadata() const {
     std::filesystem::path doc_file = data_path_ / (data_filename_ + ".doc");
 
     std::ifstream file(doc_file);
@@ -95,7 +95,7 @@ GridMetadata IdrisiReader::ReadMetadata() const {
             "Failed to open metadata file: {}", doc_file.string()));
     }
 
-    GridMetadata metadata{};
+    core::grid::GridMetadata metadata{};
     std::string line;
 
     // We read line by line, looking for clues
@@ -129,4 +129,4 @@ GridMetadata IdrisiReader::ReadMetadata() const {
     return metadata;
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

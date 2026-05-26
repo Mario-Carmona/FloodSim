@@ -19,7 +19,7 @@
 #include "app/core/grid/MapGrid.hpp"
 #include "app/core/ports/StateUpdaterPort.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::state_updater {
 
 /**
  * @brief Describes a tensor input/output parameter mapping.
@@ -27,7 +27,7 @@ namespace floodsim {
 struct TensorInfo {
     std::string model_name;
     std::string id_name;
-    DataType type;
+    core::grid::DataType type;
     bool is_scalar;
 };
 
@@ -42,7 +42,7 @@ struct ModelGraphInfo {
 /**
  * @brief ONNX Neural Operator adapter for advancing fluid simulation states.
  */
-class OnnxStateUpdater : public StateUpdaterPort {
+class OnnxStateUpdater : public core::ports::StateUpdaterPort {
 public:
     /**
      * @brief Initializes the ONNX runtime environment and model sessions.
@@ -54,7 +54,7 @@ public:
      * @throws std::runtime_error If the ONNX session fails to initialize.
      */
     explicit OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
-        const std::vector<FloodRiskLevel>& flood_risk_levels,
+        const std::vector<config::FloodRiskLevel>& flood_risk_levels,
         const std::filesystem::path& model_path,
         int64_t tensor_dim);
 
@@ -65,19 +65,19 @@ public:
      * into the model context. Call once before simulation loop.
      * @param grid Reference to the domain map structure.
      */
-    void Initialize(MapGrid& grid) override;
+    void Initialize(core::grid::MapGrid& grid) override;
 
     /**
      * @brief Runs an inference step to advance fluid dynamics by one `dt`.
      * @param grid Reference to the domain map structure containing current state.
      */
-    void Step(MapGrid& grid) override;
+    void Step(core::grid::MapGrid& grid) override;
 
     /**
    * @brief Retrieves internal physical parameters of the parsed model.
    * @return Constant reference to ModelParamsInfo.
    */
-    const ModelParamsInfo& GetModelParamsInfo() const override {
+    const core::grid::ModelParamsInfo& GetModelParamsInfo() const override {
         return params_info_;
     }
 
@@ -103,7 +103,7 @@ private:
     int64_t tile_size_;
     size_t max_tensor_elements_;
 
-    ModelParamsInfo params_info_;
+    core::grid::ModelParamsInfo params_info_;
     ModelGraphInfo preprocess_model_;
     ModelGraphInfo step_model_;
 
@@ -111,7 +111,7 @@ private:
     std::string fluid_movement_state_layer_name_;
 
     // Scratchpads for holding memory buffers aligned for ONNX inference.
-    std::unordered_map<std::string, std::unique_ptr<ScratchpadBase>> layers_scratchpad_;
+    std::unordered_map<std::string, std::unique_ptr<core::grid::layers::ScratchpadBase>> layers_scratchpad_;
 
     // ONNX Runtime Environment
     Ort::Env env_;
@@ -122,18 +122,18 @@ private:
     /**
      * @brief Dispatches the model execution on the ONNX graph.
      */
-    void RunModel(Ort::Session& session, MapGrid& grid,
+    void RunModel(Ort::Session& session, core::grid::MapGrid& grid,
         const Ort::RunOptions& options,
         const ModelGraphInfo& graph_info,
         const std::vector<int64_t>& tensor_shape,
         bool use_dynamic_bounding_box,
-        const std::vector<Tile>& active_tiles);
+        const std::vector<core::grid::layers::Tile>& active_tiles);
 
     /**
      * @brief Scans the grid for tiles containing active dynamic fluid.
      */
-    void GetActiveTiles(const MapGrid& grid,
-        std::vector<Tile>& active_tiles) const;
+    void GetActiveTiles(const core::grid::MapGrid& grid,
+        std::vector<core::grid::layers::Tile>& active_tiles) const;
 
     /**
      * @brief Extracts tensor definitions from the accompanying JSON metadata.
@@ -143,7 +143,7 @@ private:
     /**
      * @brief Binds a grid layer or scratchpad to an ONNX Ort::Value tensor representation.
      */
-    Ort::Value ConfigureTensor(const TensorInfo& info, MapGrid& grid,
+    Ort::Value ConfigureTensor(const TensorInfo& info, core::grid::MapGrid& grid,
         const std::vector<int64_t>& tensor_shape,
         size_t tensor_size,
         bool use_dynamic_bounding_box);
@@ -164,4 +164,4 @@ private:
     int8_t ClassifyRisk(float depth) const;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::state_updater

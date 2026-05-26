@@ -11,11 +11,11 @@
 
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::snapshot {
 
 using DataPair = std::pair<const Snapshot&, const ChangeList&>;
 
-SnapshotManager::SnapshotManager(const OutputConfig::SnapshotConfig& config, size_t num_outputs)
+SnapshotManager::SnapshotManager(const config::OutputConfig::SnapshotConfig& config, size_t num_outputs)
     : total_outputs_(num_outputs)
     , remaining_(0)
     , running_(true)
@@ -114,4 +114,4 @@ void SnapshotManager::Stop() {
     cv_outputs_.notify_all();
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::core::snapshot

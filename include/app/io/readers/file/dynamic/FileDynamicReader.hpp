@@ -12,7 +12,7 @@
 
 #include "app/io/readers/DynamicReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers::file {
 
 /**
  * @brief Base reader implementation for processing dynamic timeseries data files.
@@ -34,4 +34,4 @@ protected:
     std::string data_filename_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers::file

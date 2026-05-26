@@ -20,7 +20,7 @@
 
 namespace floodsim::gui {
 
-void RenderSimulationTab(SimulationConfig& simulation_config) {
+void RenderSimulationTab(app::config::SimulationConfig& simulation_config) {
     try {
         // ==========================================
         // 1. TEMPORAL SETTINGS

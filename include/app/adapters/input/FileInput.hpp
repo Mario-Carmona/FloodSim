@@ -19,7 +19,7 @@
 #include "app/io/formats/file/FileStaticFormat.hpp"
 #include "app/io/readers/Reader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::input {
 
 /**
  * @class FileInput
@@ -28,7 +28,7 @@ namespace floodsim {
  * Dispatches layer loading to specialized static or dynamic file readers
  * based on format configurations.
  */
-class FileInput : public InputPort {
+class FileInput : public core::ports::InputPort {
 public:
     /**
      * @brief Constructs the file input adapter.
@@ -39,8 +39,8 @@ public:
      */
     FileInput(const std::filesystem::path& data_path,
               const std::string& dataset_name,
-              const FileStaticFormat& static_format,
-              const FileDynamicFormat& dynamic_format);
+              const io::formats::file::FileStaticFormat& static_format,
+              const io::formats::file::FileDynamicFormat& dynamic_format);
 
     virtual ~FileInput() override = default;
 
@@ -50,8 +50,8 @@ public:
      * @param is_static True if the target layer data is time-invariant.
      * @return A std::unique_ptr containing the concrete Reader instance.
      */
-    std::unique_ptr<Reader> GenerateReader(const std::string& name,
-                                           bool is_static) const override;
+    std::unique_ptr<io::readers::Reader> GenerateReader(const std::string& name,
+                                                        bool is_static) const override;
 
     /**
      * @brief Validates if a specific layer is registered as static.
@@ -69,8 +69,8 @@ public:
 private:
     std::filesystem::path input_path_;
     std::string dataset_name_;
-    FileStaticFormat static_format_;
-    FileDynamicFormat dynamic_format_;
+    io::formats::file::FileStaticFormat static_format_;
+    io::formats::file::FileDynamicFormat dynamic_format_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::input

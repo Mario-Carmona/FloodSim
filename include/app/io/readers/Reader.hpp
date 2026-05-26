@@ -13,7 +13,7 @@
 
 #include "app/core/grid/GridMetadata.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::readers {
 
 /**
  * @brief Abstract base class for reading simulation data.
@@ -31,7 +31,7 @@ public:
      * @brief Reads and returns the metadata for the grid.
      * @return GridMetadata describing the spatial and structural properties.
      */
-    virtual GridMetadata ReadMetadata() const = 0;
+    virtual core::grid::GridMetadata ReadMetadata() const = 0;
 
     /**
      * @brief Reads floating-point data into the provided buffer.
@@ -52,4 +52,4 @@ public:
     }
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::readers

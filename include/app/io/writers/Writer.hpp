@@ -14,7 +14,7 @@
 
 #include "app/core/grid/GridMetadata.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::writers {
 
 /**
  * @brief Abstract base class for writing simulation data.
@@ -37,7 +37,7 @@ public:
      */
     virtual void Save(const std::filesystem::path& /* data_path */,
                       const std::vector<float>& /* data */,
-                      const GridMetadata& /* metadata */) const {
+                      const core::grid::GridMetadata& /* metadata */) const {
         throw std::runtime_error("Save for float not implemented in this writer");
     }
 
@@ -50,9 +50,9 @@ public:
      */
     virtual void Save(const std::filesystem::path& /* data_path */,
                       const std::vector<int8_t>& /* data */,
-                      const GridMetadata& /* metadata */) const {
+                      const core::grid::GridMetadata& /* metadata */) const {
         throw std::runtime_error("Save for int8_t not implemented in this writer");
     }
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::writers

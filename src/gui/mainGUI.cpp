@@ -46,7 +46,7 @@ std::atomic<bool> g_is_simulation_running{ false };
 /**
  * @brief Shared pointer referencing the active instance of the simulation core application.
  */
-std::shared_ptr<floodsim::Application> g_current_simulation = nullptr;
+std::shared_ptr<floodsim::app::Application> g_current_simulation = nullptr;
 
 /**
  * @brief Cooperative background execution thread handling simulation frame updates.
@@ -56,7 +56,7 @@ std::jthread g_simulation_thread;
 /**
  * @brief Active structural parameters and options configured for the simulation context.
  */
-floodsim::Config g_current_config;
+floodsim::app::config::Config g_current_config;
 
 /**
  * @brief State flag to control the rendering lifecycle of the unsaved simulation exit modal.
@@ -178,7 +178,7 @@ void RenderAboutWindow() {
  *
  * @param config Reference to the active scenario configuration.
  */
-void RenderTabs(Config& config) {
+void RenderTabs(app::config::Config& config) {
     ImGui::Spacing();
 
     bool is_running = g_is_simulation_running.load(std::memory_order_relaxed);
@@ -347,7 +347,7 @@ int main(int argc, char** argv) {
                     if (ImGui::BeginMenu("Scenario")) {
                         if (ImGui::MenuItem("New Scenario (Blank)")) {
                             current_state = floodsim::gui::ViewState::kNewScenario;
-                            g_current_config = floodsim::Config();
+                            g_current_config = floodsim::app::config::Config();
                         }
 
                         if (ImGui::MenuItem("Load Existing Configuration...")) {
@@ -360,7 +360,7 @@ int main(int argc, char** argv) {
                             if (!selection.empty()) {
                                 std::string config_file_path = selection[0];
                                 try {
-                                    g_current_config = floodsim::ConfigLoader::Load(config_file_path);
+                                    g_current_config = floodsim::app::config::ConfigLoader::Load(config_file_path);
                                     current_state = floodsim::gui::ViewState::kLoadScenario;
                                 }
                                 catch (const std::exception& e) {

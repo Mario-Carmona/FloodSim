@@ -167,7 +167,7 @@ void GlobalGuiLogCallback(int level, const std::string& raw_msg) {
     g_gui_console.AddLog(level, raw_msg);
 }
 
-void RenderMainControlTab(Config& config, std::atomic<bool>& is_simulation_running, std::shared_ptr<Application>& current_simulation, std::jthread& simulation_thread) {
+void RenderMainControlTab(app::config::Config& config, std::atomic<bool>& is_simulation_running, std::shared_ptr<app::Application>& current_simulation, std::jthread& simulation_thread) {
     try {
         bool is_running = is_simulation_running.load(std::memory_order_relaxed);
 
@@ -185,7 +185,7 @@ void RenderMainControlTab(Config& config, std::atomic<bool>& is_simulation_runni
             try {
                 auto result = pfd::open_file("Select Configuration File", "", { "YAML Files", "*.yaml *.yml", "All Files", "*" }).result();
                 if (!result.empty()) {
-                    config = ConfigLoader::Load(result[0]);
+                    config = app::config::ConfigLoader::Load(result[0]);
                     g_gui_console.AddLog(2, "[GUI] Configuration loaded successfully from: " + result[0] + "\n");
                 }
             }
@@ -200,7 +200,7 @@ void RenderMainControlTab(Config& config, std::atomic<bool>& is_simulation_runni
             try {
                 auto destination = pfd::save_file("Save Configuration As", "config.yaml", { "YAML Files", "*.yaml *.yml" }).result();
                 if (!destination.empty()) {
-                    ConfigLoader::SaveToFile(destination, config);
+                    app::config::ConfigLoader::SaveToFile(destination, config);
                     g_gui_console.AddLog(2, "[GUI] Configuration saved successfully to: " + destination + "\n");
                 }
             }
@@ -226,7 +226,7 @@ void RenderMainControlTab(Config& config, std::atomic<bool>& is_simulation_runni
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
         if (ImGui::Button("START", ImVec2(120, 45))) {
             try {
-                current_simulation = std::make_shared<Application>(config, GlobalGuiLogCallback);
+                current_simulation = std::make_shared<app::Application>(config, GlobalGuiLogCallback);
                 is_simulation_running.store(true);
                 simulation_thread = std::jthread([&]() { current_simulation->Run(); is_simulation_running.store(false); });
                 g_gui_console.AddLog(2, "[GUI] Simulation startup sequence initiated.\n");

@@ -17,13 +17,13 @@
 #include "app/adapters/output/mqtt/payload/JsonSerializer.hpp"
 #include "logging/Logger.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 std::unique_ptr<PayloadSerializer> MqttOutput::CreatePayloadSerializer(
-        const OutputConfig::MqttOutputConfigEntry::PayloadFormat& format) {
+        const config::OutputConfig::MqttOutputConfigEntry::PayloadFormat& format) {
 
     switch (format) {
-    case OutputConfig::MqttOutputConfigEntry::PayloadFormat::kJson: {
+    case config::OutputConfig::MqttOutputConfigEntry::PayloadFormat::kJson: {
         LOG_DEBUG("Instantiating JSON snapshot serializer.");
         return std::make_unique<JsonSerializer>();
     }
@@ -38,7 +38,7 @@ std::unique_ptr<PayloadSerializer> MqttOutput::CreatePayloadSerializer(
 }
 
 MqttOutput::MqttOutput(const std::string& address, const std::string& scenario_name,
-                       OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format)
+                       config::OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format)
     : base_topic_("FloodSim/" + scenario_name)
     , client_id_("FloodSim_Core")
     , client_(address, client_id_)
@@ -138,7 +138,7 @@ void MqttOutput::Handshake() {
     client_.unsubscribe(topic_pong)->wait();
 }
 
-void MqttOutput::SetInitConfig(const MapGrid& grid, const std::string& dataset_name,
+void MqttOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
                                std::chrono::sys_seconds start_timestamp) {
 
     const std::string topic_init(base_topic_ + "/events");
@@ -166,7 +166,7 @@ void MqttOutput::SetInitConfig(const MapGrid& grid, const std::string& dataset_n
     client_.publish(init_eof_msg)->wait();
 }
 
-GridIndexType MqttOutput::SendInitState(const MapGrid& grid) {
+GridIndexType MqttOutput::SendInitState(const core::grid::MapGrid& grid) {
     const std::string topic_changes(base_topic_ + "/events");
     const std::string topic_control_changes(base_topic_ + "/control/events");
 
@@ -179,7 +179,7 @@ GridIndexType MqttOutput::SendInitState(const MapGrid& grid) {
     const std::vector<float>& water_depth = grid.GetLayer<float>("water_depth")->GetData();
     const std::vector<int8_t>& flood_risk = grid.GetLayer<int8_t>("flood_risk")->GetData();
 
-    ChangeList changes;
+    core::snapshot::ChangeList changes;
     for (size_t i = 0; i < flood_risk.size(); ++i) {
         if (flood_risk[i] > 0) {
             changes.indexes.push_back(i);
@@ -255,7 +255,7 @@ GridIndexType MqttOutput::SendInitState(const MapGrid& grid) {
     return chunk_count;
 }
 
-void MqttOutput::Run(SnapshotManager& snapshot_manager, const std::filesystem::path& /* output_path */) {
+void MqttOutput::Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& /* output_path */) {
     std::chrono::system_clock::time_point last_processed_step = std::chrono::system_clock::time_point::min();
 
     while (true) {
@@ -288,7 +288,7 @@ void MqttOutput::Run(SnapshotManager& snapshot_manager, const std::filesystem::p
     }
 }
 
-void MqttOutput::PublishInChunks(const Snapshot& snapshot, const ChangeList& changes) {
+void MqttOutput::PublishInChunks(const core::snapshot::Snapshot& snapshot, const core::snapshot::ChangeList& changes) {
     const std::string topic_changes(base_topic_ + "/events");
     const std::string topic_control_changes(base_topic_ + "/control/events");
 
@@ -363,4 +363,4 @@ std::string MqttOutput::GetCurrentTimestampUTC() {
     return std::string(fmt::format("{:%Y-%m-%dT%H:%M:%S}", local_time));
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

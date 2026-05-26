@@ -11,7 +11,7 @@
 
 #include "app/io/writers/StaticWriter.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::writers::file {
 
 /**
  * @brief Base writer implementation for exporting static geographical data files.
@@ -30,4 +30,4 @@ protected:
     std::string data_filename_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::io::writers::file

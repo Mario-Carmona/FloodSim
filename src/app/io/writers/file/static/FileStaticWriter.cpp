@@ -7,9 +7,9 @@
 
 #include "app/io/writers/file/static/FileStaticWriter.hpp"
 
-namespace floodsim {
+namespace floodsim::app::io::writers::file {
 
 FileStaticWriter::FileStaticWriter(const std::string& data_filename)
     : StaticWriter(), data_filename_(data_filename) {}
 
-} // namespace floodsim
+} // namespace floodsim::app::io::writers::file

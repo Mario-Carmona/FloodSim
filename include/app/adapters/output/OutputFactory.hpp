@@ -19,7 +19,7 @@
 #include "app/config/Config.hpp"
 #include "app/core/ports/OutputPort.hpp"
 
-namespace floodsim {
+namespace floodsim::app::adapters::output {
 
 /**
  * @class OutputFactory
@@ -39,8 +39,8 @@ public:
      * @throws std::invalid_argument If the scenario_name is empty.
      * @throws std::runtime_error If an unknown output configuration type is encountered.
      */
-    static std::vector<std::unique_ptr<OutputPort>> CreateOutputs(
-        const OutputConfig& config, const std::string& scenario_name);
+    static std::vector<std::unique_ptr<core::ports::OutputPort>> CreateOutputs(
+        const config::OutputConfig& config, const std::string& scenario_name);
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::adapters::output

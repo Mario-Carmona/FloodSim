@@ -25,7 +25,7 @@
 #include "app/core/SimulationCore.hpp"
 #include "app/core/ports/OutputPort.hpp"
 
-namespace floodsim {
+namespace floodsim::app {
 
 /**
  * @brief Sets the name of the currently executing thread.
@@ -61,7 +61,7 @@ public:
      * @param gui_callback Optional callback to emit status logs or progress updates to an external GUI.
      * @throw std::runtime_error If internal dependencies cannot be wired correctly.
      */
-    explicit Application(const Config& config,
+    explicit Application(const config::Config& config,
         std::function<void(int, const std::string&)> gui_callback = nullptr);
 
     /**
@@ -96,10 +96,10 @@ private:
     /// Atomic flag monitored continuously by execution loops to catch interrupt requests.
     std::atomic<bool> stop_requested_{ false };
 
-    Config config_;                                      ///< The application configuration context.
-    std::unique_ptr<SimulationCore> core_;               ///< The central simulation computation engine.
-    std::unique_ptr<SnapshotManager> snapshot_manager_;  ///< Pipeline manager handling state capture buffers.
-    std::vector<std::unique_ptr<OutputPort>> outputs_;   ///< Set of registered active data sinks.
+    config::Config config_;                              ///< The application configuration context.
+    std::unique_ptr<core::SimulationCore> core_;       ///< The central simulation computation engine.
+    std::unique_ptr<core::snapshot::SnapshotManager> snapshot_manager_;  ///< Pipeline manager handling state capture buffers.
+    std::vector<std::unique_ptr<core::ports::OutputPort>> outputs_;   ///< Set of registered active data sinks.
 
     /**
      * @brief Asynchronous worker thread pool for concurrent serialization of output ports.
@@ -120,4 +120,4 @@ private:
     void StopOutputThreads();
 };
 
-} // namespace floodsim
+} // namespace floodsim::app

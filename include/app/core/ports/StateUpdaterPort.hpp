@@ -16,7 +16,7 @@
 #include "app/core/grid/MapGrid.hpp"
 #include "app/core/snapshot/Snapshot.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::ports {
 
 /**
  * @class StateUpdaterPort
@@ -34,7 +34,7 @@ public:
      * @param flood_risk_levels Categorization thresholds for hazardous areas.
      */
     StateUpdaterPort(bool enable_rainfall, float dry_tolerance,
-                     const std::vector<FloodRiskLevel>& flood_risk_levels)
+                     const std::vector<config::FloodRiskLevel>& flood_risk_levels)
         : enable_rainfall_(enable_rainfall)
         , dry_tolerance_(dry_tolerance)
         , flood_risk_levels_(flood_risk_levels) {}
@@ -45,22 +45,22 @@ public:
      * @brief Allocates and links internal physical coefficients onto the grid map.
      * @param grid Reference to the map grid structure to initialize.
      */
-    virtual void Initialize(MapGrid& grid) = 0;
+    virtual void Initialize(grid::MapGrid& grid) = 0;
 
     /**
      * @brief Executes a single finite-difference step over the simulation domain.
      * @param grid Mutable reference to the domain layers to process.
      */
-    virtual void Step(MapGrid& grid) = 0;
+    virtual void Step(grid::MapGrid& grid) = 0;
 
-    virtual const ModelParamsInfo& GetModelParamsInfo() const = 0;
+    virtual const grid::ModelParamsInfo& GetModelParamsInfo() const = 0;
     virtual const std::string& GetFluidLayer() const = 0;
     virtual const std::string& GetFluidMovementStateLayer() const = 0;
 
     bool IsRainfallEnabled() const { return enable_rainfall_; }
     float GetDryTolerance() const { return dry_tolerance_; }
 
-    const std::vector<FloodRiskLevel>& GetFloodRiskLevels() const {
+    const std::vector<config::FloodRiskLevel>& GetFloodRiskLevels() const {
         return flood_risk_levels_;
     }
 
@@ -78,7 +78,7 @@ protected:
 
     bool enable_rainfall_;
     float dry_tolerance_;
-    std::vector<FloodRiskLevel> flood_risk_levels_;
+    std::vector<config::FloodRiskLevel> flood_risk_levels_;
 };
 
-} // namespace floodsim
+} // namespace floodsim::app::core::ports

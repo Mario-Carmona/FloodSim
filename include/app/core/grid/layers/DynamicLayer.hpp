@@ -17,7 +17,7 @@
 #include "app/core/grid/layers/Layer.hpp"
 #include "app/io/readers/DynamicReader.hpp"
 
-namespace floodsim {
+namespace floodsim::app::core::grid::layers {
 
 /**
  * @class DynamicLayer
@@ -57,7 +57,7 @@ public:
      * @throws std::invalid_argument If the reader is null or cannot be cast to DynamicReader.
      */
     void SetReader(const GridMetadata& main_metadata,
-        std::unique_ptr<Reader> reader,
+        std::unique_ptr<io::readers::Reader> reader,
         std::chrono::system_clock::time_point current_time) override;
 
     /**
@@ -71,7 +71,7 @@ public:
     void Update(std::chrono::system_clock::time_point current_time) override;
 
 protected:
-    std::unique_ptr<DynamicReader> reader_;      ///< Owns the dynamic reader instance.
+    std::unique_ptr<io::readers::DynamicReader> reader_;      ///< Owns the dynamic reader instance.
     std::vector<T> buffer_;                      ///< Coarse temporary buffer for downgraded data.
     std::vector<FlatVectorIndexType> index_map_; ///< Maps fine grid cells to coarse buffer indices.
     std::vector<bool> inside_map_;               ///< Boolean mask indicating if a cell is inside the coverage area.
@@ -87,14 +87,14 @@ DynamicLayer<T>::DynamicLayer(std::string name)
 
 template <typename T>
 void DynamicLayer<T>::SetReader(const GridMetadata& main_metadata,
-    std::unique_ptr<Reader> reader,
+    std::unique_ptr<io::readers::Reader> reader,
     std::chrono::system_clock::time_point current_time) {
     if (!reader) {
         throw std::invalid_argument("DynamicLayer: Provided reader is null.");
     }
 
     // Safely downcast the Reader to a DynamicReader BEFORE releasing ownership
-    auto* dynamic_reader = dynamic_cast<DynamicReader*>(reader.get());
+    auto* dynamic_reader = dynamic_cast<io::readers::DynamicReader*>(reader.get());
     if (!dynamic_reader) {
         throw std::invalid_argument("DynamicLayer: Reader must be of type DynamicReader.");
     }
@@ -181,4 +181,4 @@ void DynamicLayer<T>::Update(std::chrono::system_clock::time_point current_time)
     }
 }
 
-} // namespace floodsim
+} // namespace floodsim::app::core::grid::layers
