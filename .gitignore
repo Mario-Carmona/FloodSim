@@ -60,6 +60,9 @@ __pycache__
 # Tensorflow scripts logs
 /python/models/logs
 
+# Doxygen output
+/docs/html
+
 /out/Ubuntu-24.04/build/linux-cli-debug/.cmake/api/v1/query/client-MicrosoftVS/query.json
 
 

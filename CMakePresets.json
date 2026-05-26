@@ -288,6 +288,16 @@
       "cacheVariables": {
         "ENABLE_STATE_UPDATER_ADAPTERS": "ON"
       }
+    },
+    {
+      "name": "docs",
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_DOCS": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -391,6 +401,12 @@
       "name": "python-visualizer",
       "configurePreset": "python-visualizer",
       "configuration": "Release"
+    },
+    {
+      "name": "docs",
+      "configurePreset": "docs",
+      "configuration": "Release",
+      "targets": [ "docs" ]
     }
   ],
   "packagePresets": [
@@ -690,6 +706,19 @@
         {
           "type": "build",
           "name": "python-visualizer"
+        }
+      ]
+    },
+    {
+      "name": "docs",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "docs"
+        },
+        {
+          "type": "build",
+          "name": "docs"
         }
       ]
     }

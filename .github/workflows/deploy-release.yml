@@ -1,7 +1,9 @@
-name: Deploy release
+name: Deploy Release
 
 on:
   workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
+  push:
+    branches: ["main"]
 
 permissions:
   contents: write # Required for creating releases and tags

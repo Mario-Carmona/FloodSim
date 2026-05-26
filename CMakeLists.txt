@@ -111,6 +111,19 @@ if(BUILD_APP OR BUILD_TESTS)
     set(GUI_EXE_NAME "${PROJECT_NAME}GUI")
 
     add_subdirectory(src)
+
+
+    include(cmake/third_party_notices.cmake)
+
+    generate_third_party_notices(
+        "${VCPKG_INSTALLED_DIR}" 
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${ONNX_LICENSE_FILE}"
+    )
+endif()
+
+if(BUILD_DOCS)
+    add_subdirectory(docs)
 endif()
 
 if(BUILD_TESTS)
@@ -138,16 +151,6 @@ if(BUILD_PYTHON_ENVS)
             COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
     )
 endif()
-
-
-
-include(cmake/third_party_notices.cmake)
-
-generate_third_party_notices(
-    "${VCPKG_INSTALLED_DIR}" 
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${ONNX_LICENSE_FILE}"
-)
 
 
 
