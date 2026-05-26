@@ -1,5 +1,5 @@
 logging:
-  level: debug
+  level: Debug
   async: false
   silent: false
   save_log_file: true
@@ -43,15 +43,15 @@ state_updater:
         threshold_start: 2
         color_hex: 4B0082FF
   updater:
-    type: ONNX
+    type: Onnx
     model_path: C:\Devs\DanaSim\exported_models\first_model_cpu
     tensor_dim: 16
 input:
   file:
     dataset_folder: C:\Devs\DanaSim\data
     dataset_name: data_29_10_2024
-    static_format: IDRISI
-    dynamic_format: HIF
+    static_format: Idrisi
+    dynamic_format: Hif
   scalars:
     fluid_density: 1000.0
     fluid_viscosity: 0.001
@@ -59,4 +59,4 @@ output:
   snapshot:
     every_n_steps: 30
   outputs:
-    - type: IMAGE
+    - type: Image
