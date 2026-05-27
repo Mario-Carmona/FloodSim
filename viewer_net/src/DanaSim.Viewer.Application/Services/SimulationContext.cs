@@ -20,6 +20,9 @@ public sealed class SimulationContext
     // Frame timeout detection
     public long? FrameStartTick { get; set; }
 
+    // Saved after FrameEnd so EyeFrameSyncHandler can broadcast them
+    public List<CellChange> LastFrameChanges { get; set; } = [];
+
     public bool IsRunning { get; set; } = true;
     public int StepIndex { get; set; }
 }

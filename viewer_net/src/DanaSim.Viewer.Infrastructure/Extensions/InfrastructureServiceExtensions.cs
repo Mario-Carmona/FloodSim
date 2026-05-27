@@ -1,6 +1,7 @@
 using DanaSim.Viewer.Application.Ports;
 using DanaSim.Viewer.Domain.Ports;
 using DanaSim.Viewer.Infrastructure.Mqtt;
+using DanaSim.Viewer.Infrastructure.SignalR;
 using DanaSim.Viewer.Infrastructure.Terrain;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,9 @@ public static class InfrastructureServiceExtensions
         // Terrain data
         services.Configure<TerrainOptions>(configuration.GetSection("Terrain"));
         services.AddSingleton<ITerrainDataReader, IdrisiTerrainDataReader>();
+
+        // SignalR broadcaster
+        services.AddSingleton<ISimulationBroadcaster, SignalRBroadcaster>();
 
         return services;
     }

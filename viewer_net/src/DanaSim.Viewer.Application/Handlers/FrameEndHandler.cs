@@ -14,6 +14,7 @@ public sealed class FrameEndHandler(ILogger<FrameEndHandler> logger) : IMqttEven
     {
         var count = context.PendingChanges.Count;
         context.Grid.ApplyBulkChanges(context.PendingChanges);
+        context.LastFrameChanges = [.. context.PendingChanges];
         context.PendingChanges.Clear();
         context.FrameStartTick = null;
 
