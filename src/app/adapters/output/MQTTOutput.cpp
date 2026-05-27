@@ -159,6 +159,7 @@ void MqttOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::strin
     client_.publish(init_agent_eof_msg)->wait();
 
     //GridIndexType total_chunks = SendInitState(grid);
+    GridIndexType total_chunks = 0;
 
     std::string init_eof_payload = payload_serializer_->GenerateInitEOFPayload(total_chunks);
     auto init_eof_msg = mqtt::make_message(topic_init, init_eof_payload);
