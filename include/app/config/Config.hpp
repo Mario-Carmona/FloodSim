@@ -77,6 +77,7 @@ struct OutputConfig {
         std::string host = "127.0.0.1";
         int port = 1883;
         PayloadFormat payload_format;
+		bool send_initial_state;
     };
 
     /**

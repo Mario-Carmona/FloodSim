@@ -267,10 +267,18 @@ void ColorInput(const char* label, std::string& hex_color, const char* tooltip, 
         if (len == 6 || len == 8) {
             unsigned int r = 0, g = 0, b = 0, a = 255;
             if (len == 6) {
+#if defined(_WIN32)
+                sscanf_s(hex_str, "%02x%02x%02x", &r, &g, &b);
+#else
                 std::sscanf(hex_str, "%02x%02x%02x", &r, &g, &b);
+#endif
             }
             else {
+#if defined(_WIN32)
+                sscanf_s(hex_str, "%02x%02x%02x%02x", &r, &g, &b, &a);
+#else
                 std::sscanf(hex_str, "%02x%02x%02x%02x", &r, &g, &b, &a);
+#endif
             }
             col[0] = static_cast<float>(r) / 255.0f;
             col[1] = static_cast<float>(g) / 255.0f;

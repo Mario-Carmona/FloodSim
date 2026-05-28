@@ -245,7 +245,7 @@ void RenderTabs(app::config::Config& config) {
  * @param argv An array of null-terminated strings representing the execution arguments.
  * @return int Returns EXIT_SUCCESS upon a graceful termination, or EXIT_FAILURE on crash.
  */
-int main(int argc, char** argv) {
+int main(int /* argc */, char** /* argv */) {
     glfwSetErrorCallback(GlfwErrorCallback);
 
     try {

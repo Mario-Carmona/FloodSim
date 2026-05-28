@@ -69,7 +69,7 @@ std::vector<std::unique_ptr<core::ports::OutputPort>> OutputFactory::CreateOutpu
                 LOG_DEBUG("Initializing MQTT Output");
                 return std::make_unique<MqttOutput>(
                     arg.protocol + arg.host + ":" + std::to_string(arg.port),
-                    scenario_name, arg.payload_format);
+                    scenario_name, arg.payload_format, arg.send_initial_state);
             },
 
             // 3. Image Output

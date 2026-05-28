@@ -133,14 +133,14 @@ private:
     std::condition_variable cv_core_;     ///< Core engine waits on this condition.
     std::condition_variable cv_outputs_;  ///< Output consumers wait on this condition.
 
-    const Snapshot* current_snapshot_;    ///< Shared pointer to the current snapshot.
-    const ChangeList* changes_;           ///< Shared pointer to the current changes list.
-
     size_t total_outputs_;
     size_t remaining_;                    ///< Count of outputs that still need to process the current snapshot.
 
     std::atomic<bool> running_;
     StepType every_n_steps_;
+
+    const Snapshot* current_snapshot_;    ///< Shared pointer to the current snapshot.
+    const ChangeList* changes_;           ///< Shared pointer to the current changes list.
 };
 
 } // namespace floodsim::app::core::snapshot

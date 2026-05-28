@@ -87,11 +87,11 @@ private:
     // Dependencies (Injected via constructor)
     // -------------------------------------------------------------------------
     ports::StateUpdaterPort* state_updater_;
-    snapshot::SnapshotManager* snapshot_manager_;
     ports::InputPort* main_input_source_;
     std::unordered_map<std::string, ports::InputPort*> layers_alternative_input_source_;
     std::unordered_map<std::string, std::string> scalars_config_;
     std::vector<ports::OutputPort*> outputs_;
+    snapshot::SnapshotManager* snapshot_manager_;
 
     // -------------------------------------------------------------------------
     // Simulation parameters

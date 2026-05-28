@@ -57,7 +57,7 @@ void IdrisiWriter::SaveData(const std::filesystem::path& data_path,
         auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), data[i]);
         if (ec == std::errc()) {
             img_file.write(buffer.data(), ptr - buffer.data());
-            img_file.put((i % metadata.width == metadata.width - 1) ? '\n' : ' ');
+            img_file.put((i % metadata.width == static_cast<size_t>(metadata.width - 1)) ? '\n' : ' ');
         }
         else {
             throw std::runtime_error(fmt::format("Format error writing cell {}", i));

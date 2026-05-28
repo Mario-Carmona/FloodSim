@@ -15,6 +15,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <tuple>
 
 #include <imgui.h>
 #include <portable-file-dialogs.h>
@@ -228,7 +229,7 @@ void RenderMainControlTab(app::config::Config& config, std::atomic<bool>& is_sim
             try {
                 current_simulation = std::make_shared<app::Application>(config, GlobalGuiLogCallback);
                 is_simulation_running.store(true);
-                simulation_thread = std::jthread([&]() { current_simulation->Run(); is_simulation_running.store(false); });
+                simulation_thread = std::jthread([&]() { std::ignore = current_simulation->Run(); is_simulation_running.store(false); });
                 g_gui_console.AddLog(2, "[GUI] Simulation startup sequence initiated.\n");
             }
             catch (const std::exception& e) {

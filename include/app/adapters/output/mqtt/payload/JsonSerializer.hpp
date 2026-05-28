@@ -74,8 +74,7 @@ public:
      * @param layer_name The specific layer key identifier (e.g., "topo_bathy").
      * @return std::string Serialized JSON configuration metadata for the specified layer.
      */
-    std::string GenerateInitAgentLayerPayload(const core::grid::MapGrid& grid,
-        const std::string& dataset_name,
+    std::string GenerateInitAgentLayerPayload(const std::string& dataset_name,
         const std::string& layer_name) const override;
 
     /**

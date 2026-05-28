@@ -39,7 +39,8 @@ public:
      * @throws std::runtime_error If the payload serializer fails to initialize.
      */
     MqttOutput(const std::string& address, const std::string& scenario_name,
-        config::OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format);
+        config::OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format,
+        bool send_initial_state);
 
     /**
      * @brief Destroys the MQTT client, gracefully disconnecting and stopping consumption.
@@ -115,7 +116,7 @@ private:
      *
      * @return std::string Current UTC timestamp.
      */
-    std::string GetCurrentTimestampUTC();
+    std::string GetCurrentTimestamp();
 
     const int kBatchSize = 10;
     const GridIndexType kChunkSize = 40000;
@@ -125,6 +126,7 @@ private:
     mqtt::async_client client_;
 
     std::unique_ptr<PayloadSerializer> payload_serializer_;
+	bool send_initial_state_;
 };
 
 } // namespace floodsim::app::adapters::output

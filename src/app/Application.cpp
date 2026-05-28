@@ -79,9 +79,14 @@ Application::Application(const config::Config& config, std::function<void(int, c
         // 1. Get current system time
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::tm local_time;
 
-        // 2. Convert to local time (classic std::tm structure)
-        std::tm local_time = *std::localtime(&now_c);
+        // 2. Convert to local time
+#if defined(_WIN32)
+        localtime_s(&local_time, &now_c);
+#else
+        localtime_r(&now_c, &local_time);
+#endif
 
         // 3. Format time string
         std::string timestamp = fmt::format("{:%Y-%m-%d_%H-%M-%S}", local_time);

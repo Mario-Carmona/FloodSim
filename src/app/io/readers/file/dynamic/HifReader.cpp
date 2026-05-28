@@ -44,7 +44,7 @@ HifReader::HifReader(const std::filesystem::path& data_path,
     steps_ = data.value("steps", 0);
     downgrade_factor_ = data.value("downgrade_factor", 1);
 
-    for (const std::string& ts : data["timestamps"]) {
+    for (const std::string ts : data["timestamps"]) {
         timestamps_.push_back(ParseTimestampString(ts));
     }
 

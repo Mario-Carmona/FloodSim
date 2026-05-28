@@ -10,6 +10,13 @@ find_package(spdlog CONFIG REQUIRED)
 
 find_package(unofficial-whereami CONFIG REQUIRED)
 
+
+# Forzar a CMake a buscar y usar la versión LLVM de OpenMP en MSVC
+if(MSVC)
+    set(OpenMP_CXX_FLAGS "/openmp:llvm")
+    set(OpenMP_C_FLAGS "/openmp:llvm")
+endif()
+
 find_package(OpenMP REQUIRED)
 
 
@@ -45,11 +52,11 @@ if(WIN32)
 
     target_compile_options(danasim_options INTERFACE
         # DEBUG
-        $<$<CONFIG:Debug>:/Od /Zi /RTC1 /W4 /utf-8 /openmp:llvm>
+        $<$<CONFIG:Debug>:/Od /Zi /RTC1 /W4 /utf-8>
         # RELEASE
-        $<$<CONFIG:Release>:/O2 /DNDEBUG /GL /W4 /utf-8 /openmp:llvm>
+        $<$<CONFIG:Release>:/O2 /DNDEBUG /GL /W4 /utf-8>
         # RELWITHDEBINFO
-        $<$<CONFIG:RelWithDebInfo>:/O2 /Zi /Zo /DNDEBUG /GL /W4 /utf-8 /openmp:llvm>
+        $<$<CONFIG:RelWithDebInfo>:/O2 /Zi /Zo /DNDEBUG /GL /W4 /utf-8>
     )
     
     # 2. Opciones de LINKER (Solo MSVC suele necesitar esto para LTCG)

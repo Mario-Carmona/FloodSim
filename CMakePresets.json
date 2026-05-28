@@ -10,7 +10,7 @@
       "name": "common-configure-options",
       "hidden": true,
       "description": "Base preset defining common cache variables shared by all presets.",
-      "binaryDir": "${sourceDir}/build/${presetName}",
+      "binaryDir": "$env{HOST_BUILD_DIR}/${presetName}",
       "environment": {
         "HOST_BUILD_DIR": "${sourceDir}/build/${hostSystemName}"
       }
@@ -560,6 +560,19 @@
         {
           "type": "build",
           "name": "linux-cli-only-release"
+        }
+      ]
+    },
+    {
+      "name": "linux-full-suite-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-full-suite-debug"
+        },
+        {
+          "type": "build",
+          "name": "linux-full-suite-debug"
         }
       ]
     },

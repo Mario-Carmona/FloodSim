@@ -189,6 +189,19 @@ void RenderOutputTab(app::config::OutputConfig& output_config) {
                                 ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
                                 EnumComboBox<app::config::OutputConfig::MqttOutputConfigEntry::PayloadFormat>(label, mqtt.payload_format, tooltip);
                             }
+
+                            {
+                                const char* label = "Send Initial State";
+                                const char* tooltip = "If enabled, the initial simulation state will be sent to the output.";
+
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::AlignTextToFramePadding();
+                                ImGui::Text("%s", label);
+
+                                ImGui::TableSetColumnIndex(1);
+                                Checkbox("##SendInitialState", mqtt.send_initial_state, tooltip);
+                            }
                         },
                         [&](auto&) {
                             ImGui::TableNextRow();

@@ -244,7 +244,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
 				);
             }
             else {
-                size_t new_size = std::min(
+                new_size = std::min(
                     static_cast<size_t>(first_scratchpad->GetSize() * 1.5f),
                     max_tensor_elements_    
                 );
@@ -563,6 +563,8 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
                 break;
             }
         }
+
+        throw std::invalid_argument("Unsupported data type in ConfigureTensor: " + info.id_name);
     }
 
 } // namespace floodsim::app::adapters::state_updater
