@@ -25,11 +25,11 @@
  * @returns {LayerState}
  */
 export function defaultLayers() {
-  return {
-    terrain: true,
-    water: true,
-    states: [false, true, true, true, true, true],
-  };
+  // Derive state count from __CONFIG__ (set before this module loads).
+  // Index 0 (Dry) is always false — dry cells are not drawn on the flood layer.
+  const n = window.__CONFIG__?.stateColors?.length ?? 6;
+  const states = Array.from({ length: n }, (_, i) => i !== 0);
+  return { terrain: true, water: true, states };
 }
 
 /** @type {State} */

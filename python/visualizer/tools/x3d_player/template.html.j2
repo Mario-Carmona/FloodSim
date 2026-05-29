@@ -74,31 +74,13 @@
         </label>
         <fieldset class="state-group">
           <legend>Profundidad</legend>
+          {% for i in range(1, state_names | length) %}
           <label class="layer-row">
-            <input id="layerState1" type="checkbox" checked/>
-            <span class="swatch" data-state="1"></span>
-            <span>Muy somero</span>
+            <input id="layerState{{ i }}" type="checkbox" checked/>
+            <span class="swatch" data-state="{{ i }}"></span>
+            <span>{{ state_names[i] }}</span>
           </label>
-          <label class="layer-row">
-            <input id="layerState2" type="checkbox" checked/>
-            <span class="swatch" data-state="2"></span>
-            <span>Profundidad baja</span>
-          </label>
-          <label class="layer-row">
-            <input id="layerState3" type="checkbox" checked/>
-            <span class="swatch" data-state="3"></span>
-            <span>Profundidad media</span>
-          </label>
-          <label class="layer-row">
-            <input id="layerState4" type="checkbox" checked/>
-            <span class="swatch" data-state="4"></span>
-            <span>Profundidad alta</span>
-          </label>
-          <label class="layer-row">
-            <input id="layerState5" type="checkbox" checked/>
-            <span class="swatch" data-state="5"></span>
-            <span>Profundidad extrema</span>
-          </label>
+          {% endfor %}
         </fieldset>
 
         <h2>Cámara</h2>

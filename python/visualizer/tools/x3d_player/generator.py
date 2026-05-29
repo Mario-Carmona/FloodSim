@@ -142,6 +142,25 @@ def _read_static_asset(relative: str) -> str:
     return (_STATIC_DIR / relative).read_text(encoding="utf-8")
 
 
+def _state_names_from_colors(
+    palette_path: Path | None,
+    state_colors: list[tuple[int, int, int]],
+) -> list[str]:
+    """Return label strings matching the order of state_colors."""
+    defaults = ["Dry", "Muy somero", "Profundidad baja", "Profundidad media",
+                "Profundidad alta", "Profundidad extrema"]
+    if palette_path is None or not palette_path.exists():
+        return defaults[:len(state_colors)]
+    try:
+        data = json.loads(palette_path.read_text(encoding="utf-8"))
+        fr = data.get("layers", {}).get("flood_risk", [])
+        if fr:
+            return [e["label"] for e in sorted(fr, key=lambda e: e["value"])]
+    except Exception:
+        pass
+    return defaults[:len(state_colors)]
+
+
 def generate_player(
     *,
     png_cols: int,
@@ -155,6 +174,7 @@ def generate_player(
     terrain_b64: str,
     frame_names: list[str],
     state_colors: list[tuple[int, int, int]],
+    palette_path: Path | None = None,
 ) -> str:
     """Render the player HTML by combining the Jinja2 template, CSS and runtime config.
 
@@ -177,6 +197,7 @@ def generate_player(
         "terrainSrc":  f"data:image/png;base64,{terrain_b64}",
     }
 
+    state_names = _state_names_from_colors(palette_path, state_colors)
     viewpoints = _viewpoints(map_w, map_d, max_h)
 
     env = Environment(
@@ -195,6 +216,7 @@ def generate_player(
         cols=orig_cols,
         cell_size=f"{cell_size_m:.4f}",
         frame_count=len(frame_names),
+        state_names=state_names,
     )
 
 
@@ -298,6 +320,7 @@ def main(argv: list[str] | None = None) -> int:
         terrain_b64=terrain_b64,
         frame_names=frame_names,
         state_colors=state_colors,
+        palette_path=palette_path,
     )
     player_path = output_dir / "player.html"
     player_path.write_text(player_html, encoding="utf-8")
