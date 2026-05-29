@@ -67,6 +67,7 @@ class X3DRenderer(BaseRenderer):
             terrain_b64=self._terrain_b64,
             frame_names=self._frame_names,
             state_colors=self._state_colors,
+            palette_path=self._palette_path,
         )
         (self._output_dir / "player.html").write_text(player_html, encoding="utf-8")
 
@@ -80,6 +81,7 @@ class X3DRenderer(BaseRenderer):
         self._flood_dir.mkdir(parents=True, exist_ok=True)
 
         palette_path = Path(config.COLOR_PALETTE_FILE) if config.COLOR_PALETTE_FILE else None
+        self._palette_path = palette_path
         self._state_colors = _load_state_colors(palette_path)
 
         terrain = meta.terrain_heights if meta.terrain_heights is not None \

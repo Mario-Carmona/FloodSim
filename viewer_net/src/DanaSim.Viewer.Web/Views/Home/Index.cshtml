@@ -1,11 +1,29 @@
+@model List<string>
 @{
     ViewData["Title"] = "DanaSim Viewer";
 }
 
-<div style="padding: 2rem;">
-    <h1>DanaSim 3D Flood Viewer</h1>
-    <p style="margin-top: 1rem; color: #aaa;">
-        Open the simulation viewer:
-        <a href="/Home/Iframe3D" style="color: #4af;">Full page</a>
-    </p>
+<div style="padding: 2rem; font-family: monospace;">
+    <h1>DanaSim — Simulation Runs</h1>
+
+    @if (Model.Count == 0)
+    {
+        <p style="margin-top: 1.5rem; color: #aaa;">
+            No simulation runs yet. Start the simulator to generate output.
+        </p>
+    }
+    else
+    {
+        <ul style="margin-top: 1.5rem; list-style: none; padding: 0;">
+            @foreach (var run in Model)
+            {
+                <li style="margin: 0.6rem 0;">
+                    <a href="/sim-outputs/@run/player.html"
+                       style="color: #4af; font-size: 1.1rem;">
+                        @run
+                    </a>
+                </li>
+            }
+        </ul>
+    }
 </div>

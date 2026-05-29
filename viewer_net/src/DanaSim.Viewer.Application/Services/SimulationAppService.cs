@@ -2,6 +2,7 @@ using System.Text.Json;
 using DanaSim.Viewer.Application.Handlers;
 using DanaSim.Viewer.Application.Ports;
 using DanaSim.Viewer.Application.StateMachine;
+using DanaSim.Viewer.Domain.Enums;
 using DanaSim.Viewer.Domain.Ports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -113,6 +114,9 @@ public sealed class SimulationAppService : ISimulationEventHandler
     /// </summary>
     private void CheckFrameTimeout()
     {
+        if (_stateMachine.Current != SimulationPhase.Running)
+            return;
+
         if (_context.FrameStartTick is not { } startTick)
             return;
 

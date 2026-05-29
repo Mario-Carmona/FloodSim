@@ -35,18 +35,17 @@ public sealed class SignalRBroadcaster(
     }
 
     public async Task BroadcastFrameUpdateAsync(
-        IReadOnlyList<CellChange> changes, string simulationTime, CancellationToken ct = default)
+        FrameData frame, int stepIndex, CancellationToken ct = default)
     {
-        var message = new FrameUpdateMessage(
-            SimulationTime: simulationTime,
-            Changes: changes
-                .Select(c => new CellUpdateMessage(c.Index, (byte)c.State, c.WaterDepthM))
-                .ToArray());
+        var message = new InitialStateMessage(
+            GridMeta: new GridMetaMessage(0, 0, 0),
+            Cells: frame.PaletteGrid.Select(s => (byte)s).ToArray(),
+            WaterDepths: frame.WaterDepths,
+            Terrain: null,
+            SimulationTime: frame.SimulationTime);
 
         await hub.Clients.Group(_scenario).SendAsync("FrameUpdate", message, ct);
-        logger.LogInformation(
-            "FrameUpdate broadcast — {Count} changes, sim_time={Time}",
-            changes.Count, simulationTime);
+        logger.LogInformation("FrameUpdate broadcast — step {Step}", stepIndex);
     }
 
     public async Task BroadcastSimulationEndedAsync(CancellationToken ct = default)

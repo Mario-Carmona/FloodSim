@@ -3,12 +3,11 @@ using DanaSim.Viewer.Domain.ValueObjects;
 namespace DanaSim.Viewer.Domain.Ports;
 
 /// <summary>
-/// Outbound port: sends simulation state to all connected browser clients.
-/// Implemented by SignalRBroadcaster in the Infrastructure layer.
+/// Outbound port: delivers simulation state to the viewer (file output or real-time stream).
 /// </summary>
 public interface ISimulationBroadcaster
 {
     Task BroadcastInitialStateAsync(GridMeta meta, FrameData frame, CancellationToken ct = default);
-    Task BroadcastFrameUpdateAsync(IReadOnlyList<ValueObjects.CellChange> changes, string simulationTime, CancellationToken ct = default);
+    Task BroadcastFrameUpdateAsync(FrameData frame, int stepIndex, CancellationToken ct = default);
     Task BroadcastSimulationEndedAsync(CancellationToken ct = default);
 }

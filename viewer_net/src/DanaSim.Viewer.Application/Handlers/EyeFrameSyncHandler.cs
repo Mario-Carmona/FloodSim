@@ -17,11 +17,11 @@ public sealed class EyeFrameSyncHandler(ILogger<EyeFrameSyncHandler> logger) : I
             return;
 
         var dto = payload.Deserialize<EyeFrameSyncDto>() ?? new EyeFrameSyncDto();
+        var frameData = context.Grid.BuildFrameData(dto.SimulationTime);
         context.Grid.ConsumeData();
         context.StepIndex++;
 
-        // Broadcast only the cells that changed in this frame (saved by FrameEndHandler)
-        await broadcaster.BroadcastFrameUpdateAsync(context.LastFrameChanges, dto.SimulationTime, ct);
+        await broadcaster.BroadcastFrameUpdateAsync(frameData, context.StepIndex, ct);
 
         logger.LogInformation(
             "EYE_Frame_Sync — step {Step}, sim_time={Time}, {Changed} changed cells",
