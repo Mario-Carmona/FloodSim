@@ -1,13 +1,30 @@
 
-add_subdirectory(readers)
+# =========================================================
+# 💾 Input/Output (I/O) Module Configuration
+# =========================================================
 
+# ---------------------------------------------------------
+# 📂 Internal Module Hierarchy Traversals
+# ---------------------------------------------------------
+# Register data ingestion and serialization submodules
+add_subdirectory(readers)
 add_subdirectory(writers)
 
+# ---------------------------------------------------------
+# 🏗️ Interface Target Declaration
+# ---------------------------------------------------------
+# Define a purely structural interface library.
+# This target compiles no sources of its own, acting solely as an 
+# umbrella component to aggregate the underlying I/O submodules.
+add_library(floodsim_io INTERFACE)
 
-add_library(danasim_io INTERFACE)
-
-target_link_libraries(danasim_io
+# ---------------------------------------------------------
+# 🔗 Linkage & Dependency Propagation
+# ---------------------------------------------------------
+# Consolidate readers and writers into the unified I/O interface,
+# propagating their functionality to upstream consumers.
+target_link_libraries(floodsim_io
     INTERFACE
-        danasim_io_readers
-        danasim_io_writers
+        floodsim_io_readers
+        floodsim_io_writers
 )

@@ -118,14 +118,14 @@ void DynamicLayer<T>::SetReader(const GridMetadata& main_metadata,
         inside_map_.resize(main_metadata.cell_count, false);
 
         // Iterate over every cell in the high-resolution Simulation Grid
-        for (GridIndexType r = 0; r < main_metadata.height; ++r) {
-            for (GridIndexType c = 0; c < main_metadata.width; ++c) {
+        for (GridIndexType r = 0; r < static_cast<GridIndexType>(main_metadata.height); ++r) {
+            for (GridIndexType c = 0; c < static_cast<GridIndexType>(main_metadata.width); ++c) {
                 // Map Sim(r,c) -> Input(hr, hc) using integer division (Downgrading)
                 GridIndexType hr = r / downgrade_factor;
                 GridIndexType hc = c / downgrade_factor;
 
                 // Boundary Check: Ensure the calculated input coordinate is valid.
-                if (hr < coarse_metadata.height && hc < coarse_metadata.width) {
+                if (hr < static_cast<GridIndexType>(coarse_metadata.height) && hc < static_cast<GridIndexType>(coarse_metadata.width)) {
                     // Store the coarse index mapping
                     FlatVectorIndexType idx = r * main_metadata.width + c;
                     index_map_[idx] = hr * coarse_metadata.width + hc;

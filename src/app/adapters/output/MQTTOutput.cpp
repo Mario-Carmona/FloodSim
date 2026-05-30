@@ -38,11 +38,13 @@ std::unique_ptr<PayloadSerializer> MqttOutput::CreatePayloadSerializer(
 }
 
 MqttOutput::MqttOutput(const std::string& address, const std::string& scenario_name,
-                       config::OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format)
+                       config::OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format,
+                       bool send_initial_state)
     : base_topic_("FloodSim/" + scenario_name)
     , client_id_("FloodSim_Core")
     , client_(address, client_id_)
-    , payload_serializer_(std::move(CreatePayloadSerializer(payload_format))) {
+    , payload_serializer_(std::move(CreatePayloadSerializer(payload_format)))
+    , send_initial_state_(send_initial_state) {
 
     if (address.empty() || scenario_name.empty()) {
         throw std::invalid_argument("MqttOutput: Address and scenario_name cannot be empty.");
@@ -102,7 +104,7 @@ void MqttOutput::Handshake() {
     LOG_INFO("[MQTT] Initiating handshake...");
 
     while (!pong_received) {
-        std::string ping_payload = payload_serializer_->GeneratePingPayload(client_id_, GetCurrentTimestampUTC());
+        std::string ping_payload = payload_serializer_->GeneratePingPayload(client_id_, GetCurrentTimestamp());
 
         auto pub_msg = mqtt::make_message(topic_ping, ping_payload);
         pub_msg->set_qos(1);
@@ -148,7 +150,7 @@ void MqttOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::strin
     init_map_config_msg->set_qos(1);
     client_.publish(init_map_config_msg)->wait();
 
-    std::string init_agent_layer_payload = payload_serializer_->GenerateInitAgentLayerPayload(grid, dataset_name, "topo_bathy");
+    std::string init_agent_layer_payload = payload_serializer_->GenerateInitAgentLayerPayload(dataset_name, "topo_bathy");
     auto init_agent_layer_msg = mqtt::make_message(topic_init, init_agent_layer_payload);
     init_agent_layer_msg->set_qos(1);
     client_.publish(init_agent_layer_msg)->wait();
@@ -158,7 +160,10 @@ void MqttOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::strin
     init_agent_eof_msg->set_qos(1);
     client_.publish(init_agent_eof_msg)->wait();
 
-    GridIndexType total_chunks = SendInitState(grid);
+    GridIndexType total_chunks = 0;
+    if (send_initial_state_) {
+        total_chunks = SendInitState(grid);
+    }
 
     std::string init_eof_payload = payload_serializer_->GenerateInitEOFPayload(total_chunks);
     auto init_eof_msg = mqtt::make_message(topic_init, init_eof_payload);
@@ -355,12 +360,20 @@ void MqttOutput::PublishInChunks(const core::snapshot::Snapshot& snapshot, const
     client_.unsubscribe(topic_control_changes)->wait();
 }
 
-std::string MqttOutput::GetCurrentTimestampUTC() {
+std::string MqttOutput::GetCurrentTimestamp() {
     auto now = std::chrono::system_clock::now();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
-    std::tm local_time = *std::localtime(&in_time_t);
+    std::tm time_info;
 
-    return std::string(fmt::format("{:%Y-%m-%dT%H:%M:%S}", local_time));
+#if defined(_WIN32)
+    // --- WINDOWS ---
+    localtime_s(&time_info, &in_time_t);
+#else
+    // --- LINUX / macOS ---
+    localtime_r(&in_time_t, &time_info);
+#endif
+
+    return std::string(fmt::format("{:%Y-%m-%dT%H:%M:%S}", time_info));
 }
 
 } // namespace floodsim::app::adapters::output

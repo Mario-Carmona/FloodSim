@@ -13,6 +13,13 @@
 
 namespace floodsim::app::core::snapshot {
 
+/**
+ * @brief A convenient type alias pairing a constant Snapshot reference with its corresponding ChangeList.
+ * * This pair is used to bind a read-only state snapshot alongside the list of
+ * modifications applied or to be applied to it.
+ * - \c first: The constant reference to the Snapshot.
+ * - \c second: The constant reference to the ChangeList.
+ */
 using DataPair = std::pair<const Snapshot&, const ChangeList&>;
 
 SnapshotManager::SnapshotManager(const config::OutputConfig::SnapshotConfig& config, size_t num_outputs)

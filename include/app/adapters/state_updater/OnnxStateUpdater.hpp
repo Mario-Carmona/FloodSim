@@ -25,9 +25,13 @@ namespace floodsim::app::adapters::state_updater {
  * @brief Describes a tensor input/output parameter mapping.
  */
 struct TensorInfo {
+    /** @brief The identifier name of the tensor in the ONNX model. */
     std::string model_name;
+    /** @brief The corresponding layer name in the grid or scratchpad. */
     std::string id_name;
+    /** @brief The data type of the tensor (e.g., float32, int8). */
     core::grid::DataType type;
+    /** @brief Flag indicating if the tensor is a scalar (single value) or a spatial grid. */
     bool is_scalar;
 };
 
@@ -35,7 +39,9 @@ struct TensorInfo {
  * @brief Holds structural mappings for an ONNX model graph.
  */
 struct ModelGraphInfo {
+    /** @brief Vector of TensorInfo describing the model's input tensors. */
     std::vector<TensorInfo> inputs;
+    /** @brief Vector of TensorInfo describing the model's output tensors. */
     std::vector<TensorInfo> outputs;
 };
 

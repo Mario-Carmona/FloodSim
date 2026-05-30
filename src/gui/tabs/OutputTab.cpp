@@ -141,7 +141,7 @@ void RenderOutputTab(app::config::OutputConfig& output_config) {
                         [&](app::config::OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
                             {
                                 const char* label = "Static Format";
-                                const char* tooltip = "Data format for static spatial maps (e.g., topography DEMs).";
+                                const char* tooltip = "Data format for static spatial maps.";
 
                                 ImGui::TableNextRow();
                                 ImGui::TableSetColumnIndex(0);
@@ -188,6 +188,19 @@ void RenderOutputTab(app::config::OutputConfig& output_config) {
                                 ImGui::TableSetColumnIndex(1);
                                 ImGui::SetNextItemWidth(std::min(120.0f, ImGui::GetContentRegionAvail().x));
                                 EnumComboBox<app::config::OutputConfig::MqttOutputConfigEntry::PayloadFormat>(label, mqtt.payload_format, tooltip);
+                            }
+
+                            {
+                                const char* label = "Send Initial State";
+                                const char* tooltip = "If enabled, the initial simulation state will be sent to the output.";
+
+                                ImGui::TableNextRow();
+                                ImGui::TableSetColumnIndex(0);
+                                ImGui::AlignTextToFramePadding();
+                                ImGui::Text("%s", label);
+
+                                ImGui::TableSetColumnIndex(1);
+                                Checkbox("##SendInitialState", mqtt.send_initial_state, tooltip);
                             }
                         },
                         [&](auto&) {

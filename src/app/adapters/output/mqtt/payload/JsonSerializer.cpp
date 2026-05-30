@@ -58,8 +58,7 @@ std::string JsonSerializer::GenerateInitMapConfigPayload(const core::grid::MapGr
     return payload.dump();
 }
 
-std::string JsonSerializer::GenerateInitAgentLayerPayload(const core::grid::MapGrid& grid,
-                                                          const std::string& dataset_name,
+std::string JsonSerializer::GenerateInitAgentLayerPayload(const std::string& dataset_name,
                                                           const std::string& layer_name) const {
     nlohmann::json payload = {
         {"process", "InitAgent_Layer"},

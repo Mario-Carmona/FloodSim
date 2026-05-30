@@ -241,11 +241,9 @@ void RenderTabs(app::config::Config& config) {
 /**
  * @brief Subsystem bootstrap and master graphical interface event loop.
  *
- * @param argc The number of command-line arguments provided to the process.
- * @param argv An array of null-terminated strings representing the execution arguments.
  * @return int Returns EXIT_SUCCESS upon a graceful termination, or EXIT_FAILURE on crash.
  */
-int main(int argc, char** argv) {
+int main(int /* argc */, char** /* argv */) {
     glfwSetErrorCallback(GlfwErrorCallback);
 
     try {

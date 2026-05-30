@@ -38,9 +38,13 @@ namespace {
 
 #if defined(_WIN32)
     // --- WINDOWS ---
-    const char* app_data = std::getenv("APPDATA");
-    if (app_data != nullptr) {
+    char* app_data = nullptr;
+    size_t len = 0;
+
+    // _dupenv_s returns 0 if successful. It allocates memory that must later be freed.
+    if (_dupenv_s(&app_data, &len, "APPDATA") == 0 && app_data != nullptr) {
         app_data_path = std::filesystem::path(app_data);
+        free(app_data); // Important: Free Up the Copied Memory
     }
     else {
         // Unlikely fallback on Windows, but safe
@@ -129,6 +133,28 @@ EnumType ExtractEnum(const YAML::Node& node, const std::string& key) {
     throw ConfigurationException(fmt::format("Field '{}' contains invalid enum value: '{}'", key, raw_value));
 }
 
+/** 
+ * @brief Safely serializes an enum to a YAML node as a string, removing the Google C++ Style "k" prefix automatically.
+ */
+template <typename EnumType>
+void SaveEnum(YAML::Node& node, const std::string& key, EnumType enum_value) {
+    // We get the exact name of the enum (for example, “kIdrisi”)
+    std::string_view enum_name_view = magic_enum::enum_name(enum_value);
+
+    // We verify that the enum is valid and has a registered name
+    if (enum_name_view.empty()) {
+        throw ConfigurationException(fmt::format("Field '{}' failed to serialize: invalid or unnamed enum value", key));
+    }
+
+    std::string enum_name(enum_name_view);
+
+    // We remove the 'k'
+    enum_name = enum_name.substr(1);
+
+    // We store the resulting string (for example, “Idrisi”) in the YAML node
+    node[key] = enum_name;
+}
+
 void Validate(bool condition, const std::string& message) {
     if (!condition) {
         throw ConfigurationException(message);
@@ -208,16 +234,17 @@ Config ConfigLoader::Load(const std::filesystem::path& config_path) {
                 switch (type) {
                 case OutputConfig::OutputConfigEntryType::kCheckpoint: {
                     config.output.outputs.emplace_back(OutputConfig::CheckpointOutputConfigEntry{
-                      .static_format = ExtractEnum<io::formats::file::FileStaticFormat>(out_node, "static_format")
+                        .static_format = ExtractEnum<io::formats::file::FileStaticFormat>(out_node, "static_format")
                         });
                     break;
                 }
                 case OutputConfig::OutputConfigEntryType::kMqtt: {
                     config.output.outputs.emplace_back(OutputConfig::MqttOutputConfigEntry{
-                      .protocol = Extract<std::string>(out_node, "protocol"),
-                      .host = Extract<std::string>(out_node, "host"),
-                      .port = Extract<int>(out_node, "port"),
-                      .payload_format = ExtractEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(out_node, "format")
+                        .protocol = Extract<std::string>(out_node, "protocol"),
+                        .host = Extract<std::string>(out_node, "host"),
+                        .port = Extract<int>(out_node, "port"),
+                        .payload_format = ExtractEnum<OutputConfig::MqttOutputConfigEntry::PayloadFormat>(out_node, "format"),
+					    .send_initial_state = Extract<bool>(out_node, "send_initial_state")
                         });
                     break;
                 }
@@ -374,7 +401,7 @@ void ConfigLoader::SaveToFile(const std::filesystem::path& destination, const Co
         // 1. Logging Config
         // ---------------------------------------------------------
         YAML::Node logging_node;
-        logging_node["level"] = std::string(magic_enum::enum_name(config.logging.level));
+        SaveEnum(logging_node, "level", config.logging.level);
         logging_node["async"] = config.logging.async;
         logging_node["silent"] = config.logging.silent;
         logging_node["save_log_file"] = config.logging.save_log_file;
@@ -442,14 +469,14 @@ void ConfigLoader::SaveToFile(const std::filesystem::path& destination, const Co
 
         YAML::Node updater_node;
         std::visit(overloaded{
-          [&updater_node](const OnnxUpdaterConfig& onnx_cfg) {
-            updater_node["type"] = std::string(magic_enum::enum_name(UpdaterConfigType::kOnnx));
-            updater_node["model_path"] = onnx_cfg.model_path.string();
-            updater_node["tensor_dim"] = onnx_cfg.tensor_dim;
-          },
-          [&updater_node](auto&&) {
-            updater_node["type"] = "Unknown";
-          }
+            [&updater_node](const OnnxUpdaterConfig& onnx_cfg) {
+                SaveEnum(updater_node, "type", UpdaterConfigType::kOnnx);
+                updater_node["model_path"] = onnx_cfg.model_path.string();
+                updater_node["tensor_dim"] = onnx_cfg.tensor_dim;
+            },
+            [&updater_node](auto&&) {
+                updater_node["type"] = "Unknown";
+            }
             }, config.state_updater.updater);
 
         state_updater_node["updater"] = updater_node;
@@ -462,8 +489,8 @@ void ConfigLoader::SaveToFile(const std::filesystem::path& destination, const Co
         YAML::Node file_node;
         file_node["dataset_folder"] = config.input.file.dataset_folder.string();
         file_node["dataset_name"] = config.input.file.dataset_name;
-        file_node["static_format"] = std::string(magic_enum::enum_name(config.input.file.static_format));
-        file_node["dynamic_format"] = std::string(magic_enum::enum_name(config.input.file.dynamic_format));
+        SaveEnum(file_node, "static_format", config.input.file.static_format);
+        SaveEnum(file_node, "dynamic_format", config.input.file.dynamic_format);
         input_node["file"] = file_node;
 
         YAML::Node scalars_node;
@@ -486,23 +513,24 @@ void ConfigLoader::SaveToFile(const std::filesystem::path& destination, const Co
         for (const auto& out_var : config.output.outputs) {
             YAML::Node out_item;
             std::visit(overloaded{
-              [&out_item](const OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
-                out_item["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::kCheckpoint));
-                out_item["static_format"] = std::string(magic_enum::enum_name(checkpoint.static_format));
-              },
-              [&out_item](const OutputConfig::ImageOutputConfigEntry& img) {
-                out_item["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::kImage));
-              },
-              [&out_item](const OutputConfig::MqttOutputConfigEntry& mqtt) {
-                out_item["type"] = std::string(magic_enum::enum_name(OutputConfig::OutputConfigEntryType::kMqtt));
-                out_item["protocol"] = mqtt.protocol;
-                out_item["host"] = mqtt.host;
-                out_item["port"] = mqtt.port;
-                out_item["format"] = std::string(magic_enum::enum_name(mqtt.payload_format));
-              },
-              [&out_item](auto&&) {
+                [&out_item](const OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
+                    SaveEnum(out_item, "type", OutputConfig::OutputConfigEntryType::kCheckpoint);
+                    SaveEnum(out_item, "static_format", checkpoint.static_format);
+                },
+                [&out_item](const OutputConfig::ImageOutputConfigEntry& /* img */) {
+                    SaveEnum(out_item, "type", OutputConfig::OutputConfigEntryType::kImage);
+                },
+                [&out_item](const OutputConfig::MqttOutputConfigEntry& mqtt) {
+                    SaveEnum(out_item, "type", OutputConfig::OutputConfigEntryType::kMqtt);
+                    out_item["protocol"] = mqtt.protocol;
+                    out_item["host"] = mqtt.host;
+                    out_item["port"] = mqtt.port;
+                    SaveEnum(out_item, "format", mqtt.payload_format);
+				    out_item["send_initial_state"] = mqtt.send_initial_state;
+                },
+                [&out_item](auto&&) {
                     // Fallback
-                  }
+                    }
                 }, out_var);
             outputs_list.push_back(out_item);
         }

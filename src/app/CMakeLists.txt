@@ -1,32 +1,54 @@
 
-add_subdirectory(io)
+# =========================================================
+# 🚀 Application Core Module Configuration
+# =========================================================
 
+# ---------------------------------------------------------
+# 📂 Internal Module Hierarchy Traversals
+# ---------------------------------------------------------
+# Register foundational input/output and configuration modules
+add_subdirectory(io)
 add_subdirectory(config)
 
+# Conditionally inject the simulation core logic layer
 if(ENABLE_CORE)
     add_subdirectory(core)
 endif()
 
+# Register architectural adapters for external system integration
 add_subdirectory(adapters)
 
+# ---------------------------------------------------------
+# 🏗️ Core Library Component Declaration
+# ---------------------------------------------------------
+# Define the primary application library that orchestrates the underlying modules
+add_library(floodsim_app)
 
-
-add_library(danasim_app)
-
-target_sources(danasim_app
+# ---------------------------------------------------------
+# 🎯 Source Compilation Units Registration
+# ---------------------------------------------------------
+target_sources(floodsim_app
     PRIVATE
         Application.cpp
 )
 
-target_include_directories(danasim_app
+# ---------------------------------------------------------
+# 📂 Header Search Directories
+# ---------------------------------------------------------
+# Expose the global project include root to all downstream dependents
+target_include_directories(floodsim_app
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(danasim_app
+# ---------------------------------------------------------
+# 🔗 Linkage & Dependency Propagation
+# ---------------------------------------------------------
+# Consolidate internal submodules and global build options into the application layer
+target_link_libraries(floodsim_app
     PUBLIC
-        danasim_options
-        danasim_config
-        danasim_core
-        danasim_adapters
+        floodsim_options
+        floodsim_config
+        floodsim_core
+        floodsim_adapters
 )

@@ -27,6 +27,7 @@ public:
     virtual ~FileStaticWriter() override = default;
 
 protected:
+    /** @brief The filename of the static resource to be written. */
     std::string data_filename_;
 };
 

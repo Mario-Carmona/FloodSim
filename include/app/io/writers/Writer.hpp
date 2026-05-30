@@ -30,9 +30,6 @@ public:
 
     /**
      * @brief Saves floating-point grid data to the specified path.
-     * @param data_path The destination file path.
-     * @param data The vector containing float data to be saved.
-     * @param metadata Spatial and structural properties of the grid.
      * @throws std::runtime_error if not implemented by the derived class.
      */
     virtual void Save(const std::filesystem::path& /* data_path */,
@@ -43,9 +40,6 @@ public:
 
     /**
      * @brief Saves 8-bit integer grid data to the specified path.
-     * @param data_path The destination file path.
-     * @param data The vector containing int8_t data to be saved.
-     * @param metadata Spatial and structural properties of the grid.
      * @throws std::runtime_error if not implemented by the derived class.
      */
     virtual void Save(const std::filesystem::path& /* data_path */,

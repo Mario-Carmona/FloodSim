@@ -165,7 +165,7 @@ void RenderInputTab(app::config::InputConfig& input_config, const app::config::U
                 ImGui::Text("Static Format");
 
                 ImGui::TableSetColumnIndex(1);
-                EnumComboBox("##StaticFormat", input_config.file.static_format, "Format of the static topography files (e.g., GeoTIFF, NetCDF).");
+                EnumComboBox("##StaticFormat", input_config.file.static_format, "Format of the static topography files.");
             }
 
             // --- Dynamic Format ---

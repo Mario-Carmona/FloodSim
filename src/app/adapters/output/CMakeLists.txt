@@ -1,47 +1,83 @@
 
+# =========================================================
+# 📤 Data Sink (Output) Adapters Configuration
+# =========================================================
 
+# ---------------------------------------------------------
+# 📦 External Telemetry & Computer Vision Dependencies
+# ---------------------------------------------------------
+# Explicitly route the OpenCV root to the vcpkg installation directory
 set(OpenCV_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/opencv4")
+
+# Resolve Computer Vision framework for visual state serialization
 find_package(OpenCV REQUIRED)
 
-
+# Resolve IoT/Message Broker dependencies for real-time telemetry publishing
 find_package(PahoMqttCpp CONFIG REQUIRED)
 
-
-
+# ---------------------------------------------------------
+# 📂 Internal Module Hierarchy Traversals
+# ---------------------------------------------------------
+# Register the internal MQTT client and broker communication submodule
 add_subdirectory(mqtt)
 
-add_library(danasim_output_adapters)
+# ---------------------------------------------------------
+# 🏗️ Core Library Component Declaration
+# ---------------------------------------------------------
+# Define the concrete adapter library responsible for bridging the core 
+# simulation domain with external data sinks and serialization boundaries.
+add_library(floodsim_output_adapters)
 
-target_sources(danasim_output_adapters
+# ---------------------------------------------------------
+# 🎯 Source Compilation Units Registration
+# ---------------------------------------------------------
+target_sources(floodsim_output_adapters
     PRIVATE
-        CheckpointOutput.cpp
-        MQTTOutput.cpp
-        ImageOutput.cpp
+        # Creational instantiation
         OutputFactory.cpp
+        
+        # Concrete driven adapters
+        CheckpointOutput.cpp # Simulation state snapshot handlers
+        MQTTOutput.cpp       # Real-time telemetry publishers
+        ImageOutput.cpp      # Visual frame serialization handlers
 )
 
-target_include_directories(danasim_output_adapters
+# ---------------------------------------------------------
+# 📂 Header Search Directories
+# ---------------------------------------------------------
+# Expose the global project include root and Computer Vision headers
+target_include_directories(floodsim_output_adapters
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
 )
 
-target_link_libraries(danasim_output_adapters
+# ---------------------------------------------------------
+# 🔗 Linkage & Dependency Propagation
+# ---------------------------------------------------------
+# Bind core logic, internal serialization writers, and the external OpenCV runtime
+target_link_libraries(floodsim_output_adapters
     PUBLIC
-        danasim_options
-        danasim_core
-        danasim_io_writers
-        danasim_output_mqtt
+        floodsim_options
+        floodsim_core
+        floodsim_io_writers
+        floodsim_output_mqtt
         ${OpenCV_LIBS}
 )
 
+# ---------------------------------------------------------
+# Platform-Specific Linkage Directives (MQTT)
+# ---------------------------------------------------------
+# Adapt MQTT linkage strategies based on the target OS deployment model
 if(WIN32)
-    target_link_libraries(danasim_output_adapters
+    # Windows targets dynamically link the MQTT client (shared libraries)
+    target_link_libraries(floodsim_output_adapters
         PUBLIC
             PahoMqttCpp::paho-mqttpp3 PahoMqttCpp::paho-mqttpp3-shared
     )
 else()
-    target_link_libraries(danasim_output_adapters
+    # Unix-like environments favor static linkage for the MQTT client
+    target_link_libraries(floodsim_output_adapters
         PUBLIC
             PahoMqttCpp::paho-mqttpp3 PahoMqttCpp::paho-mqttpp3-static
     )

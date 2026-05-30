@@ -27,13 +27,14 @@ namespace {
  */
 void PrintUsage(std::string_view program_name, std::ostream& out = std::cout) {
     out << "Usage:\n"
-        << "  " << program_name << " [--config /path/to/config.yaml]\n"
+        << "  " << program_name << " [--config /path/to/config.yaml] [--output_path /path/to/output]\n"
         << "  " << program_name << " [--version]\n"
         << "  " << program_name << " [--help]\n\n"
         << "Options:\n"
-        << "  --config <path>   Path to the YAML configuration file.\n"
-        << "  --version         Show the application version and exit.\n"
-        << "  --help            Show this help message and exit.\n\n"
+        << "  --config <path>       Path to the YAML configuration file.\n"
+        << "  --output_path <path>  Optional. Overrides the output directory specified in the config file. Must be used with --config.\n"
+        << "  --version             Show the application version and exit.\n"
+        << "  --help                Show this help message and exit.\n\n"
         << "If no arguments are provided, the configuration path will be prompted interactively.\n";
 }
 
@@ -52,22 +53,10 @@ void PrintUsage(std::string_view program_name, std::ostream& out = std::cout) {
 int main(int argc, char* argv[]) {
     try {
         std::string config_input_str;
+        std::string output_path_str;
 
         // 1. Command-line Argument Parsing
-        if (argc == 2 && std::string_view(argv[1]) == "--help") {
-            PrintUsage(argv[0], std::cout);
-            return EXIT_SUCCESS;
-        }
-
-        if (argc == 2 && std::string_view(argv[1]) == "--version") {
-            std::cout << "FloodSim version 1.0 (2026)\n";
-            return EXIT_SUCCESS;
-        }
-
-        if (argc == 3 && std::string_view(argv[1]) == "--config") {
-            config_input_str = argv[2];
-        }
-        else if (argc == 1) {
+        if (argc == 1) {
             std::cout << "Enter the path to the configuration file (.yaml): ";
             if (!std::getline(std::cin, config_input_str) || config_input_str.empty()) {
                 std::cerr << "[Error] No configuration path provided. Aborting.\n";
@@ -75,8 +64,58 @@ int main(int argc, char* argv[]) {
             }
         }
         else {
-            PrintUsage(argv[0], std::cerr);
-            return EXIT_FAILURE;
+            // Iterate over arguments to support multiple optional flags in any order
+            for (int i = 1; i < argc; ++i) {
+                std::string_view arg = argv[i];
+
+                if (arg == "--help") {
+                    PrintUsage(argv[0], std::cout);
+                    return EXIT_SUCCESS;
+                }
+                else if (arg == "--version") {
+                    // Note: Assuming FLOODSIM_PROGRAM_VERSION is a macro defined elsewhere
+                    std::cout << "FloodSim version " << FLOODSIM_PROGRAM_VERSION << "\n";
+                    return EXIT_SUCCESS;
+                }
+                else if (arg == "--config") {
+                    if (i + 1 < argc) {
+                        config_input_str = argv[++i];
+                    }
+                    else {
+                        std::cerr << "[Error] Missing value for --config.\n";
+                        PrintUsage(argv[0], std::cerr);
+                        return EXIT_FAILURE;
+                    }
+                }
+                else if (arg == "--output_path") {
+                    if (i + 1 < argc) {
+                        output_path_str = argv[++i];
+                    }
+                    else {
+                        std::cerr << "[Error] Missing value for --output_path.\n";
+                        PrintUsage(argv[0], std::cerr);
+                        return EXIT_FAILURE;
+                    }
+                }
+                else {
+                    std::cerr << "[Error] Unknown argument: " << arg << "\n";
+                    PrintUsage(argv[0], std::cerr);
+                    return EXIT_FAILURE;
+                }
+            }
+
+            // Enforce that --output_path must be used alongside --config
+            if (config_input_str.empty() && !output_path_str.empty()) {
+                std::cerr << "[Error] The --output_path argument requires --config to be provided.\n";
+                PrintUsage(argv[0], std::cerr);
+                return EXIT_FAILURE;
+            }
+
+            if (config_input_str.empty()) {
+                std::cerr << "[Error] No configuration path provided.\n";
+                PrintUsage(argv[0], std::cerr);
+                return EXIT_FAILURE;
+            }
         }
 
         // 2. Path Normalization and Validation
@@ -99,6 +138,15 @@ int main(int argc, char* argv[]) {
         // 3. Application Initialization
         // ConfigLoader::Load will throw a ConfigurationException if parsing or validation fails
         floodsim::app::config::Config config = floodsim::app::config::ConfigLoader::Load(absolute_config_path);
+
+        // Override the output directory if the --output_path argument was provided
+        if (!output_path_str.empty()) {
+            std::filesystem::path absolute_output_path = std::filesystem::absolute(output_path_str).lexically_normal();
+
+            config.scenario.output_dir = absolute_output_path;
+            std::cout << "Overriding config output directory with: " << absolute_output_path << "\n";
+        }
+
         floodsim::app::Application app(std::move(config));
 
         // 4. Simulation Execution

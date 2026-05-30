@@ -1,6 +1,6 @@
 # DanaSim simulation monitor configuration
 
-sim_config: ../../config/config_29_10_2024.yaml
+sim_config: /kaggle/input/datasets/mariocarseg/configs/check_ver_2/config_29_10_2024_kaggle_check_7.yaml
 
 mqtt:
   host: localhost

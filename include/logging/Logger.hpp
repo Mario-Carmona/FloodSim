@@ -7,7 +7,12 @@
 
 #pragma once
 
-// Define active log level for compilation (optional, improves performance if defined)
+ /**
+  * @brief Defines the active log level for compilation.
+  * * This is optional, but it improves performance if defined before including
+  * the spdlog headers, as it completely removes log statements below this
+  * level at compile time.
+  */
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #include <spdlog/spdlog.h>
@@ -69,11 +74,43 @@ private:
 } // namespace floodsim::logging
 
 // --- EFFICIENT ACCESS MACROS ---
-// We use macros to capture __FILE__ and __LINE__ if needed in the future,
-// and to avoid argument evaluation if the log level is disabled.
 
+/**
+ * @brief Logs a debug message using the core logger.
+ * * We use macros to automatically capture source location (`__FILE__` and `__LINE__`)
+ * and to avoid argument evaluation if the debug log level is disabled.
+ * * @param ... Format string and corresponding variadic arguments.
+ */
 #define LOG_DEBUG(...)    SPDLOG_LOGGER_DEBUG(floodsim::logging::Logger::Get(), __VA_ARGS__)
+
+/**
+ * @brief Logs an informational message using the core logger.
+ * * We use macros to automatically capture source location (`__FILE__` and `__LINE__`)
+ * and to avoid argument evaluation if the info log level is disabled.
+ * * @param ... Format string and corresponding variadic arguments.
+ */
 #define LOG_INFO(...)     SPDLOG_LOGGER_INFO(floodsim::logging::Logger::Get(), __VA_ARGS__)
+
+/**
+ * @brief Logs a warning message using the core logger.
+ * * We use macros to automatically capture source location (`__FILE__` and `__LINE__`)
+ * and to avoid argument evaluation if the warning log level is disabled.
+ * * @param ... Format string and corresponding variadic arguments.
+ */
 #define LOG_WARN(...)     SPDLOG_LOGGER_WARN(floodsim::logging::Logger::Get(), __VA_ARGS__)
+
+/** 
+ * @brief Logs an error message using the core logger.
+ * * We use macros to automatically capture source location (`__FILE__` and `__LINE__`)
+ * and to avoid argument evaluation if the error log level is disabled.
+ * * @param ... Format string and corresponding variadic arguments.
+ */
 #define LOG_ERROR(...)    SPDLOG_LOGGER_ERROR(floodsim::logging::Logger::Get(), __VA_ARGS__)
+
+/**
+ * @brief Logs a critical message using the core logger.
+ * * We use macros to automatically capture source location (`__FILE__` and `__LINE__`)
+ * and to avoid argument evaluation if the critical log level is disabled.
+ * * @param ... Format string and corresponding variadic arguments.
+ */
 #define LOG_CRITICAL(...) SPDLOG_LOGGER_CRITICAL(floodsim::logging::Logger::Get(), __VA_ARGS__)

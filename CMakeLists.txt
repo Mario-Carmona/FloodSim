@@ -1,12 +1,13 @@
 
 cmake_minimum_required(VERSION 4.1.1)
 
-
+# ------------------------------------------------------------
+# 🛠️ Feature Toggles & Component Activation
+# ------------------------------------------------------------
 if(BUILD_APP)
     set(ENABLE_INPUT_ADAPTERS ON)
     set(ENABLE_OUTPUT_ADAPTERS ON)
     set(ENABLE_STATE_UPDATER_ADAPTERS ON)
-    set(ENABLE_APP ON)
     set(ENABLE_CORE ON)
 endif()
 
@@ -15,7 +16,9 @@ if(BUILD_ALL_TESTS)
     set(ENABLE_CORE ON)
 endif()
 
-
+# ------------------------------------------------------------
+# 📦 Vcpkg Manifest Feature Configuration
+# ------------------------------------------------------------
 set(VCPKG_MANIFEST_FEATURES "")
 
 if(ENABLE_INPUT_ADAPTERS)
@@ -24,10 +27,6 @@ endif()
 
 if(ENABLE_OUTPUT_ADAPTERS)
     list(APPEND VCPKG_MANIFEST_FEATURES "output-adapters")
-endif()
-
-if(ENABLE_APP)
-    list(APPEND VCPKG_MANIFEST_FEATURES "app")
 endif()
 
 if(ENABLE_CORE)
@@ -44,32 +43,32 @@ if(BUILD_TESTS)
     list(APPEND VCPKG_MANIFEST_FEATURES "test")
 endif()
 
-
-
-# 1. Detectar la variable de entorno y crear la carpeta si existe
+# ------------------------------------------------------------
+# 💾 Environment & Binary Cache Setup
+# ------------------------------------------------------------
+# Detect the environment variable and create the directory if it exists
 if(DEFINED ENV{VCPKG_DEFAULT_BINARY_CACHE})
     file(MAKE_DIRECTORY "$ENV{VCPKG_DEFAULT_BINARY_CACHE}")
 endif()
 
-
-
 # ------------------------------------------------------------
-# 🕒 Generación de versión compatible con Windows (MSI)
+# 🕒 Windows-Compatible Version Generation (MSI Compliant)
 # ------------------------------------------------------------
 string(TIMESTAMP CURRENT_YEAR "%Y")
 string(TIMESTAMP CURRENT_MONTH "%m")
 string(TIMESTAMP CURRENT_DAY "%d")
 
-# Convertimos el año a un número menor a 256 (ej: 2026 -> 26)
+# Convert the year to a relative minor value under 256 (e.g., 2026 -> 26)
 math(EXPR MAJOR_VER "${CURRENT_YEAR} - 2000")
-# Eliminamos ceros a la izquierda para evitar que CMake los interprete como octales
+# Add 0 to strip leading zeros and prevent CMake from interpreting values as octal
 math(EXPR MINOR_VER "${CURRENT_MONTH} + 0")
 math(EXPR PATCH_VER "${CURRENT_DAY} + 0")
 
 set(PROGRAM_VERSION "${MAJOR_VER}.${MINOR_VER}.${PATCH_VER}")
 
-#############################################
-
+# ------------------------------------------------------------
+# 📜 Copyright & Metadata Configuration
+# ------------------------------------------------------------
 set(COPYRIGHT_RANGE_START "2026")
 
 if(CURRENT_YEAR EQUAL COPYRIGHT_RANGE_START)
@@ -78,24 +77,18 @@ else()
     set(COPYRIGHT_YEAR "${COPYRIGHT_RANGE_START}-${CURRENT_YEAR}")
 endif()
 
-###############################################
-
 set(AUTHOR "Mario Carmona Segovia")
+set(CONTACT_EMAIL "mario.carmona.informatico@gmail.com")
 
-#################################################
-
-
+# Initialize Project
 project(FloodSim VERSION ${PROGRAM_VERSION} LANGUAGES CXX)
 
-
-# 1. Incluir el módulo estándar de directorios
+# Include standard GNU installation directories module
 include(GNUInstallDirs)
-
-
 
 string(TOLOWER "${PROJECT_NAME}" PROJECT_NAME_LOWER)
 
-
+# Inject global preprocessor definitions for target binaries
 add_compile_definitions(
     FLOODSIM_PROGRAM_NAME="${PROJECT_NAME}"
     FLOODSIM_PROGRAM_VERSION="${PROGRAM_VERSION}"
@@ -103,18 +96,17 @@ add_compile_definitions(
     FLOODSIM_COPYRIGHT_YEAR="${COPYRIGHT_YEAR}"
 )
 
-
-
-
+# ------------------------------------------------------------
+# 📂 Subdirectory Targets & External Disclosures
+# ------------------------------------------------------------
 if(BUILD_APP OR BUILD_TESTS)
     set(CLI_EXE_NAME "${PROJECT_NAME}CLI")
     set(GUI_EXE_NAME "${PROJECT_NAME}GUI")
 
     add_subdirectory(src)
 
-
+    # Generate third-party open-source attribution notices
     include(cmake/third_party_notices.cmake)
-
     generate_third_party_notices(
         "${VCPKG_INSTALLED_DIR}" 
         "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -128,161 +120,159 @@ endif()
 
 if(BUILD_TESTS)
     enable_testing()
-
     add_subdirectory(tests)
 endif()
 
+# ------------------------------------------------------------
+# 🐍 Python Environment Deployment
+# ------------------------------------------------------------
 if(BUILD_PYTHON_ENVS)
     add_subdirectory(python)
 
-
     if(WIN32)
-        # En Windows: C:\Archivos de Programa\FloodSim\config
         set(PYTHON_SCRIPTS_DEST_PATH "${CMAKE_INSTALL_DATADIR}")
     else()
-        # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
-        # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
         set(PYTHON_SCRIPTS_DEST_PATH "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME_LOWER}")
     endif()
 
-    # Instalar el directorio completo
+    # Install the full python source directory
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/python"
             DESTINATION ${PYTHON_SCRIPTS_DEST_PATH}
-            COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
+            COMPONENT Unspecified
     )
 endif()
 
-
-
+# ------------------------------------------------------------
+# 🚀 Resource & Asset Installation Rules
+# ------------------------------------------------------------
 if(BUILD_APP)
 
-    # Definir dónde se guardará la configuración según el sistema operativo
+    # Define configuration path layout depending on the platform
     if(WIN32)
-        # En Windows: C:\Archivos de Programa\FloodSim\config
         set(CONFIG_DEST_PATH "${CMAKE_INSTALL_SYSCONFDIR}")
     else()
-        # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
-        # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
         set(CONFIG_DEST_PATH "${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME_LOWER}")
     endif()
 
-    # Instalar el directorio completo
+    # Install the configuration directory
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config"
             DESTINATION ${CONFIG_DEST_PATH}
-            COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
+            COMPONENT Unspecified 
     )
 
-
-
-    # Definir dónde se guardará la configuración según el sistema operativo
+    # Define data path layout depending on the platform
     if(WIN32)
-        # En Windows: C:\Archivos de Programa\FloodSim\config
         set(DATA_DEST_PATH "${CMAKE_INSTALL_DATADIR}")
     else()
-        # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
-        # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
         set(DATA_DEST_PATH "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME_LOWER}")
     endif()
 
-    # Instalación de la carpeta data
-    # Esto copiará TODO el contenido de tu carpeta local "data" al directorio del instalador
-    #install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
-    #        DESTINATION ${DATA_DEST_PATH}
-    #        COMPONENT Unspecified
-    #)
+    # Install the asset data directory
+    # Copies all contents from the local "data" directory into the staging environment
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/data"
+            DESTINATION ${DATA_DEST_PATH}
+            COMPONENT Unspecified
+            PATTERN ".git" EXCLUDE
+            PATTERN ".gitattributes" EXCLUDE
+    )
 
-
+    # Install the legal license file
     install(FILES 
         "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
         DESTINATION ${CMAKE_INSTALL_DOCDIR}
     )
 
-
-    # Información básica del paquete
+    # ------------------------------------------------------------
+    # 📦 CPack Distribution Framework
+    # ------------------------------------------------------------
+    # Package baseline properties
     if(ENABLE_GUI)
         set(CPACK_PACKAGE_NAME "${PROJECT_NAME}-Desktop-Full")
     else()
         set(CPACK_PACKAGE_NAME "${PROJECT_NAME}-Server-CLI")
     endif()
     
-    set(CPACK_PACKAGE_VENDOR "Tu Nombre o Compañía")
+    set(CPACK_PACKAGE_VENDOR "${AUTHOR}")
     set(CPACK_PACKAGE_VERSION ${PROGRAM_VERSION})
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Simulador de Redes Neuronales y Procesamiento de Datos")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Flood Simulator")
 
     set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 
-    # Obtener la arquitectura del procesador (amd64 / x86_64)
+    # Extract target host processor architecture
     set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
 
     if(WIN32)
-        # Nombre para Windows
+        # Standardized layout filename for Windows distributions
         set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${PROJECT_VERSION}_Windows_${ARCH}")
     
     elseif(UNIX AND NOT APPLE)
-        # Si estamos en Linux, intentamos sacar la versión exacta del SO (ej. "Ubuntu-22.04")
-        # leyendo el archivo /etc/os-release
+        # On Linux systems, attempt to extract precise distribution details (e.g., "Ubuntu-22.04")
+        # by processing the standard /etc/os-release manifest
         set(OS_RELEASE_NAME "Linux")
     
         if(EXISTS "/etc/os-release")
             file(READ "/etc/os-release" OS_RELEASE_CONTENT)
             string(REGEX MATCH "PRETTY_NAME=\"([^\"]+)\"" _ ${OS_RELEASE_CONTENT})
             if(CMAKE_MATCH_1)
-                # Reemplaza espacios por guiones (Ej: "Ubuntu 22.04.3 LTS" -> "Ubuntu-22.04.3-LTS")
+                # Replace whitespace occurrences with hyphens (e.g., "Ubuntu 22.04.3 LTS" -> "Ubuntu-22.04.3-LTS")
                 string(REPLACE " " "-" OS_RELEASE_NAME "${CMAKE_MATCH_1}") 
             endif()
         endif()
 
-        # Nombre para Linux
+        # Standardized layout filename for Linux distributions
         set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${PROJECT_VERSION}_${OS_RELEASE_NAME}_${ARCH}")
     endif()
 
-
-    # Separar por componentes
+    # Enable component-aware installation patterns
     set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 
-    # 1. Añadimos Unspecified a la lista de componentes 
+    # Explicitly append the "Unspecified" fallback component to the registry
     list(APPEND CPACK_COMPONENTS_ALL "Unspecified")
     
-    # Opcional: Descripción de componentes para NSIS/WIX
-    set(CPACK_COMPONENT_CLI_DISPLAY_NAME "Herramientas de Línea de Comandos")
-    set(CPACK_COMPONENT_GUI_DISPLAY_NAME "Interfaz Gráfica de Usuario")
+    # UI Component metadata strings for Windows installations (NSIS/WIX formats)
+    set(CPACK_COMPONENT_CLI_DISPLAY_NAME "Command Line Interface Tools")
+    set(CPACK_COMPONENT_GUI_DISPLAY_NAME "Graphical User Interface")
 
-    # 2. Hacemos que el componente de dependencias sea obligatorio e invisible
+    # Enforce the dependency component as a mandatory, non-visible system requirement
     set(CPACK_COMPONENT_UNSPECIFIED_HIDDEN TRUE)
     set(CPACK_COMPONENT_UNSPECIFIED_REQUIRED TRUE)
     
-    # Permitir que las DLLs de vcpkg se instalen como parte del componente
+    # Permit runtime DLL assets from vcpkg to bundle within the target component
     set(CPACK_APP_COMPONENT_INSTALL ON)
     
+    # ------------------------------------------------------------
+    # Windows Specific CPack Settings (WiX Toolset)
+    # ------------------------------------------------------------
     if(WIN32)
-        # 1. Definimos que las librerías de sistema (msvcp140, etc.) 
-        # se instalen en los componentes que nosotros queremos.
+        set(CPACK_GENERATOR "WIX")
+
+        # Map system runtime dependencies (msvcp140, etc.) to target component pools
         set(CPACK_SYSTEM_LIBRARIES_ID "Unspecified")
 
-        # Forzamos a CPack a ejecutar la instalación para cada componente
-        # Estructura: "Directorio de Build" "Nombre Proyecto" "Componente" "Directorio Instalación"
-        # 3. Forzamos a CPack a ejecutar la instalación también para Unspecified [cite: 6]
+        # --- Settings for updating the PATH ---
+        # Specify to CPack to compile your additional WiX code file
+        set(CPACK_WIX_EXTRA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Windows/add_path.wxs")
+
+        # Specify to CPack to apply your patch when generating main.wxs
+        set(CPACK_WIX_PATCH_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Windows/wix_patch.xml")
+
+        # Enforce multi-component layout mapping within the CPack build generator matrix
+        # Pattern structure: "Build Directory" "Project Name" "Component Identifier" "Install Path"
+        # Explicitly enforce the processing of the "Unspecified" component layer
         set(CPACK_INSTALL_CMAKE_PROJECTS 
             "${CMAKE_BINARY_DIR}" "${PROJECT_NAME}" "CLI" "/"
             "${CMAKE_BINARY_DIR}" "${PROJECT_NAME}" "GUI" "/"
             "${CMAKE_BINARY_DIR}" "${PROJECT_NAME}" "Unspecified" "/"
         )
     
-        # 2. Incluimos el módulo (Esto genera la lista de DLLs de VS)
+        # Scan and dynamically populate standard Visual Studio runtime redistribution prerequisites
         include(InstallRequiredSystemLibraries)
 
-        # 3. Configuración visual del instalador NSIS/WIX
+        # Installer shell executable mapping for shortcut tracking
         set(CPACK_PACKAGE_EXECUTABLES 
             "FloodSimGUI" "FloodSim Simulator"
             "FloodSimCLI" "FloodSim Terminal"
         )
-    endif()
-
-
-    # Configuración específica para Windows
-    if(WIN32)
-
-        set(CPACK_GENERATOR "WIX")
 
         find_program(CPACK_WIX_CANDLE_EXECUTABLE 
             NAMES candle 
@@ -295,25 +285,19 @@ if(BUILD_APP)
         )
 
         set(CPACK_WIX_LICENSE_RTF "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/License.rtf")
-        
 
-        # 1. Genera un GUID nuevo una sola vez y pégalo aquí permanentemente
+        # Persistent application upgrade GUID — do not alter once established in production
         set(CPACK_WIX_UPGRADE_GUID "86D6D602-CCC2-4BE3-A83C-4D9D7A61FAE0")
-
 
         set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/${PROJECT_NAME_LOWER}.ico")
 
-        # ---------------------------------------------------------
-        # 1. CARPETA EN EL MENÚ DE INICIO (ESTILO PROFESIONAL)
-        # ---------------------------------------------------------
-        # Crea una carpeta "Tu Compañía -> FloodSim" en Inicio
+        # Start Menu Hierarchy Configuration
+        # Generates an isolated folder tree: "Your Company -> FloodSim" inside the Start Menu
         set(CPACK_WIX_PROGRAM_MENU_FOLDER "FloodSim")
 
-        # ---------------------------------------------------------
-        # 2. ACCESOS DIRECTOS EN EL MENÚ DE INICIO
-        # ---------------------------------------------------------
-        # Formato: "NombreDelTarget" "Nombre Amigable a Mostrar"
-        # IMPORTANTE: El primer valor debe ser el nombre exacto de tu add_executable()
+        # Start Menu Application Shortcut Mappings
+        # Syntax Layout: "TargetExecutableName" "User-Friendly Display Name String"
+        # CRITICAL: The initial field value must strictly match the add_executable() target declaration
         set(CPACK_PACKAGE_EXECUTABLES 
             "${PROJECT_NAME}GUI" "FloodSim Simulator"
             "${PROJECT_NAME}CLI" "FloodSim Terminal"
@@ -321,9 +305,12 @@ if(BUILD_APP)
 
     endif()
 
-    # Configuración específica para Linux
+    # ------------------------------------------------------------
+    # Linux Specific CPack Settings (Debian Packaging)
+    # ------------------------------------------------------------
     if(UNIX AND NOT APPLE)
-        set(CPACK_GENERATOR "DEB") # Genera un instalador .deb y un comprimido .tar.gz
+        # Emits production .deb assets alongside fallback compressed .tar.gz files
+        set(CPACK_GENERATOR "DEB")
 
         configure_file(
             "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Linux/${PROJECT_NAME_LOWER}.desktop.in"
@@ -331,35 +318,33 @@ if(BUILD_APP)
             @ONLY
         )
 
-        # 1. Instalar el acceso directo (Menú de aplicaciones)
+        # 1. Desktop Entry Installation (Application System Menus)
         install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Linux/${PROJECT_NAME_LOWER}.desktop"
             DESTINATION "share/applications"
-            COMPONENT GUI # Solo lo instalamos si se instala la interfaz gráfica
+            COMPONENT GUI # Deployed exclusively when the visual application environment is present
         )
 
-        # 2. Instalar el icono de la aplicación
-        # (Asegúrate de tener un floodsim.png de 256x256 píxeles)
+        # 2. Icon Asset Installation
+        # (Requires a valid source scalable vector or 256x256 pixel image target)
         install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/${PROJECT_NAME_LOWER}.svg"
             DESTINATION "share/icons/hicolor/scalable/apps"
             COMPONENT GUI
         )
 
-        # Datos del paquete
-        set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Tu Nombre <tu-email@ejemplo.com>")
+        # Debian Maintainer Details
+        set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${AUTHOR} <${CONTACT_EMAIL}>")
 
-        # Prefijo para los paquetes (ej. floodsim-gui_1.0.0_amd64.deb)
+        # Consolidated Debian asset package identification prefix (e.g., floodsim-gui_1.0.0_amd64.deb)
         set(CPACK_DEBIAN_PACKAGE_NAME "${PROJECT_NAME_LOWER}")
 
         set(CPACK_DEBIAN_PACKAGE_LICENSE "MIT")
 
-        # ---------------------------------------------------------
-        # GENERACIÓN UNIFICADA (TODA LA SUITE EN UN SOLO .DEB)
-        # ---------------------------------------------------------
-        # Al poner esto en OFF, CPack ignorará las separaciones de COMPONENT
-        # y meterá la GUI, la CLI y las librerías en un único paquete.
+        # Monolithic Suite Distribution Control (Unified Installer Single Setup)
+        # Forcing this flag to OFF instructs CPack to bypass fine-grained COMPONENT splits, 
+        # combining the GUI, CLI, and base library contexts into one single .deb payload.
         set(CPACK_DEB_COMPONENT_INSTALL OFF)
     endif()
 
-    # Incluir CPack (siempre al final)
+    # Load CPack Engine (Must remain at the absolute end of the project declaration)
     include(CPack)
 endif()

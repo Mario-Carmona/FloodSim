@@ -35,7 +35,6 @@ public:
 
     /**
      * @brief Reads floating-point data into the provided buffer.
-     * @param data The vector to populate with float data.
      * @throws std::runtime_error if not implemented by the derived class.
      */
     virtual void Read(std::vector<float>& /* data */) const {
@@ -44,7 +43,6 @@ public:
 
     /**
      * @brief Reads 8-bit integer data into the provided buffer.
-     * @param data The vector to populate with int8_t data.
      * @throws std::runtime_error if not implemented by the derived class.
      */
     virtual void Read(std::vector<int8_t>& /* data */) const {

@@ -30,7 +30,9 @@ public:
     virtual ~FileDynamicReader() override = default;
 
 protected:
+    /** @brief The path to the directory containing the dynamic files. */
     std::filesystem::path data_path_;
+    /** @brief The base filename of the dynamic resource. */
     std::string data_filename_;
 };
 
