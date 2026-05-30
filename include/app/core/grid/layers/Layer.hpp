@@ -81,13 +81,32 @@ public:
 	Scratchpad() = default;
 	virtual ~Scratchpad() = default;
 
+	/**
+	 * @brief Gets a reference to the underlying data vector.
+	 * @return std::vector<T>& Reference to the data vector.
+	 */
 	[[nodiscard]] std::vector<T>& GetData() noexcept { return data_; }
+
+	/**
+	 * @brief Gets a constant reference to the underlying data vector.
+	 * @return const std::vector<T>& Constant reference to the data vector.
+	 */
 	[[nodiscard]] const std::vector<T>& GetData() const noexcept { return data_; }
 
+	/**
+	 * @brief Resizes the underlying data vector.
+	 * @param new_size The new size of the vector.
+	 */
 	void Resize(size_t new_size) override { data_.resize(new_size); }
+
+	/**
+	 * @brief Gets the current size of the data vector.
+	 * @return size_t Current number of elements.
+	 */
 	[[nodiscard]] size_t GetSize() const noexcept override { return data_.size(); }
 
 protected:
+	/** @brief The underlying data vector. */
 	std::vector<T> data_;
 };
 

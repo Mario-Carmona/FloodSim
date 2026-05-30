@@ -42,7 +42,9 @@ public:
     virtual ~FileStaticReader() override = default;
 
 protected:
+    /** @brief The path to the directory containing the static files. */
     std::filesystem::path data_path_;
+    /** @brief The filename of the static resource. */
     std::string data_filename_;
 };
 

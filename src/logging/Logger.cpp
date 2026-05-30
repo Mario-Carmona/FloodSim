@@ -48,6 +48,11 @@ namespace {
  */
 class ThreadNameFlag : public spdlog::custom_flag_formatter {
 public:
+    /** 
+     * @brief Formats the log message with the dynamically aligned thread name.
+	 * @param msg The log message containing the thread ID.
+	 * @param dest The destination buffer to append the formatted thread name.
+     */
     void format(const spdlog::details::log_msg& msg, const std::tm&,
                 spdlog::memory_buf_t& dest) override {
         std::string_view name = "Unknown";
@@ -72,6 +77,10 @@ public:
         spdlog::fmt_lib::format_to(std::back_inserter(dest), "{:<{}}", name, width);
     }
 
+    /** 
+     * @brief Clones the flag formatter.
+	 * @return A unique pointer to the cloned formatter.
+     */
     std::unique_ptr<custom_flag_formatter> clone() const override {
         return spdlog::details::make_unique<ThreadNameFlag>();
     }
@@ -84,10 +93,18 @@ public:
 template <typename Mutex>
 class CallbackSink : public spdlog::sinks::base_sink<Mutex> {
 public:
+    /** 
+     * @brief Constructs a new CallbackSink with the specified callback function.
+	 * @param callback A function that takes an integer log level and a formatted message string.
+     */
     explicit CallbackSink(std::function<void(int, const std::string&)> callback)
         : callback_(std::move(callback)) {}
 
 protected:
+    /** 
+     * @brief Implements the sink logic for forwarding log messages. 
+	 * @param msg The log message to be processed and forwarded.
+     */
     void sink_it_(const spdlog::details::log_msg& msg) override {
         spdlog::memory_buf_t formatted;
         this->formatter_->format(msg, formatted);
@@ -98,13 +115,15 @@ protected:
         }
     }
 
+    /** 
+     * @brief Flushes the sink.
+	 */
     void flush_() override {}
 
 private:
+    /** @brief The callback function to forward log messages. */
     std::function<void(int, const std::string&)> callback_;
 };
-
-using CallbackSinkMt = CallbackSink<std::mutex>;
 
 spdlog::level::level_enum Logger::ToSpdLevel(LoggerLevel level) {
     switch (level) {
@@ -134,7 +153,7 @@ void Logger::Init(LoggerLevel level, bool async, bool silent,
     else {
         if (gui_callback) {
             // GUI MODE: Send logs to the callback
-            sinks.push_back(std::make_shared<CallbackSinkMt>(gui_callback));
+            sinks.push_back(std::make_shared<CallbackSink<std::mutex>>(gui_callback));
         }
         else {
             // CLI MODE: Standard console with colors

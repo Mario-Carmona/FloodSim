@@ -1,20 +1,37 @@
 
+# =========================================================
+# 📄 File-Based Serialization Engine Configuration
+# =========================================================
 
-add_library(danasim_io_writers_file)
+# Define the concrete library component responsible for file-based data output
+add_library(floodsim_io_writers_file)
 
-target_sources(danasim_io_writers_file
+# ---------------------------------------------------------
+# 🎯 Source Compilation Units Registration
+# ---------------------------------------------------------
+# Register the private implementation files for static writing operations
+# and specific file format handlers (e.g., Idrisi)
+target_sources(floodsim_io_writers_file
     PRIVATE
         static/FileStaticWriter.cpp
         static/FileStaticWriterFactory.cpp
         static/IdrisiWriter.cpp
 )
 
-target_include_directories(danasim_io_writers_file
+# ---------------------------------------------------------
+# 📂 Header Search Directories
+# ---------------------------------------------------------
+# Expose the global project include root to all downstream dependents
+target_include_directories(floodsim_io_writers_file
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(danasim_io_writers_file
+# ---------------------------------------------------------
+# 🔗 Linkage & Dependency Propagation
+# ---------------------------------------------------------
+# Inherit global build policies and compiler directives
+target_link_libraries(floodsim_io_writers_file
     PUBLIC
-        danasim_options
+        floodsim_options
 )

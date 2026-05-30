@@ -1,5 +1,5 @@
 # ============================================================
-# ONNX Runtime C++ API integration using FetchContent
+# 🧠 ONNX Runtime C++ API integration using FetchContent
 # ============================================================
 
 include(FetchContent)
@@ -12,7 +12,7 @@ set(ONNX_RUNTIME_VERSION "1.23.2" CACHE STRING "ONNX Runtime C++ API version")
 message(STATUS "Configuring ONNX Runtime C++ API (version ${ONNX_RUNTIME_VERSION})")
 
 # ------------------------------------------------------------
-# Select ONNX Runtime binary according to platform
+# Select ONNX Runtime binary according to target platform
 # ------------------------------------------------------------
 if (WIN32)
     set(ONNX_RUNTIME_PLATFORM "win-x64")
@@ -27,13 +27,10 @@ endif()
 
 set(ONNX_RUNTIME_URL "https://github.com/microsoft/onnxruntime/releases/download/v${ONNX_RUNTIME_VERSION}/onnxruntime-${ONNX_RUNTIME_PLATFORM}-${ONNX_RUNTIME_VERSION}.${ONNX_RUNTIME_ARCHIVE_EXT}")
 
-message(STATUS "ONNX Runtime download URL: ${ONNX_RUNTIME_URL}")
+message(STATUS "ONNX Runtime download URL resolved: ${ONNX_RUNTIME_URL}")
 
-
-# Construimos la ruta: <Proyecto>/build/<SO>/_deps/onnxruntime
-# CMAKE_SOURCE_DIR es la raíz de tu proyecto (donde está el CMakeLists.txt principal)
+# Construct the custom installation path: <Project>/build/<OS>/_deps/onnxruntime
 set(ONNX_RUNTIME_CUSTOM_INSTALL_DIR "$ENV{HOST_BUILD_DIR}/_deps/onnxruntime")
-
 
 # ------------------------------------------------------------
 # Fetch ONNX Runtime (download + extract into the build tree)
@@ -41,7 +38,7 @@ set(ONNX_RUNTIME_CUSTOM_INSTALL_DIR "$ENV{HOST_BUILD_DIR}/_deps/onnxruntime")
 FetchContent_Declare(
     onnxruntime
     URL ${ONNX_RUNTIME_URL}
-    # Esto fuerza a que se descomprima EXACTAMENTE en esa ruta
+    # Enforce exact extraction into the specified custom directory structure
     SOURCE_DIR "${ONNX_RUNTIME_CUSTOM_INSTALL_DIR}"
     SUBBUILD_DIR "${ONNX_RUNTIME_CUSTOM_INSTALL_DIR}-subbuild" 
 )
@@ -65,8 +62,8 @@ message(STATUS "ONNX Runtime library directory: ${ONNX_RUNTIME_LIB_DIR}")
 add_library(onnxruntime SHARED IMPORTED)
 
 if (WIN32)
-    set(ONNX_RUNTIME_DLL ${ONNX_RUNTIME_LIB_DIR}/onnxruntime.dll CACHE INTERNAL "Ruta global a la DLL de ONNX")
-    set(ONNX_RUNTIME_IMPLIB ${ONNX_RUNTIME_LIB_DIR}/onnxruntime.lib CACHE INTERNAL "Ruta global a la LIB de ONNX")
+    set(ONNX_RUNTIME_DLL ${ONNX_RUNTIME_LIB_DIR}/onnxruntime.dll CACHE INTERNAL "Global path to ONNX Runtime DLL")
+    set(ONNX_RUNTIME_IMPLIB ${ONNX_RUNTIME_LIB_DIR}/onnxruntime.lib CACHE INTERNAL "Global path to ONNX Runtime import library")
 
     set_target_properties(onnxruntime PROPERTIES
         IMPORTED_LOCATION "${ONNX_RUNTIME_DLL}"
@@ -77,7 +74,7 @@ if (WIN32)
     set(ONNX_LIBS "${ONNX_RUNTIME_DLL}")
 
     # ============================================================
-    # AUTOMATIC DLL DEPLOYMENT (vcpkg-style)
+    # AUTOMATIC DLL DEPLOYMENT (vcpkg-style integration)
     # ============================================================
     # Overriding target_link_libraries to ensure that any EXECUTABLE 
     # linked with onnxruntime receives a copy of the DLL in its output directory.
@@ -110,7 +107,7 @@ else() # Linux
         INTERFACE_INCLUDE_DIRECTORIES ${ONNX_RUNTIME_INCLUDE_DIR}
     )
 
-    # 1. Buscar todos los archivos versionados (.so, .so.1, .so.1.23.2, etc.)
+    # Glob all versioned shared object links (.so, .so.1, .so.1.23.2, etc.) to maintain symlink integrity
     file(GLOB ONNX_LIBS "${ONNX_RUNTIME_LIB_DIR}/libonnxruntime.so*")
 endif()
 
@@ -118,14 +115,14 @@ endif()
 include(GNUInstallDirs)
 
 if(WIN32)
-    # En Windows, los archivos .dll son binarios de ejecución (RUNTIME).
-    # Deben ir a la carpeta 'bin' para que el .exe los encuentre al ejecutarse.
+    # On Windows, .dll files are treated as execution binaries (RUNTIME).
+    # They must be deployed to the 'bin' directory for the executable to resolve them dynamically at runtime.
     install(FILES ${ONNX_LIBS}
             DESTINATION ${CMAKE_INSTALL_BINDIR}
             COMPONENT Unspecified)
 else()
-    # En Linux y macOS, los archivos .so / .dylib son librerías compartidas (LIBRARY).
-    # Su lugar correcto según el estándar FHS es la carpeta 'lib'.
+    # On Linux and macOS, .so / .dylib files are treated as shared libraries (LIBRARY).
+    # Their proper, standard FHS-compliant deployment location is the 'lib' directory.
     install(FILES ${ONNX_LIBS}
             DESTINATION ${CMAKE_INSTALL_LIBDIR}
             COMPONENT Unspecified)

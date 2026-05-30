@@ -1,10 +1,28 @@
 
+# =========================================================
+# 💾 Input/Output (I/O) Serialization Submodule Configuration
+# =========================================================
+
+# ---------------------------------------------------------
+# 📂 Internal Module Hierarchy Traversals
+# ---------------------------------------------------------
+# Register concrete file-based serialization engines and handlers
 add_subdirectory(file)
 
+# ---------------------------------------------------------
+# 🏗️ Interface Target Declaration
+# ---------------------------------------------------------
+# Define a structural interface library for output operations.
+# This target orchestrates underlying data writing implementations
+# without compiling source files locally.
+add_library(floodsim_io_writers INTERFACE)
 
-add_library(danasim_io_writers INTERFACE)
-
-target_link_libraries(danasim_io_writers
+# ---------------------------------------------------------
+# 🔗 Linkage & Dependency Propagation
+# ---------------------------------------------------------
+# Consolidate specific serialization components into the unified writers layer,
+# mapping their configurations to upstream architectural components.
+target_link_libraries(floodsim_io_writers
     INTERFACE
-        danasim_io_writers_file
+        floodsim_io_writers_file
 )

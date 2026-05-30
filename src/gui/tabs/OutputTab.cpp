@@ -141,7 +141,7 @@ void RenderOutputTab(app::config::OutputConfig& output_config) {
                         [&](app::config::OutputConfig::CheckpointOutputConfigEntry& checkpoint) {
                             {
                                 const char* label = "Static Format";
-                                const char* tooltip = "Data format for static spatial maps (e.g., topography DEMs).";
+                                const char* tooltip = "Data format for static spatial maps.";
 
                                 ImGui::TableNextRow();
                                 ImGui::TableSetColumnIndex(0);

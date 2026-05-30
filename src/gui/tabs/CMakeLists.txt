@@ -1,12 +1,18 @@
 
+# =========================================================
+# 🗂️ GUI Tab Views Component Configuration
+# =========================================================
 
+# Traverse into subdirectories to resolve UI layout helper targets
 add_subdirectory(helpers)
 
+# Define the modular library bundling all user interface tab views
+add_library(floodsim_gui_tabs)
 
-
-add_library(danasim_gui_tabs)
-
-target_sources(danasim_gui_tabs
+# ---------------------------------------------------------
+# 🎯 Source Compilation Units Registration
+# ---------------------------------------------------------
+target_sources(floodsim_gui_tabs
     PRIVATE
         MainControlTab.cpp
         InputTab.cpp
@@ -17,21 +23,29 @@ target_sources(danasim_gui_tabs
         StateUpdaterTab.cpp
 )
 
-target_include_directories(danasim_gui_tabs
+# ---------------------------------------------------------
+# 🔗 Linkage & Dependency Propagation
+# ---------------------------------------------------------
+target_link_libraries(floodsim_gui_tabs
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-)
-
-target_link_libraries(danasim_gui_tabs
-    PUBLIC
-        danasim_options
-        danasim_gui_tabs_helpers
+        floodsim_options
+        floodsim_gui_tabs_helpers
         imgui::imgui
         glfw
         OpenGL::GL
 )
 
-target_include_directories(danasim_gui_tabs
+# ---------------------------------------------------------
+# 📂 Header Search Directories
+# ---------------------------------------------------------
+# Expose the global project include root to all downstream dependents
+target_include_directories(floodsim_gui_tabs
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+# Inject private search paths restricted solely to local dependency translation units
+target_include_directories(floodsim_gui_tabs
     PRIVATE 
         ${PORTABLE_FILE_DIALOGS_INCLUDE_DIRS}
 )

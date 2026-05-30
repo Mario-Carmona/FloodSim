@@ -290,9 +290,19 @@
       }
     },
     {
-      "name": "docs",
+      "name": "docs-windows",
       "inherits": [
-        "common-configure-options"
+        "windows-full-suite-release"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_DOCS": "ON"
+      }
+    },
+    {
+      "name": "docs-linux",
+      "inherits": [
+        "linux-full-suite-release"
       ],
       "description": "",
       "cacheVariables": {
@@ -403,8 +413,14 @@
       "configuration": "Release"
     },
     {
-      "name": "docs",
-      "configurePreset": "docs",
+      "name": "docs-windows",
+      "configurePreset": "docs-windows",
+      "configuration": "Release",
+      "targets": [ "docs" ]
+    },
+    {
+      "name": "docs-linux",
+      "configurePreset": "docs-linux",
       "configuration": "Release",
       "targets": [ "docs" ]
     }
@@ -723,15 +739,28 @@
       ]
     },
     {
-      "name": "docs",
+      "name": "docs-windows",
       "steps": [
         {
           "type": "configure",
-          "name": "docs"
+          "name": "docs-windows"
         },
         {
           "type": "build",
-          "name": "docs"
+          "name": "docs-windows"
+        }
+      ]
+    },
+    {
+      "name": "docs-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "docs-linux"
+        },
+        {
+          "type": "build",
+          "name": "docs-linux"
         }
       ]
     }

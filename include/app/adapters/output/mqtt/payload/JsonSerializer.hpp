@@ -69,7 +69,6 @@ public:
     /**
      * @brief Generates the initial descriptor for a specific grid data layer or simulation agent.
      *
-     * @param grid The simulation map grid serving as the context.
      * @param dataset_name The name of the active scenario dataset source.
      * @param layer_name The specific layer key identifier (e.g., "topo_bathy").
      * @return std::string Serialized JSON configuration metadata for the specified layer.

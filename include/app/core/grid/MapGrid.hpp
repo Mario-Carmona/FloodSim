@@ -75,7 +75,9 @@ struct GridViewBox {
      * @brief Represents a 2D coordinate point in projected space.
      */
     struct Point {
+        /** @brief The x-coordinate in projected space. */
         double x;
+        /** @brief The y-coordinate in projected space. */
         double y;
     };
 
@@ -132,19 +134,43 @@ public:
     // Layer Accessors
     // -------------------------------------------------------------------------
 
+    /**
+     * @brief Retrieves a pointer to a specific spatial layer.
+     *
+     * @param name The identifier of the layer.
+     * @return A pointer to the requested layer, or nullptr if not found.
+     */
     [[nodiscard]] layers::LayerBase* GetLayer(const std::string& name) {
         return layers_.at(name).get();
     }
 
+    /**
+     * @brief Retrieves a pointer to a specific spatial layer (const version).
+     *
+     * @param name The identifier of the layer.
+     * @return A pointer to the requested layer, or nullptr if not found.
+     */
     [[nodiscard]] const layers::LayerBase* GetLayer(const std::string& name) const {
         return layers_.at(name).get();
     }
 
+    /**
+     * @brief Retrieves a pointer to a specific spatial layer (template version).
+     *
+     * @param name The identifier of the layer.
+     * @return A pointer to the requested layer, or nullptr if not found.
+     */
     template <typename T>
     [[nodiscard]] layers::Layer<T>* GetLayer(const std::string& name) {
         return dynamic_cast<layers::Layer<T>*>(layers_.at(name).get());
     }
 
+    /**
+     * @brief Retrieves a pointer to a specific spatial layer (const template version).
+     *
+     * @param name The identifier of the layer.
+     * @return A pointer to the requested layer, or nullptr if not found.
+     */
     template <typename T>
     [[nodiscard]] const layers::Layer<T>* GetLayer(const std::string& name) const {
         return dynamic_cast<const layers::Layer<T>*>(layers_.at(name).get());
@@ -154,19 +180,43 @@ public:
     // Scalar Accessors
     // -------------------------------------------------------------------------
 
+    /**
+     * @brief Retrieves a pointer to a specific scalar.
+     *
+     * @param name The identifier of the scalar.
+     * @return A pointer to the requested scalar, or nullptr if not found.
+     */
     [[nodiscard]] scalars::ScalarBase* GetScalar(const std::string& name) {
         return scalars_.at(name).get();
     }
 
+    /**
+     * @brief Retrieves a pointer to a specific scalar (const version).
+     *
+     * @param name The identifier of the scalar.
+     * @return A pointer to the requested scalar, or nullptr if not found.
+     */
     [[nodiscard]] const scalars::ScalarBase* GetScalar(const std::string& name) const {
         return scalars_.at(name).get();
     }
 
+    /**
+     * @brief Retrieves a pointer to a specific scalar (template version).
+     *
+     * @param name The identifier of the scalar.
+     * @return A pointer to the requested scalar, or nullptr if not found.
+     */
     template <typename T>
     [[nodiscard]] scalars::Scalar<T>* GetScalar(const std::string& name) {
         return dynamic_cast<scalars::Scalar<T>*>(scalars_.at(name).get());
     }
 
+    /**
+     * @brief Retrieves a pointer to a specific scalar (const template version).
+     *
+     * @param name The identifier of the scalar.
+     * @return A pointer to the requested scalar, or nullptr if not found.
+     */
     template <typename T>
     [[nodiscard]] const scalars::Scalar<T>* GetScalar(const std::string& name) const {
         return dynamic_cast<const scalars::Scalar<T>*>(scalars_.at(name).get());
@@ -176,18 +226,78 @@ public:
     // Metadata & Georeferencing Getters
     // -------------------------------------------------------------------------
 
+    /**
+     * @brief Retrieves the metadata for the grid map.
+     *
+     * @return A constant reference to the grid metadata.
+     */
     [[nodiscard]] const GridMetadata& GetMetadata() const { return metadata_; }
 
+    /**
+     * @brief Retrieves the number of rows in the grid.
+     *
+     * @return The number of rows.
+     */
     [[nodiscard]] GridIndexType GetRows() const noexcept { return metadata_.height; }
+
+    /**
+     * @brief Retrieves the number of columns in the grid.
+     *
+     * @return The number of columns.
+     */
     [[nodiscard]] GridIndexType GetCols() const noexcept { return metadata_.width; }
+    
+    /**
+     * @brief Retrieves the size of each cell in the grid.
+     *
+     * @return The cell size.
+     */
     [[nodiscard]] float GetCellSize() const noexcept { return metadata_.cell_size; }
+
+    /**
+     * @brief Retrieves the Coordinate Reference System (CRS) for the grid.
+     *
+     * @return The CRS string.
+     */
     [[nodiscard]] std::string GetCrs() const noexcept { return metadata_.crs; }
+
+    /**
+     * @brief Retrieves the X-coordinate of the map origin.
+     *
+     * @return The X-coordinate of the map origin.
+     */
     [[nodiscard]] double GetMapOriginX() const noexcept { return metadata_.min_x; }
+
+    /**
+     * @brief Retrieves the Y-coordinate of the map origin.
+     *
+     * @return The Y-coordinate of the map origin.
+     */
     [[nodiscard]] double GetMapOriginY() const noexcept { return metadata_.max_y; }
         
+    /**
+     * @brief Retrieves the georeference information for the grid.
+     *
+     * @return The georeference point.
+     */
     [[nodiscard]] config::ViewBox::Point GetGeoreference() const;
 
+    /**
+     * @brief Transforms a point from the view coordinate system to another.
+     *
+     * @param source_point The point to transform.
+     * @param target_crs The target coordinate reference system.
+     * @return The transformed point.
+     */
     [[nodiscard]] GridViewBox::Point TransformViewPoint(config::ViewBox::Point source_point, const std::string& target_crs) const;
+
+    /**
+     * @brief Transforms a point from the grid coordinate system to another.
+     *
+     * @param source_point The point to transform.
+     * @param target_crs The target coordinate reference system.
+     * @return The transformed point.
+     */
     [[nodiscard]] config::ViewBox::Point TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const;
 
 private:

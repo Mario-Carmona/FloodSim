@@ -1,19 +1,38 @@
 
-add_library(danasim_input_adapters)
+# =========================================================
+# 🔌 Data Ingestion (Input) Adapters Configuration
+# =========================================================
 
-target_sources(danasim_input_adapters
+# Define the concrete adapter library responsible for bridging external 
+# data sources with the core simulation domain.
+add_library(floodsim_input_adapters)
+
+# ---------------------------------------------------------
+# 🎯 Source Compilation Units Registration
+# ---------------------------------------------------------
+# Register private implementations of driving adapters handling file-system ingestion
+target_sources(floodsim_input_adapters
     PRIVATE
         FileInput.cpp
 )
 
-target_include_directories(danasim_input_adapters
+# ---------------------------------------------------------
+# 📂 Header Search Directories
+# ---------------------------------------------------------
+# Expose the global project include root to all downstream dependents
+target_include_directories(floodsim_input_adapters
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
 )
 
-target_link_libraries(danasim_input_adapters
+# ---------------------------------------------------------
+# 🔗 Linkage & Dependency Propagation
+# ---------------------------------------------------------
+# Bind the core logic layers and input readers to the adapter boundary,
+# propagating capabilities to upstream architectural layers.
+target_link_libraries(floodsim_input_adapters
     PUBLIC
-        danasim_options
-        danasim_core
-        danasim_io_readers
+        floodsim_options
+        floodsim_core
+        floodsim_io_readers
 )

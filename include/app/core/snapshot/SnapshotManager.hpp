@@ -30,21 +30,23 @@ namespace floodsim::app::core::snapshot {
  */
 class SnapshotReadGuard {
 public:
-    using DoneCallback = std::function<void()>;
-
     /**
      * @brief Constructs a read guard with a specified callback.
      *
      * @param callback The function to execute upon destruction.
      */
-    SnapshotReadGuard(DoneCallback callback) : callback_(callback) {}
+    SnapshotReadGuard(std::function<void()> callback) : callback_(callback) {}
     
     // Disable copy operations
+    /** @brief Copy constructor. */
     SnapshotReadGuard(const SnapshotReadGuard&) = delete;
+    /** @brief Copy assignment operator. */
     SnapshotReadGuard& operator=(const SnapshotReadGuard&) = delete;
 
     // Allow move operations
+    /** @brief Move constructor. */
     SnapshotReadGuard(SnapshotReadGuard&&) = default;
+    /** @brief Move assignment operator. */
     SnapshotReadGuard& operator=(SnapshotReadGuard&&) = default;
 
     /**
@@ -55,7 +57,7 @@ public:
     }
 
 private:
-    DoneCallback callback_;
+    std::function<void()> callback_;
 };
 
 /**

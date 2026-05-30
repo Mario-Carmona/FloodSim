@@ -198,7 +198,7 @@ void RenderStateUpdaterTab(app::config::StateUpdaterConfig& state_updater_config
                 ImGui::Text("Level Color");
 
                 ImGui::TableSetColumnIndex(1);
-                ColorInput("##RiskColor", level.color_hex, "Hex color code for rendering (e.g., #FF0000FF).");
+                ColorInput("##RiskColor", level.color_hex, "Hex color code for rendering.");
 
                 ImGui::EndTable();
             }

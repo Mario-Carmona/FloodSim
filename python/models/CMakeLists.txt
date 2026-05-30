@@ -1,36 +1,59 @@
 
-# 1. Localizar todos los archivos .py actuales (se actualiza cada vez que ejecutas CMake)
+# =========================================================
+# 🤖 Machine Learning Models Pipeline Configuration
+# =========================================================
+
+# ---------------------------------------------------------
+# 🔍 Build-Time Source Discovery & Script Resolution
+# ---------------------------------------------------------
+# Recursively gather all Python model version definitions during configuration.
 file(GLOB_RECURSE MODEL_SOURCES "${CMAKE_SOURCE_DIR}/python/models/versions/*.py")
+
+# Define the absolute path to the core model exporting orchestrator script
 set(EXPORT_SCRIPT "${CMAKE_SOURCE_DIR}/python/models/export_models.py")
 
-# 2. Definir el archivo "testigo" en la carpeta de salida
+# ---------------------------------------------------------
+# ⏱️ State Tracking & Witness Token Definition
+# ---------------------------------------------------------
+# Define a witness/timestamp file to track generation states and avoid redundant executions
 set(TIMESTAMP_FILE "${CMAKE_SOURCE_DIR}/exported_models/.export_timestamp")
 
-# 3. Comando automatizado
+# ---------------------------------------------------------
+# ⚙️ Automated Model Generation Command
+# ---------------------------------------------------------
+# Register an automated custom command that triggers whenever python source models or 
+# the exporter script undergo modifications.
 add_custom_command(
     OUTPUT ${TIMESTAMP_FILE}
     COMMAND ${MODELS_ENV_PYTHON} ${EXPORT_SCRIPT}
     DEPENDS ${EXPORT_SCRIPT} ${MODEL_SOURCES}
-    COMMENT "Buscando nuevos modelos .py o cambios en existentes..."
+    COMMENT "Inspecting Python model definitions and re-exporting neural assets..."
     VERBATIM
 )
 
-# 4. Creamos un target intermedio para el comando
+# ---------------------------------------------------------
+# 🎯 Custom Generation Target Pipeline
+# ---------------------------------------------------------
+# Construct a top-level target integrated into the default build graph ('ALL') 
+# to enforce the asset export execution loop.
 add_custom_target(export_models_target ALL DEPENDS ${TIMESTAMP_FILE})
 
-
-
+# ---------------------------------------------------------
+# 📦 Platform-Specific Layout Configurations
+# ---------------------------------------------------------
+# Adapt asset deployment locations according to target operating system filesystem paradigms
 if(WIN32)
-    # En Windows: C:\Archivos de Programa\FloodSim\config
     set(EXPORTED_MODELS_DEST_PATH "${CMAKE_INSTALL_DATADIR}")
 else()
-    # En Linux: /usr/share/floodsim/config (Estándar para archivos estáticos)
-    # Opcional: Si son archivos que el usuario debe editar, usa "etc/floodsim"
     set(EXPORTED_MODELS_DEST_PATH "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME_LOWER}")
 endif()
 
-# Instalar el directorio completo
+# ---------------------------------------------------------
+# 🚀 Granular Component Deployment
+# ---------------------------------------------------------
+# Deploy the entirely generated asset directory to the designated layout
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/exported_models"
         DESTINATION ${EXPORTED_MODELS_DEST_PATH}
-        COMPONENT Unspecified # O pon "GUI" si solo la usa la interfaz
+        COMPONENT Unspecified
+        PATTERN ".export_timestamp" EXCLUDE
 )

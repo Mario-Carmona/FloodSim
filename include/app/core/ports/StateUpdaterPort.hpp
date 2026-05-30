@@ -52,14 +52,41 @@ public:
      * @param grid Mutable reference to the domain layers to process.
      */
     virtual void Step(grid::MapGrid& grid) = 0;
-
+    
+    /** 
+     * @brief Gets the model parameters information.
+     * @return Constant reference to the model parameters info.
+     */
     virtual const grid::ModelParamsInfo& GetModelParamsInfo() const = 0;
+
+    /** 
+     * @brief Gets the name of the fluid layer.
+     * @return Constant reference to the fluid layer name.
+     */
     virtual const std::string& GetFluidLayer() const = 0;
+
+    /** 
+     * @brief Gets the name of the fluid movement state layer.
+     * @return Constant reference to the fluid movement state layer name.
+     */
     virtual const std::string& GetFluidMovementStateLayer() const = 0;
 
+    /**
+     * @brief Checks if rainfall data is enabled for the simulation.
+     * @return True if rainfall is enabled, false otherwise.
+     */
     bool IsRainfallEnabled() const { return enable_rainfall_; }
+
+	/**
+	 * @brief Retrieves the dry tolerance threshold for classifying cells as dry.
+	 * @return The dry tolerance value.
+	 */
     float GetDryTolerance() const { return dry_tolerance_; }
 
+    /**
+     * @brief Retrieves the flood risk levels for categorizing hazardous areas.
+     * @return Constant reference to the vector of flood risk levels.
+     */
     const std::vector<config::FloodRiskLevel>& GetFloodRiskLevels() const {
         return flood_risk_levels_;
     }
@@ -73,12 +100,18 @@ protected:
         kDynamicState      ///< Kinetic energy presence. Active flux processing.
     };
 
+    /** @brief Constant string views for layer names. */
     static constexpr std::string_view kRainfallLayerName = "rainfall";
+
+    /** @brief Constant string view for the flood risk layer name. */
     static constexpr std::string_view kFloodRiskLayerName = "flood_risk";
 
-    bool enable_rainfall_;
-    float dry_tolerance_;
-    std::vector<config::FloodRiskLevel> flood_risk_levels_;
+    /** @brief Flag to determine if rainfall data should be incorporated into the simulation. */
+	bool enable_rainfall_;
+    /** @brief Minimum water height threshold to classify a cell as dry, affecting flow calculations and risk classification. */
+	float dry_tolerance_;
+    /** @brief Vector of thresholds defining flood risk categories based on water depth, used for hazard classification in outputs. */
+	std::vector<config::FloodRiskLevel> flood_risk_levels_;
 };
 
 } // namespace floodsim::app::core::ports

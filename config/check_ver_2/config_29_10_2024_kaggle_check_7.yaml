@@ -87,7 +87,7 @@ input:
     fluid_viscosity: 0.001
 output:
   snapshot:
-    every_n_steps: 1
+    every_n_steps: 15
   outputs:
     - type: Mqtt
       protocol: mqtt://

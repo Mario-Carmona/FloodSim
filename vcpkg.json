@@ -50,19 +50,14 @@
         }
       ]
     },
-    "app": {
-      "description": "App",
+    "app-core": {
+      "description": "Core",
       "dependencies": [
         {
           "name": "yaml-cpp",
           "default-features": false,
           "features": []
-        }
-      ]
-    },
-    "app-core": {
-      "description": "Core",
-      "dependencies": [
+        },
         {
           "name": "magic-enum",
           "default-features": false,

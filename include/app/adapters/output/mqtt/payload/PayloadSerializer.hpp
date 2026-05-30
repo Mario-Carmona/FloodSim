@@ -65,7 +65,6 @@ public:
     /**
      * @brief Generates the initial payload for a specific agent/layer in the grid.
      *
-     * @param grid The simulation map grid.
      * @param dataset_name The name of the dataset.
      * @param layer_name The name of the specific layer to serialize (e.g., "topo_bathy").
      * @return std::string The serialized agent layer payload.

@@ -35,6 +35,7 @@ public:
      * @param address The URI of the MQTT broker (e.g., tcp://localhost:1883).
      * @param scenario_name The simulation scenario name, used as the base topic.
      * @param payload_format The serialization format (e.g., JSON).
+	 * @param send_initial_state Whether to publish the initial grid state before starting the simulation.
      * @throws std::invalid_argument If address or scenario_name are empty.
      * @throws std::runtime_error If the payload serializer fails to initialize.
      */

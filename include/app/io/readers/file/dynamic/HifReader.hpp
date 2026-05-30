@@ -67,10 +67,15 @@ public:
     unsigned int GetDowngradeFactor() const override;
 
 protected:
+    /** @brief The number of steps in the dynamic layer. */
     unsigned int steps_;
+    /** @brief The spatial downgrade factor for the dynamic layer. */
     unsigned int downgrade_factor_;
+    /** @brief A list of timestamps for each frame in the dynamic layer. */
     std::vector<std::chrono::system_clock::time_point> timestamps_;
+    /** @brief A list of filenames for each frame in the dynamic layer. */
     std::vector<std::string> filenames_;
+    /** @brief The index of the current frame in the dynamic layer. */
     unsigned int current_frame_;
 
     /**
