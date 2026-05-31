@@ -3,6 +3,7 @@ using DanaSim.Viewer.Application.Services;
 using DanaSim.Viewer.Infrastructure.Extensions;
 using DanaSim.Viewer.Web.Logging;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.FileProviders.Embedded;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
@@ -51,6 +52,14 @@ try
         app.UseExceptionHandler("/Home/Error");
 
     app.UseStaticFiles();
+
+    // Serve vendored player JS/CSS from the embedded assembly at /player-assets
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new ManifestEmbeddedFileProvider(
+            typeof(Program).Assembly, "PlayerAssets"),
+        RequestPath = "/player-assets",
+    });
 
     // Serve simulation output files (player.html, flood/*.png) under /sim-outputs
     var simOutputDir = builder.Configuration["FileOutput:OutputDir"] ?? "outputs/x3d_heightmap";

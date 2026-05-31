@@ -1,8 +1,10 @@
+using System.Text;
 using System.Text.Json;
 using DanaSim.Viewer.Domain.Enums;
 using DanaSim.Viewer.Domain.Ports;
 using DanaSim.Viewer.Domain.ValueObjects;
 using DanaSim.Viewer.Infrastructure.Mqtt;
+using DanaSim.Viewer.Infrastructure.Terrain;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
@@ -13,20 +15,43 @@ namespace DanaSim.Viewer.Infrastructure.FileOutput;
 /// <summary>
 /// Output adapter that writes flood PNGs + manifest.json + player.html to disk,
 /// mirroring the output of python/visualizer/renderers/x3d/x3d_renderer.py.
+/// Player JS/CSS are served from the embedded assembly at /player-assets — nothing
+/// is copied per run.
 /// </summary>
 public sealed class FileBasedBroadcaster(
     IOptions<FileOutputOptions> options,
     IOptions<MqttOptions> mqttOptions,
+    IOptions<TerrainOptions> terrainOptions,
     ILogger<FileBasedBroadcaster> logger) : ISimulationBroadcaster
 {
     private const float Nodata = -9999f;
 
-    private readonly string _outputBaseDir = options.Value.OutputDir;
-    private readonly string _jsAssetsSourcePath = options.Value.JsAssetsSourcePath;
-    private readonly string _scenario = mqttOptions.Value.Scenario;
+    private static readonly string[] DefaultStateColors =
+    [
+        "0.62 0.50 0.25",
+        "0.60 0.90 1.00",
+        "0.20 0.60 0.90",
+        "0.10 0.40 0.80",
+        "0.05 0.20 0.70",
+        "0.10 0.10 0.60",
+    ];
+
+    private static readonly string[] DefaultStateLabels =
+    [
+        "Seco",
+        "Muy somero",
+        "Profundidad baja",
+        "Profundidad media",
+        "Profundidad alta",
+        "Profundidad extrema",
+    ];
+
+    private readonly string _outputBaseDir   = options.Value.OutputDir;
+    private readonly string _terrainBasePath = terrainOptions.Value.BasePath;
+    private readonly string _scenario        = mqttOptions.Value.Scenario;
 
     private string _scenarioDir = "";
-    private string _floodDir = "";
+    private string _floodDir    = "";
     private GridMeta? _meta;
     private float _minH;
     private float _maxH;
@@ -47,20 +72,17 @@ public sealed class FileBasedBroadcaster(
         _minH = minH;
         _maxH = maxH;
 
-        CopyJsAssets(_scenarioDir);
-
-        var cssPath = Path.Combine(_jsAssetsSourcePath, "css", "style.css");
-        var css     = File.Exists(cssPath) ? await File.ReadAllTextAsync(cssPath, ct) : "";
+        var (stateColors, stateLabels) = ReadPalette();
 
         var playerHtml = GeneratePlayerHtml(meta, minH, maxH,
-            Convert.ToBase64String(terrainPng), css, []);
+            Convert.ToBase64String(terrainPng), stateColors, stateLabels, []);
         await File.WriteAllTextAsync(Path.Combine(_scenarioDir, "player.html"), playerHtml, ct);
 
         await WriteManifestAsync(live: true, ct);
 
         logger.LogInformation(
-            "FileBasedBroadcaster: output ready at '{Dir}' (heights {MinH:F1}–{MaxH:F1} m)",
-            _scenarioDir, minH, maxH);
+            "FileBasedBroadcaster: output ready at '{Dir}' (heights {MinH:F1}–{MaxH:F1} m, {N} states)",
+            _scenarioDir, minH, maxH, stateColors.Length);
     }
 
     public async Task BroadcastFrameUpdateAsync(FrameData frame, int stepIndex, CancellationToken ct)
@@ -82,6 +104,68 @@ public sealed class FileBasedBroadcaster(
         await WriteManifestAsync(live: false, ct);
         logger.LogInformation(
             "Simulation ended — {Count} frames written to '{Dir}'", _frameNames.Count, _scenarioDir);
+    }
+
+    // ── Palette ───────────────────────────────────────────────────────────────
+
+    private (string[] colors, string[] labels) ReadPalette()
+    {
+        var palettePath = Path.Combine(_terrainBasePath, "color_palette.json");
+        if (!File.Exists(palettePath))
+        {
+            logger.LogDebug("color_palette.json not found at '{Path}', using defaults", palettePath);
+            return (DefaultStateColors, DefaultStateLabels);
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(palettePath));
+            var root = doc.RootElement;
+
+            // Prefer x3d.state_colors (float RGB arrays)
+            if (root.TryGetProperty("x3d", out var x3d)
+                && x3d.TryGetProperty("state_colors", out var rawColors)
+                && rawColors.ValueKind == JsonValueKind.Array)
+            {
+                var colors = rawColors.EnumerateArray()
+                    .Select(c =>
+                    {
+                        var arr = c.EnumerateArray().ToArray();
+                        return $"{arr[0].GetDouble():F2} {arr[1].GetDouble():F2} {arr[2].GetDouble():F2}";
+                    })
+                    .ToArray();
+                var labels = DefaultStateLabels[..Math.Min(colors.Length, DefaultStateLabels.Length)];
+                logger.LogDebug("Loaded palette from x3d.state_colors ({N} states)", colors.Length);
+                return (colors, labels);
+            }
+
+            // Fall back to layers.flood_risk (0-255 RGBA + label, sorted by value)
+            if (root.TryGetProperty("layers", out var layers)
+                && layers.TryGetProperty("flood_risk", out var floodRisk)
+                && floodRisk.ValueKind == JsonValueKind.Array)
+            {
+                var entries = floodRisk.EnumerateArray()
+                    .OrderBy(e => e.GetProperty("value").GetInt32())
+                    .ToArray();
+
+                var colors = entries.Select(e =>
+                {
+                    var rgba = e.GetProperty("rgba").EnumerateArray().ToArray();
+                    return $"{rgba[0].GetInt32() / 255.0:F2} {rgba[1].GetInt32() / 255.0:F2} {rgba[2].GetInt32() / 255.0:F2}";
+                }).ToArray();
+
+                var labels = entries.Select(e => e.GetProperty("label").GetString() ?? "").ToArray();
+
+                logger.LogDebug("Loaded palette from layers.flood_risk ({N} states)", colors.Length);
+                return (colors, labels);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to parse color_palette.json — using defaults");
+        }
+
+        return (DefaultStateColors, DefaultStateLabels);
     }
 
     // ── PNG encoding ──────────────────────────────────────────────────────────
@@ -134,47 +218,12 @@ public sealed class FileBasedBroadcaster(
         await File.WriteAllTextAsync(Path.Combine(_floodDir, "manifest.json"), json, ct);
     }
 
-    // ── JS / CSS assets ───────────────────────────────────────────────────────
-
-    private void CopyJsAssets(string outputDir)
-    {
-        if (string.IsNullOrWhiteSpace(_jsAssetsSourcePath)) return;
-
-        var src = Path.Combine(_jsAssetsSourcePath, "js");
-        var dst = Path.Combine(outputDir, "js");
-
-        if (!Directory.Exists(src)) { logger.LogWarning("JS assets not found: {Path}", src); return; }
-        if (Directory.Exists(dst))  Directory.Delete(dst, recursive: true);
-
-        CopyDirectoryRecursive(src, dst);
-    }
-
-    private static void CopyDirectoryRecursive(string src, string dst)
-    {
-        Directory.CreateDirectory(dst);
-        foreach (var f in Directory.GetFiles(src))
-            File.Copy(f, Path.Combine(dst, Path.GetFileName(f)), overwrite: true);
-        foreach (var d in Directory.GetDirectories(src))
-            CopyDirectoryRecursive(d, Path.Combine(dst, Path.GetFileName(d)));
-    }
-
     // ── player.html generation ────────────────────────────────────────────────
 
     private static string GeneratePlayerHtml(
         GridMeta meta, float minH, float maxH,
-        string terrainB64, string css, string[] frameNames)
+        string terrainB64, string[] stateColors, string[] stateLabels, string[] frameNames)
     {
-        // Matches python/visualizer/renderers/x3d/colors.py defaults
-        string[] stateColors =
-        [
-            "0.96 0.87 0.70",  // 0 Dry
-            "0.60 0.80 1.00",  // 1 Risk1 very shallow
-            "0.39 0.59 0.86",  // 2 Risk2 low depth
-            "0.12 0.39 0.78",  // 3 Risk3 medium depth
-            "0.00 0.20 0.71",  // 4 Risk4 high depth
-            "0.29 0.00 0.51",  // 5 Risk5 extreme depth
-        ];
-
         float mapW = meta.Cols * meta.CellSizeM;
         float mapD = meta.Rows * meta.CellSizeM;
         float camH = MathF.Max(maxH * 3.0f, mapD * 0.3f);
@@ -201,7 +250,14 @@ public sealed class FileBasedBroadcaster(
         int nFrames   = frameNames.Length;
         int sliderMax = Math.Max(0, nFrames - 1);
 
-        // $$""" = C# raw string where {{ }} is interpolation, { } is literal
+        // Generate one checkbox row per non-dry state (index 1 onwards)
+        var sidebarRows = new StringBuilder();
+        for (int i = 1; i < stateLabels.Length; i++)
+        {
+            sidebarRows.AppendLine(
+                $"""          <label class="layer-row"><input id="layerState{i}" type="checkbox" checked/><span class="swatch" data-state="{i}"></span><span>{stateLabels[i]}</span></label>""");
+        }
+
         return $$"""
             <!DOCTYPE html>
             <html lang="en">
@@ -209,9 +265,7 @@ public sealed class FileBasedBroadcaster(
               <meta charset="UTF-8"/>
               <title>DanaSim Heightmap Viewer</title>
               <script src="https://cdn.jsdelivr.net/npm/x_ite@12.1.4/dist/x_ite.min.js"></script>
-              <style>
-            {{css}}
-              </style>
+              <link rel="stylesheet" href="/player-assets/css/style.css"/>
             </head>
             <body>
               <!-- rows={{meta.Rows}} cols={{meta.Cols}} cell_size={{meta.CellSizeM:F4}}m frames={{nFrames}} -->
@@ -241,12 +295,7 @@ public sealed class FileBasedBroadcaster(
                     <label class="layer-row"><input id="layerWater"   type="checkbox" checked/><span>Agua</span></label>
                     <fieldset class="state-group">
                       <legend>Profundidad</legend>
-                      <label class="layer-row"><input id="layerState1" type="checkbox" checked/><span class="swatch" data-state="1"></span><span>Muy somero</span></label>
-                      <label class="layer-row"><input id="layerState2" type="checkbox" checked/><span class="swatch" data-state="2"></span><span>Profundidad baja</span></label>
-                      <label class="layer-row"><input id="layerState3" type="checkbox" checked/><span class="swatch" data-state="3"></span><span>Profundidad media</span></label>
-                      <label class="layer-row"><input id="layerState4" type="checkbox" checked/><span class="swatch" data-state="4"></span><span>Profundidad alta</span></label>
-                      <label class="layer-row"><input id="layerState5" type="checkbox" checked/><span class="swatch" data-state="5"></span><span>Profundidad extrema</span></label>
-                    </fieldset>
+            {{sidebarRows}}        </fieldset>
                     <h2>C&#225;mara</h2>
                     <div class="camera-presets">
                       <button class="cam-btn" data-vp="VP_Overview" title="Vista perspectiva (P)">Perspectiva</button>
@@ -289,7 +338,7 @@ public sealed class FileBasedBroadcaster(
               <script>
             window.__CONFIG__ = {{configJson}};
               </script>
-              <script type="module" src="js/app.js"></script>
+              <script type="module" src="/player-assets/js/app.js"></script>
             </body>
             </html>
             """;
