@@ -1,0 +1,47 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.5.2">
+  <diagram name="Página-1" id="Q3QScjz1OlYhlK_ph9c2">
+    <mxGraphModel dx="1042" dy="570" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="yckmdMRSzNLWVcwcWgi7-6" edge="1" parent="1" source="TxQuEx8kq81Ct2ToQeVc-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="TxQuEx8kq81Ct2ToQeVc-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TxQuEx8kq81Ct2ToQeVc-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#DAE8FC;" value="Data Pipeline" vertex="1">
+          <mxGeometry height="60" width="120" x="340" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="TxQuEx8kq81Ct2ToQeVc-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#DAE8FC;" value="Simulation Engine" vertex="1">
+          <mxGeometry height="60" width="120" x="540" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="yckmdMRSzNLWVcwcWgi7-2" edge="1" parent="1" source="ziOnqnZcyT1PEk_uUnkr-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.8;exitY=0.8;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" target="TxQuEx8kq81Ct2ToQeVc-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="214" />
+              <mxPoint x="310" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ziOnqnZcyT1PEk_uUnkr-1" parent="1" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;strokeColor=#000000;fillColor=#EDEDED;" value="Weather APIs" vertex="1">
+          <mxGeometry height="80" width="120" x="170" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="yckmdMRSzNLWVcwcWgi7-3" edge="1" parent="1" source="ziOnqnZcyT1PEk_uUnkr-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="TxQuEx8kq81Ct2ToQeVc-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ziOnqnZcyT1PEk_uUnkr-8" parent="1" style="html=1;verticalLabelPosition=bottom;align=center;labelBackgroundColor=#ffffff;verticalAlign=top;strokeWidth=2;strokeColor=#000000;shadow=0;dashed=0;shape=mxgraph.ios7.icons.map;fillColor=#EDEDED;" value="DEMs" vertex="1">
+          <mxGeometry height="55" width="55" x="202.5" y="247.5" as="geometry" />
+        </mxCell>
+        <mxCell id="yckmdMRSzNLWVcwcWgi7-5" edge="1" parent="1" source="ziOnqnZcyT1PEk_uUnkr-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" target="TxQuEx8kq81Ct2ToQeVc-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="369" />
+              <mxPoint x="310" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ziOnqnZcyT1PEk_uUnkr-12" parent="1" style="shape=mxgraph.networks2.icon;aspect=fixed;fillColor=#EDEDED;strokeColor=#000000;gradientColor=#5B6163;network2IconShadow=1;network2bgFillColor=none;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;network2Icon=mxgraph.networks2.satellite;network2IconXOffset=0.0149;network2IconYOffset=-0.00046;network2IconW=1.1553;network2IconH=0.9741;" value="Satellite Imagery" vertex="1">
+          <mxGeometry height="58.08" width="68.88" x="195.56" y="340" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

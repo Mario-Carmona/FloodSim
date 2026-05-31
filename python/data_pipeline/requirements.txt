@@ -1,0 +1,12 @@
+numpy
+pyproj
+loguru
+rasterio
+requests
+pdfplumber
+gstools
+pyyaml
+matplotlib
+fiona
+scikit-image
+shapely

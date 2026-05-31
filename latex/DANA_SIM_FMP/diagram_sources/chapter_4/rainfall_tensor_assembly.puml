@@ -1,0 +1,45 @@
+@startuml
+skinparam defaultTextAlignment center
+skinparam PackageBackgroundColor #F8F9FA
+skinparam ArtifactBackgroundColor #EAECEE
+skinparam ArrowColor #2C3E50
+
+package "3D Spatiotemporal Tensor\n(DynamicRaster Assembly)" as tensor {
+
+    ' Declaramos primero la capa inicial (arriba)
+    artifact "Time Slice t=0\n(Start Timestamp)\nInterpolated Rain Grid" as t0
+
+    artifact "Time Slice t=1\n[Data Integrity: Fallback to zeros]\nNo active stations" as t1 #FFDDDD
+
+    artifact "Time Slice t=2\nInterpolated Rain Grid" as t2
+    
+    artifact "...\nInterpolated Rain Grid" as tMid
+
+    artifact "Time Slice t=N\n(Simulation End)\nInterpolated Rain Grid" as tN
+
+    t0 .down.> t1 : " + <U+0394>t "
+    t1 .down.> t2 : " + <U+0394>t "
+    t2 .down.> tMid : " + <U+0394>t "
+    tMid .down.> tN : " + <U+0394>t "
+
+    note right of t0
+        **Spatial Mesh (2D)**
+        X-Axis: Easting (Width)
+        Y-Axis: Northing (Height)
+        Z-Axis: Value (mm/h)
+        --
+        * Resolution optimized via
+        ""_downsample_dem""
+    end note
+    
+    note left of t1
+        **Temporal Filtering**
+        Handles missing active 
+        measurement windows
+    end note
+
+    rectangle "<b><U+0394>t = Time Step</b>" as legend #FFFFFF
+    
+    tN -[hidden]down- legend
+}
+@enduml

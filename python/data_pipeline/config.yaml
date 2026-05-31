@@ -1,0 +1,39 @@
+start_date: "2024-10-29 10:00:00"
+end_date: "2024-10-30 00:00:00"
+output_name: "data_new_7"
+output_dir: "./outputs"
+layers:
+  topography:
+    resolution: 5
+    target_crs: 25830
+    bounding_box:
+      crs: 4326
+      south_west:
+        lon: -0.78291248
+        lat: 39.32434531
+      north_east:
+        lon: -0.22811569
+        lat: 39.56367382
+
+  land_cover:
+
+  topo_bathy:
+
+  water_depth:
+
+  rainfall:
+    simulation:
+      time_step: "01:00:00"
+    geography:
+      downgrade_factor: 5
+    interpolation:
+      variogram_model: "Spherical"
+      min_points_required: 5
+
+visualize:
+  enable: True
+  layers:
+    - "land_cover" 
+    - "topo_bathy" 
+    - "water_depth" 
+    - "rainfall" 

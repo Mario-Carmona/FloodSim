@@ -1,0 +1,225 @@
+\chapter{Introduction and Planning}
+\label{chapter:introduccion_and_planning}
+
+\section{Introduction}
+
+This Final Master’s Project focuses on designing and implementing a distributed C++ program for simulating flood events. Floods are 
+sudden and violent events that have serious economic and human consequences. Specifically, this project was launched in response to 
+the DANA (Depresión Aislada en Niveles Altos) that struck Valencia, Spain, on October 29, 2024. This was not just any cold snap, but the most catastrophic one in the 
+country’s recent history. For this reason, it has been used as a case study to test modeling capabilities.
+
+The proposed system uses a Cellular Automata engine to model water flow. The terrain is divided into a grid of cells with topographic 
+data from Geographic Information Systems. The simulator applies rules to calculate changes in water depth and velocity over time. 
+This approach allows for processing of large-scale Digital Elevation Models while maintaining precision.
+
+A key feature of this project is its distributed architecture. The system operates in an environment using the MQTT protocol for 
+communication between the simulation engine and external visualization modules. 
+
+This structure is a step towards creating a Digital Twin for disaster management. By integrating real-time data feeds with the 
+Cellular Automata model the system aims to provide a synchronized representation of the flood. The project aims to bridge the gap 
+between flood modeling and practical emergency response.
+
+By simulating the Valencia flood the work shows how distributed computing and cellular modeling can be used to identify high-risk 
+zones and predict flood evolution in time. This provides a tool, for both analyzing past floods and mitigating future crises.
+
+
+\section{Motivation and Justification}
+
+The reason we are doing this research is because of the increasing number of weather events, which are a big problem for cities and 
+emergency services. The big flood in Valencia on October 29 2024 showed us that our current systems for predicting these events are 
+not good enough and we need tools to simulate them.
+
+\paragraph{Scientific and Technical Necessity}
+
+The old way of modeling water flow uses math that takes a lot of computer power and is hard to use in real-time. This project uses 
+something called Cellular Automata, which is a simpler and more efficient way to model how water moves. This is important because we 
+need to be able to do this accurately.
+
+\paragraph{Innovation through Distributed Architecture}
+
+There is a gap between the tools we use to simulate disasters and the tools we use to respond to them. This project uses a way of 
+connecting different systems called MQTT to make it easier for different tools to work together. This means we can:
+
+\begin{itemize}
+\item Use tools to visualize the data in real-time like 3D models or maps.
+\item Make the system bigger or smaller depending on what we need and connect it to sensors in the field.
+\item Create a copy of a real place like a river basin, which can help us understand what might happen in an emergency.
+\end{itemize}
+
+\paragraph{Socio-Economic Impact}
+
+This project is not about the technology, it is also about how it can help people. By making a tool that can simulate the flood in 
+Valencia we can:
+
+\begin{enumerate}
+\item Look back, at what happened. See what made the flood so bad.
+\item Make a system that can help us make decisions in real-time, like where to evacuate people and how to use our resources.
+\end{enumerate}
+
+
+\section{Objectives}
+
+\subsection{General Objective}
+
+The main goal is to create a system that can simulate phenomena such as floods. It will use Cellular Automata and the C++ programming 
+language to make it work well. The project wants to provide a way to analyze disasters and monitor them in time. This system will be 
+like a Digital Twin.
+
+\subsection{Specific Objectives}
+
+To achieve the goal we have set the following goals:
+
+\begin{itemize}
+\item \textbf{State-of-the-Art Analysis}: Perform a comprehensive review of existing scientific literature regarding flood simulation, focusing on Cellular Automata and C++ flow models suitable for water physics.
+\item \textbf{CA Engine Design}: Define the transition rules and neighborhood structures—such as Moore or Von Neumann—to accurately represent terrain cells and water depth dynamics.
+\item \textbf{GIS Integration}: Develop a specialized module to read and parse Geographic Information System (GIS) data, specifically Digital Elevation Models (DEM), to initialize the simulation environment based on real-world topography.
+\item \textbf{Distributed Communication}: Implement a communication layer based on the MQTT protocol to allow the simulator to interact with external visualizers and data sources, enabling its operation within a distributed ecosystem.
+\item \textbf{Model Validation}: Conduct exhaustive unit testing and validation by comparing simulation outputs against known data from the Valencia DANA event to ensure the reliability of the water propagation logic.
+\item \textbf{Visualization and Analysis}: Generate tools for processing output data to facilitate the interpretation of the impact on the terrain.
+\end{itemize}
+
+
+\section{Project Planning and Management}
+\label{sec:project_planning_and_management}
+
+The successful execution of the Final Master's Project (FMP), which focuses on developing a scientific C++ program for flood simulation, 
+requires robust planning and diligent management. This course is weighted at 18 ECTS, equating to an estimated dedicated effort of 
+approximately 450 hours. The timeline presented below serves as a guiding roadmap, designed to track progress against key project 
+milestones and deliverables.
+
+\subsection{Work Methodology}
+\label{subsec:methodology}
+
+The project methodology is structured around the four mandatory phases defined for the FMP, integrated with a phased software 
+development approach. This hybrid methodology ensures that the core theoretical and design elements (Phases 1 \& 2) are completed 
+before critical implementation and validation (Phase 3) and final documentation (Phase 4). The iterative nature of the plan allows 
+for necessary adjustments and includes dedicated time for thorough testing and writing throughout the academic year.
+
+\subsection{Project Schedule: Gantt Chart}
+\label{subsec:gantt}
+
+The following Gantt chart (Figure \ref{fig:ganttchart}) illustrates the proposed 24-week timeline for the project, distributing the 
+estimated 450 working hours across the defined phases. Time buffers have been implicitly integrated into the task durations to account 
+for unforeseen issues, necessary code refactoring, and academic holidays.
+
+% ----------------------------------------------------------------
+% START OF GANTT CHART CODE
+% ----------------------------------------------------------------
+
+\begin{figure}[h!]
+    \resizebox{\linewidth}{!}{
+        \centering
+        \begin{ganttchart}[
+            vgrid,
+            bar height=0.6,
+            group height=0.3,
+            title label font=\bfseries\normalsize
+        ]{1}{24}
+            \gantttitle{Project Timeline (24 Weeks)}{24} \\
+            \gantttitlelist{1,...,24}{1} \\
+            % PHASE 1
+            \ganttgroup[group label node/.append style={fill=blue!20}]{Phase 1: Planning (4 Weeks)}{1}{4} \\
+            \ganttbar[bar/.append style={fill=blue!50}]{P1.1 State-of-the-Art Review}{1}{3} \\
+            \ganttbar[bar/.append style={fill=blue!50}]{P1.2 Objectives and Scope Definition}{3}{4} \\
+            \ganttbar[bar/.append style={fill=blue!50}]{P1.3 Development Environment Setup}{1}{1} \\ % Etiqueta acortada
+            % PHASE 2
+            \ganttgroup[group label node/.append style={fill=green!20}]{Phase 2: Problem \& Proposal (6 Weeks)}{5}{10} \\
+            \ganttbar[bar/.append style={fill=green!50}]{P2.1 Cellular Automata (CA) Design}{5}{6} \\
+            \ganttbar[bar/.append style={fill=green!50}]{P2.2 GIS Data Reading Implementation}{5}{7} \\ % Etiqueta acortada
+            \ganttbar[bar/.append style={fill=green!50}]{P2.3 Water Propagation Rules (CA)}{7}{10} \\
+            % PHASE 3
+            \ganttgroup[group label node/.append style={fill=yellow!20}]{Phase 3: Partial Deliverable (6 Weeks)}{11}{16} \\
+            \ganttbar[bar/.append style={fill=yellow!70}]{P3.1 Unit Testing of the CA Engine}{11}{12} \\
+            \ganttbar[bar/.append style={fill=yellow!70}]{P3.2 Integration and Data Validation}{13}{15} \\
+            \ganttbar[bar/.append style={fill=yellow!70}]{P3.3 Progress Document Generation. (Part 1)}{14}{16} \\ % Etiqueta acortada
+            % PHASE 4
+            \ganttgroup[group label node/.append style={fill=red!20}]{Phase 4: Final Deliverable (6 Weeks)}{17}{22} \\
+            \ganttbar[bar/.append style={fill=red!50}]{P4.1 Results Analysis and Visualization}{17}{19} \\
+            \ganttbar[bar/.append style={fill=red!50}]{P4.2 Final Thesis Writing and Revision}{18}{21} \\
+            \ganttbar[bar/.append style={fill=red!50}]{P4.3 Oral Presentation Preparation}{20}{22} \\
+            % PHASE 5
+            \ganttgroup[group label node/.append style={fill=gray!20}]{Phase 5: Presentation and Defense (2 Weeks)}{23}{24} \\
+            \ganttbar[bar/.append style={fill=gray!50}]{P5.1 Final Supervisor Review}{23}{23} \\
+            \ganttbar[bar/.append style={fill=gray!50}]{P5.2 Virtual Defense}{24}{24}
+        \end{ganttchart}
+    }
+    \caption{Project Timeline (24 Weeks)}
+    \label{fig:ganttchart}
+\end{figure}
+
+% ----------------------------------------------------------------
+% END OF GANTT CHART CODE
+% ----------------------------------------------------------------
+
+\subsection{Details of Activities}
+\label{subsec:activity_details}
+
+The following table provides a detailed breakdown of the tasks defined in the timeline, specifying the scope of work for each activity.
+
+% ----------------------------------------------------------------
+% START OF LONGTABLE CODE
+% ----------------------------------------------------------------
+
+\begin{longtable}{p{0.1\linewidth} p{0.2\linewidth} p{0.15\linewidth} p{0.5\linewidth}}
+    \caption{Detailed Breakdown of Final Master's Project Activities.} \\
+    \toprule
+    \textbf{ID} & \textbf{Activity} & \textbf{FMP Phase} & \textbf{Description (2-5 Lines)} \\
+    \midrule
+    \endhead
+
+    % PHASE 1
+    \multicolumn{4}{l}{\textbf{PHASE 1: PLANNING}} \\
+    \midrule
+    P1.1 & State-of-the-Art Review & Phase 1 & Review existing scientific literature on flood simulation, focusing on Cellular Automata (CA) and C++ flow models. Key CA models suitable for water physics will be identified and the core references for the thesis will be collected. \\
+    P1.2 & Objectives and Scope Definition & Phase 1 & Clearly specify the flood scenarios the program will simulate (e.g., 2D vs. 3D, terrain type). Success criteria will be established, and the exact GIS data format required for input topography will be defined. \\
+    P1.3 & Development Environment Setup & Phase 1 & Install and configure the C++ compiler (including necessary GIS libraries like GDAL), the version control system (Git), and development tools. A basic LaTeX project structure will be created to initiate the project documentation. \\
+    \midrule
+
+    % PHASE 2
+    \multicolumn{4}{l}{\textbf{PHASE 2: PROBLEM DESCRIPTION AND PROPOSAL}} \\
+    \midrule
+    P2.1 & Cellular Automata (CA) Design & Phase 2 & Define the transition rules and neighborhood structure for the CA (e.g., Moore or von Neumann). The C++ data structure will be designed to efficiently represent terrain cells and water depth. \\
+    P2.2 & GIS Data Reading Implementation & Phase 2 & Develop the C++ module for correctly reading and parsing the input GIS data (Digital Elevation Model or DEM). This module must initialize the initial state of the Cellular Automata based on the topography and the flood starting point. \\
+    P2.3 & Water Propagation Rules (CA) & Phase 2 & Code the core of the simulator, which includes the equations and logic for water transfer between cells in each iteration. This represents the underlying flow model that governs the flood simulation. \\
+    \midrule
+
+    % PHASE 3
+    \multicolumn{4}{l}{\textbf{PHASE 3: PARTIAL DELIVERABLE}} \\
+    \midrule
+    P3.1 & Unit Testing of the CA Engine & Phase 3 & Conduct exhaustive testing of critical code functions, ensuring that GIS data reading, terrain initialization, and, mainly, the CA water propagation rules behave as expected. Focus will be on identifying precision and performance errors. \\
+    P3.2 & Integration and Data Validation & Phase 3 & Run the complete simulator with a representative set of GIS data. Simulation results will be compared against known flood data or other model outputs to validate the program's behavior. \\
+    P3.3 & Progress Document Generation (Part 1) & Phase 3 & Compile and draft the initial chapters of the FMP document in LaTeX. This includes the introduction, literature review, and a detailed description of the development methodology and the Cellular Automata design. \\
+    \midrule
+
+    % PHASE 4
+    \multicolumn{4}{l}{\textbf{PHASE 4: FINAL DELIVERABLE}} \\
+    \midrule
+    P4.1 & Results Analysis and Visualization & Phase 4 & Process the simulation output data (depth maps, flooding time, etc.). External tools or C++ libraries will be used to generate clear graphs and visualizations that allow the interpretation of the flood impact. \\
+    P4.2 & Final Thesis Writing and Revision & Phase 4 & Complete the Results and Conclusions chapters of the LaTeX document. A full review of style, grammar, and formatting will be performed to ensure compliance with academic standards. \\
+    P4.3 & Oral Presentation Preparation & Phase 4 & Design and create the presentation slides. The speech will be rehearsed, emphasizing the justification of the CA model, the C++ development process, and the key results obtained with the GIS data. \\
+    \midrule
+    
+    % PHASE 5
+    \multicolumn{4}{l}{\textbf{PHASE 5: PRESENTATION AND VIRTUAL DEFENSE}} \\
+    \midrule
+    P5.1 & Final Supervisor Review & Phase 5 & Final session with the FMP supervisor to address last-minute corrections to the document, code, and presentation. Minor details will be adjusted before the final submission and defense. \\
+    P5.2 & Virtual Defense & Phase 5 & Formal presentation of the FMP to the evaluation committee. Technical decisions, methodology, and project conclusions will be defended. \\
+    \bottomrule
+\end{longtable}
+
+% ----------------------------------------------------------------
+% END OF LONGTABLE CODE
+% ----------------------------------------------------------------
+
+
+\section{Document Structure}
+
+This thesis is divided into five parts that help the reader understand how the distributed flood simulation system was planned, 
+designed, built and tested. Here is what you will find in the following parts:
+
+\begin{itemize}
+\item \textbf{Chapter 2}: State of the Art provides a comprehensive review of existing scientific literature regarding flood simulation. It focuses on the mathematical foundations of Cellular Automata (CA), current C++ flow models, and the state of distributed systems in environmental modeling.
+\item \textbf{Chapter 3}: Problem Description and Proposal details the technical design of the solution. This includes the definition of the CA transition rules and neighborhood structures, the methodology for parsing GIS data (DEM), and the architecture of the distributed system using the MQTT protocol for real-time communication.
+\item \textbf{Chapter 4}: Implementation and Results describes the technical realization of the simulator in C++. It covers the development environment setup, the execution of unit and integration tests, and the final simulation of the Valencia DANA event. This chapter also includes the visualization and analysis of the resulting flood maps and impact data.
+\item \textbf{Chapter 5}: Conclusions and Future Work offers a critical reflection on the project’s findings. It evaluates the simulator's performance and accuracy against the established objectives and proposes future research lines, such as the full integration of the system into a real-time Digital Twin framework.
+\end{itemize}

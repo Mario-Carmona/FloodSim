@@ -1,0 +1,824 @@
+\chapter{Methodology and Design}
+\label{chapter:methodology_and_design}
+
+\section{Proposed Analytical Framework}
+
+To fill the gap between what we learn from modeling and what a Reactive Digital Twin really needs, this research suggests a new way of 
+looking at things. The plan is not about simulating water but about creating a system that can handle a lot of changing data like what 
+happens during a flash flood, such as the 2024 Valencia DANA.
+
+The new approach is based on three ideas that make sure the system is strong and accurate:
+
+\begin{enumerate}
+    \item \textbf{Mathematical Formalization of Discrete Space}: Utilizing the $m:n-CA^k$ paradigm to represent complex, non-linear hydraulic interactions through discrete transition rules. This method is faster than ways of solving Shallow Water Equations.
+    \item \textbf{Technological Decoupling (Hexagonal Architecture)}: Implementing a strict separation between the simulation core and external concerns (GIS data, MQTT messaging, logging). This ensures that the physical logic remains pure and adaptable to different hardware or data sources.
+    \item \textbf{Distributed Telemetry and Interoperability}: Designing a communication layer that transforms the simulator from a standalone tool into a distributed node. By using MQTT, the system enables real-time synchronization between the computational engine and remote visualization or decision-support interfaces.
+\end{enumerate}
+
+By putting these ideas we can move away from the old way of doing simulations, batch-processing, where we do one thing at a time. 
+Instead we can do everything at the time: get data process it and share the results all within a system that is connected and working 
+together. That is what the Reactive Digital Twin is all about.
+
+
+\subsection{The Multilayer Conceptualization ($m:n-CA^k$)}
+
+The cornerstone of the simulation logic is the adoption of the Multilayer Cellular Automata ($m:n-CA^k$) formalism. Traditional 
+Cellular Automata (CA) typically operate on a single state per cell, which is insufficient for representing the heterogeneous variables 
+of a river basin. The $m:n-CA^k$ generalization allows for a multidimensional representation where the environment is discretized into 
+a stack of $n$ computational layers.
+
+\paragraph{Mathematical Formalization}
+
+Formally, the simulation environment is defined as a specialized cellular space where each cell $c$ at a given coordinates $(i, j)$ is 
+characterized by a state vector $S_{i,j}$. The system is represented by the tuple:
+
+$$A = \langle R, E, V, N, \Psi \rangle$$
+
+Where:
+
+\begin{itemize}
+    \item $R$ is the $m$-dimensional cell space.
+    \item $E$ is the set of $n$ layers that define the global state and the physical environment of the system.
+    \item $V$ represents the vicinity function.
+    \item $N$ represents the nucleus function.
+    \item $\Psi$ is the combination or evolution function that governs the fluid dynamics.
+\end{itemize}
+
+
+\subsubsection{Cell Space ($R$) and Layer Definition ($E$)}
+
+The simulation space $R$ is defined on a regular two-dimensional grid $R \subset \mathbb{Z}^2$, where each cell is 
+identified by its spatial coordinates $(i, j)$. The physical size of each cell is determined by the spatial resolution 
+$\Delta x$.
+
+The system consists of a set $E = \{E_1, E_2, E_3, E_4\}$ of $n=4$ layers. One of the fundamental characteristics of the 
+$m:n-CA^k$ model is that the layers may differ in their geometric and temporal dimensions. Through these tensor representations, 
+they are defined as follows:
+
+\begin{enumerate}
+    \item $E_1$: Topobathymetry ($Z_{topo-bathy}$). A static 2D layer of dimension $X \times Y$. It combines the Digital 
+    Elevation Model (DEM) with the bathymetry of the watercourses, providing the absolute elevation of the riverbed: 
+    $E_1 \subset \mathbb{R}^{X \times Y}$.
+    \item $E_2$: Land Cover (LC). A static 2D layer of size $X \times Y$. It identifies land uses, which are algebraically 
+    mapped to Manning roughness coefficients ($\mu_{soil}$) via a state transfer function: 
+    $E_2 \subset \mathbb{N}^{X \times Y} \xrightarrow{f} \mathbb{R}^{X \times Y}$.
+    \item $E_3$: Water Depth ($WD$). A 2D dynamic layer of dimension $X \times Y$. It represents the main state of the cell 
+    at time $t$, storing the water depth in meters: $E_3 \subset \mathbb{R}^{X \times Y}$.
+    \item $E_4$: Rainfall ($RF$). A 3D dynamic layer of dimension $X \times Y \times T$, explicitly incorporating the time 
+    domain to provide the rainfall rate for each step $\Delta t$: $E_4 \subset \mathbb{R}^{X \times Y \times T}$.
+\end{enumerate}
+
+
+\subsubsection{Vicinity Function ($V$) and Nucleus Function ($N$)}
+
+The \textbf{Vicinity Function} ($V$) determines the subset of adjacent cells that influence the calculation of the future state of a 
+given cell. A Moore neighborhood with radius $r=1$ is adopted, defining a set of 8 adjacent cells connected orthogonally and 
+diagonally.
+
+$$V(i,j) = \{ (i+u, j+v) \in R \mid \max(|u|, |v|) \le 1 \}$$
+
+The \textbf{Nucleus Function} ($N$) is projected onto the central cell itself to update layer $E_3$, mapping the spatial 
+modifications through local rules: $N(i,j) = \{ (i,j) \}$.
+
+
+\subsubsection{Intra-layer Transitions: Horizontal Propagation Dynamics}
+
+Intra-layer transitions define the kinematic behavior of surface water flow across the discretized spatial grid. While inter-layer 
+transitions govern vertical fluxes (such as precipitation and infiltration), this section focuses on horizontal propagation, where the 
+state of a cell at time $t+1$ is determined by the hydraulic interactions with its immediate neighborhood at time $t$.
+
+\paragraph{A. Neighborhood Formalization and Hydraulic Gradients}
+
+Following the technical implementation in C++ and TensorFlow, the system employs a Moore neighborhood ($k=8$). This choice allows for 
+a more realistic flow propagation that is significantly less dependent on grid orientation compared to the simpler von Neumann 
+neighborhood.
+
+For every cell $c_{i,j}$, the simulation engine computes a vector of hydraulic gradients $S$ toward its eight neighbors. The gradient 
+is defined by the difference in potential energy (terrain elevation $H$ plus water depth $WD$) divided by the Euclidean distance $L_{k}$:
+
+$$S_{k} = \frac{(H_{i,j} + WD_{i,j}) - (H_{neighbor,k} + WD_{neighbor,k})}{L_{k}}$$
+
+Where $L_{k}$ corresponds to the cell size for cardinal neighbors and $\sqrt{2} \times \text{cell\_size}$ for diagonal neighbors. 
+Adhering to the physical logic of the model, only positive gradients ($S_k > 0$) are considered, ensuring that water only moves toward 
+cells with lower hydraulic potential.
+
+\paragraph{B. Velocity Estimation via Manning’s Equation}
+
+To optimize computational performance and ensure numerical stability, the model identifies the maximum local hydraulic gradient 
+$S_{max} = \max(S_k)$ from the set of energy slopes toward the eight adjacent neighbors in the Moore neighborhood. A single theoretical 
+velocity ($v_{theor}$) is then derived from a simplified version of Manning’s Equation, adapted for high-performance tensor operations.
+
+The model integrates surface friction through a roughness coefficient $n$ (Manning’s $n$), which is dynamically retrieved from a Lookup 
+Table (LUT) based on the land cover classification layer ($E_2$). The resulting theoretical velocity is defined as:
+
+$$v_{theor} = \frac{1}{n} \cdot WD^{2/3} \cdot \sqrt{S_{max}}$$
+
+In this context, the hydraulic radius is approximated by the water depth ($WD$), a valid assumption for the shallow-water flow conditions 
+characteristic of the 2024 Valencia DANA event. This single velocity represents the maximum potential speed of the flood wave at the 
+current cell, which serves as the basis for the subsequent volumetric displacement and multi-directional routing.
+
+\paragraph{C. Volumetric Displacement Calculation}
+
+Once the effective velocity is determined, the engine must translate this linear speed ($m/s$) into a physical volume of water ($m^3$) 
+capable of moving across cell boundaries. This is achieved by first calculating the Cross-Sectional Area ($A_{cs}$) of the flow, which, 
+in our raster-based discretization, is defined as the product of the current water depth and the cell resolution:
+
+$$A_{cs} = WD^* \cdot \Delta x$$
+
+Subsequently, the Theoretical Outflow Volume ($V_{theor}$) is derived using the displacement equation over the simulation time step 
+$\Delta t$:
+
+$$V_{theor} = v_{theor} \cdot A_{cs} \cdot \Delta t$$
+
+This volumetric representation is the cornerstone of the model's mass conservation strategy. By computing $V_{theor}$ before the routing 
+phase, the engine ensures that the subsequent distribution of water to neighbors is based on finite physical quantities, preventing the 
+numerical "inflation" of water levels often found in simpler CA models.
+
+\paragraph{D. Multiple Flow Direction (MFD) and Mass Balance}
+
+In contrast to traditional Single Flow Direction (D8) models, this simulator implements a Multiple Flow Direction (MFD) algorithm. The 
+total outflow volume from a cell is distributed among all neighbors with a lower potential, weighting the amount of water sent to each 
+neighbor according to the magnitude of their respective gradients.
+
+The final mass balance for the surface water layer is governed by the following discrete differential equation:
+
+$$WD_{i,j}^{t+1} = WD_{i,j}^{t} + \left( \frac{\sum \Delta V_{in} - \sum \Delta V_{out}}{Area_{cell}} \right)$$
+
+To ensure numerical stability and prevent artificial oscillations (particularly in areas with steep slopes), the implementation includes 
+a precision filter ($\epsilon$) and a flow-limiting constraint: the total outflow can never exceed the volume of water physically 
+available in the cell during the current time step.
+
+\paragraph{E. Tensorial Implementation and Optimization}
+
+From a software engineering perspective, these transitions are not computed through iterative cell-by-cell loops. Instead, the model 
+utilizes tensorial shift operations (leveraging padding and slicing). By representing the river basin as a multidimensional tensor, 
+the simulator calculates the eight gradients for the entire Valencia grid simultaneously. This approach fully exploits CPU/GPU 
+vectorization capabilities, ensuring that total computation time remains well below the real-time threshold required for emergency 
+response.
+
+
+\subsubsection{Inter-layer Transitions: Vertical Propagation Dynamics}
+
+Inter-layer transitions govern the vertical interactions between the different information layers within a single cell $c_{i,j}$. 
+Unlike horizontal propagation, these processes are local to the cell's vertical column and represent the exchange of mass and 
+properties between the atmospheric, surface, and sub-surface layers.
+
+\paragraph{A. Precipitation Injection (Atmosphere-to-Surface)}
+
+The primary driver of the simulation, particularly in the context of the Valencia DANA, is the localized and intense rainfall. In the 
+$m:n-CA^k$ framework, precipitation is treated as a dynamic input layer $P$ that contributes directly to the water depth layer ($WD$).
+
+For each simulation step $\Delta t$, the water depth is updated to account for the incoming volume:
+
+$$WD_{i,j}^{*} = WD_{i,j}^{t} + \left( R_{i,j}^{t} \cdot \Delta t \right)$$
+
+Where $R_{i,j}^{t}$ represents the rainfall intensity ($mm/h$ converted to $m/s$) at that specific coordinate.
+
+\paragraph{B. Land Cover and Hydraulic Parameter Mapping}
+
+A critical inter-layer process in the proposed model is the transformation of discrete geospatial data into continuous physical 
+parameters. As implemented in the simulation core, the Land Cover layer (static GIS data) acts as a descriptor for the surface roughness.
+
+The system utilizes a Lookup Table (LUT) approach within the preprocessing stage to map land-use categories (e.g., urban fabric, 
+orchards, industrial zones) to specific Manning’s $n$ coefficients. This mapping is formally defined as:
+
+$$\forall c_{i,j} \in \mathcal{L}_{LandCover} \implies n_{i,j} = \text{LUT}(category_{i,j})$$
+
+This ensures that when the intra-layer propagation logic (Manning’s Equation) is executed, it correctly interprets that water moves 
+slower through the dense urban streets of Paiporta or Sedaví compared to the smooth paved surfaces of the V-31 highway, capturing the 
+hydraulic complexity of the Valencian metropolitan area.
+
+\paragraph{C. Tensorial Data Integration}
+
+From a data engineering perspective, these inter-layer transitions are optimized using element-wise tensor operations. By aligning all 
+layers (Precipitation, Land Cover, Water Depth) into a single multi-channel tensor, the vertical update for millions of cells is 
+performed in a single computational pass. This "Data-as-Interface" philosophy allows the $m:n-CA^k$ engine to maintain high throughput, 
+as vertical interactions are computed as simple addition or multiplication operations across the tensor's depth axis.
+
+
+\subsubsection{Boundary Conditions: The Impermeable Wall Logic}
+
+The handling of the grid limits is essential to maintain the physical integrity of the simulation. In this model, boundary conditions 
+are implemented using a Wall-Constraint strategy through specialized tensor padding.
+
+\paragraph{A. Topographic Symmetric Padding}
+
+To define the spatial limits of the simulation, the Topography layer ($H$) utilizes Symmetric Padding. This mirrors the elevation 
+values at the edges of the grid:
+
+$$\text{Padding}(H, \text{mode='SYMMETRIC'})$$
+
+By mirroring the elevation, the engine ensures that there is no artificial "cliff" at the edge of the data, maintaining a consistent 
+gradient calculation even for cells located at the absolute border of the study area.
+
+\paragraph{B. The Impermeable Boundary (Wall)}
+
+The physical behavior of the boundary is configured as a Wall (Impermeable Boundary). This is achieved by combining the symmetric 
+topography with a Constant Zero-Padding for the water depth layer:
+
+\begin{itemize}
+    \item \textbf{Topography}: Mirrored to prevent gradient artifacts.
+
+    \item \textbf{Water Depth}: Padded with $0.0$ at the exterior.
+\end{itemize}
+
+This configuration forces the transition logic to treat the exterior as a non-interactive zone. Because the engine calculates flow 
+based on gradients, repeating the topography at the edge effectively creates a "barrier" where water cannot naturally escape unless a 
+significant hydraulic head is reached, simulating a contained environment. This "Wall" logic is critical for modeling urban sub-basins 
+in the Valencia DANA scenario where surrounding infrastructure (highways, railways, or embankments) acts as a physical limit to the 
+flood's expansion.
+
+
+\section{Software Architecture: The Hexagonal Approach}
+
+One big problem in computing is that the physical models are really closely tied to the underlying infrastructure. This includes things 
+like the formats we use to store data, the ways that computers talk to each other and the special libraries that are made for types of 
+hardware. In a lot of hydraulic simulators the rules for how things change are all mixed up with the code that reads specific types of 
+files like GeoTIFF or CSV files. This makes it really hard to keep the system running test it or make changes to it.
+
+To get around these problems, this research uses the Hexagonal Architecture or the Ports and Adapters pattern. The main goal is to keep 
+the Simulation Core separate from other things that might affect it. By making a line between the "domain logic”, which is just the 
+physics of how floods work; and the "infrastructure”, which is how we get and send data. The simulator becomes a highly flexible and 
+technologically agnostic engine.
+
+This way of designing the system is especially important, for a Reactive Digital Twin. It lets the system switch from reading data from 
+HDF5 files to getting real-time data from MQTT rainfall streams without changing any of the code that controls how the hydraulic system 
+changes. The hydraulic Simulation Core stays the same.
+
+
+\subsection{Core vs. Infrastructure}
+
+The Hexagonal design divides the system into two distinct regions: the Inside (The Core) and the Outside (The Infrastructure). The 
+fundamental constraint governing this architecture is the Dependency Rule, which states that dependencies must always point inwards 
+toward the Core.
+
+\paragraph{A. The Core (The "Inside")}
+
+The Core represents the "Hexagon" itself. It contains the pure business and scientific logic of the project. In this thesis, the Core 
+is composed of:
+
+\begin{itemize}
+    \item \textbf{The $m:n-CA^k$ Engine}: The implementation of the transition functions (Manning’s equation, MFD algorithm) as defined in Section 3.1.
+
+    \item \textbf{The Domain Model}: The tensorial representation of the grid, cell states, and hydraulic parameters.
+
+    \item \textbf{Application Services}: Orchestrators that handle the simulation loop and time-step synchronization.
+\end{itemize}
+
+The Core has no knowledge of the outside world. It does not know if the data comes from a local disk or a cloud-based broker; it simply 
+defines the interfaces it needs to operate.
+
+\paragraph{B. The Infrastructure (The "Outside")}
+
+The Infrastructure consists of everything that interacts with the Core. It is responsible for the "technical details" that the Core 
+ignores. This includes:
+
+\begin{itemize}
+    \item \textbf{Data Sources}: HDF5 file handlers, GIS raster readers, and SQLite databases.
+
+    \item \textbf{State Computation}: High-performance execution engines for tensor operations.
+
+    \item \textbf{Communication}: MQTT clients for real-time telemetry and JSON serializers for web-based visualization.
+
+    \item \textbf{Persistence}: Logging systems (e.g., Loguru) and state-exporting tools.
+\end{itemize}
+
+By segregating these concerns, we ensure that technological obsolescence in the infrastructure (e.g., a protocol update or a change 
+in GIS standards) does not jeopardize the scientific validity of the simulation engine.
+
+
+\subsection{Port and Adapter Specification}
+
+To bridge the gap between the Core and the Infrastructure, the architecture utilizes Ports (interfaces) and Adapters (implementations).
+
+\paragraph{A. Driver Ports (Input)}
+
+Driver Ports define how the external world "triggers" or "feeds" the simulation. They represent the entry points into the Hexagon.
+
+\paragraph{B. Driven Ports (Output/Supporting)}
+
+Driven ports are interfaces used by the Core to delegate tasks to external tools or specialized hardware.
+
+
+\subsection{Technical Advantage: Testability and Mocking}
+
+A significant advantage of this specification is the ability to perform Unit Testing on the hydraulic logic. Because the Core is 
+decoupled from the hardware and files, we can create "Mock Adapters" that feed the Core with pre-defined, small-scale tensors to 
+verify the mathematical correctness of the $m:n-CA^k$ transitions without needing a full GIS environment or an active MQTT broker.
+
+
+\section{Distributed Communication Model (MQTT)}
+
+The effectiveness of a flood emergency system depends not only on the precision of the calculation but also on the speed and reliability 
+of data delivery. The $m:n-CA^k$ engine utilizes the MQTT (Message Queuing Telemetry Transport) protocol, a lightweight M2M 
+(machine-to-machine) communication standard, to bridge the gap between the high-performance C++ core and remote visualization or 
+decision-support clients.
+
+
+\subsection{Decoupling Strategy: Publisher-Subscriber Paradigm}
+
+To maintain the rigorous performance requirements of the simulation core, the communication layer is built upon the Publisher-Subscriber 
+pattern. This strategy ensures a total decoupling between the "Model" (the simulator) and the "View" (the dashboard).
+
+\begin{itemize}
+    \item \textbf{Anonymity and Scalability}: The simulator (Publisher) remains unaware of the number, location, or nature of the subscribers. This allows multiple emergency units to monitor the Valencia DANA simulation simultaneously without adding computational overhead to the C++ core.
+
+    \item \textbf{Space and Time Decoupling}: The simulation can continue its calculation cycles even if the network is temporarily unstable or if the visualization clients are busy, as the MQTT broker acts as an intermediate buffer.
+\end{itemize}
+
+
+\subsection{Topic Hierarchy and Payload Design}
+
+The system organizes information through a structured Topic Hierarchy, which serves as a logical routing map for telemetry. Following 
+the implementation in the MqttOutput adapter, the hierarchy is rooted in the scenario name to support multi-event management:
+
+\begin{itemize}
+    \item FloodSim/{scenarioName}/system/handshake: Used for the initial handshake, broadcasting grid dimensions ($size\_x, size\_y$), cell resolution, and simulation start times.
+
+    \item FloodSim/{scenarioName}/events: The primary high-traffic channel used for broadcasting dynamic updates of water depth and flood risk levels.
+
+    \item FloodSim/{scenarioName}/control/events: A bi-directional channel for frame acknowledgments (Acks).
+\end{itemize}
+
+\paragraph{Lightweight JSON Payload Design}
+
+Data efficiency is achieved through a specialized JSON Serialization strategy. Rather than sending the entire $m:n-CA^k$ state in every 
+message—which would saturate the bandwidth—the system uses a "Differential Update" philosophy. The JsonSerializer generates discrete 
+process-oriented messages:
+
+\begin{itemize}
+    \item \textbf{Lifecycle Messages}: System\_Ping, InitMap\_Config, and SimEnd.
+
+    \item \textbf{State Messages}: EYE\_SetState\_Layer containing only the modified cells, indexed to the global grid.
+\end{itemize}
+
+
+\subsection{Synchronicity and Latency Management}
+
+Broadcasting high-resolution grids (e.g., the Valencia metropolitan area) requires a sophisticated strategy to prevent network 
+congestion. The implementation handles this through three mechanisms:
+
+\paragraph{A. Data Chunking and Batching}
+
+To avoid exceeding the Maximum Transmission Unit (MTU) of the network or the broker’s buffer limits, the system implements Grid 
+Chunking. A single simulation frame is divided into manageable chunks (e.g., $40,000$ cells per message). These chunks are sent in 
+controlled batches (e.g., $10$ chunks per batch), allowing the network to breathe between bursts of data.
+
+\paragraph{B. The Frame Orchestration Protocol}
+
+To ensure the subscriber assembles a consistent view of the flood, a strict orchestration sequence is followed for every simulation 
+step $t$:
+
+\begin{enumerate}
+    \item \textbf{FrameStart}: Signals the beginning of a new time step and the number of expected chunks.
+
+    \item \textbf{EYE\_SetState\_Layer}: Multiple messages containing the actual hydraulic data.
+
+    \item \textbf{FrameEnd}: Notifies the client that the data for time $t$ is complete.
+
+    \item \textbf{EYE\_Frame\_Sync}: A synchronization heartbeat that aligns the simulation's internal clock with the visualizer's display.
+\end{enumerate}
+
+\paragraph{C. Quality of Service (QoS) and Congestion Control}
+
+The system utilizes QoS Level 1 (At least once delivery) for critical control and synchronization messages. This guarantees that the 
+visualizer never misses a "Frame Sync" or "Config" message. For the high-frequency hydraulic data, the implementation utilizes an 
+Asynchronous Ack-back mechanism; the simulator waits for a "Chunk Ack" from the broker/client before proceeding with the next batch, 
+ensuring that the simulation speed does not overwhelm the subscriber's processing capacity.
+
+
+\section{Data Engineering and Tensor Representation}
+
+The efficiency of a Cellular Automata simulation is fundamentally constrained by its data access patterns. While traditional GIS 
+software operates on various file formats and coordinate systems, a high-performance simulator requires a unified, contiguous, and 
+multidimensional memory layout. This section details the "Data-as-Interface" philosophy, where geospatial information is abstracted 
+into tensors to enable vectorized computation.
+
+
+\subsection{The Hierarchical IDRISI Format (HIF)}
+
+To manage spatiotemporal data (e.g., hourly rainfall or dynamic water levels) without relying on complex binary 
+containers like HDF5 or NetCDF, this project introduces the Hierarchical IDRISI Format (HIF). The HIF is a structural 
+specification designed to store 3D data cubes using the native 2D IDRISI raster standard as a building block.
+
+\subsubsection{Conceptual Structure}
+
+The HIF treats time-series data as a discrete sequence of temporal frames. Each frame is stored as an independent 
+IDRISI raster pair (.doc for metadata and .img for the data matrix), organized within a hierarchical directory tree. 
+This allows for "lazy loading" of simulation steps, where the engine only reads the specific frame required for the 
+current time-step $t$.
+
+\subsubsection{Components of an HIF Dataset}
+
+An HIF dataset consists of three primary elements:
+
+\begin{enumerate}
+    \item \textbf{Master Metadata (.hif)}: A global descriptor file that defines the spatial context (extent, resolution, 
+    and CRS) shared by all frames in the sequence. It serves as the entry point for the simulator.
+    \item \textbf{Temporal Attribute Manifest (attrs.json)}: A specialized metadata file that maps simulation time-steps 
+    to specific file paths. It contains the downgrade factors, ISO-8601 timestamps, and the ordered list of frame filenames.
+    \item \textbf{Frame Repository}: A flat collection of .img files, each representing a single point in time, without 
+    accompanying .doc files.
+\end{enumerate}
+
+By adopting this format, the system achieves a balance between the simplicity of ASCII-based/flat-binary rasters and 
+the requirement for organized, high-dimensional temporal data.
+
+\subsubsection{Physical Storage and Directory Topology}
+
+The physical realization of an HIF dataset is organized as a self-contained directory that encapsulates both the global 
+spatiotemporal metadata and the individual raster frames. This structure is designed to facilitate modular access: the 
+simulation engine can parse the top-level manifest to understand the temporal extent and subsequently perform random 
+access to specific time-steps without the need to scan the entire dataset. 
+
+This tree topology illustrates the resulting hierarchy after the Data Pipeline exports a dynamic layer (e.g., rainfall).
+
+\begin{figure}[htbp]
+    \centering
+    \footnotesize
+    \begin{forest}
+      for tree={
+        folder,   
+        font=\ttfamily,
+        grow'=0,
+      }
+    [output/rainfall/
+      [\file{rainfall.hif}]
+      [\file{attrs.json}]
+      [\file{000000.img}]
+      [\file{000001.img}]
+      [\file{...}]
+    ]
+    \end{forest}
+    \caption{Hierarchical IDRISI Format (HIF) internal directory structure visualized as a tree topology.}
+    \label{fig:hif_structure}
+\end{figure}
+
+
+\subsection{The GIS-to-Tensor Pipeline: From Rasters to Multi-Channel Cubes}
+
+The transition from environmental raw data to a simulation-ready state follows a specialized ETL (Extract, Transform, Load) pipeline. 
+This process ensures that diverse layers (topography, land cover, and rainfall) are spatially and temporally aligned before the first 
+simulation step occurs.
+
+\paragraph{A. Extraction and Spatial Alignment}
+
+Raw data for the Valencia region—including the Digital Elevation Model (DEM) and Land Use maps—often arrives in heterogeneous formats 
+(e.g., HIF, IDRISI) and different spatial resolutions. The pipeline utilizes a Geospatial Abstraction Layer to perform:
+
+\begin{itemize}
+    \item \textbf{Coordinate Reference System (CRS) Standardization}: Projecting all layers to a common metric system (UTM 30N) to ensure Euclidean distance calculations in the Moore neighborhood are valid.
+
+    \item \textbf{Resampling and Resizing}: Aligning all rasters to a common grid extent ($H \times W$) using bilinear interpolation for continuous data (elevation) and nearest-neighbor for discrete data (land cover).
+\end{itemize}
+
+\paragraph{B. Tensorization: The Multi-Channel Approach}
+
+Once aligned, the data is "tensorized." In this research, the river basin is represented as a 3D Tensor of shape $(C, H, W)$, where:
+
+\begin{itemize}
+    \item \textbf{$C$ (Channels)}: Represents the $n$ information layers of the $m:n-CA^k$ model (e.g., Channel 0: Water Depth, Channel 1: Manning’s $n$, Channel 2: Topography).
+
+    \item \textbf{$H, W$ (Height, Width)}: Represents the discretized spatial grid.
+\end{itemize}
+
+By packing the data into this structure, the simulation engine can treat the entire basin as a single mathematical object. This allows 
+the transition rules to be implemented as element-wise operations and matrix shifts, bypassing the high overhead of traditional 
+cell-by-cell loops and enabling the use of SIMD (Single Instruction, Multiple Data) optimizations.
+
+
+\subsection{Data Pipeline Design (Pre-processing)}
+
+The core of any flood simulation system lies in its ability to process vast amounts of geospatial 
+data accurately and efficiently. The Data Pipeline is designed as a centralized orchestrator 
+responsible for the ingestion, transformation, and provision of the physical parameters required 
+by the hydraulic model.
+
+The primary objective is to decouple data acquisition from the simulation logic. By doing so, the 
+system ensures that changes in data formats or sources do not affect the stability of the 
+simulator's core. This framework is built upon three fundamental pillars:
+
+\begin{enumerate}
+    \item \textbf{Integrity}: Ensuring that spatial coordinates and resolutions remain consistent 
+    across all data layers.
+    \item \textbf{Scalability}: Allowing the inclusion of new physical variables (e.g., soil 
+    moisture or infiltration) without redesigning the existing architecture.
+    \item \textbf{Automation}: Minimizing manual intervention during the preprocessing of raster 
+    datasets.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{chapter_3/high-level_system_context}
+    
+    \caption{High-Level System Context}
+    \label{fig:high-level_system_context}
+\end{figure}
+
+
+\subsubsection{Data Categorization: Static vs Dynamic Layers}
+
+To optimize processing and memory management, the methodology categorizes geospatial information 
+into two distinct types based on their temporal behavior during a simulation:
+
+\begin{itemize}
+    \item \textbf{Static Layers}: These represent physical characteristics that remain constant 
+    throughout the simulation event. Examples include the Digital Elevation Model (DEM) and Land 
+    Use (Roughness). These layers are processed once and serve as the immutable "canvas" of the 
+    terrain.
+    \item \textbf{Dynamic Layers}: Input data that informs the transition function.These involve 
+    variables that change over time, requiring a temporal dimension in their representation. 
+    Examples include Rainfall Intensity. The design must account for the sequential reading or 
+    generation of these files, ensuring that the simulator receives the correct "snapshot" for 
+    each time step.
+\end{itemize}
+
+This conceptual separation allows the pipeline to apply different I/O strategies for each type, 
+significantly improving the efficiency of the data flow.
+
+
+\subsubsection{Architectural Design Patterns}
+
+To achieve a balance between flexibility and rigorous data handling, the system architecture is 
+grounded in three fundamental software engineering patterns: Abstraction, Inheritance, and the 
+Registry Pattern.
+
+
+\paragraph{Abstraction and Encapsulation}
+
+The methodology treats every geospatial data source as a specialized object rather than a simple 
+file path or a raw array. By abstracting the complexities of coordinate systems, pixel resolutions, 
+and file formats into dedicated classes, the pipeline creates a unified interface. This encapsulation 
+ensures that the rest of the simulator does not need to understand the internal structure of the data; 
+it only interacts with high-level methods to retrieve physical values.
+
+
+\paragraph{Hierarchical Inheritance (Base Classes)}
+
+The design utilizes a hierarchical structure to manage the commonalities and differences between 
+data types.
+
+\begin{itemize}
+    \item \textbf{Base Components}: A set of abstract base classes defines the "contract" that all 
+    specific layers and Input/Output (I/O) handlers must fulfill.
+    \item \textbf{Specialization}: This allows the system to distinguish between the static nature 
+    of a Digital Elevation Model (DEM) and the time-varying nature of rainfall intensity, while 
+    still sharing the same underlying logic for spatial referencing and memory management.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{chapter_3/data_generator_hierarchy}
+    
+    \caption{Data Generator Hierarchy}
+    \label{fig:data_generator_hierarchy}
+\end{figure}
+
+
+\paragraph{The Registry Pattern for Extensibility}
+
+One of the most critical requirements for the TFM is the ability to integrate new physical variables 
+(layers) without modifying the core orchestrator. To solve this, the methodology adopts a 
+\textbf{Registry Pattern}.
+
+In this approach, the Data Pipeline acts as a central hub that does not "know" about specific layers 
+(like Rainfall or Roughness) at compile-time. Instead, each new layer "registers" itself into a 
+dictionary-like structure. When the simulation starts, the pipeline simply iterates through this 
+registry to initialize the required components. This design achieves Low Coupling, as adding a fifth 
+or sixth layer only requires creating a new class that follows the established base contract, leaving 
+the main execution logic untouched.
+
+
+\paragraph{Decoupling I/O from Logic}
+
+Finally, the architecture enforces a strict separation between Data Access (reading/writing files) and 
+Data Logic (processing the raster values). By isolating I/O operations into dedicated I/O Handlers, 
+the system becomes agnostic to the storage medium. If the project were to move from local IDRISI files 
+to a cloud-based database or a different file format (like NetCDF), only the I/O handler would need to 
+be updated, while the layer generation logic remains intact.
+
+
+\subsubsection{Data Flow Logic}
+
+The movement of data through the system is governed by a deterministic lifecycle, ensuring that the 
+simulation engine receives a spatially and temporally synchronized "snapshot" of the environment. This 
+flow is divided into four primary stages:
+
+
+\paragraph{Configuration-Driven Discovery}
+
+The process begins with the ingestion of a centralized configuration manifest (typically in YAML format), 
+which serves as the "Control Plane" for the entire data pipeline. Unlike a discovery-based system, the pipeline 
+maintains a pre-defined registry of core physical layers (e.g., Elevation, Rainfall, Roughness) essential for 
+the simulation. The configuration file is utilized to parameterize these layers and define the global execution 
+context.
+
+This stage manages three critical data dimensions:
+
+\begin{enumerate}
+    \item \textbf{Global Simulation Metadata}: It establishes the temporal boundaries of the scenario (start and 
+    end timestamps) and the workspace topology (output directory and naming conventions). This ensures that all 
+    generated layers are synchronized within the same spatiotemporal window.
+    \item \textbf{Layer Parameterization}: For each architectural layer, the configuration provides specific 
+    execution parameters. This includes spatial resolutions, interpolation models (e.g., Variogram types for 
+    rainfall), and geographical constraints (bounding boxes). This allows the same pipeline logic to be reused 
+    across different study areas by simply adjusting the numerical constants in the config file.
+    \item \textbf{Visualization Manifest}: The pipeline identifies which layers require graphical rendering for 
+    research purposes. By defining a "visualize" list in the configuration, the system selectively triggers the 
+    visualization engine post-generation, optimizing execution time by avoiding unnecessary plots for background 
+    layers.
+\end{enumerate}
+
+By separating the layer definitions (hard-coded in the pipeline's logic for structural integrity) from their 
+operational parameters (externalized in the configuration), the system achieves a high degree of reproducibility 
+and scientific flexibility.
+
+\paragraph{Spatial Synchronization and Metadata Validation}
+
+Before any numerical processing occurs, the pipeline performs a Spatial Integrity Check. Flood simulations 
+are highly sensitive to spatial misalignment. The flow logic enforces a "Master Grid" approach, where 
+secondary layers (such as rainfall or roughness) must be validated against the primary Elevation Layer (DEM).
+
+\begin{itemize}
+    \item \textbf{Coordinate Reference System (CRS) Alignment}: Ensuring all data layers use the same 
+    projection.
+    \item \textbf{Resolution Matching}: Verifying that pixel sizes are consistent across all rasters to avoid 
+    interpolation errors during the simulation.
+    \item \textbf{Extent Clipping}: Ensuring that all dynamic inputs cover the exact bounding box of the 
+    static terrain.
+\end{itemize}
+
+
+\paragraph{Sequential Execution: The Static-Dynamic Split}
+
+The data flow logic branches based on the temporal nature of the data:
+
+\begin{enumerate}
+    \item \textbf{The Static Phase (Setup)}: The pipeline triggers the generation and storage of immutable 
+    layers (Elevation and Roughness). These are processed once and held in a "Ready-to-Simulate" state.
+    \item \textbf{The Dynamic Loop (Runtime)}: For variables like Rainfall, the pipeline enters a cyclic flow. 
+    For every simulation time step, the logic dictates a "Fetch-Transform-Provision" cycle, ensuring that the 
+    simulator always has access to the most recent temporal state without overloading the system's memory.
+\end{enumerate}
+
+
+\subsubsection{Validation and Logging Strategy}
+
+The robustness of the data pipeline is sustained by a dual-layer strategy: rigorous pre-execution validation 
+to ensure structural and spatial coherence, and comprehensive logging to provide full transparency during the 
+transformation processes.
+
+
+\paragraph{Structural and Dependency Validation}
+
+Before processing any raster data, the system must validate the logical structure of the simulation request. 
+This is approached using Graph Theory principles.
+
+\begin{itemize}
+    \item \textbf{Directed Acyclic Graph (DAG)}: The dependencies between layers (e.g., Rainfall requiring an 
+    Elevation model for clipping) are treated as nodes and edges in a graph. The methodology requires a 
+    topological sort to ensure that no circular dependencies exist and that every component is initialized 
+    only when its requirements are met.
+    \item \textbf{Schema Enforcement}: The configuration files are validated against a predefined schema to 
+    ensure that essential parameters, such as coordinate reference systems or simulation timeframes, are 
+    present and logically consistent (e.g., start\_date must precede end\_date).
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{chapter_3/layer_dependencies}
+    
+    \caption{Layer Dependencies}
+    \label{fig:layer_dependencies}
+\end{figure}
+
+
+\paragraph{Spatial Integrity and Physical Constraints}
+
+The core of the validation strategy lies in ensuring "Spatial Coherence". Since the hydraulic model operates 
+on a numerical grid, the pipeline enforces strict spatial constraints:
+
+\begin{itemize}
+    \item \textbf{Domain Consistency}: Validating that all input datasets overlap with the requested study area.
+    \item \textbf{Resolution Uniformity}: Detecting and flagging discrepancies in pixel size that could lead 
+    to significant calculation errors in the fluid dynamics solver.
+    \item \textbf{No-Data Handling}: A theoretical framework for "Nodata" values is established, ensuring that 
+    missing geographic information does not propagate as zero-values, which would lead to physical inaccuracies 
+    in the flood extent.
+\end{itemize}
+
+
+\paragraph{Observability through Multi-Sink Logging}
+
+In long-running environmental simulations, observability is critical for both real-time monitoring and post-mortem 
+analysis. The methodology adopts a Multi-Sink Logging Pattern:
+
+\begin{enumerate}
+    \item \textbf{Transient Output (Standard Stream)}: Focused on high-level operational status (Success, Info, Error). 
+    It provides the user with immediate feedback on the pipeline's progress without cluttering the interface 
+    with technical debt.
+    \item \textbf{Persistent Output (File-based Log)}: A detailed, low-level record of every transformation, I/O 
+    operation, and minor warning. This serves as a "black box" for researchers to audit the data generation process.
+    \item \textbf{Severity Layering}: Messages are categorized by intensity (Trace, Debug, Info, Success, Warning, 
+    Error). This allows for granular filtering: while a researcher might only want to see successful milestones, 
+    a developer can access the "Trace" level to inspect the exact metadata of a IDRISI being processed.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{chapter_3/logging_architecture}
+    
+    \caption{Logging Architecture}
+    \label{fig:logging_architecture}
+\end{figure}
+
+
+\subsection{Temporal Layer Management: Dynamic Data Synchronization}
+
+A flash flood simulation is not a static process; it is driven by time-varying inputs, primarily precipitation. Managing these dynamic 
+layers presents a significant challenge: loading an entire year of high-resolution rainfall data into RAM is computationally unfeasible.
+
+\paragraph{A. The Temporal Update Logic}
+
+The system implements a Temporal Layer Manager within the Core to handle the lifecycle of dynamic layers. This component acts as a 
+"window" over the temporal axis of the data.
+
+\begin{itemize}
+    \item \textbf{Update Frequencies}: Not all layers update at the same rate. While the topography is static, the rainfall layer might update every 10 minutes ($600s$). The manager tracks the simulation time $t$ and triggers an update only when a specific layer's frequency threshold is crossed.
+
+    \item \textbf{Hyperslab Selection}: To optimize I/O, the manager uses HDF5 Hyperslab Selection. Instead of reloading a file, it performs a direct memory-mapped read of a specific 2D slice from a 3D time-series cube $(Time, H, W)$.
+\end{itemize}
+
+\paragraph{B. State-Consistency and Buffer Swapping}
+
+To ensure the mathematical validity of the simulation, the Temporal Layer Manager employs a double-buffering strategy. When a new 
+rainfall intensity matrix is loaded, it is staged in a transition buffer before being injected into the active $m:n-CA^k$ grid. This 
+prevents "partial updates" where one half of the grid might be using rainfall from $t=10$ and the other from $t=20$, maintaining strict 
+temporal causality across the entire Valencian basin.
+
+\paragraph{C. Memory Efficiency}
+
+By decoupling the "Loading Logic" from the "Simulation Logic," the system maintains a constant memory footprint regardless of the 
+duration of the simulation. This scalability is critical for the Reactive Digital Twin model, as it allows the simulator to run 
+indefinitely, ingesting real-time MQTT data or historical HDF5 archives without degrading performance over time.
+
+
+\section{Case Study Setup: DANA 2024}
+
+The catastrophic "Depresión Aislada en Niveles Altos" (DANA) that struck the Mediterranean coast of Spain on October 29, 2024, serves 
+as the primary scenario for this research. This event is characterized by its extreme rainfall—exceeding $400$ mm in less than 8 hours 
+in certain areas—and the rapid, violent overflow of the Barranco del Poyo and the Turia River basin.
+
+The complexity of the Valencian metropolitan area, with its dense urban fabric, high-speed rail embankments, and industrial zones, 
+provides the ideal environment to validate the Hexagonal Architecture and the Tensor-based transition rules developed in this thesis.
+
+
+\subsection{Domain Discretization}
+
+The simulation domain is discretized into a high-resolution grid to capture the critical urban features (streets, underpasses, and 
+barriers) that dictate flood propagation.
+
+\begin{itemize}
+    \item \textbf{Spatial Extent}: The study area covers approximately $1300$ $km^2$, encompassing the upper catchments of Chiva and Cheste, descending through the "ground zero" municipalities (Paiporta, Sedaví, Alfafar), and terminating at the Mediterranean coast and the Albufera lagoon.
+
+    \item \textbf{Cell Resolution}: A resolution of $5m \times 5m$ per cell is adopted. This choice provides a balance between hydraulic precision and the computational efficiency required for a Real-Time Digital Twin.
+
+    \item \textbf{Tensor Dimensions}: The resulting grid translates into a multi-channel tensor of approximately $5,500 \times 9,500$ cells per layer.
+
+    \item \textbf{Temporal Step ($\Delta t$)}: To satisfy the Courant-Friedrichs-Lewy (CFL) stability condition in a high-velocity environment, the engine utilizes a dynamic time step, typically ranging between $1s$ and $5s$.
+\end{itemize}
+
+
+\subsection{Validation Metrics}
+
+To evaluate the predictive accuracy and computational performance of the $m:n-CA^k$ engine, a dual-metric framework is established. We 
+compare the simulated results against satellite imagery (Copernicus EMS), post-event flood marks, and historical hydrographs.
+
+\paragraph{A. Spatial Accuracy Metrics (Binary Classification)}
+
+To determine how well the model identifies "flooded" vs. "non-flooded" areas, we use a contingency table approach (Hit, Miss, False 
+Alarm).
+
+\begin{itemize}
+    \item \textbf{Critical Success Index (CSI) / Threat Score}: Measures the spatial fit between the simulated and observed flooded areas, ignoring the "Correct Negatives" (dry areas) which can skew results in large domains.
+
+    $$CSI = \frac{Area_{hit}}{Area_{hit} + Area_{miss} + Area_{false\_alarm}}$$
+
+    \item \textbf{$F_{score}$ (F1-Measure)}: The harmonic mean of precision and recall, providing a single metric to evaluate if the model is over-predicting or under-predicting the flood extent.
+\end{itemize}
+
+\paragraph{B. Vertical Accuracy Metrics (Hydraulic Head)}
+
+To assess the precision of the water depth ($WD$) calculations, we utilize the Root Mean Square Error (RMSE). This is calculated at 
+specific "ground-truth" points where high-water marks were recorded by the Spanish Geographic Institute (IGN) or local emergency 
+services.
+
+$$RMSE = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (WD_{obs,i} - WD_{sim,i})^2}$$
+
+\paragraph{C. Computational Performance (Efficiency)}
+
+Given the Reactive Digital Twin focus, a key metric is the Simulation Speed Ratio (SSR):
+
+$$SSR = \frac{Duration_{physical\_event}}{Duration_{computational\_inference}}$$
+
+An $SSR > 10$ is targeted, meaning the system must simulate 1 hour of the DANA flood in less than 6 minutes of real time.

@@ -1,0 +1,23 @@
+@startuml
+' Configuración para un aspecto limpio y académico
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultTextAlignment center
+
+' Dirección del flujo de dependencias (de arriba hacia abajo)
+top to bottom direction
+
+' --- Definición del Nodo Principal (Raíz) ---
+rectangle "Elevation (Master)\n[StaticRaster]" as Elevation
+
+' --- Definición de Nodos Dependientes (Resto de Capas) ---
+rectangle "Roughness\n[StaticRaster]" as Roughness
+rectangle "Water Depth\n[StaticRaster]" as WaterDepth
+rectangle "Rainfall\n[DynamicRaster]" as Rainfall
+
+' --- Definición de Dependencias ---
+Elevation --> Roughness
+Elevation --> WaterDepth
+Elevation --> Rainfall
+
+@enduml

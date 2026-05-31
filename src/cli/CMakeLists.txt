@@ -1,16 +1,36 @@
 
-add_executable(danasim_cli
-    main_cli.cpp
-)
+# =========================================================
+# 💻 Command Line Interface (CLI) Target Configuration
+# =========================================================
 
-target_link_libraries(danasim_cli
+# ---------------------------------------------------------
+# 🎯 Executable Target Declaration
+# ---------------------------------------------------------
+if(WIN32)
+    # Windows environments require the .rc resource file to embed application metadata (e.g., icons)
+    add_executable(${CLI_EXE_NAME} mainCLI.cpp app_icon.rc)
+else()
+    # Linux/Unix environments utilize standard source inputs without PE resource files
+    add_executable(${CLI_EXE_NAME} mainCLI.cpp)
+endif()
+
+# Append a 'd' suffix to the binary name during Debug builds to avoid overwriting Release assets
+set_target_properties(${CLI_EXE_NAME} PROPERTIES DEBUG_POSTFIX "d")
+
+# ---------------------------------------------------------
+# 🔗 Linkage & Dependency Propagation
+# ---------------------------------------------------------
+target_link_libraries(${CLI_EXE_NAME}
     PRIVATE
-        danasim_options
-        danasim_app
-        danasim_adapters
+        floodsim_options
+        floodsim_app
 )
 
-set_target_properties(danasim_cli PROPERTIES
-    OUTPUT_NAME DanaSimCLI
-    DEBUG_POSTFIX "d"
+# ---------------------------------------------------------
+# 📦 Deployment & Installation Rules
+# ---------------------------------------------------------
+# Professional component-based deployment rules
+install(TARGETS ${CLI_EXE_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT CLI # Explicitly isolates the CLI binary for granular CPack distribution
 )

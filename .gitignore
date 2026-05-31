@@ -11,6 +11,7 @@
 *.synctex.gz
 *.bbl
 *.blg
+*.run.xml
 
 # CMake Build Artifacts
 CMakeCache.txt
@@ -43,27 +44,32 @@ compile_commands.json
 # Libraries directory
 /lib
 
-# GIS Data
-*.rdc
-*.rst
-
-# HDF5 Data
-*.h5
-
 # PragmaDev
 lock.info
 
 # Python export models
-/models
+/exported_models
 
 # Python compiled files
 __pycache__
 
 # Simulation Output Directories
 /outputs
+/python/data_pipeline/outputs
+
+/sim_outputs
 
 # Tensorflow scripts logs
-/python/tensorflow_scripts/logs
+/python/models/logs
 
-# Data directories
-/data
+# Doxygen output
+/docs/html
+
+/out/Ubuntu-24.04/build/linux-cli-debug/.cmake/api/v1/query/client-MicrosoftVS/query.json
+
+
+/THIRD-PARTY-NOTICES.md
+
+/cmake/res/linux/floodsim.desktop
+
+dat_coworker/

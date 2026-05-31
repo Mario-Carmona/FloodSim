@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE Diagram SYSTEM "rtdsDiagram.dtd">
+
+<SdlFSMDiagram language="sdl-rt" type="prcs" is_extract="FALSE" is_temporary="FALSE">
+<SdlFSMPartition name="" needs_cleanup="FALSE">
+<SdlFSMSymbol identifier="SYM3" type="sdlText" text="// Includes necesarios
+#include &lt;chrono&gt;
+
+// Declaración de Señales de Red (MQTT) usando SDL-RT
+SIGNAL System_Ping;
+SIGNAL System_Pong;
+SIGNAL InitMap_Config;
+SIGNAL InitAgent_Layer;
+SIGNAL InitAgent_EOF;
+SIGNAL EYE_Frame_Sync;
+
+// Declaración de Señales Internas
+SIGNAL Internal_Snapshot_Ready;
+
+// Variables globales del proceso
+TIMER timer_ping;
+const float PING_INTERVAL = 2000.0f;" outline_color="-" background_color="-" center_coordinates="325 301" dimensions="396 264" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM92" type="sdlPrcdDecl" text="Send_Data_Frame()" outline_color="-" background_color="-" center_coordinates="295 515" dimensions="144 40" attached_symbol_id=""/>
+<NonStateTransition top_left_coordinates="614 167">
+<SdlFSMSymbol identifier="SYM1" type="sdlStart" outline_color="-" background_color="-" center_coordinates="753 182" dimensions="60 30" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM4" type="sdlTask" text="SET(NOW + PING_INTERVAL, timer_ping);" outline_color="-" background_color="-" center_coordinates="753 229" dimensions="278 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM5" type="sdlSendSig" text="System_Ping" outline_color="-" background_color="-" center_coordinates="753 281" dimensions="96 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM57" type="sdlState" text="WAITING_PONG" outline_color="-" background_color="-" center_coordinates="753 333" dimensions="104 40" attached_symbol_id=""/>
+</Transition>
+</NonStateTransition>
+<StateTransitionBlock top_left_coordinates="900 731">
+<SdlFSMSymbolReference identifier="SYM85"/>
+<NormalStateTransition>
+<SdlFSMSymbol identifier="SYM94" type="sdlInputSig" text="Internal_Snapshot_Ready" outline_color="-" background_color="-" center_coordinates="753 801" dimensions="180 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM95" type="sdlPrcdCall" text="Send_Data_Frame()" outline_color="-" background_color="-" center_coordinates="753 853" dimensions="138 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM96" type="sdlSendSig" text="EYE_Frame_Sync" outline_color="-" background_color="-" center_coordinates="753 905" dimensions="118 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM97" type="sdlState" text="IDLE" outline_color="-" background_color="-" center_coordinates="753 957" dimensions="60 40" attached_symbol_id=""/>
+</Transition>
+</NormalStateTransition>
+</StateTransitionBlock>
+<StateTransitionBlock top_left_coordinates="875 315">
+<SdlFSMSymbolReference identifier="SYM57"/>
+<NormalStateTransition>
+<SdlFSMSymbol identifier="SYM79" type="sdlInputSig" text="System_Pong" outline_color="-" background_color="-" center_coordinates="753 385" dimensions="96 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM80" type="sdlTask" text="RESET(timer_ping);" outline_color="-" background_color="-" center_coordinates="753 437" dimensions="146 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM81" type="sdlSendSig" text="InitMap_Config" outline_color="-" background_color="-" center_coordinates="753 489" dimensions="118 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM82" type="sdlSendSig" text="InitAgent_Layer" outline_color="-" background_color="-" center_coordinates="753 541" dimensions="124 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM83" type="sdlSendSig" text="InitAgent_EOF" outline_color="-" background_color="-" center_coordinates="753 593" dimensions="110 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM91" type="sdlPrcdCall" text="Send_Data_Frame()" outline_color="-" background_color="-" center_coordinates="753 645" dimensions="138 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM84" type="sdlSendSig" text="Init_EOF" outline_color="-" background_color="-" center_coordinates="753 697" dimensions="76 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM85" type="sdlState" text="IDLE" outline_color="-" background_color="-" center_coordinates="753 749" dimensions="60 40" attached_symbol_id=""/>
+</Transition>
+</NormalStateTransition>
+<NormalStateTransition>
+<SdlFSMSymbol identifier="SYM86" type="sdlInputSig" text="timer_ping" outline_color="-" background_color="-" center_coordinates="992 385" dimensions="90 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM87" type="sdlSendSig" text="System_Ping" outline_color="-" background_color="-" center_coordinates="992 437" dimensions="96 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM88" type="sdlTask" text="SET(NOW + PING_INTERVAL, timer_ping);" outline_color="-" background_color="-" center_coordinates="992 489" dimensions="278 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM89" type="sdlState" text="WAITING_PONG" outline_color="-" background_color="-" center_coordinates="992 541" dimensions="104 40" attached_symbol_id=""/>
+</Transition>
+</NormalStateTransition>
+</StateTransitionBlock>
+<PageSpecification pageWidth="21.0" pageHeight="29.7" topMargin="1.0" bottomMargin="1.0" leftMargin="1.0" rightMargin="1.0" pageFooter="TRUE" scaleFactor="1.0"/>
+</SdlFSMPartition>
+</SdlFSMDiagram>
