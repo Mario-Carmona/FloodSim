@@ -6,8 +6,10 @@ on:
     branches: ["main"]
 
 permissions:
-  contents: write # Required for creating releases and tags
-  actions: write  # Required for querying and managing GitHub Caches via 'gh' CLI
+  contents: write   # Required for creating releases and tags
+  actions: write    # Required for querying and managing GitHub Caches via 'gh' CLI
+  pages: write      # NUEVO: Requerido para publicar en GitHub Pages
+  id-token: write   # NUEVO: Requerido para la autenticación OIDC de deploy-pages
 
 jobs:
   # ======================================================
