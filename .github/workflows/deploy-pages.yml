@@ -21,7 +21,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y doxygen
 
       - name: Generar la web (Target docs)
-        run: cmake --workflow --preset docs
+        run: cmake --workflow --preset docs-linux
 
       - name: Preparar artefacto de Pages
         uses: actions/upload-pages-artifact@v3
