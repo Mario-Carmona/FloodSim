@@ -1,5 +1,6 @@
 using DanaSim.Viewer.Application.Extensions;
 using DanaSim.Viewer.Application.Services;
+using DanaSim.Viewer.Infrastructure.Config;
 using DanaSim.Viewer.Infrastructure.Extensions;
 using DanaSim.Viewer.Web.Logging;
 using Microsoft.Extensions.FileProviders;
@@ -34,8 +35,24 @@ try
 
     builder.Host.UseSerilog();
 
+    // ── User config — load before DI so values override appsettings.json ─────
+    var userConfigService = new UserConfigService();
+    var userCfg = userConfigService.Load();
+    if (userCfg is not null)
+    {
+        builder.Configuration["Mqtt:Host"]            = userCfg.MqttHost;
+        builder.Configuration["Mqtt:Port"]            = userCfg.MqttPort.ToString();
+        builder.Configuration["Mqtt:Scenario"]        = userCfg.Scenario;
+        builder.Configuration["Terrain:BasePath"]     = userCfg.TerrainBasePath;
+        builder.Configuration["FileOutput:OutputDir"] = userCfg.OutputDir;
+    }
+
+    if (!userConfigService.IsConfigured())
+        builder.Configuration["Mqtt:AutoConnect"] = "false";
+
     // ── Services ─────────────────────────────────────────────────────────────
     builder.Services.AddSingleton(inMemorySink);
+    builder.Services.AddSingleton(userConfigService);
 
     builder.Services.AddControllersWithViews();
 
