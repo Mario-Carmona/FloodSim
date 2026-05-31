@@ -21,6 +21,9 @@ public static class ApplicationServiceExtensions
         services.AddSingleton<EyeFrameSyncHandler>();
         services.AddSingleton<SimEndHandler>();
 
+        // Status tracker (feeds the API status endpoint)
+        services.AddSingleton<SimulationStatusService>();
+
         // Orchestrator
         services.AddSingleton<ISimulationEventHandler, SimulationAppService>();
         services.Configure<SimulationAppServiceOptions>(_ => { });

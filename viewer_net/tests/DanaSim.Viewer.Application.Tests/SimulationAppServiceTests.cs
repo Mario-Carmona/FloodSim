@@ -31,7 +31,7 @@ public class SimulationAppServiceTests
             new FrameEndHandler(NullLogger<FrameEndHandler>.Instance),
             new InitEofHandler(NullLogger<InitEofHandler>.Instance),
             new EyeFrameSyncHandler(NullLogger<EyeFrameSyncHandler>.Instance),
-            new SimEndHandler(NullLogger<SimEndHandler>.Instance),
+            new SimEndHandler(new SimulationStatusService(), NullLogger<SimEndHandler>.Instance),
             _control.Object,
             _broadcaster.Object,
             Options.Create(new SimulationAppServiceOptions()),

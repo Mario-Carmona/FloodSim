@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using DanaSim.Viewer.Application.Services;
 using DanaSim.Viewer.Domain.Enums;
 using DanaSim.Viewer.Domain.Ports;
 using DanaSim.Viewer.Domain.ValueObjects;
@@ -22,6 +23,7 @@ public sealed class FileBasedBroadcaster(
     IOptions<FileOutputOptions> options,
     IOptions<MqttOptions> mqttOptions,
     IOptions<TerrainOptions> terrainOptions,
+    SimulationStatusService statusService,
     ILogger<FileBasedBroadcaster> logger) : ISimulationBroadcaster
 {
     private const float Nodata = -9999f;
@@ -80,6 +82,9 @@ public sealed class FileBasedBroadcaster(
 
         await WriteManifestAsync(live: true, ct);
 
+        statusService.Reset(_scenario);
+        statusService.SetPhase("Running");
+
         logger.LogInformation(
             "FileBasedBroadcaster: output ready at '{Dir}' (heights {MinH:F1}–{MaxH:F1} m, {N} states)",
             _scenarioDir, minH, maxH, stateColors.Length);
@@ -95,6 +100,9 @@ public sealed class FileBasedBroadcaster(
 
         _frameNames.Add(stepName);
         await WriteManifestAsync(live: true, ct);
+
+        var playerUrl = $"/sim-outputs/{_scenario}/player.html";
+        statusService.RecordFrame(frame.SimulationTime, playerUrl);
 
         logger.LogDebug("Flood PNG saved: {Step} ({Kb:F1} KB)", stepName, floodPng.Length / 1024.0);
     }
