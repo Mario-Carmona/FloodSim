@@ -262,3 +262,52 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docs:
+    needs: [release]
+    runs-on: ubuntu-22.04
+    if: |
+      always() && 
+      needs.release.result == 'success'
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Instalar Doxygen
+        run: sudo apt-get update && sudo apt-get install -y doxygen
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.1.1'
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies (Linux)
+        run: bash ./install-deps.sh --desktop
+        shell: bash
+
+      - name: Restore OS Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            build/Linux/vcpkg_installed
+            build/Linux/vcpkg_cache
+          key: vcpkg-ubuntu-22.04-${{ needs.check-cache.outputs.vcpkg_hash }}
+          fail-on-cache-miss: true
+
+      - name: Generar la web (Target docs)
+        run: cmake --workflow --preset docs-linux
+
+      - name: Preparar artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/html # La carpeta exacta donde Doxygen genera el HTML
+
+      - name: Desplegar web en GitHub Pages
+        uses: actions/deploy-pages@v4
