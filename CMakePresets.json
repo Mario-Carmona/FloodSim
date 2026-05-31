@@ -10,8 +10,64 @@
       "name": "common-configure-options",
       "hidden": true,
       "description": "Base preset defining common cache variables shared by all presets.",
-      "binaryDir": "${sourceDir}/build/${presetName}",
+      "binaryDir": "$env{HOST_BUILD_DIR}/${presetName}",
+      "environment": {
+        "HOST_BUILD_DIR": "${sourceDir}/build/${hostSystemName}"
+      }
+    },
+    {
+      "name": "python-envs",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
       "cacheVariables": {
+        "BUILD_PYTHON_ENVS": "ON"
+      }
+    },
+    {
+      "name": "python-data",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "data_pipeline",
+        "ISOLATE_ENVIRONMENT": "OFF"
+      }
+    },
+    {
+      "name": "python-models",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "models",
+        "ISOLATE_ENVIRONMENT": "ON"
+      }
+    },
+    {
+      "name": "python-visualizer",
+      "inherits": [
+        "python-envs"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "PYTHON_SUBDIR_NAME": "visualizer",
+        "ISOLATE_ENVIRONMENT": "OFF"
+      }
+    },
+    {
+      "name": "app",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "Defines settings for building project executables.",
+      "cacheVariables": {
+        "BUILD_APP": "ON",
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_CXX_EXTENSIONS": "OFF",
@@ -19,9 +75,13 @@
         "CMAKE_RUNTIME_OUTPUT_DIRECTORY": "${sourceDir}/bin/${hostSystemName}/$<CONFIG>",
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
         "CMAKE_ARCHIVE_OUTPUT_DIRECTORY": "${sourceDir}/lib/${hostSystemName}/$<CONFIG>",
+        "X_VCPKG_APPLOCAL_DEPS_INSTALL": "ON",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/external/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_INSTALL_OPTIONS": "--clean-after-build",
-        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed"
+        "VCPKG_INSTALLED_DIR": "$env{HOST_BUILD_DIR}/vcpkg_installed"
+      },
+      "environment": {
+        "VCPKG_DEFAULT_BINARY_CACHE": "$env{HOST_BUILD_DIR}/vcpkg_cache"
       }
     },
     {
@@ -47,6 +107,17 @@
       }
     },
     {
+      "name": "rel-with-deb-info",
+      "hidden": true,
+      "inherits": [
+        "common-configure-options"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
       "name": "cli",
       "hidden": true,
       "inherits": [
@@ -54,7 +125,7 @@
       ],
       "description": "",
       "cacheVariables": {
-        "DANASIM_BUILD_GUI": "OFF"
+        "ENABLE_GUI": "OFF"
       }
     },
     {
@@ -65,26 +136,14 @@
       ],
       "description": "",
       "cacheVariables": {
-        "DANASIM_BUILD_GUI": "ON"
+        "ENABLE_GUI": "ON"
       }
     },
     {
-      "name": "app",
+      "name": "windows",
       "hidden": true,
       "inherits": [
         "common-configure-options"
-      ],
-      "description": "Defines settings for building project executables.",
-      "cacheVariables": {
-        "DANASIM_BUILD_APPS": "ON",
-        "VCPKG_MANIFEST_FEATURES": "app"
-      }
-    },
-    {
-      "name": "windows-app",
-      "hidden": true,
-      "inherits": [
-        "app"
       ],
       "description": "Windows-specific preset using Visual Studio 2026 and static vcpkg triplets.",
       "architecture": "x64",
@@ -100,28 +159,10 @@
       }
     },
     {
-      "name": "windows-cli-debug",
-      "inherits": [
-        "windows-app",
-        "cli",
-        "debug"
-      ],
-      "description": ""
-    },
-    {
-      "name": "windows-cli-release",
-      "inherits": [
-        "windows-app",
-        "cli",
-        "release"
-      ],
-      "description": ""
-    },
-    {
-      "name": "linux-app",
+      "name": "linux",
       "hidden": true,
       "inherits": [
-        "app"
+        "common-configure-options"
       ],
       "description": "Linux-specific preset using Ninja and static vcpkg triplets.",
       "condition": {
@@ -133,8 +174,8 @@
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-linux",
         "VCPKG_HOST_TRIPLET": "x64-linux",
-        "CMAKE_C_COMPILER": "/usr/bin/gcc-12",
-        "CMAKE_CXX_COMPILER": "/usr/bin/g++-12"
+        "CMAKE_CXX_COMPILER": "/usr/bin/g++-12",
+        "CMAKE_MAKE_PROGRAM": "/usr/bin/ninja"
       },
       "environment": {
         "CC": "/usr/bin/gcc-12",
@@ -142,147 +183,602 @@
       }
     },
     {
-      "name": "linux-cli-debug",
-      "inherits": [ "linux-app", "cli", "debug" ],
+      "name": "windows-cli-only-debug",
+      "inherits": [ "windows", "app", "cli", "debug" ],
+      "description": ""
+    },
+    {
+      "name": "windows-cli-only-release",
+      "inherits": [ "windows", "app", "cli", "release" ],
+      "description": ""
+    },
+    {
+      "name": "windows-cli-only-rel-with-deb-info",
+      "inherits": [ "windows", "app", "cli", "rel-with-deb-info" ],
+      "description": ""
+    },
+    {
+      "name": "windows-full-suite-debug",
+      "inherits": [ "windows", "app", "gui", "debug" ],
+      "description": ""
+    },
+    {
+      "name": "windows-full-suite-release",
+      "inherits": [ "windows", "app", "gui", "release" ],
+      "description": ""
+    },
+    {
+      "name": "windows-full-suite-rel-with-deb-info",
+      "inherits": [ "windows", "app", "gui", "rel-with-deb-info" ],
+      "description": ""
+    },
+    {
+      "name": "linux-cli-only-debug",
+      "inherits": [ "linux", "app", "cli", "debug" ],
       "description": "Debug build for Linux CLI"
     },
     {
-      "name": "linux-cli-release",
-      "inherits": [ "linux-app", "cli", "release" ],
+      "name": "linux-cli-only-release",
+      "inherits": [ "linux", "app", "cli", "release" ],
       "description": "Release build for Linux CLI"
     },
     {
-      "name": "docs",
-      "hidden": true,
+      "name": "linux-full-suite-debug",
+      "inherits": [ "linux", "app", "gui", "debug" ],
+      "description": "Debug build for Linux GUI"
+    },
+    {
+      "name": "linux-full-suite-release",
+      "inherits": [ "linux", "app", "gui", "release" ],
+      "description": "Release build for Linux GUI"
+    },
+    {
+      "name": "windows-pack-server",
       "inherits": [
-        "common-configure-options"
+        "windows-cli-only-release",
+        "python-models"
+      ],
+      "description": "Release build for Linux GUI"
+    },
+    {
+      "name": "windows-pack-desktop",
+      "inherits": [
+        "windows-full-suite-release",
+        "python-models"
+      ],
+      "description": "Release build for Linux GUI"
+    },
+    {
+      "name": "linux-pack-server",
+      "inherits": [
+        "linux-cli-only-release",
+        "python-models"
+      ],
+      "description": "Release build for Linux GUI"
+    },
+    {
+      "name": "linux-pack-desktop",
+      "inherits": [
+        "linux-full-suite-release",
+        "python-models"
+      ],
+      "description": "Release build for Linux GUI"
+    },
+    {
+      "name": "tests",
+      "hidden": true,
+      "inherits": [ "common-configure-options", "cli", "debug" ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "windows-tests-all",
+      "inherits": [ "windows", "tests" ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_ALL_TESTS": "ON"
+      }
+    },
+    {
+      "name": "windows-tests-state-updater",
+      "inherits": [ "windows", "tests" ],
+      "description": "",
+      "cacheVariables": {
+        "ENABLE_STATE_UPDATER_ADAPTERS": "ON"
+      }
+    },
+    {
+      "name": "docs-windows",
+      "inherits": [
+        "windows-full-suite-release"
       ],
       "description": "",
       "cacheVariables": {
-        "DANASIM_BUILD_DOCS": "ON"
+        "BUILD_DOCS": "ON"
+      }
+    },
+    {
+      "name": "docs-linux",
+      "inherits": [
+        "linux-full-suite-release"
+      ],
+      "description": "",
+      "cacheVariables": {
+        "BUILD_DOCS": "ON"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "windows-cli-debug",
-      "configurePreset": "windows-cli-debug",
+      "name": "windows-cli-only-debug",
+      "configurePreset": "windows-cli-only-debug",
       "description": "",
       "configuration": "Debug"
     },
     {
-      "name": "windows-cli-release",
-      "configurePreset": "windows-cli-release",
+      "name": "windows-cli-only-release",
+      "configurePreset": "windows-cli-only-release",
       "description": "",
       "configuration": "Release"
     },
     {
-      "name": "linux-cli-debug",
-      "configurePreset": "linux-cli-debug",
+      "name": "windows-cli-only-rel-with-deb-info",
+      "configurePreset": "windows-cli-only-rel-with-deb-info",
+      "description": "",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "windows-full-suite-debug",
+      "configurePreset": "windows-full-suite-debug",
+      "description": "",
       "configuration": "Debug"
     },
     {
-      "name": "linux-cli-release",
-      "configurePreset": "linux-cli-release",
+      "name": "windows-full-suite-release",
+      "configurePreset": "windows-full-suite-release",
+      "description": "",
       "configuration": "Release"
+    },
+    {
+      "name": "windows-full-suite-rel-with-deb-info",
+      "configurePreset": "windows-full-suite-rel-with-deb-info",
+      "description": "",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "linux-cli-only-debug",
+      "configurePreset": "linux-cli-only-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-cli-only-release",
+      "configurePreset": "linux-cli-only-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-full-suite-debug",
+      "configurePreset": "linux-full-suite-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-full-suite-release",
+      "configurePreset": "linux-full-suite-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-pack-server",
+      "configurePreset": "windows-pack-server",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-pack-desktop",
+      "configurePreset": "windows-pack-desktop",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-pack-server",
+      "configurePreset": "linux-pack-server",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-pack-desktop",
+      "configurePreset": "linux-pack-desktop",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-tests-all",
+      "configurePreset": "windows-tests-all",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-tests-state-updater",
+      "configurePreset": "windows-tests-state-updater",
+      "configuration": "Debug"
+    },
+    {
+      "name": "python-models",
+      "configurePreset": "python-models",
+      "configuration": "Release"
+    },
+    {
+      "name": "python-data",
+      "configurePreset": "python-data",
+      "configuration": "Release"
+    },
+    {
+      "name": "python-visualizer",
+      "configurePreset": "python-visualizer",
+      "configuration": "Release"
+    },
+    {
+      "name": "docs-windows",
+      "configurePreset": "docs-windows",
+      "configuration": "Release",
+      "targets": [ "docs" ]
+    },
+    {
+      "name": "docs-linux",
+      "configurePreset": "docs-linux",
+      "configuration": "Release",
+      "targets": [ "docs" ]
     }
   ],
   "packagePresets": [
     {
       "name": "common-package-options",
       "hidden": true,
-      "description": "Base preset defining common CPack variables for all package types.",
       "variables": {
-        "CPACK_PACKAGE_VENDOR": "Tu Nombre o Compañía",
-        "CPACK_PACKAGE_CONTACT": "contacto@ejemplo.com",
-        "CPACK_PACKAGE_DESCRIPTION_SUMMARY": "Simulador de Redes Neuronales y Procesamiento de Datos (NN/Data Processing)",
-        "CPACK_PACKAGE_HOMEPAGE_URL": "http://www.ejemplo.com/danasim",
-        "CPACK_ARCHIVE_COMPONENT_INSTALL": "ON",
         "CPACK_PACKAGE_DIRECTORY": "${sourceDir}/installer"
       }
     },
     {
-      "name": "windows-installer",
-      "displayName": "Windows Installer (MSI)",
-      "inherits": [
-        "common-package-options"
-      ],
-      "generators": [ "WIX" ],
-      "configurePreset": "windows-cli-release",
+      "name": "server",
+      "hidden": true,
+      "inherits": [ "common-package-options" ],
       "variables": {
-        "CPACK_WIX_ROOT": "C:/Program Files (x86)/WiX Toolset v3.14/bin"
+        "CPACK_COMPONENTS_ALL": "CLI"
       }
-     }
+    },
+    {
+      "name": "desktop",
+      "hidden": true,
+      "inherits": [ "common-package-options" ],
+      "variables": {
+        "CPACK_COMPONENTS_ALL": "CLI;GUI"
+      }
+    },
+    {
+      "name": "windows-pack-server",
+      "displayName": "Installer - CLI Only",
+      "inherits": [ "server" ],
+      "configurePreset": "windows-pack-server"
+    },
+    {
+      "name": "windows-pack-desktop",
+      "displayName": "Installer - GUI & CLI",
+      "inherits": [ "desktop" ],
+      "configurePreset": "windows-pack-desktop"
+    },
+    {
+      "name": "linux-pack-server",
+      "displayName": "Installer - CLI Only",
+      "inherits": [ "server" ],
+      "configurePreset": "linux-pack-server"
+    },
+    {
+      "name": "linux-pack-desktop",
+      "displayName": "Installer - GUI & CLI",
+      "inherits": [ "desktop" ],
+      "configurePreset": "linux-pack-desktop"
+    }
   ],
   "workflowPresets": [
     {
-      "name": "windows-cli-debug",
+      "name": "windows-cli-only-debug",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-cli-debug"
+          "name": "windows-cli-only-debug"
         },
         {
           "type": "build",
-          "name": "windows-cli-debug"
+          "name": "windows-cli-only-debug"
         }
       ]
     },
     {
-      "name": "windows-cli-release",
+      "name": "windows-cli-only-release",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-cli-release"
+          "name": "windows-cli-only-release"
         },
         {
           "type": "build",
-          "name": "windows-cli-release"
+          "name": "windows-cli-only-release"
         }
       ]
     },
     {
-      "name": "linux-cli-debug",
+      "name": "windows-cli-only-rel-with-deb-info",
       "steps": [
         {
           "type": "configure",
-          "name": "linux-cli-debug"
+          "name": "windows-cli-only-rel-with-deb-info"
         },
         {
           "type": "build",
-          "name": "linux-cli-debug"
+          "name": "windows-cli-only-rel-with-deb-info"
         }
       ]
     },
     {
-      "name": "linux-cli-release",
+      "name": "windows-full-suite-debug",
       "steps": [
         {
           "type": "configure",
-          "name": "linux-cli-release"
+          "name": "windows-full-suite-debug"
         },
         {
           "type": "build",
-          "name": "linux-cli-release"
+          "name": "windows-full-suite-debug"
         }
       ]
     },
     {
-      "name": "windows-installer",
+      "name": "windows-full-suite-release",
       "steps": [
         {
           "type": "configure",
-          "name": "windows-cli-release"
+          "name": "windows-full-suite-release"
         },
         {
           "type": "build",
-          "name": "windows-cli-release"
+          "name": "windows-full-suite-release"
+        }
+      ]
+    },
+    {
+      "name": "windows-full-suite-rel-with-deb-info",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-full-suite-rel-with-deb-info"
+        },
+        {
+          "type": "build",
+          "name": "windows-full-suite-rel-with-deb-info"
+        }
+      ]
+    },
+    {
+      "name": "linux-cli-only-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-cli-only-debug"
+        },
+        {
+          "type": "build",
+          "name": "linux-cli-only-debug"
+        }
+      ]
+    },
+    {
+      "name": "linux-cli-only-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-cli-only-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-cli-only-release"
+        }
+      ]
+    },
+    {
+      "name": "linux-full-suite-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-full-suite-debug"
+        },
+        {
+          "type": "build",
+          "name": "linux-full-suite-debug"
+        }
+      ]
+    },
+    {
+      "name": "linux-full-suite-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-full-suite-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-full-suite-release"
+        }
+      ]
+    },
+    {
+      "name": "windows-pack-server",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-pack-server"
+        },
+        {
+          "type": "build",
+          "name": "windows-pack-server"
         },
         {
           "type": "package",
-          "name": "windows-installer"
+          "name": "windows-pack-server"
         }
       ]
+    },
+    {
+      "name": "windows-pack-desktop",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-pack-desktop"
+        },
+        {
+          "type": "build",
+          "name": "windows-pack-desktop"
+        },
+        {
+          "type": "package",
+          "name": "windows-pack-desktop"
+        }
+      ]
+    },
+    {
+      "name": "linux-pack-server",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-pack-server"
+        },
+        {
+          "type": "build",
+          "name": "linux-pack-server"
+        },
+        {
+          "type": "package",
+          "name": "linux-pack-server"
+        }
+      ]
+    },
+    {
+      "name": "linux-pack-desktop",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-pack-desktop"
+        },
+        {
+          "type": "build",
+          "name": "linux-pack-desktop"
+        },
+        {
+          "type": "package",
+          "name": "linux-pack-desktop"
+        }
+      ]
+    },
+    {
+      "name": "windows-tests-all",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-tests-all"
+        },
+        {
+          "type": "build",
+          "name": "windows-tests-all"
+        }
+      ]
+    },
+    {
+      "name": "windows-tests-state-updater",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-tests-state-updater"
+        },
+        {
+          "type": "build",
+          "name": "windows-tests-state-updater"
+        }
+      ]
+    },
+    {
+      "name": "python-models",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "python-models"
+        },
+        {
+          "type": "build",
+          "name": "python-models"
+        }
+      ]
+    },
+    {
+      "name": "python-data",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "python-data"
+        },
+        {
+          "type": "build",
+          "name": "python-data"
+        }
+      ]
+    },
+    {
+      "name": "python-visualizer",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "python-visualizer"
+        },
+        {
+          "type": "build",
+          "name": "python-visualizer"
+        }
+      ]
+    },
+    {
+      "name": "docs-windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "docs-windows"
+        },
+        {
+          "type": "build",
+          "name": "docs-windows"
+        }
+      ]
+    },
+    {
+      "name": "docs-linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "docs-linux"
+        },
+        {
+          "type": "build",
+          "name": "docs-linux"
+        }
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-tests-all",
+      "displayName": "Test Windows Debug",
+      "configurePreset": "windows-tests-all", 
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true,
+        "shortProgress": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "jobs": 4
+      }
     }
   ]
 }

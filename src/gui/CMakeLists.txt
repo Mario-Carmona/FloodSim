@@ -1,19 +1,67 @@
 
-add_executable(danasim_gui
-    main_gui.cpp
-)
+# =========================================================
+# 🖥️ Graphical User Interface (GUI) Target Configuration
+# =========================================================
 
-target_link_libraries(danasim_gui
+# Dependency Resolution for GUI Tooling
+find_package(OpenGL REQUIRED)
+find_package(imgui CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_path(PORTABLE_FILE_DIALOGS_INCLUDE_DIRS "portable-file-dialogs.h")
+
+# Register hierarchical UI components
+add_subdirectory(tabs)
+
+# ---------------------------------------------------------
+# 🎯 Executable Target Declaration
+# ---------------------------------------------------------
+if(WIN32)
+    # Windows environments require the .rc resource file to embed application metadata (e.g., icons)
+    add_executable(${GUI_EXE_NAME} mainGUI.cpp app_icon.rc)
+else()
+    # Linux/Unix environments utilize standard source inputs without PE resource files
+    add_executable(${GUI_EXE_NAME} mainGUI.cpp)
+endif()
+
+# Append a 'd' suffix to the binary name during Debug builds to avoid overwriting Release assets
+set_target_properties(${GUI_EXE_NAME} PROPERTIES DEBUG_POSTFIX "d")
+
+# ---------------------------------------------------------
+# Windows-Specific Subsystem & Linker Overrides
+# ---------------------------------------------------------
+if(WIN32)
+    # 1. Define the executable subsystem as GUI (suppresses the background terminal window)
+    set_target_properties(${GUI_EXE_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
+
+    # 2. Override the default MSVC linker entry point
+    # Forces the execution to route through standard 'main' rather than 'WinMain', 
+    # effectively resolving LNK2001 unresolved external symbol errors within the WINDOWS subsystem.
+    target_link_options(${GUI_EXE_NAME} PRIVATE "/ENTRY:mainCRTStartup")
+endif()
+
+# ---------------------------------------------------------
+# 🔗 Linkage & Include Directives
+# ---------------------------------------------------------
+target_link_libraries(${GUI_EXE_NAME}
     PRIVATE
-        danasim_options
-        danasim_app
-        danasim_input_adapters
-        danasim_output_adapters
-        danasim_snapshot_serializer_adapters
-        danasim_solver_adapters
+        floodsim_options
+        floodsim_app
+        floodsim_gui_tabs
+        imgui::imgui
+        glfw
+        OpenGL::GL
 )
 
-set_target_properties(danasim_gui PROPERTIES
-    OUTPUT_NAME DanaSimGUI
-    DEBUG_POSTFIX "d"
+target_include_directories(${GUI_EXE_NAME} 
+    PRIVATE 
+        ${PORTABLE_FILE_DIALOGS_INCLUDE_DIRS}
+)
+
+# ---------------------------------------------------------
+# 📦 Deployment & Installation Rules
+# ---------------------------------------------------------
+# Deployment rules specific to the Graphical User Interface component
+install(TARGETS ${GUI_EXE_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT GUI # Explicitly segregates this binary asset from the CLI layer in CPack distributions
 )

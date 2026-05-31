@@ -1,0 +1,34 @@
+@startuml
+' Settings for a clean, academic look in LaTeX
+skinparam monochrome true
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+' --- Abstract Base Class ---
+abstract class DataGenerator {
+  + name : str
+  + visual_config : VisualConfig
+  + __init__(name: str, visual_config: VisualConfig)
+  + run(dependent_layers: Dict, start_date: datetime, end_date: datetime, cfg: Dict, cfg_dir: Path, output_dir: Path, visualization: bool) : Any
+  {abstract} # _generate(dependent_layers: Dict, start_date: datetime, end_date: datetime, cfg: Dict, cfg_dir: Path) : Any
+  {abstract} # _save(output_dir: Path, layer: Any) : void
+  {abstract} # _visualize(output_dir: Path, layer: Any) : void
+}
+
+' --- Specific Implementations ---
+class StaticLayerGenerator {
+  # _save(output_dir: Path, layer: StaticRaster) : void
+  # _visualize(output_dir: Path, layer: StaticRaster) : void
+}
+
+class DynamicLayerGenerator {
+  # _save(output_dir: Path, layer: DynamicRaster) : void
+  # _visualize_step(step: int, visualization_dir: Path, layer: DynamicRaster) : void
+  # _visualize(output_dir: Path, layer: DynamicRaster) : void
+}
+
+' --- Inheritance Relationships ---
+DataGenerator <|-- StaticLayerGenerator
+DataGenerator <|-- DynamicLayerGenerator
+
+@enduml

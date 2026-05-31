@@ -1,0 +1,80 @@
+@startuml
+' Configuration for a clean academic style
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam nodesep 60
+skinparam ranksep 60
+
+package "Core Pipeline (Integration Layer)" {
+    class DynamicLayerGenerator <<Abstract>> {
+        + _save()
+        + _visualize()
+    }
+
+    class RainfallGenerator {
+        + _generate()
+        + _downsample_dem()
+    }
+}
+
+package "Extraction Layer" {
+    class RainDataManager {
+        + fetch_all(bounds, dates, crs) : List<StationRainData>
+    }
+
+    abstract class BaseFetcher {
+        + is_station_relevant()
+        + reproject_station()
+        + {abstract} run()
+    }
+
+    class SAIHJucarFetcher {
+        + run() : List<StationRainData>
+    }
+}
+
+package "Interpolation Layer" {
+    class KrigingInterpolator {
+        + model_name: str
+        + process(dem, points: List<RainDataPoint>)
+    }
+}
+
+package "Data Structures" {
+    class StationMetadata <<Dataclass>> {
+        + station_id: str
+        + position: Position
+        + location: str
+        + province: str
+    }
+
+    class StationRainData <<Dataclass>> {
+        + mm_per_hour: float
+        + start_timestamp: datetime
+        + end_timestamp: datetime
+    }
+
+    class RainDataPoint <<Dataclass>> {
+        + position: Position
+        + value: float
+    }
+}
+
+' Architectural Relationships
+DynamicLayerGenerator <|--- RainfallGenerator
+RainfallGenerator *--> RainDataManager : "coordinates"
+RainfallGenerator *--> KrigingInterpolator : "utilizes"
+
+RainDataManager o--> "1..*" BaseFetcher : "manages"
+BaseFetcher <|--- SAIHJucarFetcher
+
+' Data Structure Relationships
+StationRainData *--> "1" StationMetadata : "contains"
+
+' Data Flow / Dependencies
+RainDataManager ..> StationRainData : "extracts >"
+RainfallGenerator ..> RainDataPoint : "filters & converts >"
+KrigingInterpolator ..> RainDataPoint : "consumes >"
+StationRainData .right.> RainDataPoint : " mapped to "
+@enduml

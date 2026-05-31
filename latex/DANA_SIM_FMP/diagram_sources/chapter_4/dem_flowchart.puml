@@ -1,0 +1,33 @@
+@startuml
+skinparam style strictuml
+skinparam ActivityBackgroundColor #E8F4F8
+skinparam ActivityBorderColor #2B7A78
+skinparam ArrowColor #17252A
+
+start
+
+:Ingest **config.yaml**
+(Extract Bounding Box & Resolution);
+
+:Coordinate Transformation
+**EPSG:4326** (WGS84) → **EPSG:25830** (UTM);
+
+:Spatial Tessellation
+(Calculate Sub-region Tile Grid);
+
+repeat :Iterate over Tiles (i, j);
+  :WCS **GetCoverage** Request
+  (IGN Web Service);
+  :Download Tile as 
+  TIFF Byte Stream;
+repeat while (Are there remaining tiles?) is (Yes)
+-> No;
+
+:Merge In-Memory Byte Streams
+(Continuous Mosaic via *rasterio*);
+
+:Export Standardized Output
+(IDRISI **.doc** & **.img** files);
+
+stop
+@enduml

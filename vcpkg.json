@@ -2,51 +2,124 @@
   "builtin-baseline": "66c0373dc7fca549e5803087b9487edfe3aca0a1",
   "name": "danasim",
   "version": "1.0.0",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "name": "fmt",
+      "default-features": false,
+      "features": []
+    },
+    {
+      "name": "spdlog",
+      "default-features": false,
+      "features": [ "fmt" ]
+    },
+    {
+      "name": "whereami",
+      "default-features": false,
+      "features": []
+    }
+  ],
   "features": {
-    "app": {
-      "description": "Build Apps",
+    "input-adapters": {
+      "description": "Input adapters",
       "dependencies": [
         {
-          "name": "gdal",
+          "name": "nlohmann-json",
           "default-features": false,
           "features": []
-        },
-        {
-          "name": "yaml-cpp"
-        },
-        {
-          "name": "spdlog"
-        },
-        {
-          "name": "magic-enum"
-        },
-        {
-          "name": "zlib"
-        },
-        {
-          "name": "paho-mqttpp3"
-        },
-        {
-          "name": "protobuf"
-        },
-        {
-          "name": "highfive"
-        },
-        {
-          "name": "fmt"
-        },
+        }
+      ]
+    },
+    "output-adapters": {
+      "description": "Output adapters",
+      "dependencies": [
         {
           "name": "opencv4",
           "default-features": false,
           "features": [ "png", "jpeg" ]
+        },
+        {
+          "name": "nlohmann-json",
+          "default-features": false,
+          "features": []
+        },
+        {
+          "name": "paho-mqttpp3",
+          "default-features": false,
+          "features": []
+        }
+      ]
+    },
+    "app-core": {
+      "description": "Core",
+      "dependencies": [
+        {
+          "name": "yaml-cpp",
+          "default-features": false,
+          "features": []
+        },
+        {
+          "name": "magic-enum",
+          "default-features": false,
+          "features": []
+        },
+        {
+          "name": "geographiclib",
+          "default-features": false,
+          "features": []
+        }
+      ]
+    },
+    "gui": {
+      "description": "GUI",
+      "dependencies": [
+        {
+          "name": "imgui",
+          "default-features": false,
+          "features": [
+            "glfw-binding",
+            "opengl3-binding"
+          ]
+        },
+        {
+          "name": "glfw3",
+          "default-features": false,
+          "features": []
+        },
+        {
+          "name": "portable-file-dialogs",
+          "default-features": true
+        },
+        {
+          "name": "nlohmann-json",
+          "default-features": false,
+          "features": []
+        },
+        {
+          "name": "magic-enum",
+          "default-features": false,
+          "features": []
         }
       ]
     },
     "test": {
       "description": "Build Tests",
       "dependencies": [
-        "gtest"
+        {
+          "name": "gtest",
+          "default-features": false,
+          "features": []
+        }
+      ]
+    },
+    "benchmark": {
+      "description": "Build Benchmarks",
+      "dependencies": [
+        {
+          "name": "benchmark",
+          "default-features": false,
+          "features": []
+        }
       ]
     }
   }

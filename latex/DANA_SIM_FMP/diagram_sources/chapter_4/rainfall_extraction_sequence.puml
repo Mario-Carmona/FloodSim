@@ -1,0 +1,79 @@
+@startuml
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+skinparam sequenceMessageAlign center
+
+title Multi-Source Data Acquisition Sequence
+
+participant "RainfallGenerator" as RG
+participant "RainDataManager" as RDM
+participant "SAIHJucarFetcher\n(extends BaseFetcher)" as Fetcher
+database "Auxiliary Files\n(CSV / JSON)" as LocalFiles
+boundary "SAIH Júcar Portal\n(Web / PDFs)" as SAIHWeb
+
+activate RG
+RG -> RDM: fetch_all(bounds, start_date, end_date, target_crs)
+activate RDM
+
+note right of RDM
+  Facade pattern: Iterates over
+  all registered BaseFetchers
+end note
+
+RDM -> Fetcher: run(bounds, start_date, end_date, target_crs)
+activate Fetcher
+
+== 1. Station Discovery & Spatial Filtering ==
+
+Fetcher -> Fetcher: fetch_stations()
+activate Fetcher
+Fetcher -> LocalFiles: Read jucar_stations.csv
+LocalFiles --> Fetcher: List<StationMetadata>
+deactivate Fetcher
+
+loop for each station
+    Fetcher -> Fetcher: reproject_station(station, target_crs)
+    note right: Coordinate transformation\nto target EPSG
+    
+    Fetcher -> Fetcher: is_station_relevant(station, bounds)
+    note right: Spatial filtering:\nBounding box check
+end
+note left of Fetcher: Filtered list of\nrelevant_stations
+
+== 2. Data Extraction & Parsing ==
+
+Fetcher -> Fetcher: fetch_data(relevant_stations, start, end)
+activate Fetcher
+
+loop for each date in simulation range
+    Fetcher -> SAIHWeb: Download daily PDF Reports
+    SAIHWeb --> Fetcher: PDF file
+    
+    Fetcher -> Fetcher: Parse PDF text (pdfplumber)
+    
+    Fetcher -> LocalFiles: Query station_pdf_mapping.json
+    LocalFiles --> Fetcher: Mapped Station IDs
+    
+    Fetcher -> Fetcher: Normalize to StationRainData
+    note right: Convert raw measurements\ninto intensity (mm/h)
+end
+deactivate Fetcher
+
+Fetcher --> RDM: List<StationRainData>
+deactivate Fetcher
+
+note right of RDM
+  Aggregates data from
+  multiple fetchers (if any)
+end note
+
+RDM --> RG: Unified List<StationRainData>
+deactivate RDM
+
+== 3. Simulation Loop Usage ==
+
+RG -> RG: Filter by specific time frame\n& convert to RainDataPoint
+note left of RG: Active points ready\nfor Kriging interpolation
+deactivate RG
+@enduml

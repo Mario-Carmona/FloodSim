@@ -1,26 +1,28 @@
-name: Deploy release
+name: Deploy Release
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
+  push:
+    branches: ["main"]
 
 permissions:
-  contents: write
+  contents: write # Required for creating releases and tags
+  actions: write  # Required for querying and managing GitHub Caches via 'gh' CLI
 
 jobs:
+  # ======================================================
+  # 1️) Check Tag: Prevent duplicate releases
+  # ======================================================  
   check-tag:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
-      # 🔹 Checkout repository again to prepare for tagging and release
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # 🧑‍💻 Configure a Git user for tagging and pushing
+      - uses: actions/checkout@v4
+      
       - name: Setup git user
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-
-      # 🏷️ Create a unique tag based on the current date (e.g., v2025.10.30)
+          
       - name: Check tag availability
         run: |
           VERSION=$(date +'%Y.%m.%d')
@@ -31,187 +33,190 @@ jobs:
           fi 
 
   # ======================================================
-  # 1️⃣ Check/Restore: Detectamos si el vcpkg.json ha cambiado
+  # 2️) Check Cache: Orchestrate dynamic build matrix
   # ======================================================
-  check-cache-windows:
+  check-cache:
     needs: [check-tag]
-    runs-on: windows-2025-vs2026
+    runs-on: ubuntu-latest
     outputs:
-      # Importante: usamos 'cache-hit' para decidir si lanzamos el sembrado
-      cache-hit: ${{ steps.vcpkg-windows-restore.outputs.cache-hit }}
+      matrix_full: ${{ steps.set-matrix.outputs.matrix_full }}
+      matrix_missing: ${{ steps.set-matrix.outputs.matrix_missing }}
+      any_missing: ${{ steps.set-matrix.outputs.any_missing }}
+      vcpkg_hash: ${{ steps.set-matrix.outputs.vcpkg_hash }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+  
+      - name: Generate Build Matrices
+        id: set-matrix
+        shell: pwsh
+        run: |
+          # 💡 NORMALIZE HASH: Read vcpkg.json and force LF line endings.
+          # This ensures the hash is identical whether the file was checked out on Windows (CRLF) or Linux (LF).
+          $rawContent = Get-Content "vcpkg.json" -Raw
+          $normalizedContent = $rawContent -replace "`r`n", "`n" # Normaliza a LF
+          
+          $sha256 = [System.Security.Cryptography.SHA256]::Create()
+          $contentBytes = [System.Text.Encoding]::UTF8.GetBytes($normalizedContent)
+          $hashBytes = $sha256.ComputeHash($contentBytes)
+          $vcpkgHash = ($hashBytes | ForEach-Object { $_.ToString("x2") }) -join ""
 
-      - name: Restore/Check vcpkg cache
-        id: vcpkg-windows-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            build/Windows/vcpkg_installed
-            build/Windows/vcpkg_cache
-          # Clave exacta con el hash actual
-          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
-          # 🔄 Si el vcpkg.json cambió, rescatamos la caché de la release anterior
-          # Esto evita que la caché "muera" por falta de uso
-          restore-keys: vcpkg-windows-
+          Write-Host "Normlized Hash (vcpkg.json): $vcpkgHash"
 
-  check-cache-linux:
-    needs: [check-tag]
-    runs-on: ubuntu-24.04
-    outputs:
-      # Importante: usamos 'cache-hit' para decidir si lanzamos el sembrado
-      cache-hit: ${{ steps.vcpkg-linux-restore.outputs.cache-hit }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+          # Define the OS configurations. 
+          # 'build_preset' is used only for populating the cache (Configure step).
+          $os_configs = @(
+            @{ 
+              os="windows-2025-vs2026"; 
+              build_cache_preset="windows-full-suite-release"; 
+              run_install_deps=$false
+            },
+            @{ 
+              os="ubuntu-24.04"; 
+              build_cache_preset="linux-full-suite-release"; 
+              run_install_deps=$true
+            },
+            @{ 
+              os="ubuntu-22.04"; 
+              build_cache_preset="linux-full-suite-release"; 
+              run_install_deps=$true
+            }
+          )
 
-      - name: Restore/Check vcpkg cache
-        id: vcpkg-linux-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            build/Linux/vcpkg_installed
-            build/Linux/vcpkg_cache
-          # Clave exacta con el hash actual
-          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
-          # 🔄 Si el vcpkg.json cambió, rescatamos la caché de la release anterior
-          # Esto evita que la caché "muera" por falta de uso
-          restore-keys: |
-            vcpkg-linux-
+          $missing = @()
+          foreach ($c in $os_configs) {
+            $key = "vcpkg-$($c.os)-$vcpkgHash"
+            $cacheExists = try { gh cache list --key "$key" --limit 1 | Select-String "$key" } catch { $null }
             
-  build-new-cache-windows:
-    needs: check-cache-windows
-    if: needs.check-cache-windows.outputs.cache-hit != 'true'
-    runs-on: windows-2025-vs2026
-    
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+            if (-not $cacheExists) {
+              $missing += $c
+              Write-Host "❌ Cache missing for OS: $($c.os)"
+            } else {
+              Write-Host "✅ Cache hit for OS: $($c.os)"
+            }
+          }
 
-      # Restauramos la caché vieja para añadirle las librerías nuevas
-      - name: Restore latest available cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            build/Windows/vcpkg_installed
-            build/Windows/vcpkg_cache
-          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-windows-
+          # 🚀 DYNAMIC MATRIX: Prepare JSON strings for GitHub Actions matrix
+          $json_full = $os_configs | ConvertTo-Json -Compress
+          # Ensure $missing is treated as an array even if it has 1 element using the comma operator
+          $json_missing = if ($missing.Count -gt 0) { ,$missing | ConvertTo-Json -Compress } else { "[]" }
+          $any_missing = if ($missing.Count -gt 0) { "true" } else { "false" }
 
-      - name: Build GUI (Updating Cache)
-        run: cmake --workflow --preset windows-full-suite-release
-        shell: pwsh
+          # Append to GITHUB_OUTPUT using UTF8 to avoid encoding issues in Actions
+          "matrix_full=$json_full" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "matrix_missing=$json_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "any_missing=$any_missing" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "vcpkg_hash=$vcpkgHash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 💾 GUARDADO: Aquí creamos la nueva "última versión"
-      - name: Save updated cache
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            build/Windows/vcpkg_installed
-            build/Windows/vcpkg_cache
-          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
-            
-  build-new-cache-linux:
-    needs: check-cache-linux
-    if: needs.check-cache-linux.outputs.cache-hit != 'true'
-    runs-on: ubuntu-24.04
-    
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      # Restauramos la caché vieja para añadirle las librerías nuevas
-      - name: Restore latest available cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            build/Linux/vcpkg_installed
-            build/Linux/vcpkg_cache
-          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-linux-
-
-      - name: Install dependencies
-        run: bash install-deps.sh --desktop
-        shell: pwsh
-
-      - name: Build GUI (Updating Cache)
-        run: cmake --workflow --preset linux-full-suite-release
-        shell: pwsh
-
-      # 💾 GUARDADO: Aquí creamos la nueva "última versión"
-      - name: Save updated cache
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            build/Linux/vcpkg_installed
-            build/Linux/vcpkg_cache
-          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
-
-  build-parallel-windows:
-    needs: [check-cache-windows, build-new-cache-windows]
-    if: always() && (needs.build-new-cache-windows.result == 'success' || needs.build-new-cache-windows.result == 'skipped')
+  # ======================================================
+  # 3️) Build New Cache: Seed the cache if missing
+  # ======================================================
+  build-new-cache:
+    needs: check-cache
+    # Only run if at least one OS configuration is missing its cache
+    if: needs.check-cache.outputs.any_missing == 'true'
     strategy:
+      fail-fast: true
       matrix:
-        preset: [windows-pack-desktop, windows-pack-server]
-    runs-on: windows-2025-vs2026
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      # Siempre restauramos la versión más reciente disponible
-      - name: Restore vcpkg
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            build/Windows/vcpkg_installed
-            build/Windows/vcpkg_cache
-          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-windows-
-
-      - name: Build and Package
-        run: cmake --workflow --preset ${{ matrix.preset }}
-        shell: pwsh
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-${{ matrix.preset }}-installer
-          path: installer/*.msi
-
-  build-parallel-linux:
-    needs: [check-cache-linux, build-new-cache-linux]
-    if: always() && (needs.build-new-cache-linux.result == 'success' || needs.build-new-cache-linux.result == 'skipped')
-    strategy:
-      matrix:
-        os: [ubuntu-22.04, ubuntu-24.04]
-        preset: [linux-pack-desktop, linux-pack-server]
+        # Use the filtered matrix containing only missing configurations
+        include: ${{ fromJson(needs.check-cache.outputs.matrix_missing) }}
     runs-on: ${{ matrix.os }}
-
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          
+      - name: Install system dependencies (Linux)
+        if: matrix.run_install_deps == true
+        run: bash ./install-deps.sh --desktop
+        shell: bash
 
-      # Siempre restauramos la versión más reciente disponible
-      - name: Restore vcpkg
+      - name: Restore OS Cache
         uses: actions/cache/restore@v4
         with:
           path: |
-            build/Linux/vcpkg_installed
-            build/Linux/vcpkg_cache
-          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-linux-
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
+          key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
+          restore-keys: vcpkg-${{ matrix.os }}-
 
-      - name: Install dependencies
-        run: bash install-deps.sh --desktop
+      - name: Install vcpkg dependencies (Configure only)
+        # Running 'configure' is enough to trigger vcpkg installation without building the whole project
+        run: cmake --preset ${{ matrix.build_cache_preset }}
         shell: pwsh
+
+      - name: Save OS Cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
+          key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
+
+  # ======================================================
+  # 4️) Build Parallel: Generate final installers
+  # ======================================================
+  build-parallel:
+    needs: [check-cache, build-new-cache]
+    # Execute if the check was successful, even if the 'seed' job was skipped (cache hit)
+    if: |
+      always() && 
+      needs.check-tag.result == 'success' &&
+      needs.check-cache.result == 'success' &&
+      (needs.build-new-cache.result == 'success' || needs.build-new-cache.result == 'skipped')
+    strategy:
+      matrix:
+        # Use the full matrix to generate all requested installers (Desktop, Server, etc.)
+        include:
+          - os: windows-2025-vs2026
+            preset: windows-pack-desktop
+            run_install_deps: false
+            artifact_path: "installer/*.msi"
+          - os: windows-2025-vs2026
+            preset: windows-pack-server
+            run_install_deps: false
+            artifact_path: "installer/*.msi"
+          - os: ubuntu-24.04
+            preset: linux-pack-desktop
+            run_install_deps: true
+            artifact_path: "installer/*.deb"
+          - os: ubuntu-24.04
+            preset: linux-pack-server
+            run_install_deps: true
+            artifact_path: "installer/*.deb"
+          - os: ubuntu-22.04
+            preset: linux-pack-desktop
+            run_install_deps: true
+            artifact_path: "installer/*.deb"
+          - os: ubuntu-22.04
+            preset: linux-pack-server
+            run_install_deps: true
+            artifact_path: "installer/*.deb"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies (Linux)
+        if: matrix.run_install_deps == true
+        run: bash ./install-deps.sh --desktop
+        shell: bash
+
+      - name: Restore OS Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_installed' || 'build/Linux/vcpkg_installed' }}
+            ${{ contains(matrix.os, 'windows') && 'build/Windows/vcpkg_cache' || 'build/Linux/vcpkg_cache' }}
+          key: vcpkg-${{ matrix.os }}-${{ needs.check-cache.outputs.vcpkg_hash }}
+          fail-on-cache-miss: true
 
       - name: Build and Package
         run: cmake --workflow --preset ${{ matrix.preset }}
@@ -221,38 +226,30 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.preset }}-installer
-          path: installer/*.deb
+          path: ${{ matrix.artifact_path }}
 
+  # ======================================================
+  # 5️) Release: Create GitHub Draft Release
+  # ======================================================
   release:
-    # 🚀 Run only after the Windows builds complete
-    needs: [build-parallel-windows, build-parallel-linux]
-    runs-on: ubuntu-24.04
+    needs: [build-parallel]
+    runs-on: ubuntu-latest
+    # Ensure release runs if parallel builds were successful, regardless of caching jobs
+    if: |
+      always() && 
+      needs.build-parallel.result == 'success'
     steps:
-      # 🔹 Checkout repository again to prepare for tagging and release
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # ⬇️ Download all installer artifacts from previous job
       - name: Download installers
         uses: actions/download-artifact@v4
         with:
           path: all-installers
-
-      # 🧑‍💻 Configure a Git user for tagging and pushing
-      - name: Setup git user
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-      # 🏷️ Create a unique tag based on the current date (e.g., v2025.10.30)
-      - name: Create unique tag based on date
+          
+      - name: Create tag name
         id: tag
         run: |
           VERSION=$(date +'%Y.%m.%d')
-          TAG="v${VERSION}"
-          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "TAG=v${VERSION}" >> $GITHUB_ENV
       
-      # 🧾 Create a draft GitHub release and attach installer files
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -261,8 +258,7 @@ jobs:
           files: |
             all-installers/**/*.msi
             all-installers/**/*.deb
-          draft: true # La crea como borrador para que tú la revises antes de publicar
-          prerelease: false
-          generate_release_notes: true # GitHub generará automáticamente el registro de cambios
+          draft: true 
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

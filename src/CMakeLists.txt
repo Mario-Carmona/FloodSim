@@ -1,321 +1,91 @@
 
-# ---------------------------------------------------------
-# Common External Dependencies via vcpkg
-# ---------------------------------------------------------
+# =========================================================
+# ⚙️ GLOBAL TARGET OPTIONS DEFINITION (INTERFACE TARGET)
+# =========================================================
 
-# GDAL
-find_package(GDAL CONFIG REQUIRED)
-
-# YAML
-find_package(yaml-cpp REQUIRED)
-
-# Tensorflow C 
-include(${CMAKE_SOURCE_DIR}/cmake/tensorflow.cmake)
-
-# spdlog
-find_package(spdlog CONFIG REQUIRED)
-
-# magic-enum
-find_package(magic_enum CONFIG REQUIRED)
-
-# ZLIB
-find_package(ZLIB REQUIRED)
-include_directories(${ZLIB_INCLUDE_DIRS})
-
-# paho-mqttpp3
-find_package(PahoMqttCpp CONFIG REQUIRED)
-
-# Protobuf
-find_package(Protobuf CONFIG REQUIRED)
-
-# HighFive
-find_package(HighFive CONFIG REQUIRED)
-
-# OpenCV
-set(OpenCV_ROOT "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/opencv4")
-find_package(OpenCV REQUIRED)
-
-# fmt
+# Dependency Resolution
 find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(unofficial-whereami CONFIG REQUIRED)
 
-# ---------------------------------------------------------
-# Python Virtual Environment Automation
-# ---------------------------------------------------------
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+# Force CMake to locate and utilize the LLVM-based OpenMP runtime implementation under MSVC
+if(MSVC)
+    set(OpenMP_CXX_FLAGS "/openmp:llvm")
+    set(OpenMP_C_FLAGS "/openmp:llvm")
+endif()
 
-# --- Función para crear entornos Python aislados ---
-function(create_python_env ENV_NAME ISOLATE_ENVIRONMENT)
-    set(PYTHONPATH "${CMAKE_SOURCE_DIR}/python")
+find_package(OpenMP REQUIRED)
 
-    # Definir la ruta donde vivirá el entorno (dentro de build/venvs)
-    set(VENV_PATH "${CMAKE_SOURCE_DIR}/build/venvs/${ENV_NAME}_env")
-    
-    # Detectar ejecutable del entorno virtual según S.O.
-    if(WIN32)
-        set(VENV_BIN_DIR "${VENV_PATH}/Scripts")
-        set(VENV_PYTHON "${VENV_BIN_DIR}/python.exe")
-        set(VENV_PIP "${VENV_BIN_DIR}/pip.exe")
-    else()
-        set(VENV_BIN_DIR "${VENV_PATH}/bin")
-        set(VENV_PYTHON "${VENV_BIN_DIR}/python")
-        set(VENV_PIP "${VENV_BIN_DIR}/pip")
-    endif()
+# Define an interface configuration target to propagate global build policies
+add_library(floodsim_options INTERFACE)
 
-    # 1. Crear el entorno solo si no existe
-    if(NOT EXISTS "${VENV_PYTHON}")
-        message(STATUS "Creando entorno virtual Python: ${ENV_NAME}...")
+# 1. Compilation Directives & Feature Requirements
+target_compile_features(floodsim_options INTERFACE cxx_std_20)
 
-        set(VENV_FLAGS "")
-        if(NOT ISOLATE_ENVIRONMENT)
-            list(APPEND VENV_FLAGS "--system-site-packages")
-        endif()
-
-        if(WIN32)
-            # EN WINDOWS: Usamos el módulo nativo 'venv' (es lo estándar y seguro)
-            execute_process(
-                COMMAND "${Python3_EXECUTABLE}" -m venv ${VENV_PATH} ${VENV_FLAGS}
-                RESULT_VARIABLE _res
-            )
-        else()
-            # EN LINUX: Usamos 'virtualenv' (soluciona el problema de Kaggle/Ubuntu)
-            # Primero intentamos encontrar el ejecutable virtualenv
-            find_program(VIRTUALENV_EXE "virtualenv")
-
-            if(NOT VIRTUALENV_EXE)
-                execute_process(
-                    COMMAND "${Python3_EXECUTABLE}" -m pip install --quiet virtualenv
-                    RESULT_VARIABLE _res_virtualenv
-                )
-
-                execute_process(
-                    COMMAND "${Python3_EXECUTABLE}" -m pip install wrapt --upgrade --ignore-installed
-                    RESULT_VARIABLE _res_wrapt
-                )
-
-                find_program(VIRTUALENV_EXE "virtualenv")
-            endif()
-
-            # Si existe el comando 'virtualenv', lo usamos directo
-            execute_process(
-                COMMAND "${VIRTUALENV_EXE}" ${VENV_PATH} ${VENV_FLAGS}
-                RESULT_VARIABLE _res
-            )
-        endif()
-
-        if(NOT _res EQUAL 0)
-            message(FATAL_ERROR "Fallo al crear venv ${ENV_NAME}. Código: ${_res}")
-        endif()
-
-        message(STATUS "Configurando PYTHONPATH extra para ${ENV_NAME}...")
-        
-        # Creamos un archivo temporal en la carpeta de build con el contenido
-        if(WIN32)
-            # En Windows la carpeta es "Lib" (con mayúscula) y directa
-            set(SITE_PACKAGES_DIR "${VENV_PATH}/Lib/site-packages")
-        else()
-            # En Linux es "lib" (minúscula) e incluye la versión (ej: python3.10)
-            # CMake ya sabe la versión gracias a find_package(Python3)
-            set(SITE_PACKAGES_DIR "${VENV_PATH}/lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages")
-        endif()
-
-        # Nos aseguramos de que la carpeta exista antes de escribir
-        file(MAKE_DIRECTORY "${SITE_PACKAGES_DIR}")
-
-        message(STATUS "Configurando PYTHONPATH extra en: ${SITE_PACKAGES_DIR}")
-        
-        # Escribimos el archivo .pth en la ruta calculada dinámicamente
-        file(WRITE "${SITE_PACKAGES_DIR}/${ENV_NAME}_env_custom.pth" "${PYTHONPATH}")
-    endif()
-
-    set(REQS_FILE "${PYTHONPATH}/${ENV_NAME}/requirements.txt")
-
-    # 2. Instalar requerimientos (siempre se intenta para actualizar cambios)
-    if(EXISTS "${REQS_FILE}")
-        message(STATUS "Instalando dependencias para ${ENV_NAME} desde ${REQS_FILE}...")
-
-        # Siempre actualizamos pip primero para evitar warnings
-        execute_process(
-            COMMAND "${VENV_PYTHON}" -m pip install --upgrade pip --quiet
-        )
-
-        execute_process(
-            COMMAND "${VENV_PIP}" install -r "${REQS_FILE}"
-            OUTPUT_QUIET # Quita esto si quieres ver el log de pip
-            RESULT_VARIABLE _res
-        )
-        if(NOT _res EQUAL 0)
-            message(WARNING "Hubo un error instalando dependencias para ${ENV_NAME}")
-        endif()
-    endif()
-
-    # 3. Exportar la variable para usarla luego en el proyecto
-    # Crea una variable con el nombre del entorno en mayúsculas (ej: TF_ENV_PYTHON)
-    string(TOUPPER "${ENV_NAME}_env" ENV_NAME_UPPER)
-    set(${ENV_NAME_UPPER}_PYTHON "${VENV_PYTHON}" PARENT_SCOPE)
-
-endfunction()
-
-
-
-# --- Creación de los dos entornos ---
-
-# 1. Entorno "Builder" (TensorFlow)
-create_python_env("tensorflow_scripts", ON)
-
-# 2. Entorno "Monitor" (MQTT + Protobuf Moderno)
-create_python_env("mqtt_scripts", OFF)
-
-# 3. Entorno "Data"
-create_python_env("sim_data_scripts", OFF)
-
-
-
-
-
-# ------------------------------------------------------------
-# Model Generation
-# ------------------------------------------------------------
-
-# 1. Definir variables de rutas para claridad
-set(TF_SCRIPT "${CMAKE_SOURCE_DIR}/python/tensorflow_scripts/export_model.py")
-set(COMMON_SCRIPT "${CMAKE_SOURCE_DIR}/python/tensorflow_scripts/constants_loader.py")
-set(CONSTANTS_HPP "${CMAKE_SOURCE_DIR}/include/core/common/SimulationConstants.hpp")
-set(MODEL_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/models")
-set(MODEL_SENTINEL "${MODEL_OUTPUT_DIR}/saved_model.pb") # Archivo testigo que crea Tensorflow
-
-
-# 2. CREAR EL COMANDO (La lógica inteligente)
-# Esto dice: "Para obtener 'saved_model.pb', ejecuta este comando Python".
-# Solo se ejecutará si falta el .pb O si alguno de los DEPENDS ha cambiado.
-add_custom_command(
-    OUTPUT "${MODEL_SENTINEL}"
-    
-    # El comando a ejecutar (usa el python detectado)
-    COMMAND ${TENSORFLOW_SCRIPTS_ENV_PYTHON} "${TF_SCRIPT}"
-    
-    # DEPENDENCIAS: Si alguno de estos cambia, se regenera el modelo
-    DEPENDS "${TF_SCRIPT}" "${COMMON_SCRIPT}" "${CONSTANTS_HPP}" "${REQ_TF}"
-    
-    # Opcional: El directorio de trabajo
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    
-    COMMENT "Comprobando cambios en el modelo TensorFlow..."
-    VERBATIM
+target_sources(floodsim_options
+    INTERFACE
+        logging/Logger.cpp
 )
 
-# 3. CREAR EL TARGET (El envoltorio)
-# Creamos un "objetivo" abstracto que depende del archivo de salida anterior.
-add_custom_target(generate_model_tf DEPENDS "${MODEL_SENTINEL}")
-
-
-
-# ------------------------------------------------------------
-# Protobuf files Generation
-# ------------------------------------------------------------
-
-# ==============================================================================
-# 2. DEFINIR RUTAS Y ARCHIVOS
-# ==============================================================================
-# Directorio donde está el .proto
-# Rutas
-set(PROTO_DIR "${CMAKE_SOURCE_DIR}/proto")
-set(PROTO_FILE "${PROTO_DIR}/messages.proto")
-set(GENERATED_DIR_CPP "${CMAKE_SOURCE_DIR}/include/adapters/output/mqtt/payload/proto")
-set(GENERATED_DIR_PYTHON "${CMAKE_SOURCE_DIR}/python/mqtt_scripts/libs")
-
-# Archivos de salida esperados
-set(PROTO_SRCS "${GENERATED_DIR_CPP}/messages.pb.cc") # Nota: protoc suele replicar la estructura de carpetas 'schema/'
-set(PROTO_HDRS "${GENERATED_DIR_CPP}/messages.pb.h")
-set(PROTO_PY   "${GENERATED_DIR_PYTHON}/messages_pb2.py")
-
-file(MAKE_DIRECTORY ${GENERATED_DIR_CPP})
-file(MAKE_DIRECTORY ${GENERATED_DIR_PYTHON})
-
-add_custom_command(
-    OUTPUT ${PROTO_SRCS} ${PROTO_HDRS} ${PROTO_PY}
-    COMMAND ${Protobuf_PROTOC_EXECUTABLE}
-    ARGS --proto_path=${PROTO_DIR}
-         --cpp_out=${GENERATED_DIR_CPP}
-         --python_out=${GENERATED_DIR_PYTHON}
-         ${PROTO_FILE}
-    DEPENDS ${PROTO_FILE}
-    COMMENT "Compilando esquema Protobuf ..."
-    VERBATIM
+target_include_directories(floodsim_options
+    INTERFACE
+        ${CMAKE_SOURCE_DIR}/include
 )
 
-# ==============================================================================
-# 4. CREAR UNA LIBRERÍA INTERMEDIA PARA C++
-# ==============================================================================
-
-add_library(proto_messages_lib STATIC ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries(proto_messages_lib PUBLIC protobuf::libprotobuf)
-
-
-
-# =========================================================
-# DEFINICIÓN DE OPCIONES GLOBALES (INTERFACE TARGET)
-# =========================================================
-add_library(danasim_options INTERFACE)
-
-# 1. Opciones de COMPILACIÓN (Compile Flags)
-target_compile_features(danasim_options INTERFACE cxx_std_20)
-
-target_link_libraries(danasim_options INTERFACE fmt::fmt)
+target_link_libraries(floodsim_options 
+    INTERFACE 
+        fmt::fmt
+        spdlog::spdlog_header_only
+        unofficial::whereami::whereami
+        OpenMP::OpenMP_CXX
+)
 
 if(WIN32)
-    target_compile_definitions(danasim_options INTERFACE 
+    target_compile_definitions(floodsim_options INTERFACE 
         NOMINMAX
-        WIN32_LEAN_AND_MEAN # Opcional: Acelera la compilación en Windows
+        WIN32_LEAN_AND_MEAN # Optimization: Accelerate compilation phases on Windows platforms
     )
 
-    target_compile_options(danasim_options INTERFACE
-        # DEBUG
+    target_compile_options(floodsim_options INTERFACE
+        # DEBUG CONFIGURATION
         $<$<CONFIG:Debug>:/Od /Zi /RTC1 /W4 /utf-8>
-        # RELEASE
+        # RELEASE CONFIGURATION
         $<$<CONFIG:Release>:/O2 /DNDEBUG /GL /W4 /utf-8>
+        # RELWITHDEBINFO CONFIGURATION
+        $<$<CONFIG:RelWithDebInfo>:/O2 /Zi /Zo /DNDEBUG /GL /W4 /utf-8>
     )
     
-    # 2. Opciones de LINKER (Solo MSVC suele necesitar esto para LTCG)
-    target_link_options(danasim_options INTERFACE
+    # 2. Linker Directives (Typically required by MSVC for Link-Time Code Generation / LTCG)
+    target_link_options(floodsim_options INTERFACE
+        # DEBUG CONFIGURATION
         $<$<CONFIG:Debug>:/DEBUG>
+        # RELEASE CONFIGURATION
         $<$<CONFIG:Release>:/LTCG /OPT:REF /OPT:ICF>
+        # RELWITHDEBINFO CONFIGURATION
+        $<$<CONFIG:RelWithDebInfo>:/DEBUG /LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO>
     )
 else()
-    # GCC / Clang
-    target_compile_options(danasim_options INTERFACE
+    # GCC / Clang Toolchains
+    target_compile_options(floodsim_options INTERFACE
         $<$<CONFIG:Debug>:-g -O0 -Wall -Wextra>
         $<$<CONFIG:Release>:-O3 -DNDEBUG>
+        $<$<CONFIG:RelWithDebInfo>:-O3 -g -DNDEBUG>
     )
 endif()
 
-
-
-
-
-# -----------------------
-# Subproyectos
-# -----------------------
-add_subdirectory(core)
-add_subdirectory(adapters)
-add_subdirectory(app)
-add_subdirectory(cli)
-
-if(DANASIM_BUILD_GUI)
-    add_subdirectory(gui)
+# ---------------------------------------------------------
+# 📂 Subprojects & Target Hierarchy Traversals
+# ---------------------------------------------------------
+if(BUILD_APP OR BUILD_TESTS)
+    add_subdirectory(app)
 endif()
 
+if(BUILD_APP)
+    # 1. Always include the CLI target (serves as the core simulator foundation)
+    add_subdirectory(cli)
 
-
-# =========================================================
-# CONFIGURACIÓN DE EMPAQUETADO (CPack)
-# =========================================================
-
-# SOLUCIÓN: Carga el módulo de CPack para inicializar todas las variables
-include(CPack) 
-
-# (Opcional, pero recomendado para instaladores de Windows)
-# Incluye las librerías de tiempo de ejecución del sistema necesarias (como los runtimes de MSVC)
-# para que el instalador WIX/MSI las pueda incluir.
-include(InstallRequiredSystemLibraries)
-
-# =========================================================
+    # 2. Conditionally append the Graphical User Interface (GUI) target layer
+    if(ENABLE_GUI)
+        add_subdirectory(gui)
+    endif()
+endif()

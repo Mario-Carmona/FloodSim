@@ -1,0 +1,69 @@
+scenario:
+  output_dir: ./outputs
+  name: quickstart_valencia_demo
+  append_start_timestamp: true
+
+logging:
+  level: Info
+  async: false
+  silent: false
+  save_log_file: true
+
+input:
+  file:
+    static_format: Idrisi
+    dynamic_format: Hif
+    dataset_folder: ../../share/data
+    dataset_name: data_29_10_2024
+  scalars:
+    fluid_density: 1000.0
+    fluid_viscosity: 0.001
+
+output:
+  snapshot:
+    every_n_steps: 300
+  outputs:
+    - type: Image
+    - type: Checkpoint
+      static_format: Idrisi
+
+state_updater:
+  enable_rainfall: true
+  dry_tolerance: 0.001
+  flood_risk:
+    default_level:
+      name: Dry
+      color_hex: F5DEB3FF
+    levels:
+      - name: Very Shallow
+        threshold_start: 0.001
+        color_hex: E0F3F8FF
+      - name: Low Depth
+        threshold_start: 0.1
+        color_hex: 87CEEBFF
+      - name: Medium Depth
+        threshold_start: 0.3
+        color_hex: 1E90FFFF
+      - name: High Depth
+        threshold_start: 1.0
+        color_hex: 0000CDFF
+      - name: Extreme Depth
+        threshold_start: 2.0
+        color_hex: 4B0082FF
+  updater:
+    type: Onnx
+    model_path: ../../share/exported_models/first_model_cpu
+    tensor_dim: 16
+
+simulation:
+  start_timestamp: 2024-10-29T01:00:00
+  time_step: 00:00:01
+  duration: 00:15:00
+  view_box: 
+    use_full_grid: true
+    south_west:
+      lon: 0.0
+      lat: 0.0
+    north_east:
+      lon: 0.0
+      lat: 0.0

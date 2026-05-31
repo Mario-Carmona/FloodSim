@@ -1,0 +1,44 @@
+\chapter{Conclusions and Future Work}
+\label{chapter:conclusions_and_future_work}
+
+
+\section{Conclusions}
+
+
+
+
+\section{Future Work}
+
+\subsection{Integration of Meteorological Radar Data for Enhanced Rainfall Spatialization}
+
+While the current data pipeline successfully spatializes point-based rain gauge measurements using elevation-based 
+drift (e.g., Kriging with External Drift), this methodology presents inherent limitations when modeling extreme weather 
+events. Elevation acts as a static covariate that effectively represents long-term, climatological precipitation trends 
+(the orographic effect). However, it cannot capture the highly dynamic, localized, and heterogeneous nature of real-time 
+convective storm cells. Consequently, the interpolated rainfall tensor may misrepresent the exact geographical 
+distribution of the precipitation nucleus during a specific simulation step.
+
+To achieve professional-grade meteorological realism and improve the predictive accuracy of the hydraulic simulation, 
+a primary line of future work is the integration of Meteorological Radar Data (such as the C-band and S-band radar 
+networks operated by the Spanish Meteorological Agency, AEMET).
+
+This integration would fundamentally upgrade the Rainfall Engine through the following technical implementations:
+
+\begin{itemize}
+	\item \textbf{Radar Reflectivity Conversion}: Radar systems provide high-resolution spatial matrices of atmospheric 
+	reflectivity ($Z$). The pipeline would need to implement algorithms to dynamically fetch these grids and convert 
+	them into estimated rainfall intensity rates ($R$) using empirical formulas, such as the Marshall-Palmer relationship 
+	($Z = aR^b$).
+	\item \textbf{Radar-Rain Gauge Merging}: Because radar data is susceptible to systemic anomalies (e.g., beam blockage, 
+	signal attenuation, or overestimation due to hail), it cannot be used in isolation. The future pipeline should 
+	implement advanced merging techniques—such as Conditional Merging (CM) or Regression Kriging. In this upgraded 
+	architecture, the radar imagery would serve as the highly detailed spatial covariate, while the physical rain gauges 
+	would provide the "ground-truth" anchor points to correct the radar bias.
+	\item \textbf{Enhanced Tensor Fidelity}: By replacing a static topographic covariate with a dynamic meteorological 
+	one, the resulting $Time \times Y \times X$ data cube would precisely reflect the trajectory, shape, and intensity 
+	of storm events.
+\end{itemize}
+
+Implementing this feature would drastically reduce spatial interpolation errors and provide the Cellular Automata 
+($m:n-CA^k$) core with a highly realistic input tensor, which is strictly necessary for the accurate modeling of 
+rapid-onset flash floods.

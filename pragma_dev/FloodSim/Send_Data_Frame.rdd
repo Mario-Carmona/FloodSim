@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE Diagram SYSTEM "rtdsDiagram.dtd">
+
+<SdlFSMDiagram language="sdl-rt" type="prcd" is_extract="FALSE" is_temporary="FALSE">
+<SdlFSMPartition name="" needs_cleanup="FALSE">
+<SdlFSMSymbol identifier="SYM18" type="sdlText" text="// Declaración de Señales de Red (MQTT) usando SDL-RT
+SIGNAL FrameStart;
+SIGNAL EYE_SetState_Layer;
+SIGNAL ChunkAck;
+SIGNAL FrameEnd;
+
+const int BATCH_SIZE = 10; // Según tu código de lotes
+const int CHUNK_SIZE = 2000;
+
+int current_chunk;
+int total_chunks;" outline_color="-" background_color="-" center_coordinates="303 225" dimensions="404 180" attached_symbol_id=""/>
+<NonStateTransition top_left_coordinates="609 135">
+<SdlFSMSymbol identifier="SYM1" type="sdlPrcdStart" outline_color="-" background_color="-" center_coordinates="912 150" dimensions="60 30" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM2" type="sdlTask" text="// Extraes el total de cambios del snapshot actual
+int total_changes = snapshot.changes().size(); // O el método que uses en tu código
+current_chunk = 0;
+
+// Cálculo de total de chunks (redondeo hacia arriba en enteros)
+total_chunks = (total_changes + CHUNK_SIZE - 1) / CHUNK_SIZE;" outline_color="-" background_color="-" center_coordinates="912 232" dimensions="606 110" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM3" type="sdlSendSig" text="FrameStart" outline_color="-" background_color="-" center_coordinates="912 319" dimensions="96 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM4" type="sdlState" text="SENDING_BATCH" outline_color="-" background_color="-" center_coordinates="912 371" dimensions="116 40" attached_symbol_id=""/>
+</Transition>
+</NonStateTransition>
+<StateTransitionBlock>
+<SdlFSMSymbolReference identifier="SYM11"/>
+<NormalStateTransition>
+<SdlFSMSymbol identifier="SYM12" type="sdlInputSig" text="ChunkAck" outline_color="-" background_color="-" center_coordinates="912 791" dimensions="82 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM13" type="sdlState" text="SENDING_BATCH" outline_color="-" background_color="-" center_coordinates="912 843" dimensions="116 40" attached_symbol_id=""/>
+</Transition>
+</NormalStateTransition>
+</StateTransitionBlock>
+<StateTransitionBlock top_left_coordinates="854 351">
+<SdlFSMSymbolReference identifier="SYM4"/>
+<NormalStateTransition>
+<SdlFSMSymbol identifier="SYM5" type="sdlContSig" text="TRUE" outline_color="-" background_color="-" center_coordinates="912 423" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM6" type="sdlTask" text="// Bucle C++ nativo dentro de SDL-RT
+for(int i=0; (i &lt; BATCH_SIZE) &amp;&amp; (current_chunk &lt; total_chunks); i++) {
+    // Lógica de empaquetado de EYE_SetState_Layer
+    current_chunk++;
+}" outline_color="-" background_color="-" center_coordinates="912 503" dimensions="522 96" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM7" type="sdlSendSig" text="EYE_SetState_Layer" outline_color="-" background_color="-" center_coordinates="912 583" dimensions="152 40" attached_symbol_id=""/>
+<DecisionBlock>
+<SdlFSMSymbol identifier="SYM8" type="sdlDecision" text="current_chunk == total_chunks" outline_color="-" background_color="-" center_coordinates="912 635" dimensions="228 40" attached_symbol_id=""/>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM9" type="sdlAnswer" text="TRUE" outline_color="-" background_color="-" center_coordinates="912 687" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM11" type="sdlState" text="WAITING_ACK" outline_color="-" background_color="-" center_coordinates="912 739" dimensions="102 40" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+<DecisionBranch>
+<SdlFSMSymbol identifier="SYM10" type="sdlAnswer" text="FALSE" outline_color="-" background_color="-" center_coordinates="1021 687" dimensions="60 40" attached_symbol_id=""/>
+<Transition>
+<SdlFSMSymbol identifier="SYM14" type="sdlSendSig" text="FrameEnd" outline_color="-" background_color="-" center_coordinates="1021 739" dimensions="82 40" attached_symbol_id=""/>
+<SdlFSMSymbol identifier="SYM17" type="sdlPrcdReturn" outline_color="-" background_color="-" center_coordinates="1021 785" dimensions="28 28" attached_symbol_id=""/>
+</Transition>
+</DecisionBranch>
+</DecisionBlock>
+</Transition>
+</NormalStateTransition>
+</StateTransitionBlock>
+<PageSpecification pageWidth="21.0" pageHeight="29.7" topMargin="1.0" bottomMargin="1.0" leftMargin="1.0" rightMargin="1.0" pageFooter="TRUE" scaleFactor="1.0"/>
+</SdlFSMPartition>
+</SdlFSMDiagram>

@@ -1,5 +1,0 @@
-# Solo para generar el modelo
-tensorflow==2.16.1
-
-# Numpy compatible con TF 2.10
-numpy
