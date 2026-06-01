@@ -14,7 +14,7 @@ input:
     static_format: Idrisi
     dynamic_format: Hif
     dataset_folder: /kaggle/working/data
-    dataset_name: data_29_10_2024_check_8
+    dataset_name: data_29_10_2024_check_1_ext
   scalars:
     fluid_density: 1000.0
     fluid_viscosity: 0.001
@@ -91,9 +91,9 @@ state_updater:
     tensor_dim: 16
 
 simulation:
-  start_timestamp: 2024-10-29T22:45:00
+  start_timestamp: 2024-10-29T13:00:00
   time_step: 00:00:01
-  duration: 01:15:00
+  duration: 00:15:00
   view_box: 
     use_full_grid: true
     south_west:

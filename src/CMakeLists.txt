@@ -8,13 +8,45 @@ find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(unofficial-whereami CONFIG REQUIRED)
 
+# ==============================================================================
+# OpenMP LLVM Runtime Configuration and Deployment
+# ==============================================================================
 # Force CMake to locate and utilize the LLVM-based OpenMP runtime implementation under MSVC
-if(MSVC)
-    set(OpenMP_CXX_FLAGS "/openmp:llvm")
+if(MSVC)    
+    set(OpenMP_CXX_FLAGS "/openmp:llvm")    
     set(OpenMP_C_FLAGS "/openmp:llvm")
 endif()
 
 find_package(OpenMP REQUIRED)
+
+if(WIN32)
+    # 1. Attempt to dynamically detect the Visual Studio Tools directory.    
+    get_filename_component(MSVC_COMPILER_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+
+    # Navigate up three levels in the directory tree to reach the base MSVC tools root    
+    get_filename_component(MSVC_TOOLS_BASE_DIR "${MSVC_COMPILER_BIN_DIR}/../../../" ABSOLUTE)
+
+    # 2. Extract the numeric version pattern of the toolset (e.g., 14.51.36231) using a regular expression    
+    if(MSVC_TOOLS_BASE_DIR MATCHES "([0-9]+\\.[0-9]+\\.[0-9]+)")
+        set(CUSTOM_MSVC_REDIST_VERSION "${CMAKE_MATCH_1}")        
+        message(STATUS "Extracted MSVC Toolset Version: ${CUSTOM_MSVC_REDIST_VERSION}")    
+    else()        
+        message(WARNING "Failed to extract the MSVC Toolset version from the compiler path.")    
+    endif()
+
+    # 3. Construct the absolute path to the associated MSVC Redistributables folder
+    get_filename_component(MSVC_REDIST_DIR "${MSVC_TOOLS_BASE_DIR}/../../../Redist/MSVC/${CUSTOM_MSVC_REDIST_VERSION}" ABSOLUTE)
+
+    # 4. Recursively locate the LLVM OpenMP runtime DLL within the redistributable folder
+    # Note: GLOB_RECURSE returns a list of files matching the pattern    
+    file(GLOB_RECURSE OPENMP_LLVM_DLL_FILES "${MSVC_REDIST_DIR}/*libomp140.x86_64.dll")
+
+    # 5. Install the located DLL(s) alongside the application binaries    
+    install(FILES 
+        ${OPENMP_LLVM_DLL_FILES}
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()
 
 # Define an interface configuration target to propagate global build policies
 add_library(floodsim_options INTERFACE)
