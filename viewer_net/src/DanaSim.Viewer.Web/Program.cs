@@ -1,4 +1,5 @@
 using DanaSim.Viewer.Application.Extensions;
+using Microsoft.AspNetCore.Mvc;
 using DanaSim.Viewer.Application.Services;
 using DanaSim.Viewer.Infrastructure.Config;
 using DanaSim.Viewer.Infrastructure.Extensions;
@@ -55,6 +56,10 @@ try
     builder.Services.AddSingleton(userConfigService);
 
     builder.Services.AddControllersWithViews();
+    // Suppress the default 400 ValidationProblemDetails so all error responses
+    // use our uniform { "errors": { "field": "msg" } } shape.
+    builder.Services.Configure<ApiBehaviorOptions>(o =>
+        o.SuppressModelStateInvalidFilter = true);
 
     builder.Services.Configure<SimulationAppServiceOptions>(
         builder.Configuration.GetSection("Simulation"));
@@ -92,6 +97,7 @@ try
 
     app.UseRouting();
 
+    app.MapControllers();
     app.MapControllerRoute(
         name: "default",
         pattern: "{controller=Home}/{action=Index}/{id?}");
