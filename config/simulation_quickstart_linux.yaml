@@ -1,5 +1,5 @@
 scenario:
-  output_dir: ./outputs
+  output_dir: ../outputs
   name: quickstart_valencia_demo
   append_start_timestamp: true
 

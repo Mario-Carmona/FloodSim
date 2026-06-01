@@ -112,7 +112,7 @@ structure initialization and environment configuration.
 4. **Destination Folder:** By default, the software installs to a versioned and editioned isolation path within system space using the following format:
    `C:\Program Files\FloodSim-[Edition]-[Variant] [Version]\`
    
-   *(For example, deploying the Desktop variant of version 26.5.21 maps natively to: `C:\Program Files\FloodSim-Desktop-Full 26.5.21\`)*. Click *Next* to accept, or modify via the *Change...* prompt.
+   (For example, deploying the Desktop variant of version 26.5.21 maps natively to: C:\Program Files\FloodSim-Desktop-Full 26.5.21\). Click *Next* to accept, or modify via the *Change...* prompt.
 5. **Installation:** Click *Install*. Affirm the operating system User Account Control (UAC) prompt to grant administrative environment privileges for copying binaries.
 
 #### Step 3: Verification
@@ -316,7 +316,7 @@ Governs Cellular Automata computational transition mechanics, classification ran
 > ℹ️ **Conditional Parameters Matrix**
 > The parameters listed below are dynamically evaluated depending on the chosen value of `state_updater.updater.type`:
 > 
-> * **When state_updater.updater.type is set to "Onnx":**
+> * When **state_updater.updater.type** is set to **Onnx**:
 >   * **state_updater.updater.model_path** *(String/Path)*: Path to the .onnx file or model directory.
 >   * **state_updater.updater.tensor_dim** *(Integer)*: Internal tensor dimension (spatial resolution square size).
 
@@ -337,13 +337,13 @@ Orchestrates spatial capture frequencies and dispatch configurations.
 > ℹ️ **Conditional Parameters Matrix**
 > The parameters listed below are dynamically evaluated depending on the chosen value of `output.outputs.[i].type`:
 > 
-> * **When output.outputs.[i].type is set to "Image":**
+> * When **output.outputs.[i].type** is set to **Image**:
 >   * No specific settings for this output type.
 > 
-> * **When output.outputs.[i].type is set to "Checkpoint":**
+> * When **output.outputs.[i].type** is set to **Checkpoint**:
 >   * **output.outputs.[i].static_format** *(String)*: Data format for static spatial maps.
 > 
-> * **When output.outputs.[i].type is set to "Mqtt":**
+> * When **output.outputs.[i].type** is set to **Mqtt**:
 >   * **output.outputs.[i].protocol** *(String)*: Protocol to use for MQTT communication (e.g., mqtt://).
 >   * **output.outputs.[i].host** *(String)*: Host address for MQTT communication (e.g., 127.0.0.1).
 >   * **output.outputs.[i].port** *(Integer)*: Port number for MQTT communication (e.g., 1883).
