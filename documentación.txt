@@ -1,6 +1,0 @@
-
-El código C++ sigue el Clean Architecture / Hexagonal Architecture
-
-FlatBuffers para los snapshots ultra rápidos
-
-Para profesionalizar esto, aplicaremos el patrón RAII (Resource Acquisition Is Initialization) para la señalización y mejoraremos la seguridad de hilos.

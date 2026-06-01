@@ -94,7 +94,7 @@ ledger. The current stable iteration (v26.05.28) provides the following distribu
 
 ---
 
-### 3.2 Windows Installation (`.msi` Package)
+### 3.2 Windows Installation (.msi Package)
 
 The Windows deployment architecture utilizes Microsoft Installer technology to automate directory 
 structure initialization and environment configuration.
@@ -125,7 +125,7 @@ The installer automatically appends the assigned binary path to the global syste
    ```
 3. A successful installation will echo the localized build version metadata. For Desktop Edition environments, the graphical interface can be summoned explicitly via `FloodSimGUI`.
 
-### 3.3 Linux Installation (`.deb` Package)
+### 3.3 Linux Installation (.deb Package)
 
 Deployment across Debian/Ubuntu frameworks relies on the standard Debian binary package wrapper, 
 supporting direct handling via standard low-level (`dpkg`) and dependency-aware (`apt`) package 
@@ -140,7 +140,7 @@ pull down the specific `.deb` distribution file (replace the URL with your speci
 wget https://github.com/Mario-Carmona/FloodSim/releases/download/v2026.05.29/FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb
 ```
 
-#### Step 2: Installation via Advanced Package Tool (`apt`)
+#### Step 2: Installation via Advanced Package Tool (apt)
 
 It is highly recommended to execute local package setup routines via `apt`. This workflow automatically 
 scans local packages and contacts upstream Ubuntu mirrors to pull down missing underlying runtime 
@@ -156,7 +156,7 @@ sudo apt install ./FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb
 (Note: The relative path modifier `./` prefix is mandatory for `apt` to correctly infer evaluation of a 
 local filesystem target rather than searching external repository catalogs).
 
-#### Alternative: Installation via `dpkg`
+#### Alternative: Installation via dpkg
 
 If restricted network policies or air-gapped constraints prohibit `apt` repository syncing operations, 
 the package can be extracted forcefully:
@@ -214,7 +214,7 @@ Both manifests contain identical canonical verification parameters—such as sce
 thresholds, state updater ONNX model pointers, and spatial grid definitions—required to run the baseline "Hello World" 
 validation simulation.
 
-### 4.2 Headless Execution via `FloodSimCLI`
+### 4.2 Headless Execution via FloodSimCLI
 
 The high-performance command line engine parses configuration targets instantly from your current workspace 
 shell environment.
@@ -231,7 +231,7 @@ FloodSimCLI.exe --config 'C:\Program Files\FloodSim-Desktop-Full 26.5.30\etc\con
 FloodSimCLI --config ./simulation_quickstart.yaml --output_path .
 ```
 
-### 4.3 Interactive Execution via `FloodSimGUI`
+### 4.3 Interactive Execution via FloodSimGUI
 
 For setups utilizing the Desktop distribution, runtime initialization can be driven via the graphical management module.
 
@@ -275,20 +275,20 @@ schema.
 
 ### 5.1 Configuration Schema Reference
 
-#### 5.1.1 `scenario` Block
+#### 5.1.1 scenario Block
 Defines the execution context and organizational metadata for the simulation run.
 * **scenario.name** *(String)*: Enter a unique name for this simulation run.
 * **scenario.output_dir** *(String/Path)*: Select the root folder where scenario results will be saved.
 * **scenario.append_start_timestamp** *(Boolean)*: If enabled, the simulation start time will be added to the output folder name.
 
-#### 5.1.2 `logging` Block
+#### 5.1.2 logging Block
 Controls terminal diagnostics, asynchronous streaming pipelines, and persistent log tracking.
 * **logging.level** *(String: Info/Debug/Warning/Error)*: Set the minimum severity level for log messages to be recorded.
 * **logging.async** *(Boolean)*: Enable asynchronous logging to improve simulation performance.
 * **logging.silent** *(Boolean)*: Disable all log output (both console and file).
 * **logging.save_log_file** *(Boolean)*: Write log output to a file within the Scenario Output Directory.
 
-#### 5.1.3 `input` Block
+#### 5.1.3 input Block
 Manages spatial domain ingestion layers and environmental fluid mechanics attributes.
 * **input.file.dataset_folder** *(String/Path)*: Root directory containing the map data.
 * **input.file.dataset_name** *(String)*: Base name for the simulation dataset files.
@@ -296,7 +296,7 @@ Manages spatial domain ingestion layers and environmental fluid mechanics attrib
 * **input.file.dynamic_format** *(String)*: Format of the dynamic boundary condition files.
 * **input.scalars.[scalar_name]** *(Float)*: Value for this metadata-extracted scalar. For example: fluid_density or fluid_viscosity.
 
-#### 5.1.4 `simulation` Block
+#### 5.1.4 simulation Block
 Configures temporal bounds, discrete time step iterations, and the regional bounding box coordinates.
 * **simulation.start_timestamp** *(String/ISO 8601)*: Select the starting date and time for the simulation.
 * **simulation.time_step** *(String/Duration)*: Simulation integration step delta (HH:MM:SS).
@@ -307,7 +307,7 @@ Configures temporal bounds, discrete time step iterations, and the regional boun
 * **simulation.view_box.north_east.lon** *(Float)*: Longitude coordinate of the North-East point.
 * **simulation.view_box.north_east.lat** *(Float)*: Latitude coordinate of the North-East point.
 
-#### 5.1.5 `state_updater` Block
+#### 5.1.5 state_updater Block
 Governs Cellular Automata computational transition mechanics, classification ranges, and neural network paths.
 * **state_updater.enable_rainfall** *(Boolean)*: Toggle rainfall integration in the simulation step.
 * **state_updater.dry_tolerance** *(Float)*: Water depth threshold below which a cell is considered dry.
@@ -328,7 +328,7 @@ Governs Cellular Automata computational transition mechanics, classification ran
   * **threshold_start** *(Float)*: Minimum water depth required to trigger this level.
   * **color_hex** *(String/RGBA)*: Hex color code for rendering.
 
-#### 5.1.6 `output` Block
+#### 5.1.6 output Block
 Orchestrates spatial capture frequencies and dispatch configurations.
 * **output.snapshot.every_n_steps** *(Integer)*: Save a snapshot every N simulation steps.
 * **output.outputs** *(Array)*: An extensible list of pluggable output sinks.

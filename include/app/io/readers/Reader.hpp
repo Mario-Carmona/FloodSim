@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "app/core/grid/GridMetadata.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::io::readers {
 
@@ -38,7 +39,7 @@ public:
      * @throws std::runtime_error if not implemented by the derived class.
      */
     virtual void Read(std::vector<float>& /* data */) const {
-        throw std::runtime_error("Read for float not implemented in this reader");
+        throw floodsim::app::exception::FloodSimException("Read for float not implemented in this reader");
     }
 
     /**
@@ -46,7 +47,7 @@ public:
      * @throws std::runtime_error if not implemented by the derived class.
      */
     virtual void Read(std::vector<int8_t>& /* data */) const {
-        throw std::runtime_error("Read for int8_t not implemented in this reader");
+        throw floodsim::app::exception::FloodSimException("Read for int8_t not implemented in this reader");
     }
 };
 

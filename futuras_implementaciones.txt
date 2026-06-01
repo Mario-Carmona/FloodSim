@@ -1,2 +1,0 @@
-- Indicar en la futuras mejoras, que se puede aumentar el rendimiento paralelización con CUDA el modelo; 
-	o generar reglas para agrupar celdas de 2 en 2, 4 en 4, etc, para aumentar el rendimiento.

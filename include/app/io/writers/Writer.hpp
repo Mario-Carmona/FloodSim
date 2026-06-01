@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "app/core/grid/GridMetadata.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::io::writers {
 
@@ -35,7 +36,7 @@ public:
     virtual void Save(const std::filesystem::path& /* data_path */,
                       const std::vector<float>& /* data */,
                       const core::grid::GridMetadata& /* metadata */) const {
-        throw std::runtime_error("Save for float not implemented in this writer");
+        throw floodsim::app::exception::FloodSimException("Save for float not implemented in this writer");
     }
 
     /**
@@ -45,7 +46,7 @@ public:
     virtual void Save(const std::filesystem::path& /* data_path */,
                       const std::vector<int8_t>& /* data */,
                       const core::grid::GridMetadata& /* metadata */) const {
-        throw std::runtime_error("Save for int8_t not implemented in this writer");
+        throw floodsim::app::exception::FloodSimException("Save for int8_t not implemented in this writer");
     }
 };
 

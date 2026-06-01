@@ -14,6 +14,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "app/exception/Exception.hpp"
+
 namespace floodsim {
 
 /**
@@ -31,7 +33,7 @@ namespace floodsim {
     ss >> std::get_time(&time_info, "%Y-%m-%dT%H:%M:%S");
 
     if (ss.fail()) {
-        throw std::runtime_error("Failed to parse timestamp string: " + timestamp_str);
+        throw floodsim::app::exception::FloodSimException("Failed to parse timestamp string: " + timestamp_str);
     }
 
     // Cross-platform conversion from broken-down UTC time (std::tm) to time_t
@@ -66,7 +68,7 @@ namespace floodsim {
     ss >> hours >> colon1 >> minutes >> colon2 >> seconds;
 
     if (ss.fail() || colon1 != ':' || colon2 != ':') {
-        throw std::runtime_error("Failed to parse duration string: " + duration_str);
+        throw floodsim::app::exception::FloodSimException("Failed to parse duration string: " + duration_str);
     }
 
     return std::chrono::hours(hours) +
