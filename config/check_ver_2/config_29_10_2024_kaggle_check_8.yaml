@@ -28,6 +28,7 @@ output:
       host: 127.0.0.1
       port: 1883
       format: Json
+      send_initial_state: false
     - type: Checkpoint
       static_format: Idrisi
 

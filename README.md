@@ -75,8 +75,8 @@ and structural metadata required for seamless native system integration.
 To accommodate diverse academic and operational deployment strategies, FloodSim is distributed in 
 two distinct, decoupled flavors for each supported operating system:
 
-* **Desktop Edition (`FloodSim-Desktop-Full`):** An all-inclusive suite containing both the headless Command Line Interface (`FloodSimCLI`) and the Graphical User Interface (`FloodSimGUI`).
-* **Server Edition (`FloodSim-Server-CLI`):** A streamlined package containing exclusively the high-performance Command Line Interface (`FloodSimCLI`).
+* **Desktop Edition (FloodSim-Desktop-Full):** An all-inclusive suite containing both the headless Command Line Interface (`FloodSimCLI`) and the Graphical User Interface (`FloodSimGUI`).
+* **Server Edition (FloodSim-Server-CLI):** A streamlined package containing exclusively the high-performance Command Line Interface (`FloodSimCLI`).
 
 #### Current Release Binary Catalog
 
@@ -207,8 +207,8 @@ your Windows installation directory).
 Consequently, **there is no need to create these files manually or copy large configuration blocks**. The installer 
 natively provides the following files tailored to each operational environment:
 
-* **`simulation_quickstart_windows.yaml`:** Pre-configured with native Windows path resolutions and environment matrices optimized for Windows environments.
-* **`simulation_quickstart_linux.yaml`:** Pre-configured with standard Unix filesystem references and directory variables optimized for Linux architectures.
+* **simulation_quickstart_windows.yaml:** Pre-configured with native Windows path resolutions and environment matrices optimized for Windows environments.
+* **simulation_quickstart_linux.yaml:** Pre-configured with standard Unix filesystem references and directory variables optimized for Linux architectures.
 
 Both manifests contain identical canonical verification parameters—such as scenario metadata, localized logging 
 thresholds, state updater ONNX model pointers, and spatial grid definitions—required to run the baseline "Hello World" 
@@ -263,9 +263,9 @@ Once the 15-minute simulation boundary is successfully evaluated, verify your ou
         └── water_depth.img
 ```
 
-* **`simulation.log`:** A comprehensive plaintext file that captures and mirrors the exact console standard output (`stdout`) printed to the screen during runtime execution. This includes system initialization matrices, telemetry connection status, and iterative computational stepping metrics.
-* **`images/`:** Stores high-fidelity rasterized visualization captures (`.png`) corresponding to each temporal snapshot boundary. These assets graphically map the spatial distribution of the simulated `water_depth` layer composited directly over the underlying topographical landscape and terrain relief features.
-* **`checkpoints/`:** Contains versioned directory matrices that archive the raw mathematical state of the simulation at specific intervals. Each timestamped subdirectory preserves the precise cellular grid values for the `water_depth` parameter, serialized natively via the Idrisi spatial format pair—comprising the `.doc` metadata documentation file and its companion binary `.img` raster grid.
+* **simulation.log:** A comprehensive plaintext file that captures and mirrors the exact console standard output (`stdout`) printed to the screen during runtime execution. This includes system initialization matrices, telemetry connection status, and iterative computational stepping metrics.
+* **images/:** Stores high-fidelity rasterized visualization captures (`.png`) corresponding to each temporal snapshot boundary. These assets graphically map the spatial distribution of the simulated `water_depth` layer composited directly over the underlying topographical landscape and terrain relief features.
+* **checkpoints/:** Contains versioned directory matrices that archive the raw mathematical state of the simulation at specific intervals. Each timestamped subdirectory preserves the precise cellular grid values for the `water_depth` parameter, serialized natively via the Idrisi spatial format pair—comprising the `.doc` metadata documentation file and its companion binary `.img` raster grid.
 
 ## 5. Configuration
 
@@ -277,78 +277,78 @@ schema.
 
 #### 5.1.1 `scenario` Block
 Defines the execution context and organizational metadata for the simulation run.
-* **`scenario.name`** *(String)*: Enter a unique name for this simulation run.
-* **`scenario.output_dir`** *(String/Path)*: Select the root folder where scenario results will be saved.
-* **`scenario.append_start_timestamp`** *(Boolean)*: If enabled, the simulation start time will be added to the output folder name.
+* **scenario.name** *(String)*: Enter a unique name for this simulation run.
+* **scenario.output_dir** *(String/Path)*: Select the root folder where scenario results will be saved.
+* **scenario.append_start_timestamp** *(Boolean)*: If enabled, the simulation start time will be added to the output folder name.
 
 #### 5.1.2 `logging` Block
 Controls terminal diagnostics, asynchronous streaming pipelines, and persistent log tracking.
-* **`logging.level`** *(String: Info/Debug/Warning/Error)*: Set the minimum severity level for log messages to be recorded.
-* **`logging.async`** *(Boolean)*: Enable asynchronous logging to improve simulation performance.
-* **`logging.silent`** *(Boolean)*: Disable all log output (both console and file).
-* **`logging.save_log_file`** *(Boolean)*: Write log output to a file within the Scenario Output Directory.
+* **logging.level** *(String: Info/Debug/Warning/Error)*: Set the minimum severity level for log messages to be recorded.
+* **logging.async** *(Boolean)*: Enable asynchronous logging to improve simulation performance.
+* **logging.silent** *(Boolean)*: Disable all log output (both console and file).
+* **logging.save_log_file** *(Boolean)*: Write log output to a file within the Scenario Output Directory.
 
 #### 5.1.3 `input` Block
 Manages spatial domain ingestion layers and environmental fluid mechanics attributes.
-* **`input.file.dataset_folder`** *(String/Path)*: Root directory containing the map data.
-* **`input.file.dataset_name`** *(String)*: Base name for the simulation dataset files.
-* **`input.file.static_format`** *(String)*: Format of the static topography files.
-* **`input.file.dynamic_format`** *(String)*: Format of the dynamic boundary condition files.
-* **`input.scalars.[scalar_name]`** *(Float)*: Value for this metadata-extracted scalar. For example: fluid_density or fluid_viscosity.
+* **input.file.dataset_folder** *(String/Path)*: Root directory containing the map data.
+* **input.file.dataset_name** *(String)*: Base name for the simulation dataset files.
+* **input.file.static_format** *(String)*: Format of the static topography files.
+* **input.file.dynamic_format** *(String)*: Format of the dynamic boundary condition files.
+* **input.scalars.[scalar_name]** *(Float)*: Value for this metadata-extracted scalar. For example: fluid_density or fluid_viscosity.
 
 #### 5.1.4 `simulation` Block
 Configures temporal bounds, discrete time step iterations, and the regional bounding box coordinates.
-* **`simulation.start_timestamp`** *(String/ISO 8601)*: Select the starting date and time for the simulation.
-* **`simulation.time_step`** *(String/Duration)*: Simulation integration step delta (HH:MM:SS).
-* **`simulation.duration`** *(String/Duration)*: Total duration of the simulation run (HH:MM:SS).
-* **`simulation.view_box.use_full_grid`** *(Boolean)*: If enabled, the simulation automatically spans the entire loaded topography.
-* **`simulation.view_box.south_west.lon`** *(Float)*: Longitude coordinate of the South-West point.
-* **`simulation.view_box.south_west.lat`** *(Float)*: Latitude coordinate of the South-West point.
-* **`simulation.view_box.north_east.lon`** *(Float)*: Longitude coordinate of the North-East point.
-* **`simulation.view_box.north_east.lat`** *(Float)*: Latitude coordinate of the North-East point.
+* **simulation.start_timestamp** *(String/ISO 8601)*: Select the starting date and time for the simulation.
+* **simulation.time_step** *(String/Duration)*: Simulation integration step delta (HH:MM:SS).
+* **simulation.duration** *(String/Duration)*: Total duration of the simulation run (HH:MM:SS).
+* **simulation.view_box.use_full_grid** *(Boolean)*: If enabled, the simulation automatically spans the entire loaded topography.
+* **simulation.view_box.south_west.lon** *(Float)*: Longitude coordinate of the South-West point.
+* **simulation.view_box.south_west.lat** *(Float)*: Latitude coordinate of the South-West point.
+* **simulation.view_box.north_east.lon** *(Float)*: Longitude coordinate of the North-East point.
+* **simulation.view_box.north_east.lat** *(Float)*: Latitude coordinate of the North-East point.
 
 #### 5.1.5 `state_updater` Block
 Governs Cellular Automata computational transition mechanics, classification ranges, and neural network paths.
-* **`state_updater.enable_rainfall`** *(Boolean)*: Toggle rainfall integration in the simulation step.
-* **`state_updater.dry_tolerance`** *(Float)*: Water depth threshold below which a cell is considered dry.
-* **`state_updater.updater.type`** *(String)*: Select the computational backend for state updates.
+* **state_updater.enable_rainfall** *(Boolean)*: Toggle rainfall integration in the simulation step.
+* **state_updater.dry_tolerance** *(Float)*: Water depth threshold below which a cell is considered dry.
+* **state_updater.updater.type** *(String)*: Select the computational backend for state updates.
 
 > ℹ️ **Conditional Parameters Matrix**
 > The parameters listed below are dynamically evaluated depending on the chosen value of `state_updater.updater.type`:
 > 
-> * **When `state_updater.updater.type` is set to `"Onnx"`:**
->   * **`state_updater.updater.model_path`** *(String/Path)*: Path to the .onnx file or model directory.
->   * **`state_updater.updater.tensor_dim`** *(Integer)*: Internal tensor dimension (spatial resolution square size).
+> * **When state_updater.updater.type is set to "Onnx":**
+>   * **state_updater.updater.model_path** *(String/Path)*: Path to the .onnx file or model directory.
+>   * **state_updater.updater.tensor_dim** *(Integer)*: Internal tensor dimension (spatial resolution square size).
 
-* **`state_updater.flood_risk.default_level`**:
-  * **`name`** *(String)*: Friendly name for this risk level.
-  * **`color_hex`** *(String/RGBA)*: Hex color code for rendering.
-* **`state_updater.flood_risk.levels`** *(Array)*: Detailed breakdown of classification steps:
-  * **`name`** *(String)*: Friendly name for this risk level.
-  * **`threshold_start`** *(Float)*: Minimum water depth required to trigger this level.
-  * **`color_hex`** *(String/RGBA)*: Hex color code for rendering.
+* **state_updater.flood_risk.default_level**:
+  * **name** *(String)*: Friendly name for this risk level.
+  * **color_hex** *(String/RGBA)*: Hex color code for rendering.
+* **state_updater.flood_risk.levels** *(Array)*: Detailed breakdown of classification steps:
+  * **name** *(String)*: Friendly name for this risk level.
+  * **threshold_start** *(Float)*: Minimum water depth required to trigger this level.
+  * **color_hex** *(String/RGBA)*: Hex color code for rendering.
 
 #### 5.1.6 `output` Block
 Orchestrates spatial capture frequencies and dispatch configurations.
-* **`output.snapshot.every_n_steps`** *(Integer)*: Save a snapshot every N simulation steps.
-* **`output.outputs`** *(Array)*: An extensible list of pluggable output sinks.
-  * **`type`** *(String)*: Select the type of output to configure.
+* **output.snapshot.every_n_steps** *(Integer)*: Save a snapshot every N simulation steps.
+* **output.outputs** *(Array)*: An extensible list of pluggable output sinks.
+  * **type** *(String)*: Select the type of output to configure.
 
 > ℹ️ **Conditional Parameters Matrix**
 > The parameters listed below are dynamically evaluated depending on the chosen value of `output.outputs.[i].type`:
 > 
-> * **When `output.outputs.[i].type` is set to `"Image"`:**
+> * **When output.outputs.[i].type is set to "Image":**
 >   * No specific settings for this output type.
 > 
-> * **When `output.outputs.[i].type` is set to `"Checkpoint"`:**
->   * **`output.outputs.[i].static_format`** *(String)*: Data format for static spatial maps.
+> * **When output.outputs.[i].type is set to "Checkpoint":**
+>   * **output.outputs.[i].static_format** *(String)*: Data format for static spatial maps.
 > 
-> * **When `output.outputs.[i].type` is set to `"Mqtt"`:**
->   * **`output.outputs.[i].protocol`** *(String)*: Protocol to use for MQTT communication (e.g., mqtt://).
->   * **`output.outputs.[i].host`** *(String)*: Host address for MQTT communication (e.g., 127.0.0.1).
->   * **`output.outputs.[i].port`** *(Integer)*: Port number for MQTT communication (e.g., 1883).
->   * **`output.outputs.[i].payload_format`** *(String)*: Format of the published messages.
->   * **`output.outputs.[i].send_initial_state`** *(Boolean)*: If enabled, the initial simulation state will be sent to the output.
+> * **When output.outputs.[i].type is set to "Mqtt":**
+>   * **output.outputs.[i].protocol** *(String)*: Protocol to use for MQTT communication (e.g., mqtt://).
+>   * **output.outputs.[i].host** *(String)*: Host address for MQTT communication (e.g., 127.0.0.1).
+>   * **output.outputs.[i].port** *(Integer)*: Port number for MQTT communication (e.g., 1883).
+>   * **output.outputs.[i].payload_format** *(String)*: Format of the published messages.
+>   * **output.outputs.[i].send_initial_state** *(Boolean)*: If enabled, the initial simulation state will be sent to the output.
 
 ## 6. Troubleshooting
 
@@ -372,7 +372,7 @@ simulation engine, implement custom Cellular Automata transition rules, or inter
 the low-level processing structures, a comprehensive codebase architecture reference is provided.
 
 📘 API Reference Access
-For deep technical details and C++ API references, please consult the [Doxygen Documentation](./annotated.html).
+For deep technical details and C++ API references, please consult the [Doxygen Documentation](https://mario-carmona.github.io/FloodSim/annotated.html).
 
 ### 7.1 Scope of Technical Documentation
 The Doxygen-generated documentation is compiled directly from the source header files and inline code 
@@ -418,7 +418,7 @@ This ecosystem is distributed as open-source software under the terms of the **M
 is hereby granted to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the software, 
 subject to the inclusion of the original copyright notice and permission conditions in all substantial distributions.
 
-For the complete legal terms and authorship registry, please consult the standalone [LICENSE](./md__l_i_c_e_n_s_e.html) file bundled 
+For the complete legal terms and authorship registry, please consult the standalone [LICENSE](https://mario-carmona.github.io/FloodSim/md__home_runner_work_FloodSim_FloodSim_build_Linux_docs_linux_docs_LICENSE.html) file bundled 
 within the root distribution workspace.
 
 ### 8.3 Upstream Dependencies & Compliance Manifest
@@ -429,4 +429,4 @@ learning execution runtimes).
 To ensure complete legal compliance and attribution transparency, the tracking of these components 
 is automated. The project's CMake build toolchain is configured to dynamically scan, aggregate, and 
 compile the third-party licensing signatures during the build and packaging phase. This creates an 
-up-to-date compliance record named [THIRD-PARTY-NOTICES.md](./md__t_h_i_r_d-_p_a_r_t_y-_n_o_t_i_c_e_s.html).
+up-to-date compliance record named [THIRD-PARTY-NOTICES.md](https://mario-carmona.github.io/FloodSim/md__home_runner_work_FloodSim_FloodSim_build_Linux_docs_linux_docs_THIRD_PARTY_NOTICES.html).
