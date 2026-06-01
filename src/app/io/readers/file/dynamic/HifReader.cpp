@@ -17,6 +17,7 @@
 
 #include "app/io/readers/file/static/IdrisiReader.hpp"
 #include "misc/TimeUtils.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::io::readers::file {
 
@@ -28,7 +29,7 @@ HifReader::HifReader(const std::filesystem::path& data_path,
     std::ifstream json_metadata(json_path);
 
     if (!json_metadata.is_open()) {
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "Failed to open HIF metadata file: {}", json_path.string()));
     }
 
@@ -37,7 +38,7 @@ HifReader::HifReader(const std::filesystem::path& data_path,
         data = nlohmann::json::parse(json_metadata);
     }
     catch (const nlohmann::json::parse_error& e) {
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "JSON parsing error in {}: {}", json_path.string(), e.what()));
     }
 
@@ -62,7 +63,7 @@ void HifReader::Read(std::vector<int8_t>& data) const {
 template <typename T>
 void HifReader::ReadData(std::vector<T>& data) const {
     if (filenames_.empty()) {
-        throw std::runtime_error("No frames available in HIF reader.");
+        throw floodsim::app::exception::FloodSimException("No frames available in HIF reader.");
     }
 
     IdrisiReader reader(data_path_, filenames_[current_frame_]);
@@ -71,14 +72,14 @@ void HifReader::ReadData(std::vector<T>& data) const {
 
 core::grid::GridMetadata HifReader::ReadMetadata() const {
     if (filenames_.empty()) {
-        throw std::runtime_error("Cannot read metadata: No frames available in HIF.");
+        throw floodsim::app::exception::FloodSimException("Cannot read metadata: No frames available in HIF.");
     }
 
     std::filesystem::path doc_file = data_path_ / (data_filename_ + ".hif");
     std::ifstream file(doc_file);
 
     if (!file.is_open()) {
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "Failed to open metadata file: {}", doc_file.string()));
     }
 

@@ -14,6 +14,7 @@
 
 #include "app/core/grid/layers/Layer.hpp"
 #include "app/io/readers/StaticReader.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::core::grid::layers {
 
@@ -81,7 +82,7 @@ void StaticLayer<T>::SetReader(const GridMetadata& main_metadata,
                                std::chrono::system_clock::time_point /* current_time */) {
 
     if (!reader) {
-        throw std::invalid_argument("StaticLayer: Provided reader is null.");
+        throw floodsim::app::exception::FloodSimException("StaticLayer: Provided reader is null.");
     }
 
     // Allocate contiguous memory for the static grid data

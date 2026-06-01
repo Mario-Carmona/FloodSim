@@ -14,6 +14,7 @@
 
 #include "app/io/writers/file/static/FileStaticWriter.hpp"
 #include "app/io/writers/file/static/IdrisiWriter.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::io::writers::file {
 
@@ -23,7 +24,7 @@ std::unique_ptr<StaticWriter> FileStaticWriterFactory::Create(
     case formats::file::FileStaticFormat::kIdrisi:
         return std::make_unique<IdrisiWriter>(data_filename);
     default:
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "Failed to create StaticWriter: Unsupported format '{}'.",
             magic_enum::enum_name(format)));
     }

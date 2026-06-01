@@ -18,6 +18,7 @@
 #include <fmt/core.h>
 
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::io::writers::file {
 
@@ -47,7 +48,7 @@ void IdrisiWriter::SaveData(const std::filesystem::path& data_path,
     // We use `ios::binary` to prevent the OS from performing slow conversions of line breaks (from `\n` to `\r\n`)
     std::ofstream img_file(img_filepath, std::ios::binary);
     if (!img_file.is_open()) {
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "Failed to open IDRISI image file for writing: {}", img_filepath.string()));
     }
 
@@ -60,7 +61,7 @@ void IdrisiWriter::SaveData(const std::filesystem::path& data_path,
             img_file.put((i % metadata.width == static_cast<size_t>(metadata.width - 1)) ? '\n' : ' ');
         }
         else {
-            throw std::runtime_error(fmt::format("Format error writing cell {}", i));
+            throw floodsim::app::exception::FloodSimException(fmt::format("Format error writing cell {}", i));
         }
     }
     img_file.close();
@@ -68,7 +69,7 @@ void IdrisiWriter::SaveData(const std::filesystem::path& data_path,
     // 2. Create the documentation file (.doc)
     std::ofstream doc_file(doc_filepath);
     if (!doc_file.is_open()) {
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "Failed to open IDRISI doc file for writing: {}", doc_filepath.string()));
     }
 

@@ -29,6 +29,7 @@
 #include "app/config/Config.hpp"
 #include "app/config/ConfigLoader.hpp"
 #include "gui/tabs/Tabs.hpp"
+#include "app/exception/Exception.hpp"
 
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -251,7 +252,7 @@ int main(int /* argc */, char** /* argv */) {
         // Graphic Subsystem Initialization and Verification
         // ------------------------------------------------------------------------
         if (!glfwInit()) {
-            throw std::runtime_error("Failed to initialize the native GLFW window library.");
+            throw floodsim::app::exception::FloodSimException("Failed to initialize the native GLFW window library.");
         }
 
         glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
@@ -265,7 +266,7 @@ int main(int /* argc */, char** /* argv */) {
         GLFWwindow* window = glfwCreateWindow(1280, 720, (std::string(FLOODSIM_PROGRAM_NAME) + " v" + std::string(FLOODSIM_PROGRAM_VERSION)).c_str(), nullptr, nullptr);
         if (!window) {
             glfwTerminate();
-            throw std::runtime_error("Failed to allocate or create the host GLFW native window context.");
+            throw floodsim::app::exception::FloodSimException("Failed to allocate or create the host GLFW native window context.");
         }
 
         #ifdef _WIN32
@@ -298,7 +299,7 @@ int main(int /* argc */, char** /* argv */) {
         if (!ImGui::CreateContext()) {
             glfwDestroyWindow(window);
             glfwTerminate();
-            throw std::runtime_error("Failed to allocate structural memory for Dear ImGui engine context.");
+            throw floodsim::app::exception::FloodSimException("Failed to allocate structural memory for Dear ImGui engine context.");
         }
 
         ImGuiIO& io = ImGui::GetIO();
@@ -311,7 +312,7 @@ int main(int /* argc */, char** /* argv */) {
             ImGui::DestroyContext();
             glfwDestroyWindow(window);
             glfwTerminate();
-            throw std::runtime_error("Failed to link system GLFW platform and OpenGL3 interfaces to ImGui context.");
+            throw floodsim::app::exception::FloodSimException("Failed to link system GLFW platform and OpenGL3 interfaces to ImGui context.");
         }
 
         floodsim::gui::ViewState current_state = floodsim::gui::ViewState::kHome;

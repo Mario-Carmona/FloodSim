@@ -17,6 +17,7 @@
 #include "app/config/Config.hpp"
 #include "app/core/grid/MapGrid.hpp"
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::adapters::output {
 
@@ -88,7 +89,7 @@ ImageOutput::ImageOutput() {
 void ImageOutput::Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) {
     if (output_path.empty()) {
         LOG_ERROR("Provided output path for images is empty.");
-        throw std::invalid_argument("ImageOutput: output_path cannot be empty.");
+        throw floodsim::app::exception::FloodSimException("ImageOutput: output_path cannot be empty.");
     }
 
     std::filesystem::path images_output_path = output_path / "images";

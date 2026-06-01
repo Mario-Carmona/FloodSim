@@ -16,6 +16,7 @@
 
 #include "app/adapters/output/mqtt/payload/JsonSerializer.hpp"
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::adapters::output {
 
@@ -32,7 +33,7 @@ std::unique_ptr<PayloadSerializer> MqttOutput::CreatePayloadSerializer(
         auto msg = fmt::format("PayloadSerializerFactory: Unknown format identifier '{}'",
             static_cast<int>(format));
         LOG_ERROR("{}", msg);
-        throw std::invalid_argument(msg);
+        throw floodsim::app::exception::FloodSimException(msg);
     }
     }
 }
@@ -47,11 +48,11 @@ MqttOutput::MqttOutput(const std::string& address, const std::string& scenario_n
     , send_initial_state_(send_initial_state) {
 
     if (address.empty() || scenario_name.empty()) {
-        throw std::invalid_argument("MqttOutput: Address and scenario_name cannot be empty.");
+        throw floodsim::app::exception::FloodSimException("MqttOutput: Address and scenario_name cannot be empty.");
     }
 
     if (!payload_serializer_) {
-        throw std::runtime_error("MqttOutput: payload_serializer_ is null.");
+        throw floodsim::app::exception::FloodSimException("MqttOutput: payload_serializer_ is null.");
     }
 
     Connect();

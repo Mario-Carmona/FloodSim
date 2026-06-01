@@ -27,6 +27,7 @@
 #include <omp.h>
 
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::adapters::state_updater {
 
@@ -78,7 +79,7 @@ OnnxStateUpdater::OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
         std::ifstream file((model_path / "metadata.json").c_str());
         if (!file.is_open()) {
             LOG_ERROR("Error: Cannot open metadata.json file");
-            throw std::runtime_error("Failed to open metadata.json");
+            throw floodsim::app::exception::FloodSimException("Failed to open metadata.json");
         }
 
         // Parse JSON
@@ -195,7 +196,7 @@ OnnxStateUpdater::OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
             });
     } catch (const Ort::Exception& e) {
         LOG_ERROR("ONNX Runtime initialization failed: {}", e.what());
-        throw std::runtime_error(fmt::format("OnnxStateUpdater init error: {}", e.what()));
+        throw floodsim::app::exception::FloodSimException(fmt::format("OnnxStateUpdater init error: {}", e.what()));
     } catch (const std::exception& e) {
         LOG_ERROR("Standard exception during ONNX initialization: {}", e.what());
         throw;
@@ -474,7 +475,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
                 tensor.id_name = tensor.model_name.substr(0, pos);
             }
             else {
-                throw std::runtime_error("Error: Output tensor name '" + tensor.model_name + "' is malformed (expected to contain ':out').");
+                throw floodsim::app::exception::FloodSimException("Error: Output tensor name '" + tensor.model_name + "' is malformed (expected to contain ':out').");
             }
         }
         else {
@@ -488,7 +489,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
             tensor.type = core::grid::DataType::kInt8;
         }
         else {
-            throw std::runtime_error("Error: ONNX tensor type '" + std::string(tensor_json["type"]) + "' is unsupported or missing C++ mapping.");
+            throw floodsim::app::exception::FloodSimException("Error: ONNX tensor type '" + std::string(tensor_json["type"]) + "' is unsupported or missing C++ mapping.");
         }
 
         tensor.is_scalar = (tensor_json["shape"].size() == 0);
@@ -564,7 +565,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
             }
         }
 
-        throw std::invalid_argument("Unsupported data type in ConfigureTensor: " + info.id_name);
+        throw floodsim::app::exception::FloodSimException("Unsupported data type in ConfigureTensor: " + info.id_name);
     }
 
 } // namespace floodsim::app::adapters::state_updater

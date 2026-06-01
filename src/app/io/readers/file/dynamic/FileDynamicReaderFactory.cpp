@@ -15,6 +15,7 @@
 
 #include "app/io/readers/file/dynamic/FileDynamicReader.hpp"
 #include "app/io/readers/file/dynamic/HifReader.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::io::readers::file {
 
@@ -25,7 +26,7 @@ std::unique_ptr<DynamicReader> FileDynamicReaderFactory::Create(
     case formats::file::FileDynamicFormat::kHif:
         return std::make_unique<HifReader>(data_path, data_filename);
     default:
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "Failed to create DynamicReader: Unsupported format '{}'.",
             magic_enum::enum_name(format)));
     }
