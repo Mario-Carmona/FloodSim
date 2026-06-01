@@ -23,4 +23,9 @@
     <EmbeddedResource Include="PlayerAssets\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="run.sh"  CopyToPublishDirectory="Always" />
+    <None Include="run.bat" CopyToPublishDirectory="Always" />
+  </ItemGroup>
+
 </Project>
