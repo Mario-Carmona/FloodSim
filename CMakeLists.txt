@@ -139,6 +139,7 @@ if(BUILD_PYTHON_ENVS)
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/python"
             DESTINATION ${PYTHON_SCRIPTS_DEST_PATH}
             COMPONENT Unspecified
+            PATTERN "CMakeLists.txt" EXCLUDE
     )
 endif()
 
@@ -149,7 +150,7 @@ if(BUILD_APP)
 
     # Define configuration path layout depending on the platform
     if(WIN32)
-        set(CONFIG_DEST_PATH "${CMAKE_INSTALL_SYSCONFDIR}")
+        set(CONFIG_DEST_PATH "AppDocs")
     else()
         set(CONFIG_DEST_PATH "${CMAKE_INSTALL_SYSCONFDIR}/${PROJECT_NAME_LOWER}")
     endif()
@@ -162,7 +163,7 @@ if(BUILD_APP)
 
     # Define data path layout depending on the platform
     if(WIN32)
-        set(DATA_DEST_PATH "${CMAKE_INSTALL_DATADIR}")
+        set(DATA_DEST_PATH "AppDocs")
     else()
         set(DATA_DEST_PATH "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME_LOWER}")
     endif()
@@ -179,6 +180,12 @@ if(BUILD_APP)
     # Install the legal license file
     install(FILES 
         "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+        DESTINATION ${CMAKE_INSTALL_DOCDIR}
+    )
+
+    # Install the README documentation file
+    install(FILES 
+        "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
         DESTINATION ${CMAKE_INSTALL_DOCDIR}
     )
 
@@ -254,7 +261,13 @@ if(BUILD_APP)
         set(CPACK_WIX_EXTRA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Windows/add_path.wxs")
 
         # Specify to CPack to apply your patch when generating main.wxs
-        set(CPACK_WIX_PATCH_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Windows/wix_patch.xml")
+        configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/res/Windows/wix_patch.xml.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/wix_patch.xml"
+            @ONLY
+        )
+
+        set(CPACK_WIX_PATCH_FILE "${CMAKE_CURRENT_BINARY_DIR}/wix_patch.xml")
 
         # Enforce multi-component layout mapping within the CPack build generator matrix
         # Pattern structure: "Build Directory" "Project Name" "Component Identifier" "Install Path"

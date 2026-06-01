@@ -1,0 +1,9 @@
+<CPackWiXPatch>
+	<CPackWiXFragment Id="#PRODUCTFEATURE">
+		<ComponentRef Id="setEnviroment"/>
+	</CPackWiXFragment>
+
+	<CPackWiXFragment Id="#PRODUCT">
+		<SetDirectory Id="CM_DP_AppDocs" Value="[PersonalFolder]@CPACK_PACKAGE_NAME@ @CPACK_PACKAGE_VERSION@" />
+	</CPackWiXFragment>
+</CPackWiXPatch>
