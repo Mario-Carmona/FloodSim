@@ -5,7 +5,9 @@ using DanaSim.Viewer.Domain.Enums;
 using DanaSim.Viewer.Domain.Ports;
 using DanaSim.Viewer.Domain.ValueObjects;
 using DanaSim.Viewer.Infrastructure.Mqtt;
+using DanaSim.Viewer.Infrastructure.SignalR;
 using DanaSim.Viewer.Infrastructure.Terrain;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
@@ -24,6 +26,7 @@ public sealed class FileBasedBroadcaster(
     IOptions<MqttOptions> mqttOptions,
     IOptions<TerrainOptions> terrainOptions,
     SimulationStatusService statusService,
+    IHubContext<SimulationHub> hub,
     ILogger<FileBasedBroadcaster> logger) : ISimulationBroadcaster
 {
     private const float Nodata = -9999f;
@@ -77,7 +80,7 @@ public sealed class FileBasedBroadcaster(
         var (stateColors, stateLabels) = ReadPalette();
 
         var playerHtml = GeneratePlayerHtml(meta, minH, maxH,
-            Convert.ToBase64String(terrainPng), stateColors, stateLabels, []);
+            Convert.ToBase64String(terrainPng), stateColors, stateLabels, [], _scenario);
         await File.WriteAllTextAsync(Path.Combine(_scenarioDir, "player.html"), playerHtml, ct);
 
         await WriteManifestAsync(live: true, ct);
@@ -104,12 +107,15 @@ public sealed class FileBasedBroadcaster(
         var playerUrl = $"/sim-outputs/{_scenario}/player.html";
         statusService.RecordFrame(frame.SimulationTime, playerUrl);
 
+        await hub.Clients.Group(_scenario).SendAsync("FrameReady", stepName, ct);
+
         logger.LogDebug("Flood PNG saved: {Step} ({Kb:F1} KB)", stepName, floodPng.Length / 1024.0);
     }
 
     public async Task BroadcastSimulationEndedAsync(CancellationToken ct)
     {
         await WriteManifestAsync(live: false, ct);
+        await hub.Clients.Group(_scenario).SendAsync("SimulationEnded", ct);
         logger.LogInformation(
             "Simulation ended — {Count} frames written to '{Dir}'", _frameNames.Count, _scenarioDir);
     }
@@ -230,7 +236,8 @@ public sealed class FileBasedBroadcaster(
 
     private static string GeneratePlayerHtml(
         GridMeta meta, float minH, float maxH,
-        string terrainB64, string[] stateColors, string[] stateLabels, string[] frameNames)
+        string terrainB64, string[] stateColors, string[] stateLabels, string[] frameNames,
+        string scenario = "")
     {
         float mapW = meta.Cols * meta.CellSizeM;
         float mapD = meta.Rows * meta.CellSizeM;
@@ -252,6 +259,7 @@ public sealed class FileBasedBroadcaster(
             stateColors,
             floodFrames = frameNames,
             terrainSrc  = $"data:image/png;base64,{terrainB64}",
+            scenario,
         };
         var configJson = JsonSerializer.Serialize(configObj);
 
@@ -273,6 +281,7 @@ public sealed class FileBasedBroadcaster(
               <meta charset="UTF-8"/>
               <title>DanaSim Heightmap Viewer</title>
               <script src="https://cdn.jsdelivr.net/npm/x_ite@12.1.4/dist/x_ite.min.js"></script>
+              <script src="/player-assets/js/vendor/signalr.min.js"></script>
               <link rel="stylesheet" href="/player-assets/css/style.css"/>
             </head>
             <body>

@@ -1,4 +1,5 @@
 using DanaSim.Viewer.Application.Extensions;
+using DanaSim.Viewer.Infrastructure.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using DanaSim.Viewer.Application.Services;
 using DanaSim.Viewer.Infrastructure.Config;
@@ -55,6 +56,7 @@ try
     builder.Services.AddSingleton(inMemorySink);
     builder.Services.AddSingleton(userConfigService);
 
+    builder.Services.AddSignalR();
     builder.Services.AddControllersWithViews();
     // Suppress the default 400 ValidationProblemDetails so all error responses
     // use our uniform { "errors": { "field": "msg" } } shape.
@@ -98,6 +100,7 @@ try
     app.UseRouting();
 
     app.MapControllers();
+    app.MapHub<SimulationHub>("/simulationHub");
     app.MapControllerRoute(
         name: "default",
         pattern: "{controller=Home}/{action=Index}/{id?}");
