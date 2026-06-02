@@ -248,17 +248,21 @@ Once the 15-minute simulation boundary is successfully evaluated, verify your ou
 ./quickstart_valencia_demo_[timestamp]/
 ├── simulation.log
 ├── images
-│   ├── Combined_2024-10-29T01-05-00.png
-│   ├── Combined_2024-10-29T01-10-00.png
-│   └── Combined_2024-10-29T01-15-00.png
+│   ├── Combined_2024-10-29T01-00-15.png
+│   ├── Combined_2024-10-29T01-00-30.png
+│   ├── Combined_2024-10-29T01-00-45.png
+│   └── Combined_2024-10-29T01-01-00.png
 └── checkpoints/
-    ├── checkpoint_2024-10-29T01-05-00
+    ├── checkpoint_2024-10-29T01-00-15
     │   ├── water_depth.doc
     │   └── water_depth.img
-    ├── checkpoint_2024-10-29T01-10-00
+    ├── checkpoint_2024-10-29T01-00-30
+    │   ├── water_depth.doc
+    │   └── water_depth.
+    ├── checkpoint_2024-10-29T01-00-45
     │   ├── water_depth.doc
     │   └── water_depth.img
-    └── checkpoint_2024-10-29T01-15-00
+    └── checkpoint_2024-10-29T01-01-00
         ├── water_depth.doc
         └── water_depth.img
 ```
