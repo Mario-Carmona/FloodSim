@@ -23,7 +23,7 @@ namespace floodsim {
  *
  * @param timestamp_str The input string to parse.
  * @return std::chrono::sys_seconds A C++20 time point representing UTC system time.
- * @throw std::runtime_error If the string format is invalid or parsing fails.
+ * @throw floodsim::app::exception::FloodSimException If the string format is invalid or parsing fails.
  */
 [[nodiscard]] inline std::chrono::sys_seconds ParseTimestampString(const std::string& timestamp_str) {
     std::istringstream ss{ timestamp_str };
@@ -54,7 +54,7 @@ namespace floodsim {
  *
  * @param duration_str The input duration string (e.g., "02:30:00").
  * @return std::chrono::seconds Total duration measured in seconds.
- * @throw std::runtime_error If syntax constraints or colon separators are missing.
+ * @throw floodsim::app::exception::FloodSimException If syntax constraints or colon separators are missing.
  */
 [[nodiscard]] inline std::chrono::seconds ParseDurationString(const std::string& duration_str) {
     std::istringstream ss{ duration_str };

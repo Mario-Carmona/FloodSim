@@ -31,7 +31,7 @@ public:
      * @brief Constructs a new Checkpoint Output instance.
      *
      * @param static_format The format configuration for the static files.
-     * @throws std::runtime_error If the underlying writer fails to instantiate.
+     * @throws floodsim::app::exception::FloodSimException If the underlying writer fails to instantiate.
      */
     explicit CheckpointOutput(const io::formats::file::FileStaticFormat& static_format);
 
@@ -45,7 +45,7 @@ public:
      *
      * @param snapshot_manager Reference to the manager providing simulation snapshots.
      * @param output_path The root directory where checkpoints will be saved.
-     * @throws std::invalid_argument If the provided output_path is empty.
+     * @throws floodsim::app::exception::FloodSimException If the provided output_path is empty.
      */
     void Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
 
@@ -74,7 +74,7 @@ private:
      *
      * @param snapshot The simulation snapshot to save.
      * @param checkpoint_output_path The base directory for all checkpoints.
-     * @throws std::filesystem::filesystem_error If directory creation fails.
+     * @throws floodsim::app::exception::FloodSimException If directory creation fails.
      */
     void SaveSnapshotAsCheckpoint(const core::snapshot::Snapshot& snapshot,
         const std::filesystem::path& checkpoint_output_path);

@@ -21,7 +21,7 @@ input:
 
 output:
   snapshot:
-    every_n_steps: 300
+    every_n_steps: 15
   outputs:
     - type: Image
     - type: Checkpoint
@@ -58,7 +58,7 @@ state_updater:
 simulation:
   start_timestamp: 2024-10-29T01:00:00
   time_step: 00:00:01
-  duration: 00:15:00
+  duration: 00:01:00
   view_box: 
     use_full_grid: true
     south_west:

@@ -55,7 +55,7 @@ public:
      * @param main_metadata Metadata describing the global dimensions and properties.
      * @param reader Unique pointer transferring ownership of the reader instance.
      * @param current_time The initial simulation clock time.
-     * @throws std::invalid_argument If the reader is null or cannot be cast to DynamicReader.
+     * @throws floodsim::app::exception::FloodSimException If the reader is null or cannot be cast to DynamicReader.
      */
     void SetReader(const GridMetadata& main_metadata,
         std::unique_ptr<io::readers::Reader> reader,

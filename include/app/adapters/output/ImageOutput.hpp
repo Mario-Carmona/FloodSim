@@ -56,7 +56,7 @@ public:
      *
      * @param snapshot_manager Reference to the manager providing simulation snapshots.
      * @param output_path The root directory where output images will be saved.
-     * @throws std::invalid_argument If the provided output_path is empty.
+     * @throws floodsim::app::exception::FloodSimException If the provided output_path is empty.
      */
     void Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
 

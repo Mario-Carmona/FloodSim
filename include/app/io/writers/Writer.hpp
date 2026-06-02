@@ -31,7 +31,7 @@ public:
 
     /**
      * @brief Saves floating-point grid data to the specified path.
-     * @throws std::runtime_error if not implemented by the derived class.
+     * @throws floodsim::app::exception::FloodSimException if not implemented by the derived class.
      */
     virtual void Save(const std::filesystem::path& /* data_path */,
                       const std::vector<float>& /* data */,
@@ -41,7 +41,7 @@ public:
 
     /**
      * @brief Saves 8-bit integer grid data to the specified path.
-     * @throws std::runtime_error if not implemented by the derived class.
+     * @throws floodsim::app::exception::FloodSimException if not implemented by the derived class.
      */
     virtual void Save(const std::filesystem::path& /* data_path */,
                       const std::vector<int8_t>& /* data */,
