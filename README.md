@@ -109,10 +109,10 @@ structure initialization and environment configuration.
 1. Double-click the downloaded `.msi` package to initiate the execution of the **FloodSim Setup Wizard**.
 2. **Security Warning (If applicable):** If the Windows Defender *SmartScreen* diagnostic block interrupts execution due to an unsigned academic sandbox certificate, click *More Info* and choose *Run anyway*.
 3. **End-User License Agreement:** Review the academic/open-source distribution terms, check *I accept the terms in the License Agreement*, and click *Next*.
-4. **Destination Folder:** By default, the software installs to a versioned and editioned isolation path within system space using the following format:
-   `C:\Program Files\FloodSim-[Edition]-[Variant] [Version]\`
+4. **Destination Folder:** By default, the software installs to a path within system space:
+   `C:\Program Files\FloodSim\`
    
-   (For example, deploying the Desktop variant of version 26.5.21 maps natively to: C:\Program Files\FloodSim-Desktop-Full 26.5.21\). Click *Next* to accept, or modify via the *Change...* prompt.
+   Click *Next* to accept, or modify via the *Change...* prompt.
 5. **Installation:** Click *Install*. Affirm the operating system User Account Control (UAC) prompt to grant administrative environment privileges for copying binaries.
 
 #### Step 3: Verification
@@ -222,13 +222,13 @@ shell environment.
 #### On Windows (PowerShell):
 
 ```bash
-FloodSimCLI.exe --config 'C:\Program Files\FloodSim-Desktop-Full 26.5.30\etc\config\simulation_quickstart_windows.yaml' --output_path .
+FloodSimCLI.exe --config 'C:\Users\[User]\Documents\FloodSim\config\simulation_quickstart_windows.yaml' --output_path .
 ```
 
 #### On Linux (Terminal):
 
 ```bash
-FloodSimCLI --config ./simulation_quickstart.yaml --output_path .
+FloodSimCLI --config /usr/share/floodsim/config/simulation_quickstart.yaml --output_path .
 ```
 
 ### 4.3 Interactive Execution via FloodSimGUI

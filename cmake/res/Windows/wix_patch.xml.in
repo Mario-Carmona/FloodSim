@@ -4,6 +4,6 @@
 	</CPackWiXFragment>
 
 	<CPackWiXFragment Id="#PRODUCT">
-		<SetDirectory Id="CM_DP_AppDocs" Value="[PersonalFolder]@CPACK_PACKAGE_NAME@ @CPACK_PACKAGE_VERSION@" />
+		<SetDirectory Id="CM_DP_AppDocs" Value="[PersonalFolder]@CPACK_PACKAGE_INSTALL_DIRECTORY@" />
 	</CPackWiXFragment>
 </CPackWiXPatch>

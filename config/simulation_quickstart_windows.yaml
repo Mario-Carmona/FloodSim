@@ -52,7 +52,7 @@ state_updater:
         color_hex: 4B0082FF
   updater:
     type: Onnx
-    model_path: C:\Program Files\FloodSim-Desktop-Full\share\exported_models\first_model_cpu
+    model_path: C:\Program Files\FloodSim\share\exported_models\first_model_cpu
     tensor_dim: 16
 
 simulation:

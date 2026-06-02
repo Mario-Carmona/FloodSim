@@ -254,7 +254,7 @@ if(BUILD_APP)
         set(CPACK_GENERATOR "WIX")
 
         # Set the installation directory name
-        set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CPACK_PACKAGE_NAME}")
+        set(CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_NAME}")
 
         # Map system runtime dependencies (msvcp140, etc.) to target component pools
         set(CPACK_SYSTEM_LIBRARIES_ID "Unspecified")
