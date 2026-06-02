@@ -356,18 +356,44 @@ Orchestrates spatial capture frequencies and dispatch configurations.
 
 ## 6. Troubleshooting
 
-At the time of this documentation's publication, there are no known operational issues, critical bugs, or 
-system anomalies to report for the current stable release of FloodSim.
-
-The application architecture has undergone rigorous testing and validation across all targeted deployment 
-matrices—including comprehensive matrix checks, package compilation integrity testing, and automated deployment 
-pipeline validations on both Windows and Ubuntu environments.
-
 > ℹ️ **Encountered an Unlisted Issue?**
 > If you experience unexpected system behavior regarding network communication lines (e.g., local MQTT broker 
 > handshakes), localized filesystem permissions, or execution anomalies not covered in this manual, please 
 > submit a diagnostic report detailing your environment logs via the official tracking portal: 
 > [FloodSim GitHub Issues](https://github.com/Mario-Carmona/FloodSim/issues).
+
+### 6.1 Graphical Interface (GUI) Crash in Virtual Environments
+
+**Symptom:**
+When launching the graphical executable (`FloodSimGUI`) inside a Virtual Machine (e.g., VirtualBox, VMware), the application 
+immediately terminates with a terminal error similar to:
+> `[GLFW Error] (65542): WGL: The driver does not appear to support OpenGL`
+> `[Fatal Error] High-level catastrophic crash caught: Failed to allocate or create the host GLFW native window context.`
+
+**Cause:**
+By default, newly installed Virtual Machines utilize generic, software-emulated display drivers (such as the 
+*Microsoft Basic Display Adapter*). These standard drivers do not feature native hardware acceleration for modern OpenGL 
+instances, causing GLFW and Dear ImGui initialization routines to fail.
+
+**Resolution:**
+To run the interactive visual simulation environment inside a hypervisor, you must grant the guest operating system direct 
+access to your host's GPU capabilities:
+
+1. **Enable 3D Hardware Acceleration:**
+   * Power off the Virtual Machine.
+   * Open your hypervisor configuration menu (e.g., VirtualBox Manager).
+   * Navigate to **Settings** → **Display**.
+   * Check the **"Enable 3D Acceleration"** checkbox and allocate adequate video memory.
+
+2. **Install Guest Integration Utilities:**
+   * Boot into the guest operating system.
+   * Mount and install the guest tools package (e.g., **VirtualBox Guest Additions** or **VMware Tools**).
+   * Ensure that the experimental or advanced WDDM graphics drivers are selected during the installation wizard.
+   * Reboot the Virtual Machine to apply changes.
+
+3. **Alternative (Software-Only Fallback):**
+   * If your host hardware cannot provide 3D pass-through acceleration, download a precompiled software-rendering OpenGL library (such as `opengl32.dll` from the open-source **Mesa3D (llvmpipe)** project).
+   * Drop the `opengl32.dll` binary directly into the same installation folder alongside the `FloodSimGUI` executable. The application will safely launch by offloading all render pipelines to your CPU.
 
 ## 7. Developer Documentation
 
