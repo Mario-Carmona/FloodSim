@@ -30,7 +30,7 @@ public sealed class ApiController(
             cfg.Scenario,
             cfg.TerrainBasePath,
             cfg.OutputDir,
-            logFilePath = Path.Combine(AppContext.BaseDirectory, "logs"),
+            logFilePath = AppPaths.LogsDirectory,
         });
     }
 

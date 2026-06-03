@@ -16,7 +16,7 @@
 
 .dashboard {
   display: grid;
-  grid-template-rows: 40px 1fr 220px;
+  grid-template-rows: 40px 1fr auto;
   grid-template-columns: 280px 1fr;
   height: 100vh;
   overflow: hidden;
@@ -230,6 +230,7 @@
   border-top: 1px solid var(--border);
   background: var(--bg-panel);
   overflow: hidden;
+  height: 220px;
   transition: height 200ms ease;
 }
 

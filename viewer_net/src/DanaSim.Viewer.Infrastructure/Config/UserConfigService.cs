@@ -4,8 +4,7 @@ namespace DanaSim.Viewer.Infrastructure.Config;
 
 public sealed class UserConfigService
 {
-    private static readonly string ConfigPath =
-        Path.Combine(AppContext.BaseDirectory, "user-config.json");
+    private static readonly string ConfigPath = AppPaths.UserConfigFile;
 
     private static readonly JsonSerializerOptions JsonOpts =
         new() { WriteIndented = true };
@@ -28,6 +27,7 @@ public sealed class UserConfigService
 
     public void Save(UserConfig cfg)
     {
+        AppPaths.EnsureBaseExists();
         var tmp = ConfigPath + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(cfg, JsonOpts));
         File.Move(tmp, ConfigPath, overwrite: true);

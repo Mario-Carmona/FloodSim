@@ -23,7 +23,7 @@ Log.Logger = new LoggerConfiguration()
         "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext:l} — {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         formatter: new CompactJsonFormatter(),
-        path: Path.Combine(AppContext.BaseDirectory, "logs", "danasim-.log"),
+        path: Path.Combine(AppPaths.LogsDirectory, "danasim-.log"),
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 7,
         fileSizeLimitBytes: 50 * 1024 * 1024,
@@ -86,16 +86,27 @@ try
     });
 
     // Serve simulation output files (player.html, flood/*.png) under /sim-outputs
-    var simOutputDir = builder.Configuration["FileOutput:OutputDir"] ?? "outputs/x3d_heightmap";
-    if (!Directory.Exists(simOutputDir))
-        Directory.CreateDirectory(simOutputDir);
-
-    app.UseStaticFiles(new StaticFileOptions
+    // Only mount if OutputDir is configured and writable; skip silently on first launch.
+    var simOutputDir = builder.Configuration["FileOutput:OutputDir"] ?? "";
+    if (!string.IsNullOrWhiteSpace(simOutputDir))
     {
-        FileProvider          = new PhysicalFileProvider(simOutputDir),
-        RequestPath           = "/sim-outputs",
-        ServeUnknownFileTypes = true,
-    });
+        try
+        {
+            if (!Directory.Exists(simOutputDir))
+                Directory.CreateDirectory(simOutputDir);
+
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider          = new PhysicalFileProvider(simOutputDir),
+                RequestPath           = "/sim-outputs",
+                ServeUnknownFileTypes = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Could not mount output directory '{Dir}' — configure a writable path via the dashboard", simOutputDir);
+        }
+    }
 
     app.UseRouting();
 

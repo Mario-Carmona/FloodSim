@@ -23,9 +23,9 @@
     <EmbeddedResource Include="PlayerAssets\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="run.sh"  CopyToPublishDirectory="Always" />
-    <None Include="run.bat" CopyToPublishDirectory="Always" />
-  </ItemGroup>
+  <Target Name="CopyLauncherScripts" AfterTargets="Publish">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\run.sh"  DestinationFolder="$(PublishDir)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\run.bat" DestinationFolder="$(PublishDir)" />
+  </Target>
 
 </Project>

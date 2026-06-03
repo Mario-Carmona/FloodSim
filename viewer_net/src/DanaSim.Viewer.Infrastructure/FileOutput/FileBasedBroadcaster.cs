@@ -51,9 +51,11 @@ public sealed class FileBasedBroadcaster(
         "Profundidad extrema",
     ];
 
-    private readonly string _outputBaseDir   = options.Value.OutputDir;
-    private readonly string _terrainBasePath = terrainOptions.Value.BasePath;
-    private readonly string _scenario        = mqttOptions.Value.Scenario;
+    // Read dynamically so changes saved via the dashboard take effect immediately
+    // without requiring a restart.
+    private string _outputBaseDir   => options.Value.OutputDir;
+    private string _terrainBasePath => terrainOptions.Value.BasePath;
+    private string _scenario        => mqttOptions.Value.Scenario;
 
     private string _scenarioDir = "";
     private string _floodDir    = "";
