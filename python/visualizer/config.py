@@ -48,8 +48,8 @@ def _get(section: str, key: str, env_var: str, default):
 # Paths
 # ---------------------------------------------------------------------------
 MAP_SIZE           = 9403
+# Fallback path used only when InitAgent_Layer doesn't carry a color_palette.
 COLOR_PALETTE_FILE = _PROJECT_ROOT / "data" / "data_29_10_2024" / "color_palette.json"
-COLOR_PALETTE_LAYER = "flood_risk"
 DEFAULT_DATA_ROOT   = _PROJECT_ROOT
 PALETTE_MAX_VALUE   = 5
 RENDER_ON_INIT_EOF  = True

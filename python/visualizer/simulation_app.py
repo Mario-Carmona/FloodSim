@@ -6,6 +6,7 @@ import time
 from . import config
 from .data_model import SimulationGrid
 from .depth_providers.base import DepthProvider
+from .palette import resolve_palette
 from .ports import ControlPublisher
 from .renderers.base import BaseRenderer, FrameData, GridMeta
 
@@ -73,6 +74,7 @@ class SimulationApp:
                 cols=self._simulation.grid.shape[1],
                 cell_size_m=self._simulation.cell_size_m,
                 terrain_heights=self._simulation.terrain_heights,
+                palette=resolve_palette(self._simulation.color_palette, config.COLOR_PALETTE_FILE),
             )
             self._renderer.setup(meta)
             if config.RENDER_ON_INIT_EOF:

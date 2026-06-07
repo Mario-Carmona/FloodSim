@@ -10,7 +10,7 @@ class MatplotlibRenderer(BaseRenderer):
         self._visualizer: GridVisualizer | None = None
 
     def setup(self, meta: GridMeta) -> None:
-        self._visualizer = GridVisualizer(output_folder=self._output_folder)
+        self._visualizer = GridVisualizer(output_folder=self._output_folder, palette=meta.palette)
 
     def save_snapshot(self, frame: FrameData, step_index: int) -> None:
         if self._visualizer is None:

@@ -230,22 +230,19 @@ class TestGridVisualizer:
     def test_init_creates_folder(self, tmp_path: Path) -> None:
         from python.visualizer.visualizer import GridVisualizer
         out = str(tmp_path / "frames")
-        with patch("python.visualizer.config.COLOR_PALETTE_FILE", tmp_path / "missing.json"):
-            v = GridVisualizer(output_folder=out)
+        v = GridVisualizer(output_folder=out)
         assert (tmp_path / "frames").exists()
 
     def test_save_snapshot_creates_png(self, tmp_path: Path) -> None:
         from python.visualizer.visualizer import GridVisualizer
-        with patch("python.visualizer.config.COLOR_PALETTE_FILE", tmp_path / "missing.json"):
-            v = GridVisualizer(output_folder=str(tmp_path))
+        v = GridVisualizer(output_folder=str(tmp_path))
         grid = np.zeros((4, 5), dtype=np.uint8)
         v.save_snapshot(grid, step_index=0)
         assert (tmp_path / "sim_00000.png").exists()
 
     def test_save_snapshot_skips_duplicate(self, tmp_path: Path) -> None:
         from python.visualizer.visualizer import GridVisualizer
-        with patch("python.visualizer.config.COLOR_PALETTE_FILE", tmp_path / "missing.json"):
-            v = GridVisualizer(output_folder=str(tmp_path))
+        v = GridVisualizer(output_folder=str(tmp_path))
         grid = np.zeros((4, 5), dtype=np.uint8)
         v.save_snapshot(grid, step_index=0)
         v.save_snapshot(grid, step_index=0)
@@ -253,32 +250,23 @@ class TestGridVisualizer:
 
     def test_save_snapshot_none_step_uses_count(self, tmp_path: Path) -> None:
         from python.visualizer.visualizer import GridVisualizer
-        with patch("python.visualizer.config.COLOR_PALETTE_FILE", tmp_path / "missing.json"):
-            v = GridVisualizer(output_folder=str(tmp_path))
+        v = GridVisualizer(output_folder=str(tmp_path))
         grid = np.zeros((4, 5), dtype=np.uint8)
         v.save_snapshot(grid, step_index=None)
         assert v.frame_count == 1
 
-    def test_load_colormap_from_valid_palette(self, tmp_path: Path) -> None:
-        import json as _json
+    def test_uses_provided_palette_range(self, tmp_path: Path) -> None:
+        from python.visualizer.palette import Palette, PaletteEntry
         from python.visualizer.visualizer import GridVisualizer
-        palette = {
-            "layers": {
-                "flood_risk": [
-                    {"value": i, "hex": "#0000FF"} for i in range(6)
-                ]
-            }
-        }
-        p = tmp_path / "palette.json"
-        p.write_text(_json.dumps(palette), encoding="utf-8")
-        with patch("python.visualizer.config.COLOR_PALETTE_FILE", str(p)), \
-             patch("python.visualizer.config.COLOR_PALETTE_LAYER", "flood_risk"):
-            v = GridVisualizer(output_folder=str(tmp_path / "out"))
+        palette = Palette(entries=tuple(
+            PaletteEntry(value=i, label=f"L{i}", hex="#0000FF", rgba=(0, 0, 255, 255))
+            for i in range(6)
+        ))
+        v = GridVisualizer(output_folder=str(tmp_path / "out"), palette=palette)
         assert v.vmin == 0
         assert v.vmax == 5
 
     def test_close_is_safe(self, tmp_path: Path) -> None:
         from python.visualizer.visualizer import GridVisualizer
-        with patch("python.visualizer.config.COLOR_PALETTE_FILE", tmp_path / "missing.json"):
-            v = GridVisualizer(output_folder=str(tmp_path))
+        v = GridVisualizer(output_folder=str(tmp_path))
         v.close()
