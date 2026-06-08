@@ -1,16 +1,34 @@
 #!/usr/bin/env bash
 # Builds a .deb package from the linux-x64 publish output.
-# Run from viewer_net/packaging/  →  ../publish/DanaSimViewer_1.0.0_amd64.deb
+#
+#   ./build-deb.sh                  → lite package, no bundled data
+#                                      (../publish/danasim-viewer_1.0.0_amd64.deb)
+#   ./build-deb.sh --with-data DIR  → full package, bundles DIR as
+#                                      /opt/danasim-viewer/data — combined with the
+#                                      empty Terrain:BasePath default, the app finds
+#                                      it with zero configuration
+#                                      (../publish/danasim-viewer-full_1.0.0_amd64.deb)
+#
+# Run from viewer_net/packaging/
 set -e
+
+DATA_DIR=""
+SUFFIX=""
+if [[ "${1:-}" == "--with-data" ]]; then
+  DATA_DIR="$2"
+  [[ -d "$DATA_DIR" ]] || { echo "Data directory not found: $DATA_DIR" >&2; exit 1; }
+  SUFFIX="-full"
+fi
 
 VERSION="1.0.0"
 ARCH="amd64"
-PKG="danasim-viewer_${VERSION}_${ARCH}"
+PKG="danasim-viewer${SUFFIX}_${VERSION}_${ARCH}"
 SRC="$(cd "$(dirname "$0")/../publish/linux-x64" && pwd)"
 OUT="$(cd "$(dirname "$0")/../publish" && pwd)"
 WORK="/tmp/${PKG}"
 
 echo "Building from: $SRC"
+[[ -n "$DATA_DIR" ]] && echo "Bundling data:  $DATA_DIR"
 echo "Output:        $OUT/${PKG}.deb"
 
 # ── Directory structure ────────────────────────────────────────────────────────
@@ -25,6 +43,10 @@ mkdir -p \
 cp -r "$SRC"/. "$WORK/opt/danasim-viewer/"
 chmod +x "$WORK/opt/danasim-viewer/DanaSim.Viewer.Web"
 chmod +x "$WORK/opt/danasim-viewer/run.sh"
+
+if [[ -n "$DATA_DIR" ]]; then
+  cp -r "$DATA_DIR" "$WORK/opt/danasim-viewer/data"
+fi
 
 # ── Symlink for terminal use ───────────────────────────────────────────────────
 ln -s /opt/danasim-viewer/run.sh "$WORK/usr/bin/danasim-viewer"

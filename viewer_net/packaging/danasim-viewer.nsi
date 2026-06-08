@@ -1,5 +1,17 @@
 ; DanaSim Viewer — NSIS installer script
-; Build: makensis danasim-viewer.nsi  (run from viewer_net/packaging/)
+;
+; Lite build (no bundled data, ../publish/DanaSimViewer-Setup-1.0.0-win64.exe):
+;   makensis danasim-viewer.nsi
+;
+; Full build (bundles a data folder as $INSTDIR\data — combined with the empty
+; Terrain:BasePath default, the app finds it with zero configuration):
+;   makensis -DBUNDLE_DATA -DDATADIR=../../data/data_29_10_2024 danasim-viewer.nsi
+;   → ../publish/DanaSimViewer-Setup-1.0.0-full-win64.exe
+;
+; Note: on Linux, makensis only accepts single-dash options (-D...), not the
+; Windows-only "/D..." syntax shown in some NSIS docs.
+;
+; (run from viewer_net/packaging/)
 
 !include "MUI2.nsh"
 
@@ -11,8 +23,17 @@
 !define UNREGKEY   "Software\Microsoft\Windows\CurrentVersion\Uninstall\DanaSim Viewer"
 !define SRCDIR     "..\publish\win-x64"
 
+!ifdef BUNDLE_DATA
+  !ifndef DATADIR
+    !define DATADIR "..\..\data\data_29_10_2024"
+  !endif
+  !define VARIANT "-full"
+!else
+  !define VARIANT ""
+!endif
+
 Name          "${APPNAME}"
-OutFile       "..\publish\DanaSimViewer-Setup-${APPVERSION}-win64.exe"
+OutFile       "..\publish\DanaSimViewer-Setup-${APPVERSION}${VARIANT}-win64.exe"
 InstallDir    "${INSTALLDIR}"
 InstallDirRegKey HKLM "Software\DanaSim Viewer" "InstallDir"
 RequestExecutionLevel admin
@@ -44,6 +65,11 @@ Section "DanaSim Viewer" SecMain
 
   SetOutPath "$INSTDIR\wwwroot"
   File /r "${SRCDIR}\wwwroot\*.*"
+
+!ifdef BUNDLE_DATA
+  SetOutPath "$INSTDIR\data"
+  File /r "${DATADIR}\*.*"
+!endif
 
   ; Start Menu
   CreateDirectory "$SMPROGRAMS\${APPNAME}"
@@ -77,6 +103,9 @@ Section "Uninstall"
   Delete "$INSTDIR\start.vbs"
   Delete "$INSTDIR\uninstall.exe"
   RMDir /r "$INSTDIR\wwwroot"
+!ifdef BUNDLE_DATA
+  RMDir /r "$INSTDIR\data"
+!endif
   RMDir  "$INSTDIR"
 
   Delete "$DESKTOP\${APPNAME}.lnk"

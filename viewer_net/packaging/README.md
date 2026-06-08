@@ -35,10 +35,13 @@ Requires `dpkg-deb` and `fakeroot`.
 
 ```bash
 cd packaging
-./build-deb.sh
+./build-deb.sh                              # lite — no bundled data
+./build-deb.sh --with-data ../../../data/data_29_10_2024   # full — bundles the dataset
 ```
 
-Produces `publish/danasim-viewer_<version>_amd64.deb`.
+Produces `publish/danasim-viewer_<version>_amd64.deb` (lite) or
+`publish/danasim-viewer-full_<version>_amd64.deb` (full, bundles the data
+under `/opt/danasim-viewer/data`).
 
 ## 3. Build the Windows installer
 
@@ -47,10 +50,33 @@ needed.
 
 ```bash
 cd packaging
-makensis danasim-viewer.nsi
+makensis danasim-viewer.nsi                                                       # lite
+makensis -DBUNDLE_DATA -DDATADIR=../../data/data_29_10_2024 danasim-viewer.nsi    # full
 ```
 
-Produces `publish/DanaSimViewer-Setup-<version>-win64.exe`.
+Note: on Linux, `makensis` only recognizes single-dash options (`-Ddefine[=value]`)
+— the `/D...` syntax shown in Windows NSIS docs won't work here. Forward slashes
+in `DATADIR` are fine; NSIS normalizes them to backslashes internally.
+
+Produces `publish/DanaSimViewer-Setup-<version>-win64.exe` (lite) or
+`publish/DanaSimViewer-Setup-<version>-full-win64.exe` (full, bundles the data
+under `$INSTDIR\data`).
+
+## Lite vs. full installers
+
+- **Lite** (~30-45 MB): no data bundled. The admin points `Terrain:BasePath`
+  (or the dashboard's "Terrain base path" field) at wherever the dataset lives
+  on the target machine.
+- **Full** (~1.6 GB+): bundles a complete dataset (e.g. `data/data_29_10_2024/`,
+  currently ~1.6 GB) alongside the executable. `Terrain:BasePath` is left empty
+  in `appsettings.json`, and `IdrisiTerrainDataReader` resolves an empty
+  `BasePath` to `{app directory}/data` — so it finds the bundled folder with
+  zero configuration, regardless of how the app is launched (run.sh/run.bat or
+  IIS, whose working directory often differs from the install folder).
+
+Pick the dataset to bundle deliberately — check its size and whether it's
+appropriate to redistribute before running a full build; it dramatically
+changes the installer's size and build time.
 
 ## Bumping the version
 

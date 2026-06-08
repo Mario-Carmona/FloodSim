@@ -6,8 +6,12 @@ namespace DanaSim.Viewer.Infrastructure.Terrain;
 
 public sealed class TerrainOptions
 {
-    /// <summary>Base directory where terrain data files are stored on the server.</summary>
-    public string BasePath { get; set; } = "data";
+    /// <summary>
+    /// Base directory where terrain data files are stored on the server.
+    /// Leave empty to use the "data" folder bundled next to the executable
+    /// (see IdrisiTerrainDataReader) — e.g. the installer's "full" variant.
+    /// </summary>
+    public string BasePath { get; set; } = "";
 }
 
 /// <summary>
@@ -22,7 +26,15 @@ public sealed class IdrisiTerrainDataReader(
     IOptions<TerrainOptions> options,
     ILogger<IdrisiTerrainDataReader> logger) : ITerrainDataReader
 {
-    private readonly string _basePath = options.Value.BasePath;
+    /// <summary>
+    /// An empty configured BasePath resolves to "{app directory}/data" rather than
+    /// the process's current working directory — the working directory varies by
+    /// launch method (run.sh/run.bat vs. IIS) and isn't reliably the install folder,
+    /// whereas AppContext.BaseDirectory always points at the published binaries.
+    /// </summary>
+    private readonly string _basePath = string.IsNullOrWhiteSpace(options.Value.BasePath)
+        ? Path.Combine(AppContext.BaseDirectory, "data")
+        : options.Value.BasePath;
 
     public async Task<float[]?> ReadHeightsAsync(
         string dataPath, string dataFilename, CancellationToken ct = default)
