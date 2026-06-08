@@ -71,10 +71,11 @@ public:
      *
      * @param dataset_name The name of the active scenario dataset source.
      * @param layer_name The specific layer key identifier (e.g., "topo_bathy").
+	 * @param flood_risk_levels Vector of flood risk level definitions to include in the metadata.
      * @return std::string Serialized JSON configuration metadata for the specified layer.
      */
     std::string GenerateInitAgentLayerPayload(const std::string& dataset_name,
-        const std::string& layer_name) const override;
+        const std::string& layer_name, const std::vector<config::FloodRiskLevel>& flood_risk_levels) const override;
 
     /**
      * @brief Generates an End-Of-File (EOF) marker payload for the agent layers initialization sequence.
@@ -142,7 +143,7 @@ public:
      * @param time The real/simulated timestamp associated with the completed state frame.
      * @return std::string Serialized JSON time sync packet.
      */
-    std::string GenerateFrameSyncPayload(std::chrono::sys_seconds time) const override;
+    std::string GenerateFrameSyncPayload(sys_time_double time) const override;
 
     /**
      * @brief Generates a final terminal event message payload announcing simulation completion.

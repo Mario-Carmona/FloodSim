@@ -72,4 +72,4 @@ __pycache__
 
 /cmake/res/linux/floodsim.desktop
 
-dat_coworker/
+.vs/

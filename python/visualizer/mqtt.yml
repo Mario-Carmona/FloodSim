@@ -1,12 +1,12 @@
 # DanaSim simulation monitor configuration
 
-sim_config: /kaggle/input/datasets/mariocarseg/configs/check_ver_2/config_29_10_2024_kaggle_check_7_ext.yaml
+sim_config: /kaggle/input/datasets/mariocarseg/configs/simulation_quickstart_windows_mqtt.yaml
 
 mqtt:
   host: localhost
   port: 1883
   client_id: Danasim_Monitor_Viewer
-  scenario: scenario_29_10_2024
+  scenario: quickstart_valencia_demo
   qos_events: 1
   handshake_timeout: 5.0
   handshake_max_retries: 3

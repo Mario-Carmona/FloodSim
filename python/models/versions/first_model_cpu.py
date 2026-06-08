@@ -36,61 +36,61 @@ class FloodModelCA(tf.Module):
         # LUT mapping land use categories to Manning's n (mu_soil)
         manning_lut = tf.constant([
             default_manning, # No data / Default (0.050)
-            0.080, # "Urbano mixto" (Edificaciones, asfalto y algo de verde)
-            0.120, # "Casco" (Alta densidad, flujo muy bloqueado por edificios)
-            0.100, # "Ensanche" (Bloques regulares, calles anchas)
-            0.060, # "Discontinuo" (Casas aisladas, jardines)
-            0.050, # "Zonas verdes urbanas" (Parques, césped mantenido)
-            0.040, # "Instalaciones del sector primario" (Silos, naves despejadas)
-            0.040, # "Instalaciones agrícolas y/o ganaderas"
-            0.050, # "Instalaciones forestales"
-            0.040, # "Extracción minera" (Tierra removida, grava, roca)
-            0.060, # "Industrial" (Naves grandes, mucho asfalto/hormigón)
-            0.060, # "Servicios y dotacional" (Hospitales, colegios, asfalto y patios)
-            0.045, # "Asentamiento agrícola y huertas" (Vegetación dispersa y construcciones menores)
-            0.020, # "Infraestructura de transporte" (Asfalto/hormigón limpio, peajes)
-            0.015, # "Redes viarias y ferroviarias" (Carreteras asfaltadas lisas, balasto)
-            0.030, # "Puertos" (Muelles de hormigón lisos pero con obstáculos)
-            0.020, # "Aeropuertos" (Pistas de aterrizaje largas, muy lisas)
-            0.050, # "Infraestructuras técnicas" (Depuradoras, subestaciones)
-            0.040, # "Infraestructuras de suministro"
-            0.050, # "Infraestructuras de residuos" (Vertederos, terreno irregular)
-            0.035, # "Cultivos herbáceos" (Trigo, cebada, pasto corto)
-            0.025, # "Invernaderos" (Cubiertas de plástico lisas que aceleran el agua)
-            0.050, # "Cultivos leñosos" (Árboles alineados, suelo arado)
-            0.045, # "Frutales cítricos"
-            0.045, # "Frutales no cítricos"
-            0.040, # "Viñedo" (Hileras regulares, suelo a menudo desnudo)
-            0.045, # "Olivares"
-            0.050, # "Otros cultivos leñosos"
-            0.055, # "Combinaciones de cultivos leñosos"
-            0.035, # "Prado" (Hierba densa, pastos)
-            0.040, # "Combinaciones de cultivos"
-            0.045, # "Combinaciones de cultivos con vegetación"
-            0.100, # "Bosque" (Alta fricción: troncos, ramas secas, maleza)
-            0.110, # "Bosque de frondosas" (Suelo muy cubierto de hojas y ramas gruesas)
-            0.120, # "Bosque de coníferas" (Gran acumulación de agujas y sotobosque espeso)
-            0.115, # "Bosque mixto"
-            0.035, # "Pastizal o herbazal" (Hierba natural)
-            0.070, # "Matorral" (Arbustos densos, zarzas que frenan el agua)
-            0.080, # "Combinaciones de vegetación" (Matorral y pasto mezclado)
-            0.025, # "Terrenos sin vegetación" (Tierra compactada, tierra lisa)
-            0.015, # "Playas, dunas y arenales" (Arena lisa, aunque muy permeable, superficialmente lisa)
-            0.035, # "Roquedo" (Piedra irregular, cantos rodados)
-            0.060, # "Temporalmente desarbolado por incendios" (Restos quemados, ramas caídas, suelo inestable)
-            0.025, # "Suelo desnudo" (Tierra descubierta o arcilla)
-            0.040, # "Coberturas húmedas" (Zonas encharcadas con vegetación baja)
-            0.050, # "Zonas húmedas y pantanosas" (Cañas, juncos gruesos)
-            0.060, # "Turberas" (Suelo muy esponjoso, musgo profundo)
-            0.045, # "Marismas" (Suelo salino con vegetación halófila)
-            0.020, # "Salinas" (Superficies de evaporación muy planas y lisas)
-            0.025, # "Coberturas de agua" (Agua superficial con algo de fricción en el fondo)
-            0.030, # "Cursos de agua" (Ríos naturales, lechos irregulares con piedras)
-            0.020, # "Lagos y lagunas" (Superficies amplias, poca fricción relativa al fondo)
-            0.020, # "Embalses" (Aguas profundas, fondo lejano)
-            0.015, # "Láminas de agua artificial" (Canales de hormigón, piscinas)
-            0.020, # "Mares y océanos"
-            0.010  # "Glaciares y nieves perpetuas" (Hielo sólido y liso, fricción mínima)
+            0.080, # "Mixed urban" (Buildings, asphalt, and some greenery)
+            0.120, # "Urban core / Old town" (High density, flow heavily blocked by buildings)
+            0.100, # "Urban grid / Extension" (Regular blocks, wide streets)
+            0.060, # "Discontinuous urban" (Isolated houses, gardens)
+            0.050, # "Urban green zones" (Parks, maintained lawns)
+            0.040, # "Primary sector facilities" (Silos, clear warehouses/sheds)
+            0.040, # "Agricultural and/or livestock facilities"
+            0.050, # "Forestry facilities"
+            0.040, # "Mining extraction" (Excavated earth, gravel, rock)
+            0.060, # "Industrial" (Large warehouses, lots of asphalt/concrete)
+            0.060, # "Services and institutional" (Hospitals, schools, asphalt, and courtyards)
+            0.045, # "Agricultural settlement and orchards" (Scattered vegetation and minor structures)
+            0.020, # "Transportation infrastructure" (Clean asphalt/concrete, toll booths)
+            0.015, # "Road and rail networks" (Smooth asphalt roads, ballast)
+            0.030, # "Ports" (Smooth concrete docks but with obstacles)
+            0.020, # "Airports" (Long runways, very smooth)
+            0.050, # "Technical infrastructure" (Water treatment plants, substations)
+            0.040, # "Supply infrastructure"
+            0.050, # "Waste infrastructure" (Landfills, irregular terrain)
+            0.035, # "Herbaceous crops" (Wheat, barley, short grass)
+            0.025, # "Greenhouses" (Smooth plastic covers that accelerate water)
+            0.050, # "Woody crops" (Lined trees, plowed soil)
+            0.045, # "Citrus orchards"
+            0.045, # "Non-citrus orchards"
+            0.040, # "Vineyards" (Regular rows, often bare soil)
+            0.045, # "Olive groves"
+            0.050, # "Other woody crops"
+            0.055, # "Woody crop combinations"
+            0.035, # "Meadow" (Dense grass, pastures)
+            0.040, # "Crop combinations"
+            0.045, # "Crop combinations with vegetation"
+            0.100, # "Forest" (High friction: trunks, dry branches, undergrowth)
+            0.110, # "Broadleaf forest" (Floor heavily covered with leaves and thick branches)
+            0.120, # "Coniferous forest" (Large accumulation of needles and thick understory)
+            0.115, # "Mixed forest"
+            0.035, # "Grassland or herbland" (Natural grass)
+            0.070, # "Shrubland / Scrub" (Dense shrubs, brambles slowing down water)
+            0.080, # "Vegetation combinations" (Mixed scrub and pasture)
+            0.025, # "Unvegetated land" (Compacted earth, smooth soil)
+            0.015, # "Beaches, dunes, and sandbanks" (Smooth sand, though highly permeable, superficially smooth)
+            0.035, # "Rocky terrain" (Irregular stone, boulders/cobbles)
+            0.060, # "Temporarily deforested by fires" (Burnt debris, fallen branches, unstable soil)
+            0.025, # "Bare soil" (Exposed earth or clay)
+            0.040, # "Wet cover" (Waterlogged areas with low vegetation)
+            0.050, # "Wetlands and swamps" (Reeds, thick rushes)
+            0.060, # "Peatlands / Bogs" (Very spongy soil, deep moss)
+            0.045, # "Salt marshes" (Saline soil with halophytic vegetation)
+            0.020, # "Salt flats / Salt pans" (Very flat and smooth evaporation surfaces)
+            0.025, # "Water bodies / Water cover" (Surface water with some bottom friction)
+            0.030, # "Watercourses" (Natural rivers, irregular stony beds)
+            0.020, # "Lakes and lagoons" (Wide surfaces, low friction relative to the bottom)
+            0.020, # "Reservoirs" (Deep water, distant bottom)
+            0.015, # "Artificial water surfaces" (Concrete channels, pools)
+            0.020, # "Seas and oceans"
+            0.010  # "Glaciers and perpetual snow" (Solid and smooth ice, minimal friction)
         ], dtype=tf.float32, name="manning_lut")
 
         mu_soil = tf.gather(manning_lut, tf.cast(land_cover, tf.int32))

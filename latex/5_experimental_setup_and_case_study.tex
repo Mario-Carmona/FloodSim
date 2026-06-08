@@ -1,0 +1,28 @@
+\chapter{Experimental Setup and Case Study}
+\label{chapter:experimental_setup_and_case_study}
+
+
+\section{Case Study Setup: DANA 2024}
+
+The catastrophic "DANA" (Depresión Aislada en Niveles Altos) that struck the Mediterranean coast of Spain on October 29, 2024, serves 
+as the primary scenario for this research. This event is characterized by its extreme rainfall—exceeding $400$ mm in less than 8 hours 
+in certain areas—and the rapid, violent overflow of the Barranco del Poyo and the Turia River basin.
+
+The complexity of the Valencian metropolitan area, with its dense urban fabric, high-speed rail embankments, and industrial zones, 
+provides the ideal environment to validate the Tensor-based transition rules developed in this thesis.
+
+
+\subsection{Domain Discretization}
+
+The simulation domain is discretized into a high-resolution grid to capture the critical urban features (streets, underpasses, and 
+barriers) that dictate flood propagation.
+
+\begin{itemize}
+    \item \textbf{Spatial Extent}: The study area covers approximately $1300$ $km^2$, encompassing the upper catchments of Chiva and Cheste, descending through the "ground zero" municipalities (Paiporta, Sedaví, Alfafar), and terminating at the Mediterranean coast and the Albufera lagoon.
+
+    \item \textbf{Cell Resolution}: A resolution of $5m \times 5m$ per cell is adopted. This choice provides a balance between hydraulic precision and the computational efficiency required for a Real-Time Digital Twin.
+
+    \item \textbf{Tensor Dimensions}: The resulting grid translates into a multi-channel tensor of approximately $5,500 \times 9,500$ cells per layer.
+
+    \item \textbf{Temporal Step ($\Delta t$)}: To satisfy the Courant-Friedrichs-Lewy (CFL) stability condition in a high-velocity environment, the engine uses a time step of $0.25$ seconds.
+\end{itemize}

@@ -59,7 +59,7 @@ void RenderSimulationTab(app::config::SimulationConfig& simulation_config) {
                 ImGui::Text("%s", label);
 
                 ImGui::TableSetColumnIndex(1);
-                TimePicker("##TimeStep", simulation_config.time_step, tooltip);
+                FractionalTimePicker("##TimeStep", simulation_config.time_step, tooltip);
             }
 
             // --- Duration ---

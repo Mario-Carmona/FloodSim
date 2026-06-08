@@ -64,9 +64,11 @@ public:
      * @param grid The simulation map grid.
      * @param dataset_name The name of the dataset.
      * @param start_timestamp The initial time of the simulation.
+	 * @param flood_risk_levels Vector of flood risk levels for the simulation.
      */
     void SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
-                       std::chrono::sys_seconds start_timestamp) override;
+                       std::chrono::sys_seconds start_timestamp,
+                       const std::vector<config::FloodRiskLevel>& flood_risk_levels) override;
 
     /**
      * @brief Retrieves the identifier name for this thread.

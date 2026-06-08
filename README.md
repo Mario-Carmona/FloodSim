@@ -207,8 +207,8 @@ your Windows installation directory).
 Consequently, **there is no need to create these files manually or copy large configuration blocks**. The installer 
 natively provides the following files tailored to each operational environment:
 
-* **simulation_quickstart_windows.yaml:** Pre-configured with native Windows path resolutions and environment matrices optimized for Windows environments.
-* **simulation_quickstart_linux.yaml:** Pre-configured with standard Unix filesystem references and directory variables optimized for Linux architectures.
+* **simulation_quickstart_windows_local.yaml:** Pre-configured with native Windows path resolutions and environment matrices optimized for Windows environments.
+* **simulation_quickstart_linux_local.yaml:** Pre-configured with standard Unix filesystem references and directory variables optimized for Linux architectures.
 
 Both manifests contain identical canonical verification parameters—such as scenario metadata, localized logging 
 thresholds, state updater ONNX model pointers, and spatial grid definitions—required to run the baseline "Hello World" 
@@ -222,13 +222,13 @@ shell environment.
 #### On Windows (PowerShell):
 
 ```bash
-FloodSimCLI.exe --config 'C:\Users\[User]\Documents\FloodSim\config\simulation_quickstart_windows.yaml' --output_path .
+FloodSimCLI.exe --config 'C:\Users\[User]\Documents\FloodSim\config\simulation_quickstart_windows_local.yaml' --output_path .
 ```
 
 #### On Linux (Terminal):
 
 ```bash
-FloodSimCLI --config /usr/share/floodsim/config/simulation_quickstart.yaml --output_path .
+FloodSimCLI --config /usr/share/floodsim/config/simulation_quickstart_linux_local.yaml --output_path .
 ```
 
 ### 4.3 Interactive Execution via FloodSimGUI
@@ -236,7 +236,7 @@ FloodSimCLI --config /usr/share/floodsim/config/simulation_quickstart.yaml --out
 For setups utilizing the Desktop distribution, runtime initialization can be driven via the graphical management module.
 
 1. Launch application: Execute `FloodSimGUI` from your global desktop launcher or system terminal.
-2. Load Manifest: Click Scenario ➔ Load Existing Configuration... and navigate to selection targets to select your `simulation_quickstart_windows.yaml` or `simulation_quickstart_linux.yaml` asset.
+2. Load Manifest: Click Scenario ➔ Load Existing Configuration... and navigate to selection targets to select your `simulation_quickstart_windows_local.yaml` or `simulation_quickstart_linux_local.yaml` asset.
 3. Inspect Settings: Review parameters via the different configuration panels.
 4. Simulate: Click the Start Simulation button in the main window.
 

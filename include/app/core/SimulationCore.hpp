@@ -25,6 +25,7 @@
 #include "app/core/ports/StateUpdaterPort.hpp"
 #include "app/core/snapshot/ChangeList.hpp"
 #include "app/core/snapshot/SnapshotManager.hpp"
+#include "misc/TimeUtils.hpp"
 
 namespace floodsim::app::core {
 
@@ -98,7 +99,7 @@ private:
     // -------------------------------------------------------------------------
     std::chrono::sys_seconds start_timestamp_;
     std::chrono::seconds simulation_duration_;
-    std::chrono::seconds time_step_;
+    std::chrono::duration<double> time_step_;
 
     // -------------------------------------------------------------------------
     // Identification
@@ -148,7 +149,7 @@ private:
      *
      * @param time The current simulation clock time.
      */
-    void PublishCurrentState(std::chrono::sys_seconds time);
+    void PublishCurrentState(sys_time_double time);
 };
 
 } // namespace floodsim::app::core

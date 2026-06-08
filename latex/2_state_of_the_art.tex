@@ -39,7 +39,10 @@ A significant milestone in this field was the development of the multilayer cell
 Originally applied to slab avalanche configurations, this model proved that complex geophysical phenomena 
 could be effectively represented by separating the geographical data into distinct layers (GIS-based) and applying formal 
 transition rules (represented via SDL - Specification and Description Language). This "Data-as-Interface" strategy allows 
-for a clear decoupling between the model logic and the implementation, facilitating extensibility.
+for a clear decoupling between the model logic and the implementation, facilitating extensibility. Recently, this framework 
+has been fully generalized into the multi-n-dimensional cellular automaton ($m:n-CA^k$), extending its capabilities 
+to operate in tensorial spaces and support continuous space evolution alongside irregular grids, which simplifies the 
+integration of heterogeneous geospatial datasets \cite{FonsecaiCasas2025}.
 
 Current research has further refined CA-based solvers to include dynamic-wave approximations, achieving 
 accuracies comparable to traditional Finite Volume methods but with execution speeds up to 300% faster. Models like CA-ffé 

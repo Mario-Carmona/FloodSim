@@ -15,6 +15,7 @@
 \usepackage{acronym}
 \usepackage{hyperref}
 \usepackage{amsmath, amssymb} 
+\usepackage{tabularx}
 \usepackage{fancyhdr}
 \usepackage{epsfig}
 \usepackage{algorithm}
@@ -32,6 +33,24 @@
 \usepackage{tikz}
 \usepackage{csquotes}
 \usepackage[backend=biber, style=apa]{biblatex} % Estilo APA, puedes usar 'numeric' o 'ieee'
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage[table]{xcolor}
+\usepackage{subcaption}
+
+\usepackage{listings}
+
+% Configuración básica para que el código se vea bonito
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{green!70!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single
+}
 
 % --- BIBLIOGRAPHY ---
 \addbibresource{references.bib} % Nombre exacto de tu archivo exportado
@@ -119,6 +138,10 @@
 \input{0_summary.tex}
 \newpage
 
+% --- DERIVED PUBLICATIONS ---
+\input{0_preliminary_pages.tex}
+\newpage
+
 % --- TABLE OF CONTENTS, FIGURES, TABLES ---
 \cleardoublepage
 \phantomsection
@@ -142,8 +165,10 @@
 \input{1_introduction_and_planning.tex}
 \input{2_state_of_the_art.tex}
 \input{3_methodology_and_design.tex}
-\input{4_implementation_and_results.tex}
-\input{5_conclusions_and_future_work.tex}
+\input{4_implementation.tex}
+\input{5_experimental_setup_and_case_study.tex}
+\input{6_results_and_validation.tex}
+\input{7_conclusions_and_future_work.tex}
 
 % --- BIBLIOGRAPHY ---
 \addcontentsline{toc}{chapter}{Bibliography}

@@ -57,7 +57,7 @@ public:
      * @param start_timestamp The initial time of the simulation (unused in this adapter).
      */
     void SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
-        std::chrono::sys_seconds start_timestamp) override;
+        std::chrono::sys_seconds start_timestamp, const std::vector<config::FloodRiskLevel>& flood_risk_levels) override;
 
     /**
      * @brief Retrieves the identifier name for this thread.

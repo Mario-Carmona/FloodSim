@@ -17,6 +17,79 @@
 
 namespace floodsim::app::adapters::output {
 
+namespace {
+
+/**
+ * @brief Converts a hexadecimal color string to RGBA values.
+ * @param hex_str The hexadecimal color string.
+ * @return A vector containing the RGBA values.
+ */
+std::vector<int> HexToRgba(std::string hex_str) {
+    // Remove the ‘#’ if it is present
+    if (!hex_str.empty() && hex_str[0] == '#') {
+        hex_str = hex_str.substr(1);
+    }
+
+    int r = 0, g = 0, b = 0;
+    int a = 255; // Default value if it does not exist in the string
+
+    // Check that the length is valid (6 for RRGGBB or 8 for RRGGBBAA)
+    if (hex_str.length() == 6 || hex_str.length() == 8) {
+        r = std::stoi(hex_str.substr(0, 2), nullptr, 16);
+        g = std::stoi(hex_str.substr(2, 2), nullptr, 16);
+        b = std::stoi(hex_str.substr(4, 2), nullptr, 16);
+
+        // If it has 8 characters, the alpha channel is extracted from the last two digits
+        if (hex_str.length() == 8) {
+            a = std::stoi(hex_str.substr(6, 2), nullptr, 16);
+        }
+    }
+
+    return { r, g, b, a };
+}
+
+/**
+ * @brief Converts a vector of flood risk levels to JSON.
+ * @param flood_risk_levels The vector of flood risk levels.
+ * @return A JSON array containing the flood risk levels.
+ */
+nlohmann::json ConvertFloodRiskLevelsToJson(const std::vector<config::FloodRiskLevel>& flood_risk_levels) {
+    nlohmann::json json_array = nlohmann::json::array();
+
+    for (size_t i = 0; i < flood_risk_levels.size(); ++i) {
+        const auto& level = flood_risk_levels[i];
+        nlohmann::json item;
+
+        // Format the Label: If the threshold is 0 (e.g., “Dry”), only the name is displayed.
+        // If it is greater than that, the format “(X.X m)” is added
+        std::string label = level.name;
+        if (level.threshold_start > 0.0f) {
+            std::ostringstream ss;
+            ss << " (" << std::fixed << std::setprecision(3) << level.threshold_start << " m)";
+            label += ss.str();
+        }
+
+        // Ensure that hexadecimal numbers always start with the ‘#’ prefix
+        std::string formato_hex = level.color_hex;
+        if (!formato_hex.empty() && formato_hex[0] != '#') {
+            formato_hex = "#" + formato_hex;
+        }
+
+        // Build the JSON object
+        item["label"] = label;
+        item["value"] = i;
+        item["rgba"] = HexToRgba(level.color_hex);
+        item["hex"] = formato_hex;
+
+        // Add to the main array
+        json_array.push_back(item);
+    }
+
+    return json_array;
+}
+
+} // anonymous namespace
+
 std::string JsonSerializer::GeneratePingPayload(const std::string& client_id,
     const std::string& timestamp_utc) const {
     nlohmann::json payload = {
@@ -59,12 +132,14 @@ std::string JsonSerializer::GenerateInitMapConfigPayload(const core::grid::MapGr
 }
 
 std::string JsonSerializer::GenerateInitAgentLayerPayload(const std::string& dataset_name,
-                                                          const std::string& layer_name) const {
+                                                          const std::string& layer_name,
+                                                          const std::vector<config::FloodRiskLevel>& flood_risk_levels) const {
     nlohmann::json payload = {
         {"process", "InitAgent_Layer"},
         {"id", layer_name},
         {"data_path", dataset_name + "/" + layer_name},
-        {"data_filename", layer_name}
+        {"data_filename", layer_name},
+        {"color_palette", ConvertFloodRiskLevelsToJson(flood_risk_levels)}
     };
 
     return payload.dump();
@@ -138,7 +213,7 @@ std::string JsonSerializer::GenerateFrameEndPayload() const {
     return payload.dump();
 }
 
-std::string JsonSerializer::GenerateFrameSyncPayload(std::chrono::sys_seconds time) const {
+std::string JsonSerializer::GenerateFrameSyncPayload(sys_time_double time) const {
     nlohmann::json payload = {
         {"process", "EYE_Frame_Sync"},
         {"simulation_time", fmt::format("{:%Y-%m-%dT%H:%M:%S}", time)}

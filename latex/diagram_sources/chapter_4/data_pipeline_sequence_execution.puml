@@ -8,8 +8,8 @@ skinparam maxMessageSize 150
 actor User
 participant "main.py" as Main
 participant "pipeline\n:DataPipeline" as Pipeline
-participant "elevation\n:ElevationGenerator" as Elevation
-participant "roughness\n:RoughnessGenerator" as Roughness
+participant "topo_bathy\n:TopoBathyGenerator" as TopoBathy
+participant "land_cover\n:LandCoverGenerator" as LandCover
 
 User -> Main : python main.py config.yaml
 activate Main
@@ -23,38 +23,38 @@ Main -> Pipeline : run()
 activate Pipeline
 
 Pipeline -> Pipeline : execution_order = _get_execution_order()
-note right: e.g., ['elevation', 'roughness', ...]
+note right: e.g., ['topo_bathy', 'land_cover', ...]
 
 == 1. Base Layer Processing (Independent) ==
-Pipeline -> Elevation : run(dependent_layers={}, start_date, ...)
-activate Elevation
+Pipeline -> TopoBathy : run(dependent_layers={}, start_date, ...)
+activate TopoBathy
 
 ' The run() method from base.py calls its own abstract methods
-Elevation -> Elevation : _generate(dependent_layers, ...)
-activate Elevation
-Elevation --> Elevation : layer_data (StaticRaster)
-deactivate Elevation
+TopoBathy -> TopoBathy : _generate(dependent_layers, ...)
+activate TopoBathy
+TopoBathy --> TopoBathy : layer_data (StaticRaster)
+deactivate TopoBathy
 
-Elevation -> Elevation : _save(output_dir, layer_data)
-Elevation -> Elevation : _visualize(output_dir, layer_data)
+TopoBathy -> TopoBathy : _save(output_dir, layer_data)
+TopoBathy -> TopoBathy : _visualize(output_dir, layer_data)
 
-Elevation --> Pipeline : layers_output['elevation'] = StaticRaster
-deactivate Elevation
+TopoBathy --> Pipeline : layers_output['topo_bathy'] = StaticRaster
+deactivate TopoBathy
 
 == 2. Dependent Layer Processing ==
-Pipeline -> Roughness : run(dependent_layers={'elevation': StaticRaster}, ...)
-activate Roughness
+Pipeline -> LandCover : run(dependent_layers={'topo_bathy': StaticRaster}, ...)
+activate LandCover
 
-Roughness -> Roughness : _generate(dependent_layers, ...)
-activate Roughness
-Roughness --> Roughness : layer_data (StaticRaster)
-deactivate Roughness
+LandCover -> LandCover : _generate(dependent_layers, ...)
+activate LandCover
+LandCover --> LandCover : layer_data (StaticRaster)
+deactivate LandCover
 
-Roughness -> Roughness : _save(output_dir, layer_data)
-Roughness -> Roughness : _visualize(output_dir, layer_data)
+LandCover -> LandCover : _save(output_dir, layer_data)
+LandCover -> LandCover : _visualize(output_dir, layer_data)
 
-Roughness --> Pipeline : layers_output['roughness'] = StaticRaster
-deactivate Roughness
+LandCover --> Pipeline : layers_output['land_cover'] = StaticRaster
+deactivate LandCover
 
 ' Execution End
 Pipeline -> Pipeline : logger.success("Data Pipeline completed successfully!")
