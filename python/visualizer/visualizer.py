@@ -2,9 +2,9 @@
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import os
-import json
 
 from . import config
+from .palette import Palette
 
 class GridVisualizer:
     """
@@ -12,38 +12,21 @@ class GridVisualizer:
     CORREGIDO: Usa vmin/vmax en lugar de norm para imsave.
     """
 
-    def __init__(self, output_folder="output_frames"):
+    def __init__(self, output_folder="output_frames", palette: Palette | None = None):
         self.output_folder = output_folder
         self.frame_count = 0
-        self.vmin = 0
-        self.vmax = 1
         self._last_grid_hash = None
         self._last_saved_step = None
-        
+
         if not os.path.exists(self.output_folder):
             os.makedirs(self.output_folder)
             print(f"Carpeta creada: {self.output_folder}")
 
-        self.cmap, self.vmin, self.vmax = self._load_colormap_from_palette()
+        self.cmap, self.vmin, self.vmax = self._build_colormap(palette or Palette.default())
 
-    def _load_colormap_from_palette(self):
-        try:
-            with open(config.COLOR_PALETTE_FILE, "r", encoding="utf-8") as fp:
-                palette_data = json.load(fp)
-
-            layer_items = palette_data.get("layers", {}).get(config.COLOR_PALETTE_LAYER, [])
-            if not isinstance(layer_items, list) or not layer_items:
-                raise ValueError("Selected palette layer is empty or invalid")
-
-            layer_items = sorted(layer_items, key=lambda item: int(item.get("value", 0)))
-            colors = [item.get("hex", "#000000") for item in layer_items]
-            min_value = int(layer_items[0].get("value", 0))
-            max_value = int(layer_items[-1].get("value", len(colors) - 1))
-
-            return mcolors.ListedColormap(colors), min_value, max_value
-        except Exception as exc:
-            print(f"No se pudo cargar la paleta ({exc}). Usando paleta por defecto.")
-            return mcolors.ListedColormap(["#000000", "#00FFFF"]), 0, 1
+    @staticmethod
+    def _build_colormap(palette: Palette):
+        return mcolors.ListedColormap(palette.hex_colors()), palette.min_value, palette.max_value
 
     def save_snapshot(self, grid_data, step_index=None):
         """

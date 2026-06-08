@@ -20,7 +20,8 @@ public sealed class InitEofHandler(ILogger<InitEofHandler> logger) : IMqttEventH
             context.Grid.Rows,
             context.Grid.Cols,
             context.Config.CellResolutionM,
-            context.Grid.TerrainHeights);
+            context.Grid.TerrainHeights,
+            context.ColorPalette);
 
         var frame = context.Grid.BuildFrameData(context.Config.SimStartTime);
         context.Grid.ConsumeData();

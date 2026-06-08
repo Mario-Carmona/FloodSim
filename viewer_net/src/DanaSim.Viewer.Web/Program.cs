@@ -1,6 +1,7 @@
 using DanaSim.Viewer.Application.Extensions;
 using DanaSim.Viewer.Infrastructure.SignalR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using DanaSim.Viewer.Application.Services;
 using DanaSim.Viewer.Infrastructure.Config;
 using DanaSim.Viewer.Infrastructure.Extensions;
@@ -10,6 +11,16 @@ using Microsoft.Extensions.FileProviders.Embedded;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+
+// ── Resolve user-data directory override (before AppPaths is touched by anything
+// below — e.g. Serilog's file sink reads AppPaths.LogsDirectory a few lines down) ─
+var bootstrapConfig = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddEnvironmentVariables()
+    .Build();
+
+AppPaths.Configure(bootstrapConfig["Paths:UserDataDir"]);
 
 // ── Logging bootstrap (before host so startup errors are captured) ────────────
 var inMemorySink = new InMemoryLogSink();
@@ -90,6 +101,13 @@ try
     var simOutputDir = builder.Configuration["FileOutput:OutputDir"] ?? "";
     if (!string.IsNullOrWhiteSpace(simOutputDir))
     {
+        // A relative OutputDir must resolve against the app's content root, not the
+        // process's current working directory — the latter varies by launch method
+        // (run.sh/run.bat vs. IIS, whose working directory often differs from the
+        // install folder). ContentRootPath is reliably the deployed app's directory.
+        if (!Path.IsPathRooted(simOutputDir))
+            simOutputDir = Path.Combine(app.Environment.ContentRootPath, simOutputDir);
+
         try
         {
             if (!Directory.Exists(simOutputDir))

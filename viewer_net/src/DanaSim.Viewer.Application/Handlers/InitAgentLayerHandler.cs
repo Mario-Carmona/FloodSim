@@ -4,6 +4,7 @@ using DanaSim.Viewer.Application.Ports;
 using DanaSim.Viewer.Application.Services;
 using DanaSim.Viewer.Application.StateMachine;
 using DanaSim.Viewer.Domain.Ports;
+using DanaSim.Viewer.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace DanaSim.Viewer.Application.Handlers;
@@ -18,6 +19,15 @@ public sealed class InitAgentLayerHandler(
     {
         var dto = payload.Deserialize<InitAgentLayerDto>()
             ?? throw new InvalidOperationException("Failed to deserialize InitAgent_Layer");
+
+        if (dto.ColorPalette is { Count: > 0 } paletteEntries)
+        {
+            context.ColorPalette = new ColorPalette(paletteEntries.Select(e =>
+                new ColorPaletteEntry(e.Value, e.Label, e.Hex, e.Rgba)));
+            logger.LogInformation(
+                "Color palette received from InitAgent_Layer '{Id}' ({Count} levels)",
+                dto.Id, context.ColorPalette.Entries.Count);
+        }
 
         var heights = await terrainReader.ReadHeightsAsync(dto.DataPath, dto.DataFilename, ct);
         if (heights is null)

@@ -79,7 +79,7 @@ public sealed class FileBasedBroadcaster(
         _minH = minH;
         _maxH = maxH;
 
-        var (stateColors, stateLabels) = ReadPalette();
+        var (stateColors, stateLabels) = ResolvePalette(meta.Palette);
 
         var playerHtml = GeneratePlayerHtml(meta, minH, maxH,
             Convert.ToBase64String(terrainPng), stateColors, stateLabels, [], _scenario);
@@ -124,7 +124,23 @@ public sealed class FileBasedBroadcaster(
 
     // ── Palette ───────────────────────────────────────────────────────────────
 
-    private (string[] colors, string[] labels) ReadPalette()
+    /// <summary>
+    /// Resolve the palette to broadcast: the InitAgent_Layer message palette takes
+    /// precedence (single source of truth across runs), then color_palette.json on
+    /// disk, then hardcoded defaults. Mirrors python/visualizer/palette.py resolve_palette.
+    /// </summary>
+    private (string[] colors, string[] labels) ResolvePalette(ColorPalette? messagePalette)
+    {
+        if (messagePalette is not null)
+        {
+            logger.LogDebug("Using color palette from InitAgent_Layer message ({N} states)", messagePalette.Entries.Count);
+            return (messagePalette.ColorStrings(), messagePalette.Labels());
+        }
+
+        return ReadPaletteFromFile();
+    }
+
+    private (string[] colors, string[] labels) ReadPaletteFromFile()
     {
         var palettePath = Path.Combine(_terrainBasePath, "color_palette.json");
         if (!File.Exists(palettePath))

@@ -12,6 +12,9 @@ public sealed class SimulationContext
     public SimulationGrid Grid { get; } = new();
     public SimulationConfig Config { get; } = new();
 
+    /// <summary>Set from InitAgent_Layer's `color_palette` field, if provided by the simulator.</summary>
+    public ColorPalette? ColorPalette { get; set; }
+
     // Backpressure (ChunkAck)
     public List<CellChange> PendingChanges { get; } = [];
     public int ChunksPerBatch { get; set; }
