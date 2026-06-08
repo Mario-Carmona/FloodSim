@@ -101,6 +101,13 @@ try
     var simOutputDir = builder.Configuration["FileOutput:OutputDir"] ?? "";
     if (!string.IsNullOrWhiteSpace(simOutputDir))
     {
+        // A relative OutputDir must resolve against the app's content root, not the
+        // process's current working directory — the latter varies by launch method
+        // (run.sh/run.bat vs. IIS, whose working directory often differs from the
+        // install folder). ContentRootPath is reliably the deployed app's directory.
+        if (!Path.IsPathRooted(simOutputDir))
+            simOutputDir = Path.Combine(app.Environment.ContentRootPath, simOutputDir);
+
         try
         {
             if (!Directory.Exists(simOutputDir))
