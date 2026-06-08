@@ -40,7 +40,7 @@ public sealed class UserConfigService
             && !string.IsNullOrWhiteSpace(cfg.MqttHost)
             && cfg.MqttPort is >= 1 and <= 65535
             && !string.IsNullOrWhiteSpace(cfg.Scenario)
-            && !string.IsNullOrWhiteSpace(cfg.TerrainBasePath)
+            // TerrainBasePath may be left blank — see ApiController.PostConfig.
             && !string.IsNullOrWhiteSpace(cfg.OutputDir);
     }
 }

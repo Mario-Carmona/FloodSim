@@ -46,8 +46,8 @@ public sealed class ApiController(
             errors["mqttPort"] = "Must be between 1 and 65535";
         if (string.IsNullOrWhiteSpace(cfg.Scenario))
             errors["scenario"] = "Required";
-        if (string.IsNullOrWhiteSpace(cfg.TerrainBasePath))
-            errors["terrainBasePath"] = "Required";
+        // TerrainBasePath may be left blank — IdrisiTerrainDataReader then resolves
+        // it to "{app directory}/data" (the installer's "full" bundled-data variant).
         if (string.IsNullOrWhiteSpace(cfg.OutputDir))
             errors["outputDir"] = "Required";
 
