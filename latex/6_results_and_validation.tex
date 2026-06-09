@@ -1,24 +1,87 @@
 \chapter{Results and Validation}
 \label{chapter:results_and_validation}
 
-\section{Geographic Delimitation of the Simulation Domain}
 
-Before analyzing the hydraulic outputs, it is necessary to define the spatial boundaries of the simulation grid. The 
-computational domain developed for this study focuses strictly on the eastern coastal watershed within the Valencian 
-Community (Spain), which sustained the most severe urban damage during the flash flood event of October 29, 2024.
+\section{Technical Validation and Software Testing}
 
-To maintain an optimal balance between grid resolution ($5\text{ m} \times 5\text{ m}$ cells) and computational feasibility, 
-other heavily affected regions have been explicitly excluded from this simulation. These include upstream high-altitude 
-areas of the catchment (such as Utiel, in the interior of the Valencia province) as well as adjacent affected river basins 
-located in the neighboring region of Castilla-La Mancha (e.g., Letur or Mira). The bounding box of the active simulation 
-area covers a total surface of 1311 $\text{km}^2$, enclosing the critical urban corridors of the ground-zero zone.
+To ensure the physical reliability, code correctness, and software stability of the machine learning-based state updaters, a rigorous 
+technical validation pipeline has been integrated into the project architecture. Because neural networks and data-driven models can suffer 
+from unconstrained physical hallucinations or mass conservation errors, this test suite enforces deterministic conservation laws and 
+hydrostatic invariants over the execution loop. The validation environment bridges the high-performance C++ core infrastructure with 
+automated test automation to guarantee that any exported model adheres to physical reality prior to deployment.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{images/results/topographic_overview.png}
-    \caption{Topographic overview of the active simulation domain overlaid on a Google Earth satellite composite.}
-    \label{fig:topographic_overview}
-\end{figure}
+\subsection{C++ Unit Testing Framework and Test Cases}
+
+The automated testing architecture is implemented using the Google Test (gTest) framework, utilizing parameterized test fixtures to run 
+identical physical validation suites across multiple target configurations. 
+
+The testbench features a dynamic model discovery mechanism via the \texttt{DiscoverModels()} function. At runtime, the executable scans the 
+subdirectories of the folder \texttt{exported\_models} to locate exported machine learning models (such as ONNX 
+models). For each subdirectory found, the system:
+
+\begin{itemize}
+    \item Extracts and sanitizes the folder name to establish a valid Google Test identifier.
+    \item Instantiates an \texttt{OnnxUpdaterConfig} block containing the complete folder path and target tensor dimensions (set to 4).
+    \item Registers the configurations into a \texttt{ModelTestParam} vector that drives the parameterized fixture class 
+    \texttt{StateUpdaterTest}.
+\end{itemize}
+
+The execution and orchestration of these tests are fully automated via CMake and CTest presets. As defined in the project configuration, 
+the test framework relies on specific components:
+
+\begin{itemize}
+    \item \textbf{Configuration Presets}: The abstract \texttt{tests} base preset forces the cache variable \texttt{BUILD\_TESTS} to 
+    \texttt{ON} under a \texttt{Debug} compilation profile. Targeted presets like \texttt{windows-tests-all} expose comprehensive validation 
+    by setting \texttt{BUILD\_ALL\_TESTS} to \texttt{ON}.
+
+    \item \textbf{Test Automation Execution}: The \texttt{windows-tests-all} test preset automates CTest execution natively. It optimizes 
+    CI/CD pipeline throughput by enabling parallel execution mapped to 4 multithreading jobs, enforcing an error action if no tests are 
+    detected, and enabling verbose failure reports via the \texttt{outputOnFailure} flag.
+\end{itemize}
+
+Upon execution via the CTest orchestration framework, all discovered machine learning models successfully passed the comprehensive 
+validation suite. The test runner reported a 100\% success rate across all parameterized scenarios, confirming that the state updaters 
+meet all defined numerical and physical stability criteria with zero runtime exceptions or regressions.
+
+\subsection{Model Stability and State Invariant Verification}
+
+To evaluate the numerical stability and mass-conservation characteristics of the updaters, a specialized \texttt{GridTestBuilder} helper 
+allocates and constructs synthetic topographic and hydrographic environments within a \texttt{MapGrid} structural memory context. Every 
+discovered model is subjected to five distinct test scenarios to verify state invariants:
+
+\begin{enumerate}
+    \item \textbf{Initialization Crash Test (\texttt{InitializationDoesNotCrash})}: Verifies that the state updater can consume allocated 
+    grid metadata and layer pointers to initialize its internal engine, variables, or neural runtimes without throwing runtime exceptions 
+    or memory violations.
+    
+    \item \textbf{Flat Hydrostatic Equilibrium (\texttt{FlatLakeRemainsAtRest})}: Tests the model against a flat $20 \times 20$ grid 
+    representing a uniform basin filled with $2.0\,\text{m}$ of water depth and bound by high perimeter walls. The simulation steps the 
+    model for 100 iterations. The state invariant dictates that the final water depth must remain identical to the initial state within a 
+    strict float32 numerical tolerance of $1 \times 10^{-5}$ to suppress parasitic waves or artificial fluid momentum.
+    
+    \item \textbf{Irregular Bathymetry Hydrostatic Stability (\texttt{IrregularLakeRemainsAtRest})}: Evaluates hydrostatic balance over 
+    complex terrain on a $20 \times 20$ domain. The bed elevation (bathymetry) is shaped via a continuous sinusoidal wave function 
+    ($Z_{\text{bed}} = 2.0 + 1.5 \sin(r \cdot 0.5) \cos(c \cdot 0.5)$). The water depth is adjusted per cell so that the total surface 
+    water elevation remains strictly flat at $Z = 5.0\,\text{m}$. After 100 execution steps, the code asserts via \texttt{EXPECT\_NEAR} 
+    (tolerance $1 \times 10^{-5}$) that non-uniform underlying bathymetry does not induce false artificial velocity or numerical degradation.
+    
+    \item \textbf{Mass Generation and Non-Hallucination Verification (\texttt{DryTerrainRemainsDry})}: Validates that the state updater 
+    obeys the absolute zero-mass constraint. The model is supplied with a completely dry $20 \times 20$ grid context (water depth 
+    initialized to $0.0\,\text{m}$ everywhere) and run for 50 steps. The state invariant requires all cells to maintain a water depth 
+    strictly lower than $1 \times 10^{-6}$. This proves the neural architecture does not spontaneously hallucinate or generate liquid 
+    volume out of dry terrain.
+    
+    \item \textbf{Wet-Dry Front Frontal Constraints (\texttt{WetDryFrontOnAdverseSlope})}: Assesses the model's ability to handle steep 
+    dry boundaries without artificial fluid creeping. A linear upward ramp is constructed along the X-axis ($Z_{\text{bed}} = c \cdot 0.5$) 
+    with standing water trapped only at the lowest quadrant ($c < \text{cols}/4$). After stepping the physics loop for 50 iterations, the 
+    suite evaluates the cells on the upper half of the adverse slope ($c \ge \text{cols}/2$). The state invariant dictates that water depth 
+    at these higher coordinates must remain strictly dry ($< 1 \times 10^{-5}$), ensuring that fluid cannot artificially climb adverse 
+    slopes without momentum.
+\end{enumerate}
+
+The complete mapping of these state layers (\texttt{topo\_bathy}, \texttt{water\_depth}, \texttt{land\_cover}, \texttt{roughness}, 
+\texttt{water\_movement\_state}, and \texttt{flood\_risk}) ensures rigorous validation of both physical and algorithmic metrics across the 
+software execution.
 
 
 \section{Hydraulic Scale and Color Representation}
