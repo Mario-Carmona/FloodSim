@@ -233,31 +233,30 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
             tensor_size *= item;
         }
 
-        core::grid::layers::ScratchpadBase* first_scratchpad = layers_scratchpad_.begin()->second.get();
+        if (use_dynamic_bounding_box) {
+            core::grid::layers::ScratchpadBase* first_scratchpad = layers_scratchpad_.begin()->second.get();
 
-        if (tensor_size > first_scratchpad->GetSize()) {
-            size_t new_size;
+            if (tensor_size > first_scratchpad->GetSize()) {
+                size_t new_size;
 
-            if (first_scratchpad->GetSize() == 0) {
+                if (first_scratchpad->GetSize() == 0) {
                 new_size = std::min(
                     static_cast<size_t>(tensor_size * 1.5f),
                     max_tensor_elements_  
 				);
-            }
-            else {
+                }
+                else {
                 new_size = std::min(
                     static_cast<size_t>(first_scratchpad->GetSize() * 1.5f),
                     max_tensor_elements_    
                 );
+                }
+
+                for (const auto& [name, scratchpad] : layers_scratchpad_) {
+                    scratchpad->Resize(new_size);
+                }
             }
 
-            for (const auto& [name, scratchpad] : layers_scratchpad_) {
-                scratchpad->Resize(new_size);
-            }
-        }
-
-
-        if (use_dynamic_bounding_box) {
             for (const auto& item : graph_info.inputs) {
                 if (!item.is_scalar) {
                     grid.GetLayer(item.id_name)->ExtractTilesData(layers_scratchpad_[item.id_name].get(), active_tiles, grid.GetCols(), grid.GetRows(),

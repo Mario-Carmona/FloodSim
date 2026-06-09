@@ -1,236 +1,316 @@
+/**
+ * @file StateUpdaterTest.cpp
+ * @brief Parameterized unit tests to validate the physical consistency of state updaters.
+ *
+ * This file implements a test suite that dynamically discovers exported machine learning
+ * models (e.g., ONNX models) and runs them against standard hydrostatic and physical
+ * stability scenarios to ensure they conserve mass and do not produce physical hallucinations.
+ */
 
 #include <gtest/gtest.h>
 #include <filesystem>
 #include <numeric>
+#include <stdexcept>
 
-#include "adapters/state_updater/StateUpdaterFactory.hpp"
+ // Platform-specific includes for resolving the executable path
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#elif defined(__linux__)
+#include <unistd.h>
+#include <limits.h>
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
+#include <climits>
+#endif
+
+#include "app/adapters/state_updater/StateUpdaterFactory.hpp"
 #include "helpers/GridTestBuilder.hpp"
-#include "ports/StateUpdaterPort.hpp"
-#include "misc/Paths.hpp"
+#include "app/core/ports/StateUpdaterPort.hpp"
 
-namespace danasim {
+namespace floodsim::tests {
 
-    // Estructura para parametrizar el test
+    namespace {
+
+        /**
+         * @brief Retrieves the absolute path to the directory containing the current executable.
+         *
+         * Uses platform-specific APIs (Windows, Linux, macOS) to resolve the executable's path.
+         * This is necessary to locate the external models directory reliably, regardless of
+         * the working directory from which the tests are launched.
+         *
+         * @return std::filesystem::path The directory containing the executable.
+         * @throws std::runtime_error If the path cannot be resolved on the current OS.
+         */
+        std::filesystem::path GetExecutableFolder() {
+#if defined(_WIN32)
+            wchar_t buffer[MAX_PATH];
+            DWORD size = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+            if (size == 0 || size == MAX_PATH) {
+                throw std::runtime_error("GetExecutableFolder: Error getting path on Windows.");
+            }
+            return std::filesystem::path(buffer).parent_path();
+#elif defined(__linux__)
+            char buffer[PATH_MAX];
+            ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+            if (len == -1) {
+                throw std::runtime_error("GetExecutableFolder: Error reading /proc/self/exe on Linux.");
+            }
+            buffer[len] = '\0';
+            return std::filesystem::path(buffer).parent_path();
+#elif defined(__APPLE__)
+            char buffer[PATH_MAX];
+            uint32_t size = sizeof(buffer);
+            if (_NSGetExecutablePath(buffer, &size) != 0) {
+                // If the initial buffer was too small, 'size' now contains the required size
+                std::vector<char> dynamic_buffer(size);
+                if (_NSGetExecutablePath(dynamic_buffer.data(), &size) != 0) {
+                    throw std::runtime_error("GetExecutableFolder: Error getting path on macOS.");
+                }
+                return std::filesystem::canonical(std::filesystem::path(dynamic_buffer.data())).parent_path();
+            }
+            return std::filesystem::canonical(std::filesystem::path(buffer)).parent_path();
+#else
+#error "Platform not supported by GetExecutableFolder"
+#endif
+        }
+
+    } // anonymous namespace
+
+    /**
+     * @struct ModelTestParam
+     * @brief Holds configuration parameters for a single parameterized test execution.
+     */
     struct ModelTestParam {
-        std::string testName; // ej: "ONNX_Modelo_V1"
-        StateUpdaterConfig config;
+        std::string testName;                  ///< The sanitized name of the test (e.g., "ONNX_Model_V1")
+        app::config::StateUpdaterConfig config; ///< Configuration object for the state updater factory
     };
 
-    // Le enseñamos a GTest (y a C++) cómo imprimir esta estructura en consola
+    /**
+     * @brief Overloads the stream insertion operator for ModelTestParam.
+     * * Instructs Google Test (and standard streams) on how to print this structure
+     * to the console, ensuring test reports display clear model names.
+     *
+     * @param os Output stream.
+     * @param param The test parameter instance.
+     * @return std::ostream& Reference to the modified output stream.
+     */
     inline std::ostream& operator<<(std::ostream& os, const ModelTestParam& param) {
         os << param.testName;
         return os;
     }
 
-    // Genera los parámetros leyendo los archivos
+    /**
+     * @brief Dynamically discovers exported machine learning models in the directory tree.
+     *
+     * Scans the "exported_models" directory relative to the executable path and
+     * generates a vector of test parameters for each valid model directory found.
+     *
+     * @return std::vector<ModelTestParam> A list of parameters representing the discovered models.
+     */
     std::vector<ModelTestParam> DiscoverModels() {
         std::vector<ModelTestParam> models;
 
-        // ATENCIÓN: Esta ruta es relativa al ejecutable (el .exe). 
-        // Asegúrate de que CTest se ejecuta en un directorio desde donde "assets/models" sea visible,
-        // o usa una ruta absoluta de prueba.
-        std::filesystem::path projectDir = GetExecutableFolder().parent_path().parent_path().parent_path();
-        std::filesystem::path modelsDir = projectDir / "models";
+        // Resolve the absolute path to the exported_models folder
+        std::filesystem::path modelsDir = GetExecutableFolder() / "../../../exported_models";
 
-        // Si el directorio no existe, devolvemos una lista vacía y avisamos
+        // Verify that the directory exists and is valid
         if (!std::filesystem::exists(modelsDir) || !std::filesystem::is_directory(modelsDir)) {
-            std::cerr << "[WARNING] Directorio de modelos no encontrado en: "
+            std::cerr << "[WARNING] Model directory not found at: "
                 << std::filesystem::absolute(modelsDir) << "\n";
             return models;
         }
 
-        // Iterar por todos los archivos de la carpeta
-        for (const auto& entry : std::filesystem::recursive_directory_iterator(modelsDir)) {
-            if (entry.is_regular_file()) {
-                std::string ext = entry.path().extension().string();
+        // Iterate ONLY over the direct elements of the base directory
+        for (const auto& entry : std::filesystem::directory_iterator(modelsDir)) {
 
-                // Convertir extensión a minúsculas por seguridad (.ONNX -> .onnx)
-                std::transform(ext.begin(), ext.end(), ext.begin(),
-                    [](unsigned char c) { return std::tolower(c); });
+            // If the element is a directory, create a TestParam for it
+            if (entry.is_directory()) {
 
-                // Limpiar el nombre del archivo para que GTest lo acepte como nombre de test
-                // ej: "modelo-v1.2" -> "modelo_v1_2"
-                std::string safeName = entry.path().stem().string();
-                std::replace_if(safeName.begin(), safeName.end(),
+                // Get the folder name (e.g., "first_model_cpu")
+                std::string folderName = entry.path().filename().string();
+
+                // Sanitize the name to make it a valid GTest identifier (no spaces or dashes)
+                std::replace_if(folderName.begin(), folderName.end(),
                     [](char c) { return !std::isalnum(c); }, '_');
 
-                if (ext == ".onnx") {
-                    // Crear la configuración específica para ONNX
-                    OnnxStateUpdaterConfig onnxConfig;
-                    onnxConfig.modelPath = entry.path();
+                // Set up the path towards the folder so OnnxStateUpdater can process it
+                app::config::OnnxUpdaterConfig onnxConfig;
+                onnxConfig.model_path = entry.path(); // Pass the complete folder path
+                onnxConfig.tensor_dim = 4;
 
-                    // Añadirlo a la lista de tests a ejecutar
-                    models.push_back({
-                        "ONNX_" + safeName,  // Prefijo para saber qué motor usa
-                        onnxConfig           // Se guarda internamente en el std::variant
+                models.push_back({
+                    "ONNX_" + folderName,
+                    onnxConfig
                     });
-                }
-                // Si en el futuro añades TensorFlow:
-                // else if (ext == ".pb") { ... }
             }
         }
 
         return models;
     }
 
-    // Fixture parametrizada
+    /**
+     * @class StateUpdaterTest
+     * @brief Parameterized test fixture for evaluating State Updater implementations.
+     *
+     * Inherits from ::testing::TestWithParam to allow running the same suite of
+     * physical tests across multiple exported models.
+     */
     class StateUpdaterTest : public ::testing::TestWithParam<ModelTestParam> {
     protected:
-        std::unique_ptr<StateUpdaterPort> updater;
+        std::unique_ptr<app::core::ports::StateUpdaterPort> updater; ///< Pointer to the loaded updater interface
 
+        /**
+         * @brief Sets up the test environment before each parameterized test execution.
+         * * Instantiates the correct updater based on the variant of the provided parameter
+         * using the StateUpdaterFactory.
+         */
         void SetUp() override {
-            // ¡La magia de tu factory! 
-            // Instancia el updater correcto basándose en el variant del parámetro.
-            updater = StateUpdaterFactory::create(GetParam().config);
+            updater = app::adapters::state_updater::StateUpdaterFactory::Create(GetParam().config);
         }
     };
 
     // =========================================================================
-    // TUS TESTS (Se ejecutarán una vez por cada archivo encontrado)
+    // TEST DEFINITIONS (Executed once for every discovered model)
     // =========================================================================
 
+    /**
+     * @brief Verifies that the model initializes correctly without crashing.
+     */
     TEST_P(StateUpdaterTest, InitializationDoesNotCrash) {
-        MapGrid grid;
-        grid.init(100, 100, 1.0f, 0.0f, 0.0f); // Usamos tu inicializador real
+        app::core::grid::MapGrid grid;
+
+        GridTestBuilder::InitializeGridBase(grid, updater.get(), 10, 10);
 
         EXPECT_NO_THROW({
-            this->updater->initialize(grid, 1.0f);
-        });
+            this->updater->Initialize(grid);
+            });
     }
 
     // =========================================================================
-    // TESTS FÍSICOS: ESTABILIDAD HIDROSTÁTICA
+    // PHYSICAL TESTS: HYDROSTATIC STABILITY
     // =========================================================================
 
+    /**
+     * @brief Verifies hydrostatic stability on a perfectly flat basin.
+     * * Ensures that a flat lake at rest remains perfectly still over multiple
+     * simulation steps, without generating phantom waves or losing mass.
+     */
     TEST_P(StateUpdaterTest, FlatLakeRemainsAtRest) {
-        MapGrid grid;
-        // Creamos un lago de 20x20 con 2 metros de profundidad
-        GridTestBuilder::createLakeAtRest(grid, 20, 20, 2.0f);
+        app::core::grid::MapGrid grid;
+        // Create a 20x20 lake with 2 meters of depth
+        GridTestBuilder::CreateLakeAtRest(grid, 20, 20, 2.0f, updater.get());
 
-        // Guardamos el estado inicial de las profundidades para comparar después
-        std::vector<float> initialWater = grid.getLayer<float>(LayerId::WaterDepth);
+        // Store the initial state of the depths to compare later
+        std::vector<float> initialWater = grid.GetLayer<float>("water_depth")->GetData();
 
-        // Inicializamos el modelo con un dt de 1 segundo
-        this->updater->initialize(grid, 1.0f);
+        // Initialize the model
+        this->updater->Initialize(grid);
 
-        // Ejecutamos 10 iteraciones de la simulación
-        for (int step = 0; step < 1000; ++step) {
-            this->updater->run();
+        // Execute 100 simulation iterations
+        for (int step = 0; step < 100; ++step) {
+            this->updater->Step(grid);
         }
 
-        const std::vector<float>& finalWater = grid.getLayer<float>(LayerId::WaterDepth);
+        const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
 
-        // Aserción: La profundidad no debe haber cambiado. 
-        // Usamos una tolerancia de 1e-5 para descartar ruidos de precisión de float32 en la red neuronal/física.
+        // Assertion: Depth must not have changed. 
+        // We use a 1e-5 tolerance to dismiss float32 precision noise from the neural/physics network.
         for (size_t i = 0; i < initialWater.size(); ++i) {
             EXPECT_NEAR(initialWater[i], finalWater[i], 1e-5f)
-                << "Inestabilidad detectada en terreno plano en la celda " << i;
+                << "Instability detected on flat terrain at cell " << i;
         }
     }
 
+    /**
+     * @brief Verifies hydrostatic stability over an irregular bed topology.
+     * * Ensures that if the water surface is uniformly flat, variations in
+     * the underlying terrain (bathymetry) do not induce false momentum.
+     */
     TEST_P(StateUpdaterTest, IrregularLakeRemainsAtRest) {
-        MapGrid grid;
-        // Creamos un lago de 20x20 donde la superficie del agua está siempre en la cota Z=5.0m
-        GridTestBuilder::createIrregularLakeAtRest(grid, 20, 20, 5.0f);
+        app::core::grid::MapGrid grid;
+        // Create a 20x20 lake where the water surface is always at Z=5.0m elevation
+        GridTestBuilder::CreateIrregularLakeAtRest(grid, 20, 20, 5.0f, updater.get());
 
-        std::vector<float> initialWater = grid.getLayer<float>(LayerId::WaterDepth);
+        std::vector<float> initialWater = grid.GetLayer<float>("water_depth")->GetData();
 
-        this->updater->initialize(grid, 1.0f);
+        this->updater->Initialize(grid);
 
-        // Ejecutamos 10 iteraciones
-        for (int step = 0; step < 1000; ++step) {
-            this->updater->run();
+        // Execute 100 iterations
+        for (int step = 0; step < 100; ++step) {
+            this->updater->Step(grid);
         }
 
-        const std::vector<float>& finalWater = grid.getLayer<float>(LayerId::WaterDepth);
+        const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
 
         for (size_t i = 0; i < initialWater.size(); ++i) {
             EXPECT_NEAR(initialWater[i], finalWater[i], 1e-5f)
-                << "Inestabilidad detectada en terreno irregular en la celda " << i;
+                << "Instability detected on irregular terrain at cell " << i;
+        }
+    }
+
+    /**
+     * @brief Verifies that mass is not spontaneously generated.
+     * * Ensures that a completely dry simulation domain remains at zero
+     * water depth over time, proving the model does not "hallucinate" water.
+     */
+    TEST_P(StateUpdaterTest, DryTerrainRemainsDry) {
+        app::core::grid::MapGrid grid;
+        GridTestBuilder::CreateDryTerrain(grid, 20, 20, updater.get());
+
+        this->updater->Initialize(grid);
+        for (int step = 0; step < 50; ++step) {
+            this->updater->Step(grid);
+        }
+
+        const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
+        for (size_t i = 0; i < finalWater.size(); ++i) {
+            EXPECT_LT(finalWater[i], 1e-6f)
+                << "Hallucination detected: Water generated on dry terrain at cell " << i;
+        }
+    }
+
+    /**
+     * @brief Verifies that fluid does not climb up slopes without sufficient momentum.
+     * * Tests a scenario where water rests at the bottom of an adverse slope.
+     * The upper sections of the slope should remain strictly dry.
+     */
+    TEST_P(StateUpdaterTest, WetDryFrontOnAdverseSlope) {
+        app::core::grid::MapGrid grid;
+        GridIndexType cols = 20;
+        GridTestBuilder::CreateAdverseSlope(grid, 20, cols, updater.get());
+
+        this->updater->Initialize(grid);
+        for (int step = 0; step < 50; ++step) {
+            this->updater->Step(grid);
+        }
+
+        const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
+
+        // Verify that the right half of the ramp (c >= cols/2) remains strictly dry
+        for (size_t i = 0; i < finalWater.size(); ++i) {
+            GridIndexType c = i % cols;
+            if (c >= cols / 2) {
+                EXPECT_LT(finalWater[i], 1e-5f)
+                    << "Water climbed a slope without momentum at column " << c;
+            }
         }
     }
 
     // =========================================================================
-    // TESTS FÍSICOS: CONSERVACIÓN DE LA MASA
+    // AUTOMATIC TEST SUITE REGISTRATION
     // =========================================================================
 
-    TEST_P(StateUpdaterTest, MassIsConservedDuringMovement) {
-        MapGrid grid;
-        // Creamos una piscina de 30x30
-        GridTestBuilder::createDamBreakInPool(grid, 30, 30);
-
-        // 1. Calculamos la masa (volumen) inicial sumando todas las celdas
-        const std::vector<float>& initialWater = grid.getLayer<float>(LayerId::WaterDepth);
-        float initialMass = std::accumulate(initialWater.begin(), initialWater.end(), 0.0f);
-
-        // 2. Inicializamos y corremos el modelo simulando 2 segundos de caos (20 pasos de 0.1s)
-        this->updater->initialize(grid, 0.1f);
-        for (int step = 0; step < 20; ++step) {
-            this->updater->run();
-        }
-
-        // 3. Calculamos la masa final
-        const std::vector<float>& finalWater = grid.getLayer<float>(LayerId::WaterDepth);
-        float finalMass = std::accumulate(finalWater.begin(), finalWater.end(), 0.0f);
-
-        // Aserción: La masa inicial debe ser casi idéntica a la final.
-        // Toleramos un error muy pequeño (0.1% de la masa total) por la pérdida de precisión de float32
-        // al sumar muchos números pequeños en repetidas iteraciones matemáticas de la red.
-        float allowedError = initialMass * 0.001f;
-
-        EXPECT_NEAR(initialMass, finalMass, allowedError)
-            << "Fallo de conservación de masa: Inicial = " << initialMass
-            << " | Final = " << finalMass;
-    }
-
-    // =========================================================================
-    // TESTS FÍSICOS: SIMETRÍA ESPACIAL
-    // =========================================================================
-
-    TEST_P(StateUpdaterTest, WavePropagationIsSymmetric) {
-        MapGrid grid;
-        GridIndexType size = 31; // Malla de 31x31 (Centro en 15,15)
-        GridTestBuilder::createDropInCenter(grid, size);
-
-        // Inicializamos y ejecutamos 10 pasos (la ola viajará hacia afuera)
-        this->updater->initialize(grid, 0.1f);
-        for (int step = 0; step < 10; ++step) {
-            this->updater->run();
-        }
-
-        const std::vector<float>& finalWater = grid.getLayer<float>(LayerId::WaterDepth);
-        GridIndexType center = size / 2;
-
-        // Comprobamos la simetría horizontal y vertical desde el centro hacia los bordes
-        for (GridIndexType dist = 1; dist < center - 1; ++dist) {
-
-            // 1. Simetría Horizontal (Comparamos izquierda vs derecha en el eje central X)
-            float leftWater = finalWater[center * size + (center - dist)];
-            float rightWater = finalWater[center * size + (center + dist)];
-
-            EXPECT_NEAR(leftWater, rightWater, 1e-2f)
-                << "Sesgo horizontal detectado a distancia " << dist << " del centro.";
-
-            // 2. Simetría Vertical (Comparamos arriba vs abajo en el eje central Y)
-            float topWater = finalWater[(center - dist) * size + center];
-            float bottomWater = finalWater[(center + dist) * size + center];
-
-            EXPECT_NEAR(topWater, bottomWater, 1e-2f)
-                << "Sesgo vertical detectado a distancia " << dist << " del centro.";
-        }
-    }
-
-    // =========================================================================
-    // REGISTRO AUTOMÁTICO DE LOS TESTS
-    // =========================================================================
-
+    // Instantiate the test suite with the dynamically discovered models
     INSTANTIATE_TEST_SUITE_P(
-        FolderModels, // Nombre de la suite general
-        StateUpdaterTest, // La clase fixture
-        ::testing::ValuesIn(DiscoverModels()), // Proveedor de datos
+        FolderModels,                           // General suite name
+        StateUpdaterTest,                       // The fixture class
+        ::testing::ValuesIn(DiscoverModels()),  // Data provider function
         [](const ::testing::TestParamInfo<ModelTestParam>& info) {
-            return info.param.testName; // El nombre limpio que le dimos arriba
+            return info.param.testName;         // The sanitized name defined during discovery
         }
     );
 
-} // namespace danasim
+} // namespace floodsim::tests

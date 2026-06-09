@@ -16,6 +16,7 @@ if (DOXYGEN_FOUND)
     doxygen_add_docs(docs
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/tests
         ${CMAKE_SOURCE_DIR}/README.md
         ${CMAKE_CURRENT_BINARY_DIR}/LICENSE.md
         ${CMAKE_CURRENT_BINARY_DIR}/THIRD-PARTY-NOTICES.md

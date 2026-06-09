@@ -11,9 +11,12 @@ if(BUILD_APP)
     set(ENABLE_CORE ON)
 endif()
 
+if(BUILD_TESTS)
+    set(ENABLE_CORE ON)
+endif()
+
 if(BUILD_ALL_TESTS)
     set(ENABLE_STATE_UPDATER_ADAPTERS ON)
-    set(ENABLE_CORE ON)
 endif()
 
 # ------------------------------------------------------------
@@ -23,6 +26,10 @@ set(VCPKG_MANIFEST_FEATURES "")
 
 if(ENABLE_INPUT_ADAPTERS)
     list(APPEND VCPKG_MANIFEST_FEATURES "input-adapters")
+endif()
+
+if(ENABLE_STATE_UPDATER_ADAPTERS)
+    list(APPEND VCPKG_MANIFEST_FEATURES "state-updater-adapters")
 endif()
 
 if(ENABLE_OUTPUT_ADAPTERS)

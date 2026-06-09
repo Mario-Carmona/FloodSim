@@ -93,7 +93,7 @@ state_updater:
 simulation:
   start_timestamp: 2024-10-29T11:26:00
   time_step: 00:00:00.10
-  duration: 02:00:00
+  duration: 00:08:00
   view_box: 
     use_full_grid: true
     south_west:

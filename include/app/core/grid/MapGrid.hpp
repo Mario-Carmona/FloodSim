@@ -300,6 +300,13 @@ public:
      */
     [[nodiscard]] config::ViewBox::Point TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const;
 
+    /**
+     * @brief Sets the metadata for the grid map.
+     *
+     * @param metadata The metadata to set.
+     */
+    void SetMetadata(const GridMetadata& metadata) { metadata_ = metadata; }
+
 private:
     std::unordered_map<std::string, std::unique_ptr<layers::LayerBase>> layers_;   ///< Storage for all spatial layers.
     std::unordered_map<std::string, std::unique_ptr<scalars::ScalarBase>> scalars_; ///< Storage for global scalar variables.
