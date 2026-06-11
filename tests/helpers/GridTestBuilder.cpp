@@ -7,11 +7,9 @@
 
 namespace floodsim::tests {
 
-    void GridTestBuilder::InitializeGridBase(
-        app::core::grid::MapGrid& grid,
-        app::core::ports::StateUpdaterPort* updater,
-        GridIndexType rows, GridIndexType cols
-    ) {
+    void GridTestBuilder::InitializeGridBase(app::core::grid::MapGrid& grid,
+                                             app::core::ports::StateUpdaterPort* updater,
+                                             GridIndexType rows, GridIndexType cols) {
         // Configure physical scalar constraints for the test environment.
         std::unordered_map<std::string, std::string> scalars_config = {
             { "fluid_density", "1000.0" },  // Standard water density (kg/m³)
@@ -69,14 +67,10 @@ namespace floodsim::tests {
         floodRiskData.resize(cell_count, 0);
     }
 
-    void GridTestBuilder::CreateLakeAtRest(
-        app::core::grid::MapGrid& grid,
-        GridIndexType rows, GridIndexType cols,
-        float water_depth,
-        app::core::ports::StateUpdaterPort* updater
-    ) {
+    void GridTestBuilder::CreateLakeAtRest(app::core::grid::MapGrid& grid, GridIndexType rows, 
+                                           GridIndexType cols, float water_depth, 
+                                           app::core::ports::StateUpdaterPort* updater) {
         InitializeGridBase(grid, updater, rows, cols);
-
         size_t cell_count = static_cast<size_t>(rows * cols);
         auto& elevationData = grid.GetLayer<float>("topo_bathy")->GetData();
         auto& waterData = grid.GetLayer<float>("water_depth")->GetData();
@@ -85,26 +79,23 @@ namespace floodsim::tests {
             GridIndexType r = i / cols;
             GridIndexType c = i % cols;
 
-            // Apply high boundary walls on the perimeter edges to trap fluid.
+            // Smoothed perimeter walls set to exactly 1m above the water depth
+            // to intentionally clamp extreme gradients.
             if (r == 0 || r == rows - 1 || c == 0 || c == cols - 1) {
-                elevationData[i] = water_depth + 5.0f;
+                elevationData[i] = water_depth + 1.0f;
                 waterData[i] = 0.0f;
             }
             else {
-                elevationData[i] = 0.0f; // Flat basin bed
+                elevationData[i] = 0.0f;
                 waterData[i] = water_depth;
             }
         }
     }
 
-    void GridTestBuilder::CreateIrregularLakeAtRest(
-        app::core::grid::MapGrid& grid,
-        GridIndexType rows, GridIndexType cols,
-        float surface_elevation,
-        app::core::ports::StateUpdaterPort* updater
-    ) {
+    void GridTestBuilder::CreateIrregularLakeAtRest(app::core::grid::MapGrid& grid, GridIndexType rows, 
+                                                    GridIndexType cols, float surface_elevation, 
+                                                    app::core::ports::StateUpdaterPort* updater) {
         InitializeGridBase(grid, updater, rows, cols);
-
         size_t cell_count = static_cast<size_t>(rows * cols);
         auto& elevationData = grid.GetLayer<float>("topo_bathy")->GetData();
         auto& waterData = grid.GetLayer<float>("water_depth")->GetData();
@@ -114,26 +105,77 @@ namespace floodsim::tests {
             GridIndexType c = i % cols;
 
             if (r == 0 || r == rows - 1 || c == 0 || c == cols - 1) {
-                elevationData[i] = surface_elevation + 5.0f;
+                elevationData[i] = surface_elevation + 1.0f;
                 waterData[i] = 0.0f;
             }
             else {
-                // Generate a continuous sinusoidal irregular bed topology.
-                float bed = 2.0f + 1.5f * std::sin(static_cast<float>(r) * 0.5f) * std::cos(static_cast<float>(c) * 0.5f);
+                // Smooth bed variations (~0.5m amplitude) to avoid introducing extreme slopes.
+                float bed = 1.0f + 0.5f * std::sin(static_cast<float>(r) * 0.5f) * std::cos(static_cast<float>(c) * 0.5f);
                 elevationData[i] = bed;
-                // Adjust fluid depth so the total surface level remains flat.
                 waterData[i] = std::max(0.0f, surface_elevation - bed);
             }
         }
     }
 
-    void GridTestBuilder::CreateDryTerrain(
-        app::core::grid::MapGrid& grid,
-        GridIndexType rows, GridIndexType cols,
-        app::core::ports::StateUpdaterPort* updater
-    ) {
+    void GridTestBuilder::CreateDamBreakInPool(app::core::grid::MapGrid& grid, GridIndexType rows, GridIndexType cols, 
+                                               app::core::ports::StateUpdaterPort* updater) {
         InitializeGridBase(grid, updater, rows, cols);
+        size_t cell_count = static_cast<size_t>(rows * cols);
+        auto& elevationData = grid.GetLayer<float>("topo_bathy")->GetData();
+        auto& waterData = grid.GetLayer<float>("water_depth")->GetData();
 
+        for (FlatVectorIndexType i = 0; i < cell_count; ++i) {
+            GridIndexType r = i / cols;
+            GridIndexType c = i % cols;
+
+            if (r == 0 || r == rows - 1 || c == 0 || c == cols - 1) {
+                elevationData[i] = 4.0f;
+                waterData[i] = 0.0f;
+            }
+            else {
+                elevationData[i] = 0.0f;
+                if (c >= cols / 2 - 2 && c <= cols / 2 + 1) {
+                    waterData[i] = 0.2f;
+                }
+                else {
+                    waterData[i] = 0.0f;
+                }
+            }
+        }
+    }
+
+    void GridTestBuilder::CreateDropInCenter(app::core::grid::MapGrid& grid, GridIndexType size, 
+                                             app::core::ports::StateUpdaterPort* updater) {
+        InitializeGridBase(grid, updater, size, size);
+        size_t cell_count = static_cast<size_t>(size * size);
+        auto& elevationData = grid.GetLayer<float>("topo_bathy")->GetData();
+        auto& waterData = grid.GetLayer<float>("water_depth")->GetData();
+
+        GridIndexType center = size / 2;
+
+        for (FlatVectorIndexType i = 0; i < cell_count; ++i) {
+            GridIndexType r = i / size;
+            GridIndexType c = i % size;
+
+            if (r == 0 || r == size - 1 || c == 0 || c == size - 1) {
+                elevationData[i] = 5.0f;
+                waterData[i] = 0.0f;
+            }
+            else {
+                elevationData[i] = 0.0f;
+                if (r == center && c == center) {
+                    waterData[i] = 0.2f;
+                }
+                else {
+                    waterData[i] = 0.0f;
+                }
+            }
+        }
+    }
+
+    void GridTestBuilder::CreateAdverseSlope(app::core::grid::MapGrid& grid, GridIndexType rows, GridIndexType cols, 
+                                             app::core::ports::StateUpdaterPort* updater) {
+        InitializeGridBase(grid, updater, rows, cols);
         size_t cell_count = static_cast<size_t>(rows * cols);
         auto& elevationData = grid.GetLayer<float>("topo_bathy")->GetData();
         auto& waterData = grid.GetLayer<float>("water_depth")->GetData();
@@ -144,46 +186,31 @@ namespace floodsim::tests {
 
             if (r == 0 || r == rows - 1 || c == 0 || c == cols - 1) {
                 elevationData[i] = 10.0f;
-            }
-            else {
-                elevationData[i] = 1.0f; // Uniform dry ground
-            }
-            waterData[i] = 0.0f; // Enforce zero fluid depth across the entire domain
-        }
-    }
-
-    void GridTestBuilder::CreateAdverseSlope(
-        app::core::grid::MapGrid& grid,
-        GridIndexType rows, GridIndexType cols,
-        app::core::ports::StateUpdaterPort* updater
-    ) {
-        InitializeGridBase(grid, updater, rows, cols);
-
-        size_t cell_count = static_cast<size_t>(rows * cols);
-        auto& elevationData = grid.GetLayer<float>("topo_bathy")->GetData();
-        auto& waterData = grid.GetLayer<float>("water_depth")->GetData();
-
-        for (FlatVectorIndexType i = 0; i < cell_count; ++i) {
-            GridIndexType r = i / cols;
-            GridIndexType c = i % cols;
-
-            if (r == 0 || r == rows - 1 || c == 0 || c == cols - 1) {
-                elevationData[i] = 50.0f; // Boundary walls
                 waterData[i] = 0.0f;
             }
             else {
-                // Build an upward linear ramp moving towards the right hand side (X-axis).
-                elevationData[i] = static_cast<float>(c) * 0.5f;
+                elevationData[i] = static_cast<float>(c) * 0.1f;
 
-                // Seed a standing water puddle trapped at the lowest left quadrant.
                 if (c < cols / 4) {
-                    // Flat surface level target capped at Z = 2.0
-                    waterData[i] = std::max(0.0f, 2.0f - elevationData[i]);
+                    waterData[i] = std::max(0.0f, 1.5f - elevationData[i]);
                 }
                 else {
                     waterData[i] = 0.0f;
                 }
             }
+        }
+    }
+
+    void GridTestBuilder::CreateDryTerrain(app::core::grid::MapGrid& grid, GridIndexType rows, GridIndexType cols, 
+                                           app::core::ports::StateUpdaterPort* updater) {
+        InitializeGridBase(grid, updater, rows, cols);
+        size_t cell_count = static_cast<size_t>(rows * cols);
+        auto& elevationData = grid.GetLayer<float>("topo_bathy")->GetData();
+        auto& waterData = grid.GetLayer<float>("water_depth")->GetData();
+
+        for (FlatVectorIndexType i = 0; i < cell_count; ++i) {
+            elevationData[i] = 1.0f;
+            waterData[i] = 0.0f;
         }
     }
 

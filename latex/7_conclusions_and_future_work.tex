@@ -2,116 +2,66 @@
 \label{chapter:conclusions_and_future_work}
 
 
-\section{Conclusions}
+This thesis presented a tensor-based flood simulation engine designed to balance execution speed and hydrodynamic consistency. This final 
+chapter summarizes the primary insights derived from the validation phase and outlines the strategic roadmap toward upgrading the model 
+into a full-scale, real-time alerting platform.
 
 
+\section{Concluding Remarks}
+\label{section:concluding_remarks}
+
+Despite its mathematical simplicity and the utilization of a coarse $200\text{ m}$ spatial resolution grid, the proposed model successfully 
+reproduces the primary floodwave propagation pathways, channel overflows, and macro-structural interactions observed during the catastrophic 
+DANA 2024 event. 
+
+The engine demonstrated high fidelity in tracking the violent confluence of the Barranco del Poyo and Barranco de Horteta, simulating the 
+severe urban flooding across Picanya and Paiporta, and accurately resolving the "wall effect" imposed by the New Turia River Channel. These 
+results prove that the core cellular automata transition rules, implemented over highly parallelized TensorFlow/ONNX graphs, are robust 
+enough to capture real-world disaster dynamics without relying on computationally expensive full shallow-water equation solvers.
+
+\section{Implementation Bottlenecks: The Fixed Time-Step Limit}
+\label{section:implementation_bottlenecks}
+
+The most critical challenge encountered during the implementation was the strict mathematical formulation of a \textbf{fixed temporal step 
+($\Delta t$)}. To prevent numerical explosion and satisfy the Courant-Friedrichs-Lewy (CFL) condition across the entire domain, $\Delta t$ 
+must be hardcoded for the absolute worst-case scenario. 
+
+This design requires predicting the combined maximum terrain slope ($S_{\text{max}}$) and maximum water depth ($WD_{\text{max}}$) across the 
+entire timeline to derive the peak physical velocity. Consequently, the engine enforces a uniform $\Delta t = 0.15\text{ s}$, which is 
+orders of magnitude smaller than what is actually required for more than $90\%$ of the active simulation cells and duration. 
+
+This rigid constraint serves as the primary barrier preventing validation at higher spatial resolutions (such as the IGN $25\text{ m}$ or 
+$5\text{ m}$ grids). Scaling down the cell size ($\Delta x$) while keeping a globally minimized fixed $\Delta t$ exponentially increases the 
+required iteration count, causing the computational execution to scale inefficiently.
 
 
-\section{Future Work}
+\section{Future Lines of Work}
+\label{section:future_lines_of_work}
 
-\subsection{Integration of Meteorological Radar Data for Enhanced Rainfall Spatialization}
-
-While the current data pipeline successfully spatializes point-based rain gauge measurements using elevation-based 
-drift (e.g., Kriging with External Drift), this methodology presents inherent limitations when modeling extreme weather 
-events. Elevation acts as a static covariate that effectively represents long-term, climatological precipitation trends 
-(the orographic effect). However, it cannot capture the highly dynamic, localized, and heterogeneous nature of real-time 
-convective storm cells. Consequently, the interpolated rainfall tensor may misrepresent the exact geographical 
-distribution of the precipitation nucleus during a specific simulation step.
-
-To achieve professional-grade meteorological realism and improve the predictive accuracy of the hydraulic simulation, 
-a primary line of future work is the integration of Meteorological Radar Data (such as the C-band and S-band radar 
-networks operated by the Spanish Meteorological Agency, AEMET).
-
-This integration would fundamentally upgrade the Rainfall Engine through the following technical implementations:
-
-\begin{itemize}
-	\item \textbf{Radar Reflectivity Conversion}: Radar systems provide high-resolution spatial matrices of atmospheric 
-	reflectivity ($Z$). The pipeline would need to implement algorithms to dynamically fetch these grids and convert 
-	them into estimated rainfall intensity rates ($R$) using empirical formulas, such as the Marshall-Palmer relationship 
-	($Z = aR^b$).
-	\item \textbf{Radar-Rain Gauge Merging}: Because radar data is susceptible to systemic anomalies (e.g., beam blockage, 
-	signal attenuation, or overestimation due to hail), it cannot be used in isolation. The future pipeline should 
-	implement advanced merging techniques—such as Conditional Merging (CM) or Regression Kriging. In this upgraded 
-	architecture, the radar imagery would serve as the highly detailed spatial covariate, while the physical rain gauges 
-	would provide the "ground-truth" anchor points to correct the radar bias.
-	\item \textbf{Enhanced Tensor Fidelity}: By replacing a static topographic covariate with a dynamic meteorological 
-	one, the resulting $Time \times Y \times X$ data cube would precisely reflect the trajectory, shape, and intensity 
-	of storm events.
-\end{itemize}
-
-Implementing this feature would drastically reduce spatial interpolation errors and provide the Cellular Automata 
-($m:n-CA^k$) core with a highly realistic input tensor, which is strictly necessary for the accurate modeling of 
-rapid-onset flash floods.
-
-
-\subsection{GPU Acceleration via CUDA for High-Performance Hydraulic Simulation}
-
-While the current execution framework successfully deploys the TensorFlow models via the ONNX Runtime C++ API on the 
-CPU, it introduces significant computational bottlenecks when scaling to high-resolution watersheds or executing large-scale 
-simulations. Flood forecasting and flash-flood modeling are inherently time-critical operations; however, the current 
-CPU-bound architecture severely limits the execution throughput of the Cellular Automata ($m:n-CA^k$) core, especially when 
-processing the high-dimensional spatial-temporal tensors generated by the Rainfall Engine. To transition this framework into a 
-viable real-time Early Warning System (EWS), a primary future objective is the implementation of hardware-level parallelization 
-leveraging NVIDIA CUDA-based GPU acceleration.
-
-This architectural upgrade will focus on mitigating computational latency through the following technical implementations:
+To bypass these current limitations and maximize accuracy without sacrificing computational throughput, future research will target four 
+main technical upgrades:
 
 \begin{itemize}
-	\item \textbf{ONNX Runtime CUDA Execution Provider Integration}: Currently, the exported ONNX models are evaluated using 
-	the default CPU inference session. Upgrading the C++ pipeline to leverage the CUDA Execution Provider (or NVIDIA TensorRT) 
-	will allow the underlying layers to execute entirely on the GPU. This will drastically reduce inference latency by exploiting 
-	tensor cores for matrix operations.
-	
-	\item \textbf{Custom CUDA Kernels for Cellular Automata Core}: Beyond inference, the structural operations and state transition 
-	rules of the Cellular Automata ($m:n-CA^k$) are highly parallelizable by nature. Because cell state updates depend primarily on 
-	localized neighborhoods, developing custom CUDA kernels will allow for the simultaneous, massively parallel computation of millions 
-	of grid cells, transforming the current sequential or multi-threaded CPU loops into an optimized grid-block GPU execution model.
-	
-	\item \textbf{Asynchronous Memory Transfer Optimization}: A critical challenge in GPU computing is the latency overhead induced 
-	by Host-to-Device (CPU-to-GPU) data transfers. To prevent the PCIe bus from becoming a bottleneck, the upgraded architecture 
-	will implement advanced memory management strategies, such as asynchronous data transfers via CUDA streams, the utilization of 
-	pinned memory (Page-Locked Host Memory), and the strategic deployment of Unified Memory where applicable. This ensures that 
-	incoming rainfall tensors and hydraulic state variables flow seamlessly between components.
+    \item \textbf{Dynamic Adaptive Time-Step ($\Delta t$)}: Transitioning from a fixed configuration to a dynamically updated $\Delta t$ 
+    calculated at runtime based on the instantaneous maximum velocity of the graph. This will drastically reduce the total iteration count 
+    during the initialization and receding phases of the flood.
+    
+    \item \textbf{Directional Dynamic Neighborhoods}: Implementing an adaptive cellular automata stencil where the active neighborhood 
+    boundaries expand or contract dynamically based on directional flow velocities. Cells with stagnant or low-speed water layers will 
+    compute fewer adjacent states, freeing GPU memory bandwidth.
+    
+    \item \textbf{Coupled Morphodynamics and Debris Tracking}: Upgrading the static-terrain paradigm to a dynamic environment capable of 
+    simulating terrain erosion, infrastructure failure, and object transport. This layer would have successfully predicted the debris 
+    clogging at the Barranco Gallego bridge beneath the AP-7 highway.
+    
+    \item \textbf{NVIDIA CUDA-Based GPU Acceleration}: Migrating the core execution engine from the current CPU pipeline to a 
+    high-performance GPU environment. This will involve deploying the ONNX Runtime CUDA/TensorRT provider for deep learning layers and 
+    writing custom CUDA kernels to parallelize the Cellular Automata ($m:n-CA^k$) transition rules. Complemented by asynchronous 
+    memory management via CUDA streams, this architectural shift will unlock faster-than-real-time simulations capable of running 
+    concurrent, multi-scenario ensemble forecasting.
 \end{itemize}
 
-Successfully shifting the computational workload from the CPU to the GPU will unlock the performance thresholds required for 
-sub-real-time flood routing. This optimization will not only allow for faster-than-real-time deterministic simulations but will 
-also enable the execution of concurrent, multi-scenario ensemble forecasting during critical, rapid-onset weather events.
-
-
-\subsection{Multi-Resolution Spatial Aggregation and Dynamic Grid Coarsening}
-
-The current simulation framework operates on a uniform spatial grid where computational complexity scales quadratically 
-with the domain's linear dimensions; for instance, a standard $1000 \times 1000$ grid requires evaluating one million 
-cells per simulation step. Although the existing pipeline implements an optimization layer that restricts inference strictly 
-to hydraulically active cells (i.e., cells experiencing active precipitation or dynamic surface runoff), the underlying 
-spatial domain remains locked at its maximum resolution. To further alleviate computational overhead and enable efficient 
-scaling across extensive geographical basins, a critical line of future work is the implementation of a configurable, 
-multi-resolution spatial aggregation framework.
-
-This methodology will allow the simulation engine to dynamically group clusters of adjacent cells into macro-cells (e.g., 
-$2\times2$, $3\times3$, or $4\times4$ configurations) according to user-defined scalability requirements. The upgrade will 
-be structured around the following core technical developments:
-
-\begin{itemize}
-	\item \textbf{Dynamic Grid Resolution Scaling}: The engine will support arbitrary spatial coarsening factors ($k \times k$). 
-	By aggregating the fine-grained topographic and hydraulic tensors into coarser representations, the total number of potential 
-	computational nodes is reduced by a factor of $k^2$, drastically decreasing both the memory footprint and the number of 
-	state-transition evaluations per timestep.
-	
-	\item \textbf{Synergistic Active-Cell Masking Integration}: The proposed aggregation layer will natively interface with the 
-	existing active-cell tracking mechanism. Instead of evaluating individual active pixels, the system will dynamically construct 
-	a macro-cell activity mask. A macro-cell will be flagged as active and queued for computation only if at least one of its 
-	underlying high-resolution constituent cells exhibits hydraulic activity, ensuring that computational resources are exclusively 
-	allocated to evolving flood fronts.
-	
-	\item \textbf{Mass-Conservative Mapping Operators}: Transitioning between spatial scales introduces the risk of numerical 
-	diffusion and mass-balance violations. Future implementations must develop mathematically rigorous mapping operators. 
-	Downscaling (aggregation) must employ mass-conservative averaging for topographic elevation and input rainfall volumes, while 
-	upscaling (disaggregation) must utilize specialized interpolation techniques to accurately reconstruct high-resolution flood 
-	boundaries from macro-cell hydraulic heads without artificial water loss or creation.
-\end{itemize}
-
-By integrating dynamic spatial aggregation with the existing active-domain tracking, the framework will achieve unprecedented execution 
-speeds. This will allow users to seamlessly trade off a controllable margin of spatial resolution in exchange for the ultra-high 
-throughput necessary for real-time ensemble flash-flood forecasting.
+By deploying these adaptive algorithms alongside a dedicated GPU acceleration pipeline, the computational engine will be capable of 
+ingesting high-resolution micro-topography ($5\text{ m}$ grids) while maintaining ultra-fast execution speeds. This optimization 
+represents the definitive bridge toward the ultimate goal of this research: a fully operational, real-time \textbf{Digital Twin} for predictive 
+civil protection and early flood alerting.

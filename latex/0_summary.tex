@@ -14,32 +14,33 @@ This page specifies the copyright ownership, licensing terms, and third-party at
 \subsection*{1. Software Application \& Documentation License}
 The core source code of the flood simulation environment is the intellectual property of \textbf{Mario Carmona Segovia} (\copyright~2026). It is officially licensed and distributed under the terms of the \textbf{MIT License}. 
 
-\begin{figure}[ht]
-    \centering
-	\includegraphics[scale=0.1]{images/licences/MIT_license.png}
-\end{figure}
+\vspace{0.25cm}
+{\centering\includegraphics[scale=0.1]{images/licences/MIT_license.png}\par}
+\vspace{0.25cm}
 
-The accompanying documentation and textual memory are subject to a license of \textbf{Attribution-NonCommercial-NoDerivs 3.0 of Creative Commons} (CC BY-NC-ND 3.0).
+The accompanying documentation and textual memory are subject to a \textbf{Creative Commons \\ Attribution-NonCommercial-NoDerivs 4.0 International License} (CC BY-NC-ND 4.0).
 
-\begin{figure}[ht]
-    \centering
-	\includegraphics[scale=1]{images/licences/CC_BY-NC-ND_3_0_license.png}
-\end{figure}
-
+\vspace{0.25cm}
+{\centering\includegraphics[scale=1]{images/licences/CC_BY-NC-ND_4_0_license.png}\par}
 \vspace{0.4cm}
 
-\subsection*{2. Collaborations}
-A major subsystem of this project, specifically the \textbf{3D Visualizer module}, has been developed in collaboration with \textbf{Marwan Aliaoui Bouazzaoui}. This component was designed and implemented as part of his Final Degree Project (\textit{Trabajo de Fin de Grado - TFG}) and has been integrated into the main simulation pipeline under mutual consensus.
+\subsection*{2. Collaborations \& Architectural Scope}
+This project includes a joint software integration developed in collaboration with \textbf{Marwan Aliaoui Bouazzaoui} as part of his concurrent Final Degree Project (\textit{Trabajo de Fin de Grado - TFG}). Under mutual agreement, his contribution is strictly located within the \texttt{python/visualizer} directory of the project repository. This component encompasses:
+\begin{itemize}
+    \item The MQTT telemetric data receiver script.
+    \item The entirety of the 3D Visualizer subsystem.
+\end{itemize}
+
+Conversely, the core high-performance simulation architecture, the multi-dimensional multi-layer Cellular Automata ($m:n-\text{CA}^k$) engine written in C++, the telemetry transmission layer, and the overall framework integration presented in this Master's Thesis constitute the exclusive development and intellectual contribution of the author of this work.
 
 \vspace{0.4cm}
 
 \subsection*{3. Simulation Dataset \& Geospatial Data Credits}
 The baseline dataset used for the simulation environment is a dynamically generated derived work, compiled via an automated pipeline and licensed under a \textbf{Creative Commons Attribution 4.0 International License} (CC BY 4.0). 
 
-\begin{figure}[ht]
-    \centering
-	\includegraphics[scale=1]{images/licences/CC_BY_4_0_license.png}
-\end{figure}
+\vspace{0.25cm}
+{\centering\includegraphics[scale=1]{images/licences/CC_BY_4_0_license.png}\par}
+\vspace{0.25cm}
 
 \noindent This dataset aggregates and processes raw information from the following public data sources:
 \begin{itemize}
@@ -114,14 +115,41 @@ This application is built upon several open-source libraries. Full verbatim lice
 %%%%%%%%%%%%%%%%%%%
 \chapter*{Dedicatory / Quote}
 
-Brief words of dedicatory or quote.
+\large\textit{To my family,\\
+for their unconditional love, endless patience,\\
+and unwavering support throughout this journey.\\
+This work is dedicated to you.}
 
 %%%%%%%%%%%%%%%%%%%
 %%% Acknowledgments %%%
 %%%%%%%%%%%%%%%%%%%
 \chapter*{Acknowledgments}
 
-If deemed appropriate, mention the persons, companies or institutions that have contributed to the realization of this project.
+First and foremost, I would like to express my deepest gratitude to my thesis advisor, \textbf{Pau Fonseca Casas}. His invaluable guidance, 
+profound academic insight, and unwavering support have been the cornerstone of this research throughout the entire development process. 
+His ability to provide constructive feedback and steer this complex flood simulator project toward rigorous scientific standards has not 
+only made this thesis possible but has also significantly contributed to my growth as a researcher and engineer.
+
+I am also profoundly grateful to \textbf{Professor Jaume Barceló}, Professor Emeritus at the Universitat Politècnica de Catalunya (UPC). 
+His extensive experience, deep domain knowledge, and comprehensive understanding of the areas affected by the DANA phenomenon have been 
+instrumental to the validation of this model. The critical feedback he provided, alongside crucial historical and geographical datasets of 
+the affected zones, allowed this simulation framework to transcend theoretical design and accurately capture real-world hydrodynamic 
+complexities. His willingness to share his expertise has been a true privilege.
+
+This project has also been greatly enriched by the spirit of academic collaboration and the integration of concurrent research efforts. I 
+would like to extend a special thanks to \textbf{Raul Olivar}, whose Final Degree Project (TFG) laid the computational groundwork for the 
+visual representation of these simulations. His dedication in designing and implementing the initial 3D visualization prototype, as well 
+as establishing the core MQTT telemetry infrastructure to pipe simulation results in real time, was critical during the early exploratory 
+phases of this work.
+
+Following that foundation, I am deeply indebted to \textbf{Marwan Aliaoui Bouazzaoui} for his outstanding work on the subsequent iteration 
+of the visualization suite. Through his own Final Degree Project, he successfully iterated, optimized, and expanded the initial codebase, 
+refining the system into a fully functional, \\ high-performance, and production-ready visualizer. The seamless synergy between his 
+visualization platform and my hydrodynamic engine has been vital in demonstrating the practical utility of this simulator.
+
+Finally, I want to express my ultimate appreciation to my family and loved ones. Their unconditional love, endless patience, and silent 
+sacrifices provided the emotional stability and strength required to sustain the demanding nature of this Master's program. This achievement 
+is a reflection of their enduring belief in my aspirations, and it belongs to them as much as it does to me.
 
 %%%%%%%%%%%%%%%%
 %%% SUMMARY  %%%
@@ -131,16 +159,23 @@ If deemed appropriate, mention the persons, companies or institutions that have 
 
 \onehalfspacing
 
-Text with the synthesis of the project, that is, a text in which the definition of the project / problem addressed, its objectives / methods of resolution, and the results and conclusions are briefly explained (it can not be a list, but a text continuous written in a structured way). If it is necessary to put a reference in this text, it will be annotated at the bottom of the same page. In this section you can use a more literary and colloquial language than for the rest of the document.
+This Final Master’s Project presents FloodSim, a distributed, high-performance flood simulation framework developed in C++ to address 
+the critical computational latency of traditional hydrodynamic forecasting models during flash flood events. Sparked by the catastrophic 
+2024 DANA crisis in Valencia, Spain, this research bridges the gap between complex physical hydraulic routing and real-time emergency 
+response infrastructure.
 
-In case of not writing the the document in English, it will be necessary to write the Abstract  in duplicate. One of the versions must be \ textbf {obligatorily in English}. The other version can be written in Catalan or Spanish, in the language used for the rest of the report. The word Abstract will be changed to `` \ textbf {Resum} '' or `` \ textbf {Resumen} '' in the Catalan and Spanish versions, respectively.
+The proposed system leverages a multi-dimensional, multilayer Cellular Automata ($m:n-\text{CA}^k$) engine to model surface water flow 
+dynamics over discretized spatial grids using continuous GIS-derived topography and roughness datasets. To prevent the architectural 
+rigidity common in scientific software, the system implements a decoupled Hexagonal Architecture that completely isolates core hydraulic 
+transition physics from data ingestion modules. Furthermore, a distributed telemetry layer powered by the MQTT publish-subscribe protocol 
+is incorporated, enabling sub-second concurrent synchronization with remote 3D visualization platforms and field sensors to construct a 
+Reactive Digital Twin.
 
-
-Recommended length: 250 words maximum.
-
-How to write a good abstract (in English):
-
-\href{http://www.ece.cmu.edu/~koopman/essays/abstract.html}{http://www.ece.cmu.edu/~koopman/essays/abstract.html}
+The framework was experimentally validated by reconstructing the 2024 Valencia flood across a 1,311 km$^2$ domain, focusing on the heavily 
+impacted sectors of Pla de Quart and Paiporta. The simulation successfully captured non-linear floodwave propagation and maximum inundation 
+depths within seconds, proving that discrete parallelized architectures can achieve finite-volume accuracy without the immense computational 
+overhead. Ultimately, FloodSim demonstrates the viability of distributed cellular models as practical, real-time decision-support tools 
+capable of mitigating modern socio-environmental crises and saving lives.
 
 \vspace{1.5cm}
 

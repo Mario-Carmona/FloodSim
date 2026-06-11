@@ -435,6 +435,50 @@ or
 cmake --workflow --preset docs-linux
 ```
 
+### 7.3 Model Validation Testing
+
+To mathematically validate the Cellular Automata (CA) transition rules and ensure structural model fidelity, the repository includes an automated validation suite. 
+
+#### Step 1: Compilation
+Execute the dedicated CMake workflow preset to compile all testing targets within the environment:
+```bash
+cmake --workflow --preset windows-tests-all
+```
+
+#### Step 2: Execution
+
+Once the compilation completes successfully, run the generated validation binary from the project root directory to verify the state updater adapters:
+
+```bash
+bin\Windows\Debug\floodsim_state_updater_adapters_test.exe
+```
+
+### 7.4 Dataset Generation Pipeline
+
+FloodSim features an integrated Python data pipeline engineered to ingest, process, and format external geographic layers into compatible cellular simulation datasets.
+
+#### Step 1: Environment and Dependency Setup
+
+Before utilizing the pipeline, initialize the localized virtual environment and install the required structural libraries using the following CMake workflow preset:
+
+```bash
+cmake --workflow --preset python-data
+```
+
+#### Step 2: Configuration Mapping
+
+The pipeline's operational boundaries and ingestion parameters are governed by a central YAML configuration manifest located at: `python\data_pipeline\config.yaml`
+
+Modify this file to define your custom region matrices, topography sources, and dataset attributes before proceeding.
+
+#### Step 3: Pipeline Execution
+
+Launch the pipeline orchestration script by invoking the localized Python interpreter generated during the setup phase:
+
+```bash
+.\build\Windows\venvs\data_pipeline_env\Scripts\python.exe .\python\data_pipeline\main.py .\python\data_pipeline\config.yaml
+```
+
 ## 8. License & Acknowledgements
 
 ### 8.1 Academic Affiliation & Context
@@ -443,7 +487,14 @@ initiative focuses on the engineering and optimization of high-performance Cellu
 paired with real-time machine learning inference engines to simulate localized flood propagation hazards 
 and deliver instantaneous telemetry streams.
 
-### 8.2 Open-Source License
+### 8.2 Collaborations & Architectural Scope
+This repository includes a joint software integration developed in collaboration with **Marwan Aliaoui Bouazzaoui** as part of his concurrent Final Degree Project (*Trabajo de Fin de Grado - TFG*). 
+
+By mutual agreement, his intellectual contribution is strictly contained within the `python/visualizer` directory. This sub-module encompasses the complete 3D Visualizer subsystem and its companion MQTT telemetric data receiver script. 
+
+Conversely, the core high-performance simulation architecture, the C++ multi-dimensional multi-layer Cellular Automata ($m:n-\text{CA}^k$) engine, the telemetry transmission pipeline, and the overall framework synchronization layer are the exclusive development and intellectual property of the author of this Master's Thesis.
+
+### 8.3 Open-Source License
 This ecosystem is distributed as open-source software under the terms of the **MIT License**. Permission 
 is hereby granted to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the software, 
 subject to the inclusion of the original copyright notice and permission conditions in all substantial distributions.
@@ -451,7 +502,7 @@ subject to the inclusion of the original copyright notice and permission conditi
 For the complete legal terms and authorship registry, please consult the standalone [LICENSE](https://mario-carmona.github.io/FloodSim/md__home_runner_work_FloodSim_FloodSim_build_Linux_docs_linux_docs_LICENSE.html) file bundled 
 within the root distribution workspace.
 
-### 8.3 Upstream Dependencies & Compliance Manifest
+### 8.4 Upstream Dependencies & Compliance Manifest
 To establish a high-efficiency computational pipeline, FloodSim integrates several standard open-source 
 libraries and external software components (such as performance-optimized logging utilities and deep 
 learning execution runtimes). 

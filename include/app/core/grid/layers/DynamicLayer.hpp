@@ -68,8 +68,10 @@ public:
      * is updated. It handles coordinate mapping if the input has a downgrade factor.
      *
      * @param current_time The current simulation clock time.
+     * 
+	 * @return true if the layer was updated with new data, false if no update was necessary (e.g., time frame unchanged).
      */
-    void Update(std::chrono::system_clock::time_point current_time) override;
+    bool Update(std::chrono::system_clock::time_point current_time) override;
 
 protected:
     std::unique_ptr<io::readers::DynamicReader> reader_;      ///< Owns the dynamic reader instance.
@@ -156,8 +158,8 @@ void DynamicLayer<T>::SetReader(const GridMetadata& main_metadata,
 }
 
 template <typename T>
-void DynamicLayer<T>::Update(std::chrono::system_clock::time_point current_time) {
-    if (!reader_) return;
+bool DynamicLayer<T>::Update(std::chrono::system_clock::time_point current_time) {
+    if (!reader_) return false;
 
     bool updated = reader_->Update(current_time);
 
@@ -180,6 +182,7 @@ void DynamicLayer<T>::Update(std::chrono::system_clock::time_point current_time)
             reader_->Read(this->data_);
         }
     }
+    return updated;
 }
 
 } // namespace floodsim::app::core::grid::layers

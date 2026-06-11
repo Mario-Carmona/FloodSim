@@ -147,6 +147,8 @@ if(BUILD_PYTHON_ENVS)
             DESTINATION ${PYTHON_SCRIPTS_DEST_PATH}
             COMPONENT Unspecified
             PATTERN "CMakeLists.txt" EXCLUDE
+            PATTERN "tests" EXCLUDE
+            PATTERN "visualizer" EXCLUDE
     )
 endif()
 

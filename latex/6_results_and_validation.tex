@@ -15,7 +15,7 @@ automated test automation to guarantee that any exported model adheres to physic
 The automated testing architecture is implemented using the Google Test (gTest) framework, utilizing parameterized test fixtures to run 
 identical physical validation suites across multiple target configurations. 
 
-The testbench features a dynamic model discovery mechanism via the \texttt{DiscoverModels()} function. At runtime, the executable scans the 
+The testbench features a dynamic model discovery mechanism via the \\ \texttt{DiscoverModels()} function. At runtime, the executable scans the 
 subdirectories of the folder \texttt{exported\_models} to locate exported machine learning models (such as ONNX 
 models). For each subdirectory found, the system:
 
@@ -32,11 +32,11 @@ the test framework relies on specific components:
 \begin{itemize}
     \item \textbf{Configuration Presets}: The abstract \texttt{tests} base preset forces the cache variable \texttt{BUILD\_TESTS} to 
     \texttt{ON} under a \texttt{Debug} compilation profile. Targeted presets like \texttt{windows-tests-all} expose comprehensive validation 
-    by setting \texttt{BUILD\_ALL\_TESTS} to \texttt{ON}.
+    by setting \\ \texttt{BUILD\_ALL\_TESTS} to \texttt{ON}.
 
     \item \textbf{Test Automation Execution}: The \texttt{windows-tests-all} test preset automates CTest execution natively. It optimizes 
     CI/CD pipeline throughput by enabling parallel execution mapped to 4 multithreading jobs, enforcing an error action if no tests are 
-    detected, and enabling verbose failure reports via the \texttt{outputOnFailure} flag.
+    detected, and enabling verbose failure reports via the \\ \texttt{outputOnFailure} flag.
 \end{itemize}
 
 Upon execution via the CTest orchestration framework, all discovered machine learning models successfully passed the comprehensive 
@@ -47,289 +47,207 @@ meet all defined numerical and physical stability criteria with zero runtime exc
 
 To evaluate the numerical stability and mass-conservation characteristics of the updaters, a specialized \texttt{GridTestBuilder} helper 
 allocates and constructs synthetic topographic and hydrographic environments within a \texttt{MapGrid} structural memory context. Every 
-discovered model is subjected to five distinct test scenarios to verify state invariants:
+discovered model is subjected to seven distinct test scenarios to verify physical and numerical state invariants:
 
 \begin{enumerate}
-    \item \textbf{Initialization Crash Test (\texttt{InitializationDoesNotCrash})}: Verifies that the state updater can consume allocated 
-    grid metadata and layer pointers to initialize its internal engine, variables, or neural runtimes without throwing runtime exceptions 
-    or memory violations.
-    
     \item \textbf{Flat Hydrostatic Equilibrium (\texttt{FlatLakeRemainsAtRest})}: Tests the model against a flat $20 \times 20$ grid 
-    representing a uniform basin filled with $2.0\,\text{m}$ of water depth and bound by high perimeter walls. The simulation steps the 
-    model for 100 iterations. The state invariant dictates that the final water depth must remain identical to the initial state within a 
-    strict float32 numerical tolerance of $1 \times 10^{-5}$ to suppress parasitic waves or artificial fluid momentum.
+    filled with a uniform $2.0\,\text{m}$ water column. After 100 simulation steps, the state invariant requires the final water depth 
+    to remain identical to the initial state within a strict tolerance of $1 \times 10^{-4}$ to ensure no artificial momentum is generated.
     
     \item \textbf{Irregular Bathymetry Hydrostatic Stability (\texttt{IrregularLakeRemainsAtRest})}: Evaluates hydrostatic balance over 
-    complex terrain on a $20 \times 20$ domain. The bed elevation (bathymetry) is shaped via a continuous sinusoidal wave function 
-    ($Z_{\text{bed}} = 2.0 + 1.5 \sin(r \cdot 0.5) \cos(c \cdot 0.5)$). The water depth is adjusted per cell so that the total surface 
-    water elevation remains strictly flat at $Z = 5.0\,\text{m}$. After 100 execution steps, the code asserts via \texttt{EXPECT\_NEAR} 
-    (tolerance $1 \times 10^{-5}$) that non-uniform underlying bathymetry does not induce false artificial velocity or numerical degradation.
+    non-uniform terrain on a $20 \times 20$ domain. The bed is shaped via a smooth wave function 
+    ($Z_{\text{bed}} = 1.0 + 0.5 \sin(r \cdot 0.5) \cos(c \cdot 0.5)$) with a flat surface elevation at $5.0\,\text{m}$. After 100 steps, 
+    it asserts that irregular bathymetry does not induce false artificial velocities (tolerance $1 \times 10^{-4}$).
     
-    \item \textbf{Mass Generation and Non-Hallucination Verification (\texttt{DryTerrainRemainsDry})}: Validates that the state updater 
-    obeys the absolute zero-mass constraint. The model is supplied with a completely dry $20 \times 20$ grid context (water depth 
-    initialized to $0.0\,\text{m}$ everywhere) and run for 50 steps. The state invariant requires all cells to maintain a water depth 
-    strictly lower than $1 \times 10^{-6}$. This proves the neural architecture does not spontaneously hallucinate or generate liquid 
-    volume out of dry terrain.
+    \item \textbf{Global Mass Conservation (\texttt{MassIsConservedDuringMovement})}: Validates fluid mass tracking during high-velocity 
+    flow using a localized dam-break setup on a $30 \times 30$ grid. The total integrated fluid volume ($V = \sum h_i \Delta x^2$) is 
+    computed before and after a 20-step dynamic execution loop, enforcing a strict mass conservation tolerance of $0.5\%$.
     
-    \item \textbf{Wet-Dry Front Frontal Constraints (\texttt{WetDryFrontOnAdverseSlope})}: Assesses the model's ability to handle steep 
-    dry boundaries without artificial fluid creeping. A linear upward ramp is constructed along the X-axis ($Z_{\text{bed}} = c \cdot 0.5$) 
-    with standing water trapped only at the lowest quadrant ($c < \text{cols}/4$). After stepping the physics loop for 50 iterations, the 
-    suite evaluates the cells on the upper half of the adverse slope ($c \ge \text{cols}/2$). The state invariant dictates that water depth 
-    at these higher coordinates must remain strictly dry ($< 1 \times 10^{-5}$), ensuring that fluid cannot artificially climb adverse 
-    slopes without momentum.
+    \item \textbf{Mass Generation and Non-Hallucination (\texttt{DryTerrainRemainsDry})}: Enforces the zero-mass boundary constraint by 
+    subjecting a completely dry $20 \times 20$ grid to 50 simulation steps. The invariant dictates that all cell depths must remain strictly 
+    below $1 \times 10^{-6}$ to guarantee the network does not spontaneously hallucinate or generate liquid volume out of dry land.
+    
+    \item \textbf{Isotropic Wave Propagation Symmetry (\texttt{WavePropagationIsSymmetric})}: Validates multi-directional spatial isotropy 
+    on a $31 \times 31$ grid by releasing a single concentrated fluid drop at the central coordinate. After 10 execution steps, the code 
+    verifies that the resulting outward wave fronts propagate symmetrically across all cardinal and diagonal axes within a tolerance of 
+    $1 \times 10^{-2}$.
 \end{enumerate}
 
-The complete mapping of these state layers (\texttt{topo\_bathy}, \texttt{water\_depth}, \texttt{land\_cover}, \texttt{roughness}, 
-\texttt{water\_movement\_state}, and \texttt{flood\_risk}) ensures rigorous validation of both physical and algorithmic metrics across the 
-software execution.
+Following rigorous validation across the entire suite of physical benchmarks, the neural network state updater model described in this 
+work successfully satisfied all state invariants and passed 100\% of the stability and conservation tests without experiencing numerical 
+divergence or mass-balance failures.
 
 
-\section{Hydraulic Scale and Color Representation}
+\section{Computational Performance Evaluation}
 
-To ensure quantitative readability across all bi-dimensional and tri-dimensional visual outputs, a standardized discrete 
-color scale consisting of 15 intervals was defined. This chromatic framework is conceptually grounded in the classic 6-level 
-flood hazard classification established by the Australian Emergency Management Institute and utilized by 
-\cite{Smith2016} for estimating flood fatalities and identifying populations at risk based on vulnerability 
-curves.
+To assess the feasibility of FloodSim as a real-time decision-support tool, simulation runtimes were measured over a \SI{1311}{\km\squared} 
+domain during a critical scenario involving \SI{1.5}{\hour} of accumulated precipitation. The tests were conducted in an environment with 
+Intel(R) Xeon(R) CPU @ 2.20GHz.
 
-While the reference framework relies on six broader categories—utilizing critical thresholds such as $H5$ to define severe 
-structural and life-safety risks (see Figure \ref{fig:original_hazard} for the original reference curves)—the scale proposed 
-in this work expands these thresholds into 15 high-resolution intervals. This sub-discretization does not contradict the 
-underlying physics of the original curves; rather, it introduces a tighter granularity specifically tailored to capture the 
-full socio-environmental spectrum of this specific event. It filters out negligible hydraulic noise below 0.20 m and transitions 
-smoothly from bright yellows to deep reds, magentas, and dark purples, allowing the visual outputs to clearly differentiate 
-standard urban street flooding from the ultra-catastrophic submersion levels (exceeding 12.0 m) observed in the study area.
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.7\textwidth]{images/results/original_hazard.png}
-\caption{Original 6-level flood hazard vulnerability curves and thresholds, highlighting the $H_5$ boundary, adapted from \cite{Smith2016}.}
-\label{fig:original_hazard}
-\end{figure}
-
-% Define the 15-level color palette from the simulator (6-digit HTML hex)
-\definecolor{flevelOne}{HTML}{FFF176}
-\definecolor{flevelTwo}{HTML}{FFD54F}
-\definecolor{flevelThree}{HTML}{FFB74D}
-\definecolor{flevelFour}{HTML}{FFA726}
-\definecolor{flevelFive}{HTML}{FF8A65}
-\definecolor{flevelSix}{HTML}{FF7043}
-\definecolor{flevelSeven}{HTML}{F4511E}
-\definecolor{flevelEight}{HTML}{E64A19}
-\definecolor{flevelNine}{HTML}{D84315}
-\definecolor{flevelTen}{HTML}{E53935}
-\definecolor{flevelEleven}{HTML}{C62828}
-\definecolor{flevelTwelve}{HTML}{B71C1C}
-\definecolor{flevelThirteen}{HTML}{880E4F}
-\definecolor{flevelFourteen}{HTML}{4A148C}
-\definecolor{flevelFifteen}{HTML}{1A001A}
-
-\begin{table}[h!]
-\centering
-\caption{Water depth intervals and color visualization matrix.}
-\label{tab:hydraulic_scale}
-\small
-\begin{tabular}{|c|c|c|c|l|}
-\hline
-\textbf{Level} & \textbf{Water Depth Range (m)} & \textbf{\em Visual Sample} & \textbf{Hex Code} & \textbf{Severity Description} \\ \hline
-1  & $0.20 \le h < 0.40$  & \cellcolor{flevelOne}       & \#FFF176 & H1 - Minor Pedestrian Hazard \\ \hline
-2  & $0.40 \le h < 0.60$  & \cellcolor{flevelTwo}       & \#FFD54F & H2 - Small Vehicle Instability \\ \hline
-3  & $0.60 \le h < 0.80$  & \cellcolor{flevelThree}     & \#FFB74D & H3 - Widespread Vehicle Instability \\ \hline
-4  & $0.80 \le h < 1.00$  & \cellcolor{flevelFour}      & \#FFA726 & H4 - Severe Danger to People \\ \hline
-5  & $1.00 \le h < 1.20$  & \cellcolor{flevelFive}      & \#FF8A65 & H5 - Major Internal Content Damage \\ \hline
-6  & $1.20 \le h < 1.40$  & \cellcolor{flevelSix}       & \#FF7043 & H6 - High Wading and Rescue Hazard \\ \hline
-7  & $1.40 \le h < 1.60$  & \cellcolor{flevelSeven}     & \#F4511E & H7 - Hydrostatic Pressure Accumulation \\ \hline
-8  & $1.60 \le h < 1.80$  & \cellcolor{flevelEight}     & \#E64A19 & H8 - Non-Structural Component Failure \\ \hline
-9  & $1.80 \le h < 2.00$  & \cellcolor{flevelNine}      & \#D84315 & H9 - Structural Damage Threshold \\ \hline
-10 & $2.00 \le h < 2.50$  & \cellcolor{flevelTen}       & \#E53935 & H10 - First-Floor Submersion Risk \\ \hline
-11 & $2.50 \le h < 3.50$  & \cellcolor{flevelEleven}    & \#C62828 & H11 - Complete First-Floor Submersion \\ \hline
-12 & $3.50 \le h < 5.00$  & \cellcolor{flevelTwelve}    & \#B71C1C & H12 - Structural Integrity Failure Risk \\ \hline
-13 & $5.00 \le h < 8.00$  & \cellcolor{flevelThirteen}  & \#880E4F & H13 - Multi-Story Inundation \\ \hline
-14 & $8.00 \le h < 12.00$ & \cellcolor{flevelFourteen}  & \#4A148C & H14 - Extreme Infrastructure Failure \\ \hline
-15 & $h \ge 12.00$        & \cellcolor{flevelFifteen}\color{white} & \#1A001A & H15 - Maximum Structural Collapse Limit \\ \hline
-\end{tabular}
-\end{table}
+The system demonstrated efficient processing capabilities, completing the hydrodynamic simulation of the event’s \SI{1.5} physical hours 
+in a total time of \SI{3960}{\second} ($\approx$ \SI{1.1}{\hour}). This represents a Real-Time Factor (RTF) of $1.36\times$, confirming 
+that the model is capable of running continuously faster than the physical phenomenon itself. This feature is essential for early warning 
+infrastructure, as it allows for the proactive updating and synchronization of the Digital Twin during an emergency.
 
 
-\section{Discussion of Modeling and Computational Limitations}
+\section{Simulation Results and Model Validation}
+\label{section:simulation_results_and_model_validation}
 
-Acknowledging the operational boundaries of this research is essential for correctly interpreting the simulation results. 
-The main limitations encountered during this study are detailed below:
-
-\begin{itemize}
-    \item \textbf{Computational Constraints and Grid Resolution}: Simulating a 14-hour catastrophic event over a 
-    high-resolution $5\text{ m} \times 5\text{ m}$ grid introduces a massive computational burden. Due to hardware 
-    limitations and prohibitive processing times per simulation run, a single-scenario approach was mandatory. 
-    Consequently, iterative calibration and multi-scenario runs were outside the feasible scope of this thesis.
-    \item \textbf{Stationary Roughness Parameters}: A uniform Manning’s coefficient ($n$) was assigned to urban and 
-    rural zones based on standard literature. In reality, land cover resistance changed dynamically during the flood; 
-    however, due to the aforementioned time constraints, a sensitivity analysis on roughness variations could not be 
-    performed.
-    \item \textbf{Fixed-Bed Assumption vs. Solid Transport}: The simulator operates under a fixed-bed hydraulic assumption. 
-    The real-world event of October 29 was characterized by massive geomorphic changes, including severe sediment erosion, 
-    uprooted vegetation, and thousands of swept vehicles blocking bridges. The exclusion of this floating debris transport 
-    explains minor localized discrepancies where the model might underestimate water levels upstream of clogged bridges.
-\end{itemize}
+To validate the accuracy and predictive capability of the tensor-based flood simulation engine, the computational outputs were rigorously 
+compared against the official post-event flood maps published in the \textit{Plan para la Recuperación y Mejora de la Resiliencia frente a 
+las Inundaciones en el Territorio Afectado por la DANA en la Comunitat Valenciana} \cite{DEMARCACIONHIDROGRAFICADELJUCAR2025}. The validation 
+framework focuses on critical hydraulic bottlenecks along the Barranco del Poyo basin, analyzing how macro-topographic elements interact 
+with the floodwave.
 
 
-\section{Temporal Evolution of the Flood Simulation}
+\subsection{Temporal Evolution and Floodwave Propagation}
+\label{subsection:temporal_evolution}
 
-This section presents the spatio-temporal progression of the simulated flood event across the study area during the 14-hour 
-simulated window. Due to the high spatial resolution of the computational grid ($5\text{ m} \times 5\text{ m}$ cells), specific 
-key milestones were selected to illustrate the dynamics of the water flow rather than displaying continuous hourly outputs.
+Prior to the localized validation at critical points, it is essential to analyze the dynamic behavior of the simulation across the entire 
+domain. Figure \ref{fig:temporal_evolution_sequence} illustrates the progression of the floodwave at four representative timestamps: 
+$T+20$, $T+40$, $T+60$, and $T+90$. 
+
+This sequence captures the global hydraulic transition, starting from the initial concentration of runoff in the upper catchments and 
+following its subsequent acceleration and expansion through the central plains. This temporal overview demonstrates the stability and 
+continuity of the tensor-based transition rules as the inundated area progressively advances toward the Mediterranean coastline.
 
 \begin{figure}[htbp]
     \centering
-    % Panel A: t = 3h
-    \subfigure[$t = 3\text{h}$]{
-        \label{fig:depth_3h}
-        \includegraphics[width=0.7\textwidth]{images/results/water_depth_3h.png}
-    } \\ % <- Este salto de línea fuerza la disposición vertical
-
-    % Panel B: t = 7h
-    \subfigure[$t = 7\text{h}$]{
-        \label{fig:depth_7h}
-        \includegraphics[width=0.7\textwidth]{images/results/water_depth_7h.png}
-    } \\ % <- Otro salto de línea
-
-    % Panel C: t = 14h
-    \subfigure[$t = 14\text{h}$]{
-        \label{fig:depth_14h}
-        \includegraphics[width=0.7\textwidth]{images/results/water_depth_14h.png}
-    }
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_T20.png}
+        \caption{$T+20$}
+        \label{fig:sim_t20}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_T40.png}
+        \caption{$T+40$}
+        \label{fig:sim_t40}
+    \end{subfigure}
     
-    \caption{Multi-panel map showing the simulated water depth ($h$) progression at $t = 3\text{h}$, $t = 7\text{h}$, and $t = 14\text{h}$ using a standardized color scale.}
-    \label{fig:water_depth_progression}
-\end{figure}
-
-
-\section{Visual Validation via Strategic Control Points}
-
-\subsection{Control Point 1: Paiporta}
-
-This section evaluates the visual correlation at Control Point 1 (Paiporta) by comparing the numerical simulation outputs 
-against the empirical satellite references. The hydraulic state at $T+10$ hours—representing 20:00 CET, given that the 
-historical flood onset is estimated around 07:00 AM—is contrasted directly with the reference map shown in \ref{fig:estimated_flood_paiporta}.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{images/results/estimated_flood_paiporta.png}
-    \caption{Estimated flood extent at Control Point 1 (Paiporta) based on empirical satellite data.}
-    \label{fig:estimated_flood_paiporta}
-\end{figure}
-
-As observed when comparing the empirical footprint with the simulated close-up grid in \ref{fig:sim_paiporta_1} and the wider 
-domain perspective in \ref{fig:sim_paiporta_2}, the numerical model generates a higher volume of accumulated water distributed 
-over a significantly larger surface area. Notably, the simulated flow even overwashes the artificial and natural topographic 
-barriers formed by the main riverbeds, including the new Turia River diversion channel.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{images/results/sim_paiporta_1.png}
-    \caption{}
-    \label{fig:sim_paiporta_1}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{images/results/sim_paiporta_2.png}
-    \caption{}
-    \label{fig:sim_paiporta_2}
-\end{figure}
-
-This localized water ponding and spatial overestimation can be scientifically attributed to two primary modeling factors:
-
-\begin{itemize}
-    \item \textbf{Underestimated Flow Velocity}: A lower numerical velocity within the computational grid slows down the 
-    downstream propagation of the flood wave. This deceleration causes an artificial backup, increasing the water depth 
-    ($h$) and retention times within the upstream urban nodes.
-    \item \textbf{Fixed-Bed Simulation Constraints}: Because the simulator operates under a static terrain assumption, it 
-    lacks the capacity to model dynamic geomorphic modifications, sediment transport, or macro-debris accumulation. In the 
-    real-world event of October 29, thousands of swept vehicles and uprooted vegetation created physical blockages and 
-    macro-tamonaments in narrow street canyons and bridges. Lacking these physical barriers, the simulated water expands 
-    freely into urban sectors that were topographically or physically shielded by debris in reality.
-\end{itemize}
-
-Furthermore, the significant water accumulation visible in the downstream areas of the simulation grid—specifically near 
-the Albufera lagoon and the Mediterranean coastline in \ref{fig:sim_paiporta_2}—further supports the hypothesis of an underestimated 
-flow velocity. This velocity deficit alters the overall drainage dynamics across the low-lying alluvial plains, forcing the
-simulated excess water volume to pool extensively as it approaches the coastal boundary condition rather than discharging 
-dynamically into the sea.
-
-
-\subsection{Control Point 2: Industrial Corridor and Agricultural Flanks (A-3 Axis)}
-
-This control point analyzes the hydrodynamic behavior of the flood wave as it traverses a highly heterogeneous landscape 
-along the A-3 highway corridor. As shown in the satellite overview map \ref{fig:poligono_overview}, this industrial park 
-was historically developed over reclaimed agricultural land. Topographically, the zone is confined within a natural valley 
-between two prominent elevated terrains. Strategically, this corridor serves as the primary hydraulic conduit connecting the 
-\textit{Circuit Ricardo Tormo} (upstream, which suffered catastrophic structural destruction during the real event) and the 
-\textit{Centro Comercial Bonaire} (downstream, one of the most severely impacted commercial zones).
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{images/results/poligono_overview.png}
-    \caption{}
-    \label{fig:poligono_overview}
-\end{figure}
-
-The core objective of this control point is to evaluate how effectively the simulator replicates land-use-driven velocity 
-variations by applying distinct surface roughness values (Manning's $n$ coefficients) to different terrain categories. The 
-spatio-temporal progression of this phenomenon is documented across three sequential snapshots in \ref{fig:poligono_progression}, 
-which captures the flood wave's morphological transformation.
-
-\begin{figure}[htbp]
-    \centering
-    % Panel A: t = 3h
-    \subfigure[$t = 2.5\text{h}$]{
-        \label{fig:sim_poligono_1}
-        \includegraphics[width=0.7\textwidth]{images/results/sim_poligono_1.png}
-    } \\ % <- Este salto de línea fuerza la disposición vertical
-
-    % Panel B: t = 7h
-    \subfigure[$t = 4.25\text{h}$]{
-        \label{fig:sim_poligono_2}
-        \includegraphics[width=0.7\textwidth]{images/results/sim_poligono_2.png}
-    } \\ % <- Otro salto de línea
-
-    % Panel C: t = 14h
-    \subfigure[$t = 7\text{h}$]{
-        \label{fig:sim_poligono_3}
-        \includegraphics[width=0.7\textwidth]{images/results/sim_poligono_3.png}
-    }
+    \vspace{10pt} % Espacio vertical entre las dos filas de imágenes
     
-    \caption{Multi-panel map showing the simulated water depth ($h$) progression at $t = 3\text{h}$, $t = 7\text{h}$, and $t = 14\text{h}$ using a standardized color scale.}
-    \label{fig:poligono_progression}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_T60.png}
+        \caption{$T+60$}
+        \label{fig:sim_t60}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_T90.png}
+        \caption{$T+90$}
+        \label{fig:sim_t90}
+    \end{subfigure}
+    \caption{Temporal progression of the simulated floodwave across the $1311\text{ km}^2$ domain at four discrete intervals ($T+20$ to $T+90$).}
+    \label{fig:temporal_evolution_sequence}
 \end{figure}
 
-The simulation yields several critical hydrodynamic insights that validate the model's physics:
 
-\begin{itemize}
-    \item \textbf{Agricultural Energy Dissipation and Pooling:} In the early stages of the propagation ($T+2.5\text{h}$ and 
-    $T+4.25\text{h}$), large volumes of water accumulate rapidly within the agricultural fields flanking both sides of the 
-    industrial park. Due to the high Manning's roughness coefficient assigned to croplands, the flow velocity decreases 
-    significantly. According to the principle of mass conservation, this deceleration induces a severe hydraulic backup, 
-    resulting in elevated water depths represented by the critical red and purple bands in \ref{fig:sim_poligono_1} and 
-    \ref{fig:sim_poligono_2}.
-    
-    \item \textbf{Industrial Grid Acceleration:} Conversely, as the water penetrates the boundaries of the industrial park, it 
-    encounters a completely different surface texture. The lower Manning's $n$ values associated with paved roads, asphalt 
-    logistics yards, and concrete surfaces offer minimal friction to the sheet flow. Consequently, the water experiences rapid 
-    acceleration upon entry. 
-    
-    \item \textbf{Wave Front Morphological Inversion:} This localized velocity differential induces a stark geometric transformation 
-    in the flood wave front, shifting from a \textit{convex} shape into a distinctly \textit{concave} profile along the advancement 
-    axis. As visualized across the time steps, the high-velocity "tongue" of the flood shoots forward through the smooth industrial 
-    grid, while the lateral wings of the wave remain lagged behind within the high-friction agricultural fields.
-    
-    \item \textbf{Depth vs. Velocity Trade-off:} Because the water is channeled and accelerated within the industrial park, the 
-    steady-state water depths inside the polygon remain visibly lower than those reached in the adjacent rural fields. However, 
-    this velocity surge carries a higher destructive potential downstream. The simulation demonstrates that the industrial 
-    infrastructure effectively acted as a high-speed hydraulic highway, accelerating the arrival time of the flood wave toward 
-    highly populated and vulnerable downstream receptors, precisely replicating the historical flash-flood trajectory that 
-    devastated the \textit{Centro Comercial Bonaire} area.
-\end{itemize}
+\subsection{Critical Area Analysis: Pla de Quart}
+\label{subsection:critical_area_analysis_pla_de_quart}
 
-In conclusion, the visual sequence successfully demonstrates that the simulator does not merely treat the terrain as a uniform 
-plane. By producing this intricate concave-convex wave distortion, the model proves highly sensitive to land-use variations, 
-validating its capability to simulate the real-world micro-hydraulics of the October 29 catastrophe.
+The first validation zone centers on the Pla de Quart area, a highly complex hydraulic sector encompassing major transport 
+infrastructure—such as the AP-7 and CV-36 highways and regional railway lines—alongside a dense network of tributary ravines that funneled 
+the discharge directly toward the municipality of Paiporta.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/real_Pla_de_Quart.png}
+        \caption{Official post-event flood delineation map \cite{DEMARCACIONHIDROGRAFICADELJUCAR2025}.}
+        \label{fig:real_pla_quart}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_Pla_de_Quart.png}
+        \caption{Tensor-based simulation output ($200\text{ m}$ resolution).}
+        \label{fig:sim_pla_quart}
+    \end{subfigure}
+    \caption{Comparative analysis of the flooded domain in the Pla de Quart sector.}
+    \label{fig:comparison_pla_quart}
+\end{figure}
+
+A comparative assessment between the empirical satellite reconstruction (Figure \ref{fig:real_pla_quart}) and the model's numerical results 
+(Figure \ref{fig:sim_pla_quart}) reveals key insights:
+
+\begin{enumerate}[label=\Alph*.]
+    \item \textbf{Confluence and Tributary Channelization}: In the lower section of both fields, the engine successfully captures the 
+    containment and directional acceleration of a massive water column (ranging between $2.0$ and $3.0\text{ m}$ in depth). This area 
+    represents the critical confluence of the Barranco del Poyo and the Barranco de Horteta, which is correctly routed through these 
+    natural channels feeding the lower basin toward Paiporta.
+    
+    \item \textbf{Topographic Insulated Zones}: Both maps display an identical unflooded "island" in the central region of the domain, 
+    bounded between the CV-36 and A-3 highways. Crucially, the model accurately simulates how this zone is delimited on its western (left) 
+    margin by the main channel of the Barranco del Poyo, which carries a massive discharge. The model correctly determines that the central 
+    island stands above the hydraulic gradient, proving that the $200\text{ m}$ mesh resolution retains enough topographic fidelity to 
+    respect localized dry boundaries.
+    
+    \item \textbf{The AP-7 and Barranco Gallego Discrepancy}: A localized divergence occurs at the western boundary, where the AP-7 highway 
+    crosses the Barranco Gallego. In the simulation, water flows freely and transversely beneath the highway infrastructure. However, the 
+    real event data reveals a major water accumulation trapped on the western side of the AP-7 (visible as a deep red/blue pool on the left 
+    of Figure \ref{fig:real_pla_quart}).
+\end{enumerate}
+
+During the actual disaster, the underpass structures of the AP-7 bridge over the Barranco Gallego became completely obstructed by massive 
+volumes of urban debris, vehicles, and uprooted vegetation. This clogging effect transformed the high-speed road embankment into an 
+involuntary, artificial dam. 
+
+Because the proposed cellular automata architecture currently operates under a static-terrain paradigm—where elevation layers and structural 
+properties remain fixed throughout the execution graph—the model cannot inherently simulate dynamic bridge failures or sediment-driven 
+blockages. Consequently, this discrepancy does not stem from a failure in the underlying hydrodynamic routing math, but rather defines a 
+clear boundary for future iterations, which will integrate coupled wood-detritus and structural destruction mechanics into the 
+TensorFlow/ONNX pipeline. Even with a static domain, the model's overall routing accuracy remains highly robust for rapid flood forecasting.
+
+
+\subsection{Critical Area Analysis: Paiporta and the Turia Channel Intersection}
+\label{subsection:critical_area_analysis_paiporta}
+
+The second validation phase analyzes the progression of the floodwave through the core urban axis of Picanya and Paiporta, as well as its 
+collision with the major artificial watercourse of the metropolitan area.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/real_Paiporta.png}
+        \caption{Official flood depth and flow pathway map \cite{DEMARCACIONHIDROGRAFICADELJUCAR2025}.}
+        \label{fig:real_paiporta}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_Paiporta.png}
+        \caption{Tensor-based simulation output ($200\text{ m}$ resolution).}
+        \label{fig:sim_paiporta}
+    \end{subfigure}
+    \caption{Comparative analysis of the Barranco del Poyo overflow through Paiporta.}
+    \label{fig:comparison_paiporta}
+\end{figure}
+
+A detailed inspection of the designated critical sectors (Figure \ref{fig:comparison_paiporta}) demonstrates the model's capacity to 
+reproduce the macro-hydraulic dynamics observed during the catastrophe:
+
+\begin{enumerate}[label=\Alph*.]
+    \item \textbf{Urban Overflow and Channel Saturation (Sector A)}: This sector captures the passage of the Barranco del Poyo through the 
+    municipalities of Picanya and Paiporta. In the real event, the extraordinary peak discharge combined with heavy sediment and debris 
+    transport led to a massive out-of-bank flooding. Although the current iteration of the simulation engine does not explicitly model 
+    solid waste or floating debris, the numerical model successfully triggers a severe overflow in this exact sector. The sheer volume of 
+    accumulated water injected into the $200\text{ m}$ grid cells naturally overcomes the channel capacity, replicating the widespread 
+    inundation of the urban fabric.
+    
+    \item \textbf{The New Turia Channel Wall Effect (Sector B)}: As the primary floodwave travels northeast, it collides transversally 
+    with the infrastructure of the New Turia River Channel (\textit{Nuevo Cauce del Turia}). The empirical data confirms that this massive 
+    artificial structure acted as a physical dam, blocking the northward progression of the water and forcedly routing the discharge 
+    downstream along its southern margin. The simulation engine replicates this "wall effect" with high precision; the tensor graph 
+    restricts any water cell propagation across the channel, keeping the urban zones located directly to the north (such as Xirivella and 
+    Valencia city) entirely dry, matching the historical outcome.
+\end{enumerate}
+
+In conclusion, this validation point confirms that the tensor-based framework goes beyond mere statistical correlation, capturing the 
+fundamental hydrodynamic behaviors, routing pathways, and infrastructural interactions of the real flash flood event.

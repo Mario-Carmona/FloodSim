@@ -110,8 +110,9 @@ void MapGrid::Load(const ModelParamsInfo& params_info,
 void MapGrid::UpdateDynamicLayers(std::chrono::system_clock::time_point current_time) {
     for (const auto& [name, layer] : layers_) {
         if (!layer->IsStatic()) {
-            layer->Update(current_time);
-            NormalizeUnits(name);
+            if (layer->Update(current_time)) {
+                NormalizeUnits(name);
+            }
         }
     }
 }

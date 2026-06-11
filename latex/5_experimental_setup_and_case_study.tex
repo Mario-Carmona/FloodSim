@@ -1,101 +1,123 @@
 \chapter{Experimental Setup and Case Study}
 \label{chapter:experimental_setup_and_case_study}
 
-This chapter details the geographic, structural, and physical configuration established to validate the tensor-based flood simulation 
-engine. By defining the spatial boundaries, discrete resolution, and material parameters of the domain, we establish the computational 
-framework necessary to execute high-fidelity, real-time hydrodynamic predictions.
+This chapter details the geographic and computational configuration established to validate the tensor-based flood simulation engine. 
+By defining the spatial boundaries, discrete resolution, and material parameters, we establish a framework capable of executing efficient 
+hydrodynamic predictions.
 
 \section{Case Study Setup: DANA 2024 and Geographic Delimitation}
 \label{section:case_study_setup_dana_2024}
 
-The catastrophic "DANA" (Depresión Aislada en Niveles Altos) event that struck the Mediterranean coast of Spain on October 29, 2024, serves 
-as the primary evaluation scenario for this research. This extreme meteorological event was characterized by unprecedented torrential 
-rainfall—exceeding $400$~mm in less than 8 hours in localized areas—which triggered the rapid, violent flash-flooding of the Barranco del 
-Poyo and the lower Turia River basin. The hydraulic complexity of the Valencian metropolitan area, characterized by a dense urban fabric, 
-high-speed rail embankments acting as artificial dikes, and sprawling industrial zones, provides a challenging environment to validate the 
-tensor-based physical transition rules developed in this thesis.
+The catastrophic "DANA" event that struck Valencia (Spain) on October 29, 2024, serves as our primary evaluation scenario. Characterized by torrential rainfall, it triggered violent flash-flooding along the Barranco del Poyo and the Turia River basin. The active simulation domain covers a bounding box of $1311\text{ km}^2$, tracking the floodwave from the upper catchments of Chiva and Cheste through "ground zero" municipalities (Paiporta, Sedaví, Alfafar) to the Mediterranean coast.
 
-Before analyzing the hydraulic outputs, the spatial boundaries of the active simulation grid must be explicitly delimited. The computational 
-domain developed for this study focuses strictly on the eastern coastal watershed within the Valencian Community (Spain), which sustained 
-the most severe structural and urban damage during the catastrophe. 
+\subsection{Domain Discretization and CFL Stability Condition}
 
-To maintain an optimal balance between the high grid resolution ($5\text{ m} \times 5\text{ m}$ cells) and computational feasibility within 
-a real-time Digital Twin environment, other heavily affected regions have been intentionally excluded from this specific simulation grid. 
-These exclusions encompass upstream high-altitude headwaters of the catchment (such as Utiel, in the interior plateau of the Valencia 
-province) as well as adjacent affected river basins located in the neighboring autonomous region of Castilla-La Mancha (e.g., Letur or Mira). 
+The simulation domain is discretized into a uniform raster grid using a cell size of $\Delta x = 200\text{ m}$. While the Spanish National 
+Geographic Institute (IGN) provides Digital Terrain Models (MDT) at 5, 25, and 200 meters, the $200\text{ m}$ resolution was selected as an 
+optimal trade-off. It successfully captures the critical terrain furrows and natural channels followed by the floodwave while drastically 
+reducing the computational weight. This allows the model to run efficiently on free online cloud servers without requiring days of 
+computation, while still delivering highly accurate results.
 
-The resulting bounding box of the active simulation area covers a total surface of $1311\text{ km}^2$. This area bounds the upper catchments 
-of Chiva and Cheste, tracks the progression of the floodwave down through the "ground zero" municipalities (including Paiporta, Sedaví, and 
-Alfafar), and terminates at the Mediterranean coastline and the Albufera coastal lagoon ecosystem.
+To guarantee numerical stability, the execution engine enforces a fixed temporal step of $\Delta t = 0.15$ seconds to satisfy the 
+\textbf{Courant-Friedrichs-Lewy (CFL) condition}. In explicit numerical schemes for fluid dynamics, the CFL condition dictates that information 
+cannot propagate through the grid faster than the physical time-step allows. Mathematically, it requires the Courant number ($C$) to be 
+less than or equal to a stability threshold (typically $1$):
+
+\begin{equation}
+    C = \frac{v_{\text{max}} \cdot \Delta t}{\Delta x} \le 1 \implies v_{\text{max}} \le \frac{\Delta x}{\Delta t}
+\end{equation}
+
+Because $\Delta t$ is fixed, it must be calibrated for the absolute worst-case scenario: a combination of maximum terrain slope 
+($S_{\text{max}}$) and maximum water depth ($WD_{\text{max}}$) yielding the highest potential physical velocity. With 
+$\Delta x = 200\text{ m}$ and $\Delta t = 0.15\text{ s}$, the maximum numerical velocity supported by the grid is:
+
+\begin{equation}
+    v_{\text{max}} = \frac{200\text{ m}}{0.15\text{ s}} \approx 1333.33\text{ m/s}
+\end{equation}
+
+This setup easily satisfies the CFL criteria. Even under extreme, catastrophic water depths (e.g., 
+$WD > 10\text{ m}$) and steep slopes where physical velocities could reach up to $30\text{ m/s}$, the combined speed remains orders of 
+magnitude below the $1333.33\text{ m/s}$ numerical limit, ensuring absolute stability throughout the execution.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.9\textwidth]{images/results/topographic_overview.png}
+    \includegraphics[width=0.75\textwidth]{images/results/topographic_overview.png}
     \caption{Topographic overview of the active $1311\text{ km}^2$ simulation domain overlaid on a Google Earth satellite composite.}
     \label{fig:topographic_overview}
 \end{figure}
 
-\subsection{Domain Discretization and Tensor Dimensions}
+\subsection{Physical Fluid Properties and Regime Selection}
 
-The entire simulation domain is discretized into a high-resolution uniform raster grid to preserve critical urban topographic 
-micro-features—such as narrow streets, road underpasses, and structural barriers—that dictate the directional propagation of urban flood 
-waves. The discretization and computational configuration are defined by the following specifications:
+The simulation parameterizes standard water constants via global scalars: fluid density ($\rho = 1000.0\text{ kg/m}^3$) and dynamic 
+viscosity ($\mu = 0.001\text{ Pa}\cdot\text{s}$). The computational engine applies a minimization gating function, 
+$v_{\text{approx}} = \min(v_{\text{turb}}, v_{\text{lam}})$, to select between a laminar viscous velocity and a turbulent open-channel 
+velocity (based on surface friction). Due to the low viscosity denominator ($\mu$), the theoretical laminar path yields extremely high, 
+non-physical values under flash-flood conditions. This automatically forces the computational graph to bypass the laminar path and route 
+all active grid computations exclusively through the turbulent friction regime, ensuring physical consistency across the floodplain.
 
-\begin{itemize}
-    \item \textbf{Cell Spatial Resolution}: A cell size of $5\text{ m} \times 5\text{ m}$ is adopted uniformly across the domain. This 
-    provides an optimal operational trade-off between local hydraulic precision and the high throughput required for real-time alerting 
-    systems.
 
-    \item \textbf{Tensor Structural Dimensions}: To ingest this topology into the deep learning and tensor math pipelines, the spatial 
-    grid maps into a multi-channel tensor of approximately $5,500 \times 9,500$ cells per discrete property layer.
+\section{Hydraulic Scale and Color Representation}
 
-    \item \textbf{Temporal Step ($\Delta t$)}: To ensure numerical stability and strictly satisfy the Courant-Friedrichs-Lewy (CFL) 
-    condition across highly dynamic, steep, and high-velocity open-channel flows, the execution engine enforces a fixed temporal step of 
-    $\Delta t = 0.25$ seconds.
-\end{itemize}
+To ensure quantitative readability across all bi-dimensional and tri-dimensional visual outputs, a standardized discrete 
+color scale consisting of 15 intervals was defined. This chromatic framework is conceptually grounded in the classic 6-level 
+flood hazard classification established by the Australian Emergency Management Institute and utilized by 
+\cite{Smith2016} for estimating flood fatalities and identifying populations at risk based on vulnerability 
+curves.
 
-\subsection{Physical Fluid Properties and Flow Regime Selection}
+While the reference framework relies on six broader categories—utilizing critical thresholds such as $H5$ to define severe 
+structural and life-safety risks (see Figure \ref{fig:original_hazard} for the original reference curves)—the scale proposed 
+in this work expands these thresholds into 15 high-resolution intervals. This sub-discretization does not contradict the 
+underlying physics of the original curves; rather, it introduces a tighter granularity specifically tailored to capture the 
+full socio-environmental spectrum of this specific event. It filters out negligible hydraulic noise below 0.20 m and transitions 
+smoothly from bright yellows to deep reds, magentas, and dark purples, allowing the visual outputs to clearly differentiate 
+standard urban street flooding from the ultra-catastrophic submersion levels (exceeding 12.0 m) observed in the study area.
 
-To parameterize the fluid dynamics inside the cellular automata transition mechanics, the simulation enforces standard physical constants 
-for water. These parameters are injected into the model architecture via global scalar configurations:
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth]{images/results/original_hazard.png}
+\caption{Original 6-level flood hazard vulnerability curves and thresholds, highlighting the $H_5$ boundary, adapted from \cite{Smith2016}.}
+\label{fig:original_hazard}
+\end{figure}
 
-\begin{itemize}
-    \item \textbf{Fluid Density ($\rho$)}: Set to a standard water density value of $1000.0\text{ kg/m}^3$.
-    \item \textbf{Dynamic Fluid Viscosity ($\mu$)}: Set to $0.001\text{ Pa}\cdot\text{s}$ at standard ambient temperature.
-\end{itemize}
+% Define the 15-level color palette from the simulator (6-digit HTML hex)
+\definecolor{flevelOne}{HTML}{FFF176}
+\definecolor{flevelTwo}{HTML}{FFD54F}
+\definecolor{flevelThree}{HTML}{FFB74D}
+\definecolor{flevelFour}{HTML}{FFA726}
+\definecolor{flevelFive}{HTML}{FF8A65}
+\definecolor{flevelSix}{HTML}{FF7043}
+\definecolor{flevelSeven}{HTML}{F4511E}
+\definecolor{flevelEight}{HTML}{E64A19}
+\definecolor{flevelNine}{HTML}{D84315}
+\definecolor{flevelTen}{HTML}{E53935}
+\definecolor{flevelEleven}{HTML}{C62828}
+\definecolor{flevelTwelve}{HTML}{B71C1C}
+\definecolor{flevelThirteen}{HTML}{880E4F}
+\definecolor{flevelFourteen}{HTML}{4A148C}
+\definecolor{flevelFifteen}{HTML}{1A001A}
 
-Crucially, the interaction between these standard constants and the mathematical formulation of the transition rules enforces a 
-deterministic regime selection. The underlying computational graph evaluates both a theoretical laminar viscous velocity ($v_{\text{lam}}$) 
-and a turbulent open-channel velocity based on friction parameters ($v_{\text{turb}}$). The physical gating function inside the 
-TensorFlow/ONNX engine approximates the effective cell velocity ($v_{\text{approx}}$) using a strict minimization selector:
-
-\begin{equation}
-    v_{\text{approx}} = \min\left(v_{\text{turb}}, v_{\text{lam}}\right)
-\end{equation}
-
-To demonstrate how these standard water scalars mathematically restrict the graph execution to the turbulent routing pathway under 
-high-energy flash flood conditions, consider a representative inundated grid cell during the DANA event with a significant water depth 
-($WD = 5.0\text{ m}$) and a steep surface slope gradient ($S_{\text{max}} = 5.0$). 
-
-The theoretical laminar velocity component derived from viscous gravity-driven fluid layers is computed as:
-\begin{equation}
-    v_{\text{lam}} = \frac{\rho \cdot g \cdot WD^2 \cdot S_{\text{max}}}{3 \cdot \mu} = \frac{1000 \cdot 9.81 \cdot 5.0^2 \cdot 5.0}{3 \cdot 0.001} \approx 4 \times 10^8\text{ m/s}
-\end{equation}
-
-Conversely, the turbulent velocity component over a highly rough surface (e.g., a forested zone or heavily obstructed urban environment 
-with a high Manning's roughness coefficient $n = 0.10$) is dictated by open-channel flow mechanics:
-
-\begin{equation}
-    v_{\text{turb}} = \frac{1}{n} \cdot WD^{2/3} \cdot \sqrt{S_{\text{max}}} = \frac{1}{0.10} \cdot 5.0^{2/3} \cdot \sqrt{5.0} \approx 65.38\text{ m/s}
-\end{equation}
-
-Applying the physical minimization gate to evaluate the effective cell propagation speed yields:
-
-\begin{equation}
-    v_{\text{approx}} = \min\left(65.38\text{ m/s},\; 4 \times 10^8\text{ m/s}\right) = 65.38\text{ m/s}
-\end{equation}
-
-As a consequence of injecting these standard fluid scalars, the laminar velocity component yields exceptionally high, non-physical values 
-due to the low viscosity denominator ($\mu = 0.001$). This mathematically forces the TensorFlow/ONNX execution graph to bypass the laminar 
-path and route all active, high-energy flood cell computations exclusively through the turbulent friction regime path, ensuring physical 
-consistency across the entire flooded floodplain.
+\begin{table}[h!]
+\centering
+\caption{Water depth intervals and color visualization matrix.}
+\label{tab:hydraulic_scale}
+\small
+\begin{tabular}{|c|c|c|c|l|}
+\hline
+\textbf{Level} & \textbf{Water Depth Range (m)} & \textbf{\em Visual Sample} & \textbf{Hex Code} & \textbf{Severity Description} \\ \hline
+1  & $0.20 \le h < 0.40$  & \cellcolor{flevelOne}       & \#FFF176 & H1 - Minor Pedestrian Hazard \\ \hline
+2  & $0.40 \le h < 0.60$  & \cellcolor{flevelTwo}       & \#FFD54F & H2 - Small Vehicle Instability \\ \hline
+3  & $0.60 \le h < 0.80$  & \cellcolor{flevelThree}     & \#FFB74D & H3 - Widespread Vehicle Instability \\ \hline
+4  & $0.80 \le h < 1.00$  & \cellcolor{flevelFour}      & \#FFA726 & H4 - Severe Danger to People \\ \hline
+5  & $1.00 \le h < 1.20$  & \cellcolor{flevelFive}      & \#FF8A65 & H5 - Major Internal Content Damage \\ \hline
+6  & $1.20 \le h < 1.40$  & \cellcolor{flevelSix}       & \#FF7043 & H6 - High Wading and Rescue Hazard \\ \hline
+7  & $1.40 \le h < 1.60$  & \cellcolor{flevelSeven}     & \#F4511E & H7 - Hydrostatic Pressure Accumulation \\ \hline
+8  & $1.60 \le h < 1.80$  & \cellcolor{flevelEight}     & \#E64A19 & H8 - Non-Structural Component Failure \\ \hline
+9  & $1.80 \le h < 2.00$  & \cellcolor{flevelNine}      & \#D84315 & H9 - Structural Damage Threshold \\ \hline
+10 & $2.00 \le h < 2.50$  & \cellcolor{flevelTen}       & \#E53935 & H10 - First-Floor Submersion Risk \\ \hline
+11 & $2.50 \le h < 3.50$  & \cellcolor{flevelEleven}    & \#C62828 & H11 - Complete First-Floor Submersion \\ \hline
+12 & $3.50 \le h < 5.00$  & \cellcolor{flevelTwelve}    & \#B71C1C & H12 - Structural Integrity Failure Risk \\ \hline
+13 & $5.00 \le h < 8.00$  & \cellcolor{flevelThirteen}  & \#880E4F & H13 - Multi-Story Inundation \\ \hline
+14 & $8.00 \le h < 12.00$ & \cellcolor{flevelFourteen}  & \#4A148C & H14 - Extreme Infrastructure Failure \\ \hline
+15 & $h \ge 12.00$        & \cellcolor{flevelFifteen}\color{white} & \#1A001A & H15 - Maximum Structural Collapse Limit \\ \hline
+\end{tabular}
+\end{table}

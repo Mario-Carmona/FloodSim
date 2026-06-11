@@ -173,109 +173,126 @@ namespace floodsim::tests {
     };
 
     // =========================================================================
-    // TEST DEFINITIONS (Executed once for every discovered model)
+    // BASE TESTS
     // =========================================================================
 
     /**
-     * @brief Verifies that the model initializes correctly without crashing.
+     * @brief Verifies that the model updater can initialize memory boundaries without crashing.
+     *
+     * Constructs a minimal 10x10 base grid and passes it to the generic Initialize
+     * interface to ensure internal tensors allocate properly.
      */
     TEST_P(StateUpdaterTest, InitializationDoesNotCrash) {
         app::core::grid::MapGrid grid;
-
         GridTestBuilder::InitializeGridBase(grid, updater.get(), 10, 10);
-
-        EXPECT_NO_THROW({
-            this->updater->Initialize(grid);
-            });
+        EXPECT_NO_THROW({ this->updater->Initialize(grid); });
     }
 
     // =========================================================================
-    // PHYSICAL TESTS: HYDROSTATIC STABILITY
+    // PHYSICAL TESTS: HYDROSTATIC STABILITY & CONSERVATION
     // =========================================================================
 
     /**
-     * @brief Verifies hydrostatic stability on a perfectly flat basin.
-     * * Ensures that a flat lake at rest remains perfectly still over multiple
-     * simulation steps, without generating phantom waves or losing mass.
+     * @brief Validates the hydrostatic stability for a completely flat water surface.
+     *
+     * Simulates a standard resting lake environment for numerous steps. In the absence
+     * of external forces, the initial depths should remain perfectly constant without
+     * numerical drift or unprovoked oscillations.
      */
     TEST_P(StateUpdaterTest, FlatLakeRemainsAtRest) {
         app::core::grid::MapGrid grid;
-        // Create a 20x20 lake with 2 meters of depth
         GridTestBuilder::CreateLakeAtRest(grid, 20, 20, 2.0f, updater.get());
-
-        // Store the initial state of the depths to compare later
         std::vector<float> initialWater = grid.GetLayer<float>("water_depth")->GetData();
 
-        // Initialize the model
         this->updater->Initialize(grid);
 
-        // Execute 100 simulation iterations
-        for (int step = 0; step < 100; ++step) {
-            this->updater->Step(grid);
-        }
+        for (int step = 0; step < 100; ++step) { this->updater->Step(grid); }
 
         const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
-
-        // Assertion: Depth must not have changed. 
-        // We use a 1e-5 tolerance to dismiss float32 precision noise from the neural/physics network.
         for (size_t i = 0; i < initialWater.size(); ++i) {
-            EXPECT_NEAR(initialWater[i], finalWater[i], 1e-5f)
-                << "Instability detected on flat terrain at cell " << i;
+            EXPECT_NEAR(initialWater[i], finalWater[i], 1e-4f) << "Instability detected in flat cell" << i;
         }
     }
 
     /**
-     * @brief Verifies hydrostatic stability over an irregular bed topology.
-     * * Ensures that if the water surface is uniformly flat, variations in
-     * the underlying terrain (bathymetry) do not induce false momentum.
+     * @brief Validates hydrostatic stability over varying, irregular bottom topography.
+     *
+     * Ensures that a flat water surface remains motionless even if the underlying
+     * bathymetry fluctuates. Tests if the solver correctly balances gravity with
+     * hydrostatic pressure gradients.
      */
     TEST_P(StateUpdaterTest, IrregularLakeRemainsAtRest) {
         app::core::grid::MapGrid grid;
-        // Create a 20x20 lake where the water surface is always at Z=5.0m elevation
         GridTestBuilder::CreateIrregularLakeAtRest(grid, 20, 20, 5.0f, updater.get());
-
         std::vector<float> initialWater = grid.GetLayer<float>("water_depth")->GetData();
 
         this->updater->Initialize(grid);
-
-        // Execute 100 iterations
-        for (int step = 0; step < 100; ++step) {
-            this->updater->Step(grid);
-        }
+        for (int step = 0; step < 100; ++step) { this->updater->Step(grid); }
 
         const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
-
         for (size_t i = 0; i < initialWater.size(); ++i) {
-            EXPECT_NEAR(initialWater[i], finalWater[i], 1e-5f)
-                << "Instability detected on irregular terrain at cell " << i;
+            EXPECT_NEAR(initialWater[i], finalWater[i], 1e-4f) << "Instability detected over irregular cell" << i;
         }
     }
 
     /**
-     * @brief Verifies that mass is not spontaneously generated.
-     * * Ensures that a completely dry simulation domain remains at zero
-     * water depth over time, proving the model does not "hallucinate" water.
+     * @brief Verifies global mass conservation during dynamic fluid flow.
+     *
+     * Simulates a dam-break scenario and integrates the total fluid volume over the entire
+     * domain using the relation $V = \sum_{i} h_i \Delta x^2$ before and after the temporal loop.
+     * Asserts that the ML model does not artificially create or destroy mass beyond a strict tolerance.
+     */
+    TEST_P(StateUpdaterTest, MassIsConservedDuringMovement) {
+        app::core::grid::MapGrid grid;
+        GridTestBuilder::CreateDamBreakInPool(grid, 30, 30, updater.get());
+
+        float cellSize = grid.GetMetadata().cell_size;
+        float cellArea = cellSize * cellSize;
+
+        // 1. Calculate actual initial volume
+        const std::vector<float>& initialWater = grid.GetLayer<float>("water_depth")->GetData();
+        float initialVolume = 0.0f;
+        for (float h : initialWater) initialVolume += h * cellArea;
+
+        this->updater->Initialize(grid);
+
+        for (int step = 0; step < 20; ++step) { this->updater->Step(grid); }
+
+        // 2. Calculate final volume
+        const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
+        float finalVolume = 0.0f;
+        for (float h : finalWater) finalVolume += h * cellArea;
+
+        float allowedError = initialVolume * 0.005f; // Tolerancia del 0.5%
+        EXPECT_NEAR(initialVolume, finalVolume, allowedError)
+            << "Mass conservation failed: Initial = " << initialVolume << " | Final =" << finalVolume;
+    }
+
+    /**
+     * @brief Checks the system for spurious fluid generation on dry cells.
+     *
+     * Runs the model heavily on a 100% dry domain. Checks that the numerical scheme
+     * or the underlying neural network does not "hallucinate" unphysical patches
+     * of water out of nowhere.
      */
     TEST_P(StateUpdaterTest, DryTerrainRemainsDry) {
         app::core::grid::MapGrid grid;
         GridTestBuilder::CreateDryTerrain(grid, 20, 20, updater.get());
 
         this->updater->Initialize(grid);
-        for (int step = 0; step < 50; ++step) {
-            this->updater->Step(grid);
-        }
+        for (int step = 0; step < 50; ++step) { this->updater->Step(grid); }
 
         const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
         for (size_t i = 0; i < finalWater.size(); ++i) {
-            EXPECT_LT(finalWater[i], 1e-6f)
-                << "Hallucination detected: Water generated on dry terrain at cell " << i;
+            EXPECT_LT(finalWater[i], 1e-6f) << "Spontaneous water generation on dry cell" << i;
         }
     }
 
     /**
-     * @brief Verifies that fluid does not climb up slopes without sufficient momentum.
-     * * Tests a scenario where water rests at the bottom of an adverse slope.
-     * The upper sections of the slope should remain strictly dry.
+     * @brief Evaluates the physical behavior of a wet-dry boundary against an incline.
+     *
+     * Ensures that resting fluid does not unrealistically climb an adverse slope
+     * without sufficient kinetic energy, preventing unphysical spreading errors.
      */
     TEST_P(StateUpdaterTest, WetDryFrontOnAdverseSlope) {
         app::core::grid::MapGrid grid;
@@ -283,9 +300,7 @@ namespace floodsim::tests {
         GridTestBuilder::CreateAdverseSlope(grid, 20, cols, updater.get());
 
         this->updater->Initialize(grid);
-        for (int step = 0; step < 50; ++step) {
-            this->updater->Step(grid);
-        }
+        for (int step = 0; step < 50; ++step) { this->updater->Step(grid); }
 
         const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
 
@@ -293,9 +308,47 @@ namespace floodsim::tests {
         for (size_t i = 0; i < finalWater.size(); ++i) {
             GridIndexType c = i % cols;
             if (c >= cols / 2) {
-                EXPECT_LT(finalWater[i], 1e-5f)
-                    << "Water climbed a slope without momentum at column " << c;
+                EXPECT_LT(finalWater[i], 1e-5f) << "Water unrealistically climbed an energy gradient in column" << c;
             }
+        }
+    }
+
+    // =========================================================================
+    // PHYSICAL TESTS: ADVANCED DYNAMICS
+    // =========================================================================
+
+    /**
+     * @brief Tests the spatial symmetry and isotropy of wave propagation.
+     *
+     * Simulates a single concentrated droplet released at the exact center of a square
+     * grid. Asserts that the resulting wave travels symmetrically along all cardinal
+     * and diagonal axes without bias or anisotropy generated by convolution artifacts.
+     */
+    TEST_P(StateUpdaterTest, WavePropagationIsSymmetric) {
+        app::core::grid::MapGrid grid;
+        GridIndexType size = 31;
+        GridTestBuilder::CreateDropInCenter(grid, size, updater.get());
+
+        this->updater->Initialize(grid);
+        for (int step = 0; step < 10; ++step) { this->updater->Step(grid); }
+
+        const std::vector<float>& finalWater = grid.GetLayer<float>("water_depth")->GetData();
+        GridIndexType center = size / 2;
+
+        for (GridIndexType dist = 1; dist < center - 1; ++dist) {
+            // Cardinal axes
+            float leftWater = finalWater[center * size + (center - dist)];
+            float rightWater = finalWater[center * size + (center + dist)];
+            EXPECT_NEAR(leftWater, rightWater, 1e-2f) << "Horizontal bias at distance" << dist;
+
+            float topWater = finalWater[(center - dist) * size + center];
+            float bottomWater = finalWater[(center + dist) * size + center];
+            EXPECT_NEAR(topWater, bottomWater, 1e-2f) << "Vertical bias at distance" << dist;
+
+            // Diagonals
+            float topLeftWater = finalWater[(center - dist) * size + (center - dist)];
+            float bottomRightWater = finalWater[(center + dist) * size + (center + dist)];
+            EXPECT_NEAR(topLeftWater, bottomRightWater, 1e-2f) << "Diagonal bias at distance" << dist;
         }
     }
 

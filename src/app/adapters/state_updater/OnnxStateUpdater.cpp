@@ -408,7 +408,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
         try {
             std::vector<float>& water_depth = grid.GetLayer<float>(GetFluidLayer())->GetData();
             std::vector<int8_t>& fluid_movement_state = grid.GetLayer<int8_t>(GetFluidMovementStateLayer())->GetData();
-            
+
             if (IsRainfallEnabled()) {
                 const std::vector<float>& rainfall = grid.GetLayer<float>(std::string(kRainfallLayerName))->GetData();
 
@@ -428,7 +428,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
             int64_t batch_size = active_tiles.size();
 
             if (batch_size == 0) {
-                LOG_INFO("No active water detected. Skipping ONNX inference.");
+                LOG_WARN("No active water detected. Skipping ONNX inference.");
                 return;
             }
 

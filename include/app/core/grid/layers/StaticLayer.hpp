@@ -64,8 +64,10 @@ public:
      * For StaticLayer, this is a no-op as the data is guaranteed to remain constant.
      *
      * @param current_time The current simulation clock time (unused).
+     * 
+	 * @return false Always returns false since static layers do not update.
      */
-    void Update(std::chrono::system_clock::time_point current_time) override;
+    bool Update(std::chrono::system_clock::time_point current_time) override;
 };
 
 // -----------------------------------------------------------------------------
@@ -93,8 +95,8 @@ void StaticLayer<T>::SetReader(const GridMetadata& main_metadata,
 }
 
 template <typename T>
-void StaticLayer<T>::Update(std::chrono::system_clock::time_point /* current_time */) {
-    // No-op: Static layers do not change over time.
+bool StaticLayer<T>::Update(std::chrono::system_clock::time_point /* current_time */) {
+    return false;
 }
 
 } // namespace floodsim::app::core::grid::layers

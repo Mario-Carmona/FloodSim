@@ -93,9 +93,16 @@ class FloodModelCA(tf.Module):
             0.010  # "Glaciers and perpetual snow" (Solid and smooth ice, minimal friction)
         ], dtype=tf.float32, name="manning_lut")
 
+        # Map discrete categories to continuous roughness values using tf.gather
         mu_soil = tf.gather(manning_lut, tf.cast(land_cover, tf.int32))
 
-        return {"roughness:out": mu_soil}
+        # Initialize the movement state tracking layer (0 = still, 1 = moving)
+        water_movement_state = tf.zeros_like(land_cover, dtype=tf.int8)
+
+        return {
+            "roughness:out": mu_soil,
+            "water_movement_state:out": water_movement_state
+        }
 
     @tf.function(input_signature=[
         tf.TensorSpec(shape=[], dtype=tf.float32, name="delta_x"),
@@ -103,10 +110,11 @@ class FloodModelCA(tf.Module):
         tf.TensorSpec(shape=[], dtype=tf.float32, name="fluid_density"),
         tf.TensorSpec(shape=[], dtype=tf.float32, name="fluid_viscosity"),
         tf.TensorSpec(shape=[None, None, None], dtype=tf.float32, name="water_depth"),
+        tf.TensorSpec(shape=[None, None, None], dtype=tf.int8, name="water_movement_state"),
         tf.TensorSpec(shape=[None, None, None], dtype=tf.float32, name="topo_bathy"),
         tf.TensorSpec(shape=[None, None, None], dtype=tf.float32, name="roughness")
     ])
-    def step(self, delta_x, delta_t, fluid_density, fluid_viscosity, water_depth, topo_bathy, roughness):
+    def step(self, delta_x, delta_t, fluid_density, fluid_viscosity, water_depth, water_movement_state, topo_bathy, roughness):
         """Executes a single time iteration (t -> t+1) of the model.
 
         Uses a multi-physics Kinematic Wave approach combined with explicit spatial 
@@ -119,21 +127,25 @@ class FloodModelCA(tf.Module):
             fluid_density (tf.Tensor): Density of the fluid (rho).
             fluid_viscosity (tf.Tensor): Dynamic viscosity of the fluid (mu_fluid).
             water_depth (tf.Tensor): Current water depth (WD*).
+            water_movement_state (tf.Tensor): Boolean mask tracking moving water.
             topo_bathy (tf.Tensor): Topobathymetry elevation layer.
-            roughness (tf.Tensor): Surface roughness layer.
+            roughness (tf.Tensor): Surface roughness layer (Manning's n).
 
         Returns:
             dict: Updated water depth (WD^{t+1}) and automaton discrete cell states.
         """
+        # Constants
         wall_height = tf.constant(9999.0, dtype=tf.float32, name="wall_height")
         sqrt_2 = tf.constant(math.sqrt(2.0), dtype=tf.float32, name="sqrt_2")
         g = tf.constant(9.81, dtype=tf.float32, name="gravity")
 
         # ====================================================================
-        # PHASE 1: WSE AND HYDRAULIC GRADIENTS (S_max)
+        # PHASE 1: WATER SURFACE ELEVATION (WSE) AND HYDRAULIC GRADIENTS
         # ====================================================================
+        # Absolute Water Surface Elevation
         wse = topo_bathy + water_depth
 
+        # Pad boundaries with a "virtual wall" to prevent water escaping the grid domain
         wse_padded = tf.pad(
             wse, 
             [[0, 0], [1, 1], [1, 1]], 
@@ -141,6 +153,7 @@ class FloodModelCA(tf.Module):
             constant_values=wall_height
         )
 
+        # Extract shifted tensors for the Moore neighborhood (8 directions)
         N  = wse_padded[:, 0:-2, 1:-1]
         S  = wse_padded[:, 2:,   1:-1]
         E  = wse_padded[:, 1:-1, 2:]
@@ -150,14 +163,16 @@ class FloodModelCA(tf.Module):
         SE = wse_padded[:, 2:,   2:]
         SW = wse_padded[:, 2:,   0:-2]
 
+        # Calculate elevation difference between the central cell and its 8 neighbors
         delta_wse = tf.stack([
             wse - N, wse - S, wse - E, wse - W,
             wse - NE, wse - NW, wse - SE, wse - SW
         ], axis=0)
 
-        # Only evaluate flows towards neighbors with lower elevation
+        # Filter negative gradients: evaluate flows ONLY towards neighbors with lower elevation
         delta_wse_positive = tf.maximum(delta_wse, 0.0)
 
+        # Define distances to orthogonal and diagonal neighbors
         ortho_dist = delta_x
         diag_dist = delta_x * sqrt_2
         
@@ -167,69 +182,65 @@ class FloodModelCA(tf.Module):
             [8, 1, 1, 1]
         )
 
-        # Directional hydraulic gradient (S_k) and max local slope (S_max)
+        # Directional hydraulic gradient (slope S_k)
         s_k = delta_wse_positive / neighbor_distances
-        s_max = tf.reduce_max(s_k, axis=0)
-        sum_slopes = tf.reduce_sum(s_k, axis=0)
+
+        # 1. Convert the int8 movement mask (0 or 1) to float32 to match the slope tensor's dtype
+        movement_mask = tf.cast(water_movement_state, tf.float32)
         
+        # 2. Multiply slopes by the movement mask. 
+        # TensorFlow applies this mask to all 8 directions automatically via broadcasting.
+        # Inactive cells (0.0) will nullify their slopes, immediately blocking their outflow calculation.
+        s_k = s_k * movement_mask
+
         # ====================================================================
         # PHASE 2: KINEMATICS, VISCOSITY AND PHYSICAL LIMITERS
         # ====================================================================
         cell_area = tf.square(delta_x)
         
-        # 1. TURBULENT REGIME (Light fluids, pure water)
-        # v_turb = (1 / roughness) * (WD^*)^(2/3) * sqrt(S_max)
+        # 1. TURBULENT REGIME (Manning's Equation for light fluids like pure water)
         inv_roughness = tf.math.divide_no_nan(1.0, roughness)
-        v_turb = inv_roughness * tf.pow(water_depth, 2.0/3.0) * tf.sqrt(s_max)
+        v_turb_k = inv_roughness * tf.pow(water_depth, 2.0/3.0) * tf.sqrt(s_k)
         
-        # 2. LAMINAR / VISCOUS REGIME (Dense, non-Newtonian flows like mud)
-        # v_lam = (rho * g * (WD^*)^2 * S_max) / (3 * mu_fluid)
-        v_lam = (fluid_density * g * tf.square(water_depth) * s_max) / (3.0 * fluid_viscosity + 1e-8)
+        # 2. LAMINAR / VISCOUS REGIME (Dense, non-Newtonian flows like heavy mud)
+        v_lam_k = (fluid_density * g * tf.square(water_depth) * s_k) / (3.0 * fluid_viscosity + 1e-8)
         
         # 3. EFFECTIVE FLUID VELOCITY (Multi-physics core)
-        # Fluid travels at the lowest of the two velocities naturally bounding the flow.
-        # v_approx = min(v_turb, v_lam)
-        v_approx = tf.minimum(v_turb, v_lam)
+        # Fluid travels at the lowest of the two velocities, naturally bounding the flow physics.
+        v_approx_k = tf.minimum(v_turb_k, v_lam_k)
 
-        # Theoretical outflow volume: V_theor = v_approx * (WD^* * dx) * dt
+        # Flow cross-section area per cell edge
         cross_section_area = water_depth * delta_x
-        V_theor = v_approx * cross_section_area * delta_t
 
-        # Distribute V_theor into directional outflow volumes using MFD weights
-        flow_weights = tf.math.divide_no_nan(s_k, sum_slopes)
-        delta_V_theor_k = V_theor * flow_weights
+        # Theoretical volumetric outflow based on velocity, area, and time step
+        delta_V_theor_k = v_approx_k * cross_section_area * delta_t
 
-        # 4. SPATIAL SHIELD (Level Equalization)
-        # Prevents hydraulic gradient inversion. Cell cannot drop water level 
-        # beyond half the max elevation difference with its lowest neighbor.
-        # delta_V_spatial = (max(delta_WSE) * dx^2) / 2
-        max_delta_wse = tf.reduce_max(delta_wse_positive, axis=0)
-        delta_V_spatial = (max_delta_wse * cell_area) / 2.0
-        
-        # 5. TEMPORAL SHIELD (Volumetric CFL Condition)
-        # Effective volume is bounded by physical fluid mass and spatial limits.
-        # V_avail = min(WD^* * dx^2, delta_V_spatial)
+        # 4. MASS CONSERVATION CONSTRAINT (WITHOUT SPATIAL SHIELD)
+        # Strictly calculate the actual available water volume contained within the cell
         V_cell = water_depth * cell_area
-        V_avail = tf.minimum(V_cell, delta_V_spatial)
         
+        # Sum all the water volume that the active directions are attempting to draw out
         total_outflow_attempt = tf.reduce_sum(delta_V_theor_k, axis=0)
-        
-        # Strict scale factor (alpha). Scales down flows proportionally if limits exceeded.
-        # alpha = min(sum(delta_V_theor_k), V_avail) / sum(delta_V_theor_k)
+
+        # Restrictive scaling factor (alpha): Computes the ratio between available and attempted volume.
+        # If total_outflow_attempt > V_cell -> alpha < 1.0 (scales down outflow to prevent negative water depth)
+        # If total_outflow_attempt <= V_cell -> alpha = 1.0 (free, unrestricted flow)
         alpha = tf.math.divide_no_nan(
-            tf.minimum(total_outflow_attempt, V_avail), 
+            tf.minimum(total_outflow_attempt, V_cell), 
             total_outflow_attempt
         )
         
-        # Safe and volumetrically continuous directional outflows
-        # delta_V_out_k = delta_V_theor_k * alpha
+        # Apply the alpha scaling factor to obtain final, safe, and conservative directional flows
         delta_V_out_k = delta_V_theor_k * alpha
+
 
         # ====================================================================
         # PHASE 3: MFD ROUTING AND STATE UPDATE
         # ====================================================================
+        # Total volume leaving the cell
         total_outflow = tf.reduce_sum(delta_V_out_k, axis=0)
         
+        # Pad outflow tensor with zeros at boundaries so inflows can be computed safely
         outflow_padded = tf.pad(
             delta_V_out_k, 
             [[0, 0], [0, 0], [1, 1], [1, 1]], 
@@ -237,22 +248,24 @@ class FloodModelCA(tf.Module):
             constant_values=0.0
         )
 
-        # sum_{k in V} delta_V_{in <- k}
+        # Gather inflows from neighboring cells.
+        # This acts as a reverse lookup: if water flowed North from cell (i+1), it enters South of cell (i).
         total_inflow = (
-            outflow_padded[0, :, 2:,   1:-1] + 
-            outflow_padded[1, :, 0:-2, 1:-1] + 
-            outflow_padded[2, :, 1:-1, 0:-2] + 
-            outflow_padded[3, :, 1:-1, 2:]   + 
-            outflow_padded[4, :, 2:,   0:-2] + 
-            outflow_padded[5, :, 2:,   2:]   + 
-            outflow_padded[6, :, 0:-2, 0:-2] + 
-            outflow_padded[7, :, 0:-2, 2:]     
+            outflow_padded[0, :, 2:,   1:-1] + # Flow arriving from South (was moving N)
+            outflow_padded[1, :, 0:-2, 1:-1] + # Flow arriving from North (was moving S)
+            outflow_padded[2, :, 1:-1, 0:-2] + # Flow arriving from West (was moving E)
+            outflow_padded[3, :, 1:-1, 2:]   + # Flow arriving from East (was moving W)
+            outflow_padded[4, :, 2:,   0:-2] + # Flow arriving from SW (was moving NE)
+            outflow_padded[5, :, 2:,   2:]   + # Flow arriving from SE (was moving NW)
+            outflow_padded[6, :, 0:-2, 0:-2] + # Flow arriving from NW (was moving SE)
+            outflow_padded[7, :, 0:-2, 2:]     # Flow arriving from NE (was moving SW)
         )
         
-        # WD^{t+1} = WD^* - Outflow + Inflow
+        # Mass balance equation
         wd_next = water_depth - (total_outflow / cell_area) + (total_inflow / cell_area)
         
         # --- FLOATING-POINT PRECISION FILTER ---
+        # Eliminate numerical artifacts (near-zero depths) caused by floating-point arithmetic
         epsilon = 1e-5
         wd_next = tf.where(
             wd_next < epsilon, 
@@ -260,9 +273,10 @@ class FloodModelCA(tf.Module):
             wd_next
         )
 
-        # Cell States update for potential rendering or visualization
+        # Cell States update for computational optimization in subsequent steps or rendering
         is_moving = (total_outflow > 1e-5) | (total_inflow > 1e-5)
         
+        # Convert boolean mask back to int8
         wd_mov_state = tf.where(is_moving, tf.constant(1, dtype=tf.int8), tf.constant(0, dtype=tf.int8))
 
         return {

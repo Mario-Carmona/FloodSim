@@ -98,48 +98,36 @@ of rainfall remains a challenge in small, ungauged catchments \parencite{Vasilev
 
 \section{Analysis of Shortfalls in Existing Solutions}
 
-The big improvements in modeling and discrete simulation that we talked about earlier do not change the fact that the really bad 
-flash floods in 2024 like the DANA in the Júcar River Basin showed us that there are big problems with the way things are done now. 
-These problems can be put into four groups: it takes a long time to get the results, the system is not flexible, the data is not shared 
-well, and the flash flood systems do not have a simple way for people to make decisions. The flash flood systems have these problems 
-because of the latency, the architectural rigidity, the data integration silos and the lack of a human-centric decision-making 
-interface, in the flash flood systems.
-
+Despite advancements in discrete simulation, catastrophic flash floods—such as the 2024 DANA in the Júcar River Basin—have exposed critical 
+vulnerabilities in current modeling frameworks. These deficiencies can be categorized into four interconnected areas: high computational 
+latency, architectural rigidity, oversimplified spatial representations, and a pronounced socio-technical gap in emergency management.
 
 \subsection{Computational Latency vs. Flash Flood Dynamics}
 
-The primary shortfall of physically-based models (SWE solvers) remains their execution time. Achieving high-precision results on 
-complex, unstructured meshes requires high-performance computing resources that are often unavailable or too slow to deploy during 
-the narrow "lead time" of a flash flood. In events where the time from peak rainfall to peak flow is measured in minutes rather than 
-hours, the computational overhead of traditional numerical methods prevents them from being used as proactive forecasting tools. 
-Instead, they are frequently relegated to post-event forensic analysis \parencite{Muoz2025}.
-
+The execution time of physically-based Shallow Water Equation (SWE) solvers remains a primary constraint. Achieving high-precision results 
+on complex meshes requires high-performance computing (HPC) resources that are too slow to deploy during the narrow lead-time of a flash 
+flood. When peak flows occur within minutes, the computational overhead of traditional numerical methods limits their utility to post-event 
+forensic analysis rather than proactive forecasting \parencite{Muoz2025}.
 
 \subsection{Monolithic Architectural Rigidity}
 
-Many flood simulation platforms are built as one system. This makes it very hard to add features or change parts of it. For example, 
-you can't just change the way water soaks into the ground or add a weather data source without overhauling everything. This lack of 
-flexibility makes it tough to create models like those, in the Society 5.0 plan \parencite{FonsecaiCasas2026}. These systems also only work with specific data formats.
-That makes it hard for them to work with GIS tools and real-time simulation engines.
+Many flood simulation platforms rely on monolithic architectures that lack modularity, making it difficult to incorporate new infiltration 
+algorithms or dynamic weather inputs without comprehensive system overhauls. This rigidity severely restricts interoperability with diverse 
+GIS formats and hinders alignment with modern, adaptive frameworks like the Society 5.0 paradigm \parencite{FonsecaiCasas2026}.
 
+\subsection{Simplified Spatial Heterogeneity}
 
-\subsection{Simplified Representation of Spatial Heterogeneity}
-
-While standard Cellular Automata (CA) offer the speed required for real-time applications, they often suffer from an 
-oversimplification of the physical environment. Most CA implementations treat the terrain as a single-dimensional grid, 
-failing to represent the complex interactions between different layers of information—such as soil saturation, 
-subterranean drainage systems, and varying urban roughness—simultaneously. The inability to handle "multilayered" spatial 
-data in a unified tensor-like structure limits the model's capacity to simulate the non-linear behavior of water in 
-urbanized basins \parencite{Fonseca2011}.
-
+While standard Cellular Automata (CA) offer the execution speeds required for real-time applications, they frequently oversimplify the 
+physical environment. Most CA implementations fail to capture complex, multi-layered spatial data—such as dynamic soil saturation, 
+subterranean drainage, and varying urban roughness coefficients—within a unified tensor structure, limiting their capacity to simulate 
+non-linear urban hydraulics \parencite{Fonseca2011}.
 
 \subsection{The Socio-Technical Gap in Emergency Management}
 
-A final, critical shortfall is the disconnect between the technical output of simulation models and the operational needs 
-of emergency responders. As highlighted by regarding the 2024 DANA crisis, the lack of a dynamic, real-time 
-"Digital Twin" meant that decision-makers were operating with fragmented and delayed information. Existing models do not 
-easily integrate with the modern IoT and radar infrastructure needed to provide a continuous, synchronized digital 
-representation of the evolving disaster.
+A critical disconnect persists between the technical outputs of simulation models and the operational needs of first responders. As 
+observed during the 2024 DANA crisis, the lack of an operational, real-time "Digital Twin" meant that decision-makers operated with 
+fragmented and delayed information. Existing systems fail to natively ingest modern IoT and radar streams necessary to provide a 
+continuously synchronized representation of an evolving disaster.
 
 
 \section{Problem Statement}

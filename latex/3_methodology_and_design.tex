@@ -3,21 +3,15 @@
 
 \section{Proposed Analytical Framework}
 
-To fill the gap between what we learn from modeling and what a Reactive Digital Twin really needs, this research suggests a new way of 
-looking at things. The plan is not about simulating water but about creating a system that can handle a lot of changing data like what 
-happens during a flash flood, such as the 2024 Valencia DANA.
-
-The new approach is based on three ideas that make sure the system is strong and accurate:
+To bridge the gap between traditional flood modeling and the operational demands of a Reactive Digital Twin, this research proposes a highly integrated, multi-layered framework. Designed to ingest and process the high-velocity data streams characteristic of flash floods—such as the 2024 Valencia DANA—the architecture is built upon three core pillars:
 
 \begin{enumerate}
-    \item \textbf{Mathematical Formalization of Discrete Space}: Utilizing the $m:n-CA^k$ paradigm to represent complex, non-linear hydraulic interactions through discrete transition rules. This method is faster than ways of solving Shallow Water Equations.
-    \item \textbf{Technological Decoupling (Hexagonal Architecture)}: Implementing a strict separation between the simulation core and external concerns (GIS data, MQTT messaging, logging). This ensures that the physical logic remains pure and adaptable to different hardware or data sources.
-    \item \textbf{Distributed Telemetry and Interoperability}: Designing a communication layer that transforms the simulator from a standalone tool into a distributed node. By using MQTT, the system enables real-time synchronization between the computational engine and remote visualization or decision-support interfaces.
+    \item \textbf{Discrete Space Formalization ($m:n\text{-CA}^k$)}: Leveraging cellular automata to represent complex, non-linear hydraulic interactions via discrete transition rules, offering a computationally efficient alternative to traditional Shallow Water Equation (SWE) solvers.
+    \item \textbf{Hexagonal Architecture (Technological Decoupling)}: Separating the core simulation physics from external dependencies (GIS parsing, MQTT messaging, logging) to ensure modularity and seamless adaptability across different hardware and data infrastructures.
+    \item \textbf{Distributed Telemetry}: Implementing an MQTT-based protocol layer to transform the standalone execution engine into a distributed node, enabling real-time, low-latency synchronization with remote visualization pipelines and emergency decision-support systems.
 \end{enumerate}
 
-By putting these ideas we can move away from the old way of doing simulations, batch-processing, where we do one thing at a time. 
-Instead we can do everything at the time: get data process it and share the results all within a system that is connected and working 
-together. That is what the Reactive Digital Twin is all about.
+This framework shifts flood simulation away from traditional offline batch-processing toward a continuous, concurrent loop of data ingestion, parallelized execution, and telemetry broadcast, establishing the essential operational infrastructure for a Reactive Digital Twin.
 
 
 \subsection{The Multilayer Conceptualization ($m:n-CA^k$)}
@@ -52,9 +46,7 @@ identified by its spatial coordinates $(i, j)$. The physical size of each cell i
 $\Delta x$.
 
 The system consists of a set $E = \{E_1, E_2, E_3, E_4, E_5, E_6\}$ of $n=6$ computational layers. One of the fundamental characteristics 
-of the $m:n-CA^k$ model is that the layers may differ in their geometric and temporal dimensions. To optimize memory layout and performance, 
-transient layers (such as raw geospatial Land Cover) are purged post-initialization, leaving the system to operate on the following 
-persistent tensor representations:
+of the $m:n-CA^k$ model is that the layers may differ in their geometric and temporal dimensions.
 
 \begin{enumerate}
     \item $E_1$: Topobathymetry ($Z_{topo-bathy}$). A static 2D layer of dimension $X \times Y$. It combines the Digital 
@@ -95,302 +87,185 @@ and $E_6$), mapping the spatio-temporal modifications through local evolution ru
 
 \subsubsection{Intra-layer Transitions: Horizontal Propagation Dynamics}
 
-Intra-layer transitions define the kinematic behavior of surface water flow across the discretized spatial grid. While inter-layer 
-transitions govern vertical fluxes (such as precipitation and infiltration), this section focuses on horizontal propagation, where the 
-state of a cell at time $t+1$ is determined by the hydraulic interactions with its immediate neighborhood at time $t$.
+Intra-layer transitions define the kinematic behavior of surface water flow across the discretized spatial grid.
 
 \paragraph{A. Neighborhood Formalization and Hydraulic Gradients}
 
-Following the technical implementation in C++ and TensorFlow, the system employs a Moore neighborhood ($k=8$). This choice allows for 
-a more realistic flow propagation that is significantly less dependent on grid orientation compared to the simpler von Neumann 
-neighborhood.
+To minimize grid-orientation bias, the simulation framework utilizes a standard Moore neighborhood ($k = 8$). For any given cell $c_{i,j}$, the execution engine computes a vector of localized, non-negative directional hydraulic gradients ($S_k$) based on the total hydraulic head—the sum of topobathymetric elevation ($Z_{\text{topo-bathy}}$) and water depth ($WD$)—and the Euclidean distance $L_k$:
 
-For every cell $c_{i,j}$, the simulation engine computes a vector of hydraulic gradients $S$ toward its eight neighbors. The gradient 
-is defined by the difference in potential energy (terrain elevation $H$ plus water depth $WD^*$) divided by the Euclidean distance $L_{k}$:
+$$S_{k} = \max\left(0, \frac{(Z_{\text{topo-bathy}, i,j} + WD_{i,j}) - (Z_{\text{topo-bathy}, k} + WD_{k})}{L_{k}}\right) \cdot \mathbb{I}(WMS_{i,j})$$
 
-$$S_{k} = \frac{(H_{i,j} + WD^*_{i,j}) - (H_{neighbor,k} + WD^*_{neighbor,k})}{L_{k}}$$
+where the distance parameter is defined as $L_k = \Delta x$ for cardinal neighbors ($k \in \{1, 2, 3, 4\}$) and $L_k = \Delta x \sqrt{2}$ for diagonal neighbors ($k \in \{5, 6, 7, 8\}$). 
 
-Where $L_{k}$ corresponds to the cell size for cardinal neighbors and $\sqrt{2} \times \text{cell\_size}$ for diagonal neighbors. 
-Adhering to the physical logic of the model, only positive gradients ($S_k > 0$) are considered, ensuring that water only moves toward 
-cells with lower hydraulic potential.
+The binary indicator function $\mathbb{I}(WMS_{i,j}) \in \{0, 1\}$ is derived from the Water Movement State layer ($E_5$). If a cell is flagged as hydraulically inactive, its directional gradients are immediately nullified, acting as a computational shield that bypasses unnecessary downstream tensor operations.
 
-\paragraph{B. Velocity Estimation via Manning’s Equation}
+\paragraph{B. Multi-Physics Velocity Vector Field Evaluation}
 
-To optimize computational performance and ensure numerical stability, the model identifies the maximum local hydraulic gradient 
-$S_{max} = \max(S_k)$ from the set of energy slopes toward the eight adjacent neighbors in the Moore neighborhood.
+To accommodate variable fluid rheologies, the multi-physics core independently evaluates distinct turbulent and laminar regimes across all eight Moore neighborhood directions, computing a directional velocity component ($v_k$) for each target cell:
 
-To account for varying fluid rheologies, the multi-physics core dynamically evaluates two distinct physical regimes—turbulent and 
-laminar—computing a theoretical velocity for each:
+\begin{itemize}
+    \item \textbf{Turbulent Regime (Manning)}: For friction-dominated clear-water dynamics, the velocity $v_{\text{turb}, k}$ is evaluated using a tensor-optimized variant of Manning's equation, where $\mu_{\text{soil}}$ represents the terrain roughness coefficient from layer $E_2$:
+    $$v_{\text{turb}, k} = \frac{1}{\mu_{\text{soil}}} \cdot WD_{i,j}^{2/3} \cdot \sqrt{S_k}$$
+    
+    \item \textbf{Laminar / Viscous Regime}: For dense sediment or mudflows, the viscous velocity $v_{\text{lam}, k}$ incorporates fluid density ($\rho$), gravity ($g$), dynamic viscosity ($\mu_{\text{fluid}}$), and a tiny regularization parameter ($\epsilon_{\text{reg}} = 10^{-8}$) to prevent division-by-zero errors:
+    $$v_{\text{lam}, k} = \frac{\rho \cdot g \cdot WD_{i,j}^2 \cdot S_k}{3\mu_{\text{fluid}} + \epsilon_{\text{reg}}}$$
+\end{itemize}
 
-\begin{enumerate}
-    \item \textbf{Turbulent Regime (Clear Water Flow)}: The model integrates surface friction through a roughness coefficient $n$ 
-    (Manning’s $n$), which is directly retrieved from the persistent Surface Roughness layer ($E_2$) at the target coordinates. 
-    Approximating the hydraulic radius by the water depth ($WD^*$), the turbulent velocity ($v_{turb}$) is derived from a tensor-optimized 
-    version of Manning’s Equation:
+The core resolves the effective directional velocity $v_{\text{approx}, k}$ via a local minimization function, continuously bounding the vector field by the dominant physical constraint:
 
-    $$v_{turb} = \frac{1}{n} \cdot {WD^*}^{2/3} \cdot \sqrt{S_{max}}$$
+$$v_{\text{approx}, k} = \min\left(v_{\text{turb}, k}, v_{\text{lam}, k}\right)$$
 
-    \item \textbf{Laminar / Viscous Regime (Dense, Mud/Non-Newtonian Flow)}: To accurately simulate hyper-concentrated sediment or 
-    mudflows, a viscous velocity ($v_{lam}$) is computed. This formulation incorporates fluid density ($\rho$), gravitational 
-    acceleration ($g$), and dynamic fluid viscosity ($\mu$):
+\paragraph{C. Directional Volumetric Displacement}
 
-    $$v_{lam} = \frac{\rho \cdot g \cdot {WD^*}^2 \cdot S_{max}}{3\mu}$$
-\end{enumerate}
+To translate linear velocities ($m/s$) into discrete physical mass variations, the engine computes the directional cross-sectional flow 
+area $A_{\text{cs}}$ passing through the cell interfaces, defined as the product of the active cell water depth and the grid resolution:
 
-The multi-physics core determines the final effective velocity ($v_{approx}$) by selecting the minimum value between the two 
-regimes. This ensures the flow is naturally bounded by the dominant physical constraint at any given cell:
+$$A_{\text{cs}} = WD_{i,j} \cdot \Delta x$$
 
-$$v_{approx} = \min(v_{turb}, v_{lam})$$
+Consequently, the multi-directional Theoretical Outflow Volume vector $\Delta V_{\text{theor}, k}$ over the discrete simulation time 
+step $\Delta t$ is formulated as:
 
-This dynamic velocity approximation represents the actual potential speed of the flood wave under highly variable rheological 
-conditions—a capability critical for capturing the complex dynamics of events like the 2024 Valencia DANA. The resulting 
-$v_{approx}$ then serves as the foundation for all subsequent volumetric displacement and multi-directional routing calculations.
+$$\Delta V_{\text{theor}, k} = v_{\text{approx}, k} \cdot A_{\text{cs}} \cdot \Delta t$$
 
-\paragraph{C. Volumetric Displacement Calculation}
+\paragraph{D. Non-Linear Mass Conservation and Multiple Flow Direction (MFD) Routing}
 
-Once the effective velocity is determined, the engine must translate this linear speed ($m/s$) into a physical volume of water ($m^3$) 
-capable of moving across cell boundaries. This is achieved by first calculating the Cross-Sectional Area ($A_{cs}$) of the flow, which, 
-in our raster-based discretization, is defined as the product of the current water depth and the cell resolution:
+This framework utilizes a Multiple Flow Direction (MFD) architecture where routing fractions are governed by the directional velocity field. To guarantee mass conservation and eliminate numerical oscillations, a localized explicit volumetric limiter restricts outflows based on the cell's maximum available volume ($V_{\text{cell}} = WD_{i,j} \cdot \Delta x^2$). 
 
-$$A_{cs} = WD^* \cdot \Delta x$$
+A dynamic scaling factor ($\alpha$) is computed to bound the cumulative theoretical outflows to the available storage, ensuring strictly conservative final outflows ($\Delta V_{\text{out}, k}$):
 
-Subsequently, the Theoretical Outflow Volume ($V_{theor}$) is derived using the displacement equation over the simulation time step 
-$\Delta t$:
+$$\alpha = \frac{\min\left(\sum_{k=1}^{8} \Delta V_{\text{theor}, k},\, V_{\text{cell}}\right)}{\sum_{k=1}^{8} \Delta V_{\text{theor}, k}} \quad \implies \quad \Delta V_{\text{out}, k} = \Delta V_{\text{theor}, k} \cdot \alpha$$
 
-$$V_{theor} = v_{approx} \cdot A_{cs} \cdot \Delta t$$
+The discrete mass balance equation then updates the water depth using these regulated outbound and inbound ($\Delta V_{\text{in}, k}$) volumes:
 
-This volumetric representation is the cornerstone of the model's mass conservation strategy. By computing $V_{theor}$ before the routing 
-phase, the engine ensures that the subsequent distribution of water to neighbors is based on finite physical quantities, preventing the 
-numerical "inflation" of water levels often found in simpler CA models.
+$$WD_{i,j}^{t+1} = WD_{i,j}^{t} - \left( \frac{\sum_{k=1}^{8} \Delta V_{\text{out}, k}}{\Delta x^2} \right) + \left( \frac{\sum_{k=1}^{8} \Delta V_{\text{in}, k}}{\Delta x^2} \right)$$
 
-\paragraph{D. Multiple Flow Direction (MFD) and Mass Balance}
+Finally, an epsilon floor filter ($\epsilon = 10^{-5}\text{ m}$) is applied to eliminate sub-threshold floating-point precision noise:
 
-In contrast to traditional Single Flow Direction (D8) models, this simulator implements a Multiple Flow Direction (MFD) algorithm. The 
-total outflow volume from a cell is distributed among all neighbors with a lower potential, weighting the amount of water sent to each 
-neighbor according to the magnitude of their respective gradients.
-
-The final mass balance for the surface water layer is governed by the following discrete differential equation:
-
-$$WD_{i,j}^{t+1} = {WD^*}_{i,j}^{t} + \left( \frac{\sum \Delta V_{in} - \sum \Delta V_{out}}{Area_{cell}} \right)$$
-
-To ensure numerical stability and prevent artificial oscillations (particularly in areas with steep slopes), the implementation includes 
-a precision filter ($\epsilon$) and a flow-limiting constraint: the total outflow can never exceed the volume of water physically 
-available in the cell during the current time step.
-
-\paragraph{E. Execution Shielding via Water Movement State}
-
-To maximize computational throughput, the evolution of the Water Movement State layer ($E_5$) acts as a dynamic gatekeeper. At the end 
-of each time step $t$, the state of a cell transitions between static and dynamic regimes based on a dry-tolerance threshold 
-($\delta_{dry}$) and neighborhood activity:
-
-$$WMS_{i,j}^{t+1} = \begin{cases} 
-\text{Dynamic}, & \text{if } \sum \Delta V_{out} > 0 \lor \sum \Delta V_{in} > 0 \\ 
-\text{Static}, & \text{otherwise} 
+$$WD_{i,j}^{t+1} = \begin{cases} 
+0.0, & \text{if } WD_{i,j}^{t+1} < \epsilon \\ 
+WD_{i,j}^{t+1}, & \text{otherwise} 
 \end{cases}$$
 
-Cells flagged as static are completely bypassed by the C++ execution engine in the subsequent iteration, preventing redundant tensor 
-operations in dry areas of the river basin.
+\paragraph{E. Dynamic Computational Shielding (Water Movement State)}
+
+At the closure of each temporal iteration, the automaton updates the dynamic states of the Water Movement State layer ($E_5$). The 
+activation state transitions between static and dynamic regimes based on a strict flow activity threshold:
+
+$$WMS_{i,j}^{t+1} = \begin{cases} 
+1 \, (\text{Dynamic}), & \text{if } \sum_{k=1}^{8} \Delta V_{\text{out}, k} > \epsilon \lor \sum_{k=1}^{8} \Delta V_{\text{in}, k} > \epsilon \\ 
+0 \, (\text{Static}), & \text{otherwise} 
+\end{cases}$$
+
+Cells that fall below this threshold are flagged as static, allowing the core execution loop to bypass their tensor state operations in 
+subsequent iterations, dramatically optimizing computational throughput over dry areas of the river basin.
 
 \paragraph{F. Real-Time Hazard Categorization}
 
-The final phase of the intra-layer loop updates the Flood Risk Level layer ($E_6$). This categorical state is determined via a discrete 
-transfer function $g$ applied to the newly computed water depth, mapping continuous physical dimensions into emergency management 
-indicators:
+The final phase of the intra-layer loop populates the Flood Risk Level layer ($E_6$). This categorical output layer maps the continuous 
+physical dimensions into emergency management metrics via a discrete heuristic transfer function $g$:
 
-$$FR_{i,j}^{t+1} = g(WD_{i,j}^{t+1})$$
+$$FR_{i,j}^{t+1} = g\left(WD_{i,j}^{t+1}\right)$$
 
-Where $g$ maps the depth to predefined risk intervals (e.g., Low, Medium, High, Severe Risk), ensuring that the cellular space outputs 
-action-ready spatial data at every interval $\Delta t$.
+Where $g$ categorizes the computed water depths into predefined hazard classes (e.g., Low, Medium, High, Severe Risk), generating 
+action-ready spatial indicators at every interval $\Delta t$.
 
 \subsubsection{Inter-layer Transitions: Vertical Propagation Dynamics}
 
-Inter-layer transitions govern the vertical interactions between the different information layers within a single cell $c_{i,j}$. 
-Unlike horizontal propagation, these processes are local to the cell's vertical column and represent the exchange of mass and 
-properties between the atmospheric, surface, and sub-surface layers.
+Inter-layer transitions govern the vertical, localized interactions between different information layers within a single cell column 
+$c_{i,j}$.
 
-\paragraph{A. Precipitation Injection (Atmosphere-to-Surface)}
+\paragraph{A. Atmospheric Flux Integration (Precipitation Injection)}
 
-The primary driver of the simulation, particularly in the context of the Valencia DANA, is the localized and intense rainfall. In the 
-$m:n-CA^k$ framework, precipitation is treated as a dynamic input layer $P$ that contributes directly to the water depth layer ($WD$).
+The primary hydrological driver of the simulation consists of localized, high-intensity meteoric events. Within the $m:n-CA^k$ algebraic 
+framework, precipitation is structured as a decoupled vertical flux that injects discrete water volumes directly into the Water Depth 
+layer ($E_3$) prior to horizontal routing:
 
-For each simulation step $\Delta t$, the water depth is updated to account for the incoming volume:
+$$WD_{i,j}^{*} = WD_{i,j}^{t} + \left( R_{i,j}^{t} \cdot \Delta t \right)$$
 
-$${WD^*}_{i,j}^{t} = WD_{i,j}^{t} + \left( R_{i,j}^{t} \cdot \Delta t \right)$$
+Where $R_{i,j}^{t}$ represents the rainfall intensity ($m/s$) extracted from the spatiotemporal 3D Rainfall tensor ($E_4$) at time $t$.
 
-Where $R_{i,j}^{t}$ represents the rainfall intensity ($mm/h$ converted to $m/s$) at that specific coordinate.
+\paragraph{B. Discrete-to-Continuous Physical Parameterization (Roughness Generation)}
 
-\paragraph{B. Land Cover to Surface Roughness Generation}
+During initialization ($t=0$), categorical land cover data is transformed into a continuous physical boundary by mapping the Land Cover layer onto the persistent Surface Roughness layer ($E_2$) via a tensorial Lookup Table (LUT):
 
-A critical inter-layer process in the proposed model is the transformation of discrete geospatial data into continuous physical parameters 
-during the initialization phase ($t=0$). The external Land Cover layer acts as a descriptor for the surface properties, which is mapped 
-onto the persistent Surface Roughness layer ($E_2$) via a Lookup Table (LUT):
+$$\forall c_{i,j} \in R \implies E_{2(i,j)} = \text{LUT}\left(\mathcal{L}_{\text{LandCover}}(i,j)\right)$$
 
-$$\forall c_{i,j} \in R \implies E_{2(i,j)} = \text{LUT}(\mathcal{L}_{LandCover}(i,j))$$
-
-This structural transition ensures that once the simulation loop starts, the raw Land Cover layer can be purged from memory. When the 
-intra-layer propagation logic (Manning’s Equation) is executed, it directly queries $E_2$, capturing the hydraulic complexity of the 
-Valencian metropolitan area by recognizing that water moves slower through the dense urban streets of Paiporta compared to the smooth 
-paved surfaces of the V-31 highway.
+This transformation allows the engine to purge raw land cover data post-initialization. During runtime, the propagation logic directly queries this continuous Manning's layer $E_2$ via parallel tensor gathers, efficiently capturing varying flow resistances across urban districts and transport infrastructure.
 
 
 
 \section{Software Architecture: The Hexagonal Approach}
 \label{sec:hexagonal-methodology}
 
-One big problem in computing is that the physical models are really closely tied to the underlying infrastructure. This includes things 
-like the formats we use to store data, the ways that computers talk to each other and the special libraries that are made for types of 
-hardware. In a lot of hydraulic simulators the rules for how things change are all mixed up with the code that reads specific types of 
-files like GeoTIFF or CSV files. This makes it really hard to keep the system running test it or make changes to it.
-
-To get around these problems, this research uses the Hexagonal Architecture or the Ports and Adapters pattern. The main goal is to keep 
-the Simulation Core separate from other things that might affect it. By making a line between the "domain logic”, which is just the 
-physics of how floods work; and the "infrastructure”, which is how we get and send data. The simulator becomes a highly flexible and 
-technologically agnostic engine.
-
-This way of designing the system is especially important, for a Reactive Digital Twin. It lets the system switch from reading data from 
-HDF5 files to getting real-time data from MQTT rainfall streams without changing any of the code that controls how the hydraulic system 
-changes. The hydraulic Simulation Core stays the same.
-
+A common vulnerability in hydraulic simulators is the tight coupling between physical models and their underlying computational infrastructure (e.g., geospatial file parsers, communication protocols, hardware libraries). To eliminate these dependencies, this framework adopts a Hexagonal Architecture (Ports and Adapters pattern), isolating the pure domain physics of the flood from external data ingestion and transmission mechanisms. This strict decoupling is essential for a Reactive Digital Twin, allowing the system to seamlessly switch from offline HDF5 file parsing to real-time MQTT rainfall streams without modifying a single line of the core hydrodynamic routing code.
 
 \subsection{Core vs. Infrastructure}
 
-The Hexagonal design divides the system into two distinct regions: the Inside (The Core) and the Outside (The Infrastructure). The 
-fundamental constraint governing this architecture is the Dependency Rule, which states that dependencies must always point inwards 
-toward the Core.
+The Hexagonal design divides the platform into two distinct regions governed by an inward-pointing dependency rule: dependencies must always target the core domain logic, leaving the computational core completely unaware of external technical implementations.
 
 \paragraph{A. The Core (The "Inside")}
-
-The Core represents the "Hexagon" itself. It contains the pure business and scientific logic of the project. In this thesis, the Core 
-is composed of:
-
+The Core contains the pure scientific and operational logic of the simulation framework:
 \begin{itemize}
-    \item \textbf{The $m:n-CA^k$ Engine}: The implementation of the transition functions (Manning’s equation, MFD algorithm) as defined in Section 3.1.
-
-    \item \textbf{The Domain Model}: The tensorial representation of the grid, cell states, and hydraulic parameters.
-
-    \item \textbf{Application Services}: Orchestrators that handle the simulation loop and time-step synchronization.
+    \item \textbf{The $m:n\text{-CA}^k$ Engine}: Implements the discrete transition functions (e.g., Manning's equations, MFD routing).
+    \item \textbf{The Domain Model}: Defines the multi-layered tensorial representation of the grid, cell states, and hydraulic attributes.
+    \item \textbf{Application Services}: Orchestrates the execution of the main simulation loop and temporal synchronization.
 \end{itemize}
-
-The Core has no knowledge of the outside world. It does not know if the data comes from a local disk or a cloud-based broker; it simply 
-defines the interfaces it needs to operate.
 
 \paragraph{B. The Infrastructure (The "Outside")}
-
-The Infrastructure consists of everything that interacts with the Core. It is responsible for the "technical details" that the 
-Core ignores. This includes:
-
+The Infrastructure encapsulates all technical details and external dependencies required to support the Core:
 \begin{itemize}
-    \item \textbf{Data Sources}: File I/O drivers, spatial data parsers, and static storage handlers.
-
-    \item \textbf{State Computation}: Hardware-accelerated execution engines for tensor-based matrix operations.
-
-    \item \textbf{Communication}: Network protocols for real-time telemetry and data serialization mechanisms for external visualization.
+    \item \textbf{Data Ingestion}: Handles file I/O operations, static storage, and geospatial data parsing (e.g., DEMs).
+    \item \textbf{Computation Backends}: Manages hardware-accelerated execution graphs for tensor matrix operations.
+    \item \textbf{Telemetry and Messaging}: Implements network protocols (MQTT) and data serialization for real-time visualization.
 \end{itemize}
-
-By segregating these concerns, we ensure that technological obsolescence in the infrastructure (e.g., a protocol update or a 
-change in GIS standards) does not compromise the scientific validity of the simulation engine.
-
-
-\subsection{Technical Advantage: Testability and Mocking}
-
-A significant advantage of this specification is the ability to perform Unit Testing on the hydraulic logic. Because the Core is 
-decoupled from the hardware and files, we can create "Mock Adapters" that feed the Core with pre-defined, small-scale tensors to 
-verify the mathematical correctness of the $m:n-CA^k$ transitions without needing a full GIS environment or an active MQTT broker.
+This architectural segregation ensures that technological evolution or shifts in GIS standards within the infrastructure layer do not compromise the scientific validity of the simulation engine.
 
 
 
 \section{Distributed Communication Model (MQTT)}
 \label{sec:distributed_communication_model}
 
-The operational effectiveness of a real-time pluvial flood emergency system depends not only on the mathematical precision of its 
-calculation engine but also on the latency, throughput, and reliability of its data delivery infrastructure. To bridge the gap 
-between the high-performance computational core and remote visualization or decision-support clients, the analytical framework 
-incorporates a distributed telemetry layer governed by the Message Queuing Telemetry Transport (MQTT) protocol. This lightweight, 
-publish-subscribe, machine-to-machine (M2M) communication standard is explicitly selected to facilitate low-overhead, asynchronous 
-data dissemination over potentially unstable networks, matching the strict telemetry requirements dictated during extreme weather 
-crises such as the 2024 Valencia DANA event.
-
+Real-time flood forecasting demands low-latency, reliable data delivery alongside high mathematical precision. To bridge the computational core with remote visualization and decision-support clients, the framework integrates a distributed telemetry layer governed by the Message Queuing Telemetry Transport (MQTT) protocol. This lightweight, asynchronous publish-subscribe standard minimizes computational overhead and ensures reliable data dissemination over unstable networks during crisis events like the 2024 Valencia DANA.
 
 \subsection{Decoupling Strategy: Publisher-Subscriber Paradigm}
 \label{subsec:decoupling_strategy}
 
-To guarantee that the rigorous computational cycles of the core simulation engine are never throttled or bottlenecked by slower 
-external network loops or hardware-constrained rendering clients, the communication layer relies strictly on the Publisher-Subscriber 
-pattern. This pattern enforces an absolute architectural separation between the simulation engine (the "Model") and the remote 
-monitoring applications (the "View"). This structural decoupling operates across three primary dimensions:
+To prevent network latency or client-side rendering bottlenecks from throttling the core execution engine, the communication architecture enforces strict decoupling between the engine (Publisher) and remote clients (Subscribers) across three operational dimensions:
 
 \begin{itemize}
-    \item \textbf{Spatial and Identity Anonymity}: The simulation core functions as an isolated data publisher, remaining completely 
-    agnostic of the network topology, geographical locations, or total count of downstream consumers. This allows multiple heterogeneous 
-    entities—ranging from municipal emergency centers to regional civil protection dashboards—to dynamically attach to the live 
-    telemetry stream concurrently without imposing any additional memory or computational burden on the core engine execution thread.
+    \item \textbf{Spatial and Identity Anonymity}: The simulation core functions as an isolated data publisher, remaining completely agnostic of downstream network topologies or consumer counts. This allows multiple external entities to connect dynamically without adding memory or computational overhead to the main execution thread.
     
-    \item \textbf{Temporal Decoupling}: The computational execution of hydraulic time steps remains entirely independent of the 
-    consumption or ingestion rates of remote clients. If a network disturbance occurs or if a visualization system experiences 
-    local rendering lag, the intermediate message broker acts as an independent buffer. This isolates the simulator from client 
-    performance drops and preserves real-time simulation guarantees.
+    \item \textbf{Temporal Decoupling}: Hydraulic execution remains independent of client consumption rates. Network disturbances or rendering lag are buffered by an intermediate message broker, isolating the simulator and preserving real-time performance guarantees.
     
-    \item \textbf{Functional Isolation}: By abstracting network interfaces into pure outward-facing data ports, the physical and 
-    mathematical formalization of cell state transitions remains completely unpolluted by protocol-specific constraints, transport 
-    framing routines, or session management policies.
+    \item \textbf{Functional Isolation}: Abstracting network interfaces into outbound data ports ensures that the core physical and mathematical cell state transitions remain unpolluted by transport protocols or session management policies.
 \end{itemize}
-
 
 \subsection{Formal State Distribution Channels and Topic Hierarchy}
 \label{subsec:topic_hierarchy}
 
-To formalize the interaction between the discrete simulation space and external virtual or visualization environments, the communication 
-framework maps core state transitions into structured, event-driven telemetry channels. This systematic classification draws directly 
-upon the distributed simulation paradigms established by \cite{FonsecaICasas2013}, where a clear separation is maintained between behavioral 
-model execution, experimental parameters, and the graphical representation of entities across distinct logical pathways. Under this formal 
-language framework, simulation events are formalized into explicit, independent signals routed through a strictly hierarchical, isolated 
-namespace.
-
-To support concurrent multi-scenario emergency evaluations within a unified distributed cluster, the hierarchy roots its namespace in a 
-unique scenario identifier. Information is then segregated into three functional categories based on its operational lifecycle and 
-transmission frequency:
+Following the distributed simulation paradigms established by \cite{FonsecaICasas2013}, state transitions are mapped into structured, event-driven telemetry channels to isolate behavioral model execution from graphical representation. Rooted in a unique scenario identifier, the MQTT topic namespace is segregated into three functional pathways based on transmission lifecycle:
 
 \begin{itemize}
-    \item \textbf{Lifecycle and Peer Discovery Channel} (\texttt{FloodSim/\{scenarioName\}/system/handshake}): This low-frequency 
-    administrative channel manages the operational readiness of the distributed node network. It is exclusively reserved for initial 
-    peer handshakes, entity discovery, client capability negotiations, and mutual connection verification before simulation initialization.
+    \item \textbf{Lifecycle and Peer Discovery} (\texttt{FloodSim/\{scenarioName\}/system \\ /handshake}): A low-frequency administrative channel managing operational readiness, peer handshakes, and capability negotiations prior to initialization.
     
-    \item \textbf{Structural and Physical State Broadcast Channel} (\texttt{FloodSim/\{scenarioName\}/events}): This high-traffic channel 
-    serves as the primary data pipeline for the system. It handles a dual-phase transmission schema: (i) an initial, structural setup 
-    phase that broadcasts the domain's geographical boundaries, cell resolutions, and spatial matrix frameworks; and (ii) a continuous 
-    execution phase that broadcasts the dynamic, high-velocity distribution of water depths and computed hazard classification levels 
-    across the simulation grid.
+    \item \textbf{Structural and Physical State Broadcast} (\texttt{FloodSim/\{scenarioName\} \\ /events}): The primary high-traffic data pipeline handling an initial setup phase (broadcasting domain boundaries and matrix resolutions) followed by a continuous execution phase (broadcasting dynamic water depths and hazard levels).
     
-    \item \textbf{Bi-directional Control and Orchestration Channel} (\texttt{FloodSim/\{scenarioName\}/control/} \\ \texttt{events}): This channel 
-    provides an out-of-band feedback loop from the consumers back to the simulation coordinator. It handles upstream control commands, 
-    backpressure metrics, and frame-level reception acknowledgments, enabling active flow control between distributed computing nodes.
+    \item \textbf{Bi-directional Control and Orchestration} (\texttt{FloodSim/\{scenarioName\} \\ /control/events}): An out-of-band feedback loop receiving upstream commands, backpressure metrics, and frame acknowledgments to maintain active flow control between distributed computing nodes.
 \end{itemize}
 
 \subsection{Differential State Framing and Temporal Synchronization Protocol}
 \label{subsec:temporal_synchronization}
 
-Disseminating high-resolution simulation grids across a distributed network introduces significant bandwidth and state-coherency 
-challenges. To address these limitations theoretically, the methodology replaces full-state data sweeps with a 
-\textit{Differential State Update} philosophy. 
-
-Instead of broadcasting the entire cellular matrix during each time step—which would saturate network capacity—the system isolates and 
-transmits only the delta changes (i.e., cells whose hydraulic properties have drifted beyond a predefined physical tolerance). To 
-maintain an helical, chronologically coherent state machine across remote visualizers, the telemetry stream follows a strict four-phase 
-orchestration sequence for every simulation step $t$:
+To mitigate bandwidth constraints over distributed networks, the framework replaces full-state data sweeps with a \textit{Differential State Update} approach, transmitting only the cell deltas that drift beyond a predefined physical tolerance. For each simulation step $t$, chronological state coherency across remote visualizers is maintained via a strict four-phase orchestration sequence:
 
 \begin{enumerate}
-    \item \textbf{Frame Initialization Phase}: An outbound control boundary signal is emitted to declare the onset of a new temporal 
-    frame, specifying the total volume of discrete data sub-packets that constitute the upcoming state update.
+    \item \textbf{Frame Initialization}: Emits a control boundary signal declaring the onset of a new temporal frame and the total volume of upcoming discrete sub-packets.
     
-    \item \textbf{State Modification Phase}: The actual physical updates are dispersed across the network in decoupled, bounded streams, 
-    carrying the differential cell coordinates, localized fluid depths, and risk levels.
+    \item \textbf{State Modification}: Disperses the physical updates across the network, carrying differential cell coordinates, localized fluid depths, and risk levels.
     
-    \item \textbf{Frame Termination Phase}: A boundary closure signal is transmitted, notifying the remote visualization engine that all 
-    differential updates for time step $t$ have been successfully delivered and that the local scene graph can be safely refreshed.
+    \item \textbf{Frame Termination}: Transmits a closure signal notifying visualizers that all differential updates for step $t$ have been delivered, safely triggering a scene graph refresh.
     
-    \item \textbf{Temporal Synchronization Phase}: A final synchronization heartbeat maps the internal simulated execution clock to the 
-    external rendering time base. This operational sequence prevents visual artifacts, such as partial frame rendering or temporal 
-    drifting, ensuring that all distributed nodes maintain a logically consistent and identical view of the unfolding disaster.
+    \item \textbf{Temporal Synchronization}: Executes a synchronization heartbeat mapping the internal execution clock to the external rendering time base, preventing visual artifacts and temporal drift across nodes.
 \end{enumerate}
 
 
@@ -405,85 +280,47 @@ into tensors to enable vectorized computation.
 \subsection{The Hierarchical Spatiotemporal Framework}
 \label{subsec:hierarchical_spatiotemporal_framework}
 
-To effectively manage dynamic environmental boundaries—such as high-velocity, time-varying pluvial rainfall fields—without introducing 
-the architectural overhead and heavy runtime dependencies of complex binary database containers (e.g., HDF5 or NetCDF), the analytical 
-engine establishes a customized, decoupled storage convention termed the Hierarchical IDRISI Format (HIF). This format is conceived as 
-a structured, lightweight specification designed to emulate three-dimensional (3D) spatiotemporal data cubes using native 
-two-dimensional (2D) GIS raster matrices as its fundamental computational building blocks.
+To manage high-velocity, time-varying pluvial rainfall fields without the computational overhead of heavy binary database containers (e.g., HDF5 or NetCDF), the analytical engine establishes a lightweight storage specification termed the Hierarchical IDRISI Format (HIF). This format emulates three-dimensional (3D) spatiotemporal data cubes using native two-dimensional (2D) GIS raster matrices as fundamental building blocks.
 
 \subsubsection{Conceptual Abstraction and Volumetric Representation}
 \label{subsub:conceptual_abstraction}
 
-From a conceptual perspective, the framework characterizes continuous temporal phenomena as a discrete chronological sequence of 
-independent spatial states. Let a continuous spatiotemporal variable $\mathcal{F}(x, y, t)$ be discretized over a spatial grid of 
-dimensions $N_x \times N_y$ and a total simulated duration divided into $T$ discrete intervals. The HIF architecture represents this 
-3D data volume not as a monolithic binary block, but as an ordered set of isolated 2D tensor slices:
+The framework discretizes a continuous spatiotemporal variable $\mathcal{F}(x, y, t)$ over an $N_x \times N_y$ spatial grid across $T$ discrete intervals. The HIF architecture structures this 3D volume as an ordered set of isolated 2D tensor slices:
 
 \begin{equation}
     \mathcal{F} = \{ \mathbf{M}_1, \mathbf{M}_2, \dots, \mathbf{M}_t, \dots, \mathbf{M}_T \}
 \end{equation}
 
-where each matrix $\mathbf{M}_t \in \mathbb{R}^{N_x \times N_y}$ encapsulates the spatial distribution of the environmental variable at 
-the exact discrete time-step $t$.
+where each matrix $\mathbf{M}_t \in \mathbb{R}^{N_x \times N_y}$ represents the spatial state at time-step $t$. 
 
-This structural formalization directly enables a \textit{lazy loading} paradigm within the execution loop. Instead of allocating massive, 
-contiguous memory buffers to hold the entire lifetime of the historical or predictive dataset prior to simulation initialization, the core 
-execution engine isolates and ingests only the specific spatial frame $\mathbf{M}_t$ strictly required for the active hydraulic time-step 
-computation. Consequently, the memory footprint of the simulator scales independently of the total duration ($T$) of the meteorological 
-event, satisfying the strict hardware-boundary constraints dictated by real-time crisis deployment scenarios.
+This enables a \textsl{lazy loading} paradigm: the engine ingests only the frame $\mathbf{M}_t$ required for the active hydraulic step rather than pre-allocating memory for the entire timeline. Consequently, the memory footprint scales independently of the total duration $T$, satisfying the hardware constraints of real-time deployment.
 
 \subsubsection{Components of the Spatiotemporal Dataset}
 
-The framework conceptualizes high-dimensional temporal datasets through three primary logical layers:
+The framework organizes high-dimensional temporal datasets into three logical layers:
 
-\begin{enumerate}
-    \item \textbf{Global Spatial Descriptor}: A master metadata element defining the unified coordinate reference system, spatial 
-    boundaries, and spatial resolution.
-
-    \item \textbf{Temporal Attribute Manifest}: An orchestrated index mapping discrete simulation time-steps to structural metadata, 
-    containing temporal downscaling factors and chronological timestamps.
-
-    \item \textbf{Temporal Frame Repository}: A contiguous collection of localized raw matrix snapshots, where each element encapsulates 
-    the spatial state variables of a single independent time-step.
-\end{enumerate}
+\begin{itemize}
+    \item \textbf{Global Spatial Descriptor}: Metadata defining the unified coordinate reference system, boundaries, and resolution.
+    \item \textbf{Temporal Attribute Manifest}: An indexed map linking discrete simulation steps to timestamps and temporal downscaling factors.
+    \item \textbf{Temporal Frame Repository}: A contiguous collection of raw matrix snapshots capturing the spatial state variables per time-step.
+\end{itemize}
 
 \subsubsection{Chronological Event Synchronization and Spatial Downgrading}
 \label{subsub:chronological_synchronization}
 
-Environmental boundary conditions within real-time pluvial flood dynamics present heterogeneous temporal lifecycles. While physical domain 
-attributes remain strictly static, boundary forcing fields such as precipitation exhibit dynamic, non-uniform state changes. To align these 
-scales without enforcing rigid, fixed-step simulation intervals, the framework establishes a decoupling mechanism governed by a 
-timestamp-driven chronological validation loop.
-
-Let the active state of the simulation clock be represented as a continuous time point $t \in \mathcal{T}$. A dynamic environmental layer 
-$\mathcal{F}$ maps its state transitions to an ordered vector of explicit historical or predictive timestamps:
-
-\begin{equation}
-    \mathcal{T}_{\text{layers}} = \{ \tau_0, \tau_1, \dots, \tau_k, \dots, \tau_K \}
-\end{equation}
-
-The execution engine evaluates the temporal validity window at every integration increment. An ingestion event is triggered to advance the 
-current spatial configuration from frame $k$ to $k+1$ if and only if the active simulation time passes the next chronological threshold:
+To align static physical domain attributes with dynamic boundary forcing fields (e.g., precipitation) without enforcing rigid simulation intervals, the framework uses a timestamp-driven validation loop. A dynamic environmental layer maps its state transitions to an ordered vector of timestamps $\mathcal{T}_{\text{layers}} = \{ \tau_0, \tau_1, \dots, \tau_K \}$. A frame update from $k$ to $k+1$ is triggered when the integration clock $t$ crosses the chronological threshold:
 
 \begin{equation}
     t \ge \tau_{k+1}
 \end{equation}
 
-Furthermore, environmental forcing inputs frequently operate at a coarser spatial resolution than the high-fidelity computational grid 
-designated for hydraulic routing. To bridge this spatial gap without generating runtime memory allocation overhead, the methodology 
-incorporates a programmatic \textsl{spatial downgrading mapping}. 
-
-Let a cell in the fine-resolution simulation grid be indexed by its matrix coordinates $(r, c)$, and let the coarse input dataset possess a 
-spatial resolution scaled down by an integer factor $\gamma$. The framework defines a discrete spatial projection mapping 
-$\mathcal{P}: \mathbb{N}^2 \rightarrow \mathbb{N}^2$ such that:
+Additionally, when input datasets operate at a coarser resolution than the computational grid by an integer scaling factor $\gamma$, the framework applies a spatial downgrading mapping $\mathcal{P}: \mathbb{N}^2 \rightarrow \mathbb{N}^2$:
 
 \begin{equation}
     \mathcal{P}(r, c) = \left( \lfloor r / \gamma \rfloor, \, \lfloor c / \gamma \rfloor \right)
 \end{equation}
 
-Whenever a temporal frame update is approved, the system executes a direct cell-by-cell coordinate projection. If $\gamma = 1$, a 
-direct 1:1 state transformation is applied. If $\gamma > 1$, the engine streams the coarse spatial matrix into an intermediate resampled 
-buffer before mapping the forcing coefficients onto the active high-resolution simulation tensor, ensuring deterministic spatial alignment.
+Upon a temporal frame update, the engine executes this cell-by-cell coordinate projection—utilizing an intermediate resampled buffer if $\gamma > 1$—to ensure deterministic spatial alignment without runtime memory overhead.
 
 
 \subsection{The GIS-to-Tensor Pipeline: From Rasters to Multi-Channel Cubes}
@@ -532,7 +369,7 @@ provisioning of the physical parameters required by the hydraulic model.
 
 The primary methodological objective is to decouple data acquisition from the underlying simulation logic. By isolating the data ingest 
 mechanics, the system guarantees that variations in external data sources or file formats do not compromise the mathematical stability of 
-the simulation engine. This framework is structured upon three fundamental pillars:
+the simulation engine. This framework is structured upon three fundamental pillars (Figure \ref{fig:high-level_system_context}):
 
 \begin{enumerate}
     \item \textbf{Spatial Integrity}: Ensuring that spatial coordinate reference systems, geometric extents, and resolutions remain 
@@ -611,13 +448,6 @@ convergence. This validation is modeled using Graph Theory principles:
     secondary layers (e.g., roughness, rainfall) are validated, resampled, and clipped against this reference to guarantee exact overlap 
     in Coordinate Reference System (CRS), pixel resolution, and bounding boxes.
 \end{itemize}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.7\textwidth]{chapter_3/layer_dependencies}
-    \caption{Layer Dependencies and Graph-Based Validation Flow}
-    \label{fig:layer_dependencies}
-\end{figure}
 
 \paragraph{C. Sequential Execution}
 
