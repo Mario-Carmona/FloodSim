@@ -120,7 +120,7 @@ public:
         ports::InputPort* main_input_source,
         const std::unordered_map<std::string, ports::InputPort*>& layers_alternative_input_source,
         const std::unordered_map<std::string, std::string>& scalars_config,
-        std::chrono::seconds time_step,
+        std::chrono::duration<double> time_step,
         std::chrono::system_clock::time_point current_time);
 
     /**
@@ -299,6 +299,13 @@ public:
      * @return The transformed point.
      */
     [[nodiscard]] config::ViewBox::Point TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const;
+
+    /**
+     * @brief Sets the metadata for the grid map.
+     *
+     * @param metadata The metadata to set.
+     */
+    void SetMetadata(const GridMetadata& metadata) { metadata_ = metadata; }
 
 private:
     std::unordered_map<std::string, std::unique_ptr<layers::LayerBase>> layers_;   ///< Storage for all spatial layers.

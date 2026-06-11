@@ -17,6 +17,7 @@
 #include <fmt/core.h>
 
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::io::readers::file {
 
@@ -44,7 +45,7 @@ void IdrisiReader::ReadData(std::vector<T>& data) const {
     // We use `ios::binary` and `ios::ate` to get the exact size without line break translations
     std::ifstream file(img_file, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "Failed to open data file: {}", img_file.string()));
     }
 
@@ -54,7 +55,7 @@ void IdrisiReader::ReadData(std::vector<T>& data) const {
 
     std::string file_buffer(size, '\0');
     if (!file.read(file_buffer.data(), size)) {
-        throw std::runtime_error("Error reading file into memory buffer.");
+        throw floodsim::app::exception::FloodSimException("Error reading file into memory buffer.");
     }
     file.close();  // We'll release the album right away
 
@@ -70,7 +71,7 @@ void IdrisiReader::ReadData(std::vector<T>& data) const {
 
         // If we reach the end of the buffer before filling the vector, the file is incomplete
         if (ptr == end) {
-            throw std::runtime_error(fmt::format(
+            throw floodsim::app::exception::FloodSimException(fmt::format(
                 "Missing data in file. Expected: {}, Found: {}", data.size(), i));
         }
 
@@ -78,7 +79,7 @@ void IdrisiReader::ReadData(std::vector<T>& data) const {
         auto result = std::from_chars(ptr, end, data[i]);
 
         if (result.ec != std::errc()) {
-            throw std::runtime_error(fmt::format("Format error reading cell {}", i));
+            throw floodsim::app::exception::FloodSimException(fmt::format("Format error reading cell {}", i));
         }
 
         // Move the cursor right to the end of the number we just read
@@ -91,7 +92,7 @@ core::grid::GridMetadata IdrisiReader::ReadMetadata() const {
 
     std::ifstream file(doc_file);
     if (!file.is_open()) {
-        throw std::runtime_error(fmt::format(
+        throw floodsim::app::exception::FloodSimException(fmt::format(
             "Failed to open metadata file: {}", doc_file.string()));
     }
 

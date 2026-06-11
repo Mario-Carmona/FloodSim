@@ -15,6 +15,7 @@
 #include <GeographicLib/UTMUPS.hpp>
 
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::core::grid {
 
@@ -22,7 +23,7 @@ void MapGrid::Load(const ModelParamsInfo& params_info,
                    ports::InputPort* main_input_source,
                    const std::unordered_map<std::string, ports::InputPort*>& layers_alternative_input_source,
                    const std::unordered_map<std::string, std::string>& scalars_config,
-                   std::chrono::seconds time_step,
+                   std::chrono::duration<double> time_step,
                    std::chrono::system_clock::time_point current_time) {
 
     LOG_INFO("Loading simulation layers...");
@@ -109,8 +110,9 @@ void MapGrid::Load(const ModelParamsInfo& params_info,
 void MapGrid::UpdateDynamicLayers(std::chrono::system_clock::time_point current_time) {
     for (const auto& [name, layer] : layers_) {
         if (!layer->IsStatic()) {
-            layer->Update(current_time);
-            NormalizeUnits(name);
+            if (layer->Update(current_time)) {
+                NormalizeUnits(name);
+            }
         }
     }
 }
@@ -186,7 +188,7 @@ std::optional<UTMZoneInfo> MapGrid::ParseUTMZoneFromEPSG(const std::string& epsg
 GridViewBox::Point MapGrid::TransformViewPoint(config::ViewBox::Point source_point, const std::string& target_crs) const {
     auto utm_info = ParseUTMZoneFromEPSG(target_crs);
     if (!utm_info.has_value()) {
-        throw std::runtime_error("MapGrid: Destination CRS (" + target_crs + ") is not a mathematically supported UTM system.");
+        throw floodsim::app::exception::FloodSimException("MapGrid: Destination CRS (" + target_crs + ") is not a mathematically supported UTM system.");
     }
 
     int computed_zone;
@@ -204,10 +206,10 @@ GridViewBox::Point MapGrid::TransformViewPoint(config::ViewBox::Point source_poi
         if (computed_northp != utm_info->is_north) {
             // Note: In some boundary cases (near the equator) this could be relaxed,
             // but strictly speaking, if the EPSG requires North and it falls South, there is a discrepancy.
-            throw std::runtime_error("MapGrid: Coordinates fall in the wrong hemisphere for this EPSG projection.");
+            throw floodsim::app::exception::FloodSimException("MapGrid: Coordinates fall in the wrong hemisphere for this EPSG projection.");
         }
     } catch (const GeographicLib::GeographicErr& e) {
-        throw std::runtime_error(std::string("GeographicLib Error: ") + e.what());
+        throw floodsim::app::exception::FloodSimException(std::string("GeographicLib Error: ") + e.what());
     }
 
     return grid_view_point;
@@ -216,7 +218,7 @@ GridViewBox::Point MapGrid::TransformViewPoint(config::ViewBox::Point source_poi
 config::ViewBox::Point MapGrid::TransformGridViewPoint(GridViewBox::Point source_point, const std::string& target_crs) const {
     auto utm_info = ParseUTMZoneFromEPSG(target_crs);
     if (!utm_info.has_value()) {
-        throw std::runtime_error("MapGrid: Destination CRS (" + target_crs + ") is not a mathematically supported UTM system.");
+        throw floodsim::app::exception::FloodSimException("MapGrid: Destination CRS (" + target_crs + ") is not a mathematically supported UTM system.");
     }
 
     config::ViewBox::Point view_point;
@@ -228,7 +230,7 @@ config::ViewBox::Point MapGrid::TransformGridViewPoint(GridViewBox::Point source
             view_point.lat, view_point.lon);
     }
     catch (const GeographicLib::GeographicErr& e) {
-        throw std::runtime_error(std::string("GeographicLib Error: ") + e.what());
+        throw floodsim::app::exception::FloodSimException(std::string("GeographicLib Error: ") + e.what());
     }
 
     return view_point;

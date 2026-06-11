@@ -25,7 +25,7 @@ public:
      * @param format Requested static file format.
      * @param data_filename Name of the output data file.
      * @return A std::unique_ptr pointing to the created StaticWriter.
-     * @throws std::runtime_error If the requested format is unsupported.
+     * @throws floodsim::app::exception::FloodSimException If the requested format is unsupported.
      */
     static std::unique_ptr<StaticWriter> Create(
         const formats::file::FileStaticFormat& format, const std::string& data_filename);

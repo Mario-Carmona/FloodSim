@@ -57,7 +57,7 @@ public:
      * @param flood_risk_levels Array mapping water height to risk categories.
      * @param model_path Path to the trained .onnx network file.
      * @param tensor_dim Square spatial dimension size for the model tensors.
-     * @throws std::runtime_error If the ONNX session fails to initialize.
+     * @throws floodsim::app::exception::FloodSimException If the ONNX session fails to initialize.
      */
     explicit OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
         const std::vector<config::FloodRiskLevel>& flood_risk_levels,

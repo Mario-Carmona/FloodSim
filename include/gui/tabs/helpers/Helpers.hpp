@@ -231,4 +231,12 @@ void DatePicker(const char* label, std::chrono::sys_seconds& date, const char* t
  */
 void TimePicker(const char* label, std::chrono::seconds& time, const char* tooltip = nullptr);
 
+/**
+ * @brief Selects ONLY the Time (maintains internal date intact) supporting fractional seconds.
+ * @param label The identifier and display name of the widget.
+ * @param time The chrono duration to modify.
+ * @param tooltip Optional tooltip displayed on hover.
+ */
+void FractionalTimePicker(const char* label, std::chrono::duration<double>& time, const char* tooltip = nullptr);
+
 }  // namespace floodsim::gui

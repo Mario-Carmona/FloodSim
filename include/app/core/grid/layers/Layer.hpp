@@ -213,8 +213,10 @@ public:
 	 * This may trigger reading new data chunks from the configured `Reader` if the layer is dynamic.
 	 *
 	 * @param current_time The current simulation clock time.
+	 * 
+	 * @return true if the layer's data was updated, false if no changes were made (e.g., for static layers).
 	 */
-	virtual void Update(std::chrono::system_clock::time_point current_time) = 0;
+	virtual bool Update(std::chrono::system_clock::time_point current_time) = 0;
 };
 
 /**

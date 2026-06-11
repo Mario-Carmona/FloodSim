@@ -103,7 +103,7 @@ public:
      * @return std::pair A pair containing the simulation data and an RAII safety guard.
      */
     std::pair<std::pair<const Snapshot&, const ChangeList&>, std::unique_ptr<SnapshotReadGuard>>
-        WaitForSnapshot(std::chrono::system_clock::time_point last_step);
+        WaitForSnapshot(sys_time_double last_step);
         
     /**
      * @brief Signals the manager to stop operations and unblocks waiting threads.

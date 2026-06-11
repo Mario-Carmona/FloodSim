@@ -193,7 +193,7 @@ struct SimulationConfig {
     /** @brief The timestamp for the start of the simulation. */
     std::chrono::sys_seconds start_timestamp;
     /** @brief The delta time between simulation steps in seconds. */
-    std::chrono::seconds time_step;
+    std::chrono::duration<double> time_step;
     /** @brief The total duration of the simulation in seconds. */
     std::chrono::seconds duration;
     /** @brief The geographical bounding box for the simulation view. */

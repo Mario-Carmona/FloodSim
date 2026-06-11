@@ -140,6 +140,40 @@ bool RenderTimePickerUI(int& hour, int& minute, int& second, bool& is_hovered) {
     return changed;
 }
 
+/**
+ * @brief Renders the Time Picker UI components supporting fractional seconds.
+ * @return True if any value was modified by the user.
+ */
+bool RenderFractionalTimePickerUI(int& hour, int& minute, double& second, bool& is_hovered) {
+    bool changed = false;
+    const float kTimeUnitWidth = 40.0f;
+    const float kFractionalUnitWidth = 75.0f;
+
+    ImGui::SetNextItemWidth(kTimeUnitWidth);
+    if (ImGui::DragInt("##Hour", &hour, 0.2f, 0, 23, "%02d")) changed = true;
+    is_hovered |= ImGui::IsItemHovered();
+
+    ImGui::SameLine(0, 4.0f);
+    ImGui::Text(":");
+    ImGui::SameLine(0, 4.0f);
+
+    ImGui::SetNextItemWidth(kTimeUnitWidth);
+    if (ImGui::DragInt("##Minute", &minute, 0.2f, 0, 59, "%02d")) changed = true;
+    is_hovered |= ImGui::IsItemHovered();
+
+    ImGui::SameLine(0, 4.0f);
+    ImGui::Text(":");
+    ImGui::SameLine(0, 4.0f);
+
+    ImGui::SetNextItemWidth(kFractionalUnitWidth);
+    if (ImGui::DragScalar("##Second", ImGuiDataType_Double, &second, 0.05f, nullptr, nullptr, "%07.4f")) {
+        changed = true;
+    }
+    is_hovered |= ImGui::IsItemHovered();
+
+    return changed;
+}
+
 } // anonymous namespace
 
 void TextInput(const char* label, std::string& value, const char* tooltip) {
@@ -411,6 +445,42 @@ void TimePicker(const char* label, std::chrono::seconds& time, const char* toolt
     }
     catch (const std::exception& e) {
         std::cerr << "[GUI Error] Exception in TimePicker: " << e.what() << '\n';
+        ImGui::PopID();
+    }
+}
+
+void FractionalTimePicker(const char* label, std::chrono::duration<double>& time, const char* tooltip) {
+    if (!label) return;
+
+    try {
+        ImGui::PushID(label);
+
+        // Break down the exact duration into hours, minutes, and fractions of a second
+        auto h = std::chrono::duration_cast<std::chrono::hours>(time);
+        auto m = std::chrono::duration_cast<std::chrono::minutes>(time - h);
+        std::chrono::duration<double> s = time - h - m;
+
+        int hour = static_cast<int>(h.count());
+        int minute = static_cast<int>(m.count());
+        double second = s.count();
+        bool is_hovered = false;
+
+        if (RenderFractionalTimePickerUI(hour, minute, second, is_hovered)) {
+            if (second < 0.0) second = 0.0;
+
+            time = std::chrono::hours(hour) +
+                std::chrono::minutes(minute) +
+                std::chrono::duration<double>(second);
+        }
+
+        if (tooltip && is_hovered) {
+            ImGui::SetTooltip("%s", tooltip);
+        }
+
+        ImGui::PopID();
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[GUI Error] Exception in FractionalTimePicker: " << e.what() << '\n';
         ImGui::PopID();
     }
 }

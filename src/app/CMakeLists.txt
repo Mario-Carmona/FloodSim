@@ -7,7 +7,10 @@
 # 📂 Internal Module Hierarchy Traversals
 # ---------------------------------------------------------
 # Register foundational input/output and configuration modules
-add_subdirectory(io)
+if(BUILD_APP)
+    add_subdirectory(io)
+endif()
+
 add_subdirectory(config)
 
 # Conditionally inject the simulation core logic layer

@@ -15,6 +15,7 @@
 #include "app/adapters/output/MQTTOutput.hpp"
 #include "app/config/Config.hpp"
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::adapters::output {
 
@@ -43,7 +44,7 @@ std::vector<std::unique_ptr<core::ports::OutputPort>> OutputFactory::CreateOutpu
     // Exception handling: Validate critical input arguments
     if (scenario_name.empty()) {
         LOG_ERROR("Scenario name cannot be empty when creating outputs.");
-        throw std::invalid_argument("OutputFactory: scenario_name is empty.");
+        throw floodsim::app::exception::FloodSimException("OutputFactory: scenario_name is empty.");
     }
 
     std::vector<std::unique_ptr<core::ports::OutputPort>> outputs;
@@ -82,7 +83,7 @@ std::vector<std::unique_ptr<core::ports::OutputPort>> OutputFactory::CreateOutpu
             // 4. Safety catch-all for unhandled types
             [](auto&&) -> std::unique_ptr<core::ports::OutputPort> {
                 LOG_ERROR("OutputFactory encountered an unknown configuration type.");
-                throw std::runtime_error(
+                throw floodsim::app::exception::FloodSimException(
                     "OutputFactory: Unknown or unimplemented output type.");
             } },
             out_cfg));

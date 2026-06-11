@@ -16,6 +16,7 @@
 #include "app/adapters/state_updater/OnnxStateUpdater.hpp"
 #include "app/config/Config.hpp"
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::adapters::state_updater {
 
@@ -47,7 +48,7 @@ std::unique_ptr<core::ports::StateUpdaterPort> StateUpdaterFactory::Create(
                   "StateUpdaterFactory: Model file not found at '{}'",
                   cfg.model_path.string());
               LOG_ERROR("{}", msg);
-              throw std::runtime_error(msg);
+              throw floodsim::app::exception::FloodSimException(msg);
             }
 
             LOG_DEBUG("Initializing ONNX State Updater using model: {}",
@@ -62,7 +63,7 @@ std::unique_ptr<core::ports::StateUpdaterPort> StateUpdaterFactory::Create(
         [](auto&&) -> std::unique_ptr<core::ports::StateUpdaterPort> {
           LOG_ERROR(
               "StateUpdaterFactory: Unknown configuration type encountered.");
-          throw std::runtime_error(
+          throw floodsim::app::exception::FloodSimException(
               "StateUpdaterFactory: Unimplemented updater type.");
         }
         },

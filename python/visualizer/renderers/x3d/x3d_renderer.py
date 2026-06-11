@@ -7,12 +7,11 @@ from pathlib import Path
 
 import numpy as np
 
-from ... import config
 from ..base import BaseRenderer, FrameData, GridMeta
+from ...palette import Palette
 from ...tools.x3d_player.generator import (
     _encode_terrain_png,
     _encode_flood_png,
-    _load_state_colors,
     generate_player,
     copy_js_assets,
 )
@@ -42,7 +41,7 @@ class X3DRenderer(BaseRenderer):
         self._png_rows: int = 0
         self._png_cols: int = 0
         self._frame_names: list[str] = []
-        self._state_colors: list[tuple[int, int, int]] = []
+        self._palette: Palette = Palette.default()
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -66,8 +65,7 @@ class X3DRenderer(BaseRenderer):
             max_h=self._max_h,
             terrain_b64=self._terrain_b64,
             frame_names=self._frame_names,
-            state_colors=self._state_colors,
-            palette_path=self._palette_path,
+            palette=self._palette,
         )
         (self._output_dir / "player.html").write_text(player_html, encoding="utf-8")
 
@@ -80,9 +78,7 @@ class X3DRenderer(BaseRenderer):
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._flood_dir.mkdir(parents=True, exist_ok=True)
 
-        palette_path = Path(config.COLOR_PALETTE_FILE) if config.COLOR_PALETTE_FILE else None
-        self._palette_path = palette_path
-        self._state_colors = _load_state_colors(palette_path)
+        self._palette = meta.palette
 
         terrain = meta.terrain_heights if meta.terrain_heights is not None \
             else np.zeros(meta.rows * meta.cols, dtype=np.float32)

@@ -56,32 +56,36 @@ SimulationCore::SimulationCore(
     state_updater_->Initialize(current_grid_);
 
     for (auto& output : outputs_) {
-        output->SetInitConfig(current_grid_, main_input_source_->GetDatasetName(), start_timestamp_);
+        output->SetInitConfig(current_grid_, main_input_source_->GetDatasetName(), start_timestamp_, state_updater_->GetFloodRiskLevels());
     }
 }
 
 void SimulationCore::Run(const std::atomic<bool>& stop_flag) {
     LOG_INFO("Simulation started");
 
-    std::chrono::sys_seconds current_time = start_timestamp_;
-    std::chrono::sys_seconds finish_timestamp = current_time + simulation_duration_;
+    sys_time_double exact_current_time = start_timestamp_;
+    sys_time_double exact_finish_timestamp = exact_current_time + simulation_duration_;
 
-    current_snapshot_.Set(current_time, current_grid_);
+    current_snapshot_.Set(exact_current_time, current_grid_);
 
-    while (current_time < finish_timestamp) {
+    while (exact_current_time < exact_finish_timestamp) {
         // --- STEP 1: LOAD EXTERNAL DATA ---
         // Reads from data sources (e.g., HDF5) and updates dynamic layers (like Rainfall)
-        current_grid_.UpdateDynamicLayers(current_time);
+        current_grid_.UpdateDynamicLayers(std::chrono::round<std::chrono::seconds>(exact_current_time));
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        StepType steps_taken = 0;
         StepType total_steps_batch = snapshot_manager_->EveryNSteps();
 
         // --- STEP 2: SOLVER/NN EXECUTION ---
         for (StepType i = 0; i < total_steps_batch; ++i) {
             state_updater_->Step(current_grid_);
-            steps_taken++;
+
+            exact_current_time += time_step_;
+
+            if(exact_current_time >= exact_finish_timestamp) {
+                break;
+            }
 
             if (stop_flag.load(std::memory_order_relaxed)) {
                 break; // Gracefully exit the loop
@@ -91,9 +95,6 @@ void SimulationCore::Run(const std::atomic<bool>& stop_flag) {
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = end - start;
         LOG_INFO("Model Execution time: {}s", elapsed.count());
-            
-        // Advance time accurately based on the actual steps processed
-        current_time += (steps_taken * time_step_);
 
         if (stop_flag.load(std::memory_order_relaxed)) {
             LOG_WARN("Simulation halted early by user request.");
@@ -101,13 +102,13 @@ void SimulationCore::Run(const std::atomic<bool>& stop_flag) {
         }
 
         // --- STEP 3: OUTPUT ---
-        PublishCurrentState(current_time);
+        PublishCurrentState(exact_current_time);
     }
 
     LOG_INFO("Simulation finished");
 }
 
-void SimulationCore::PublishCurrentState(std::chrono::sys_seconds time) {
+void SimulationCore::PublishCurrentState(sys_time_double time) {
     // 1. Wait for consumers to release the previous buffer
     snapshot_manager_->WaitForReady();
 

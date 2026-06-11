@@ -36,8 +36,8 @@ public:
      * @param scenario_name The simulation scenario name, used as the base topic.
      * @param payload_format The serialization format (e.g., JSON).
 	 * @param send_initial_state Whether to publish the initial grid state before starting the simulation.
-     * @throws std::invalid_argument If address or scenario_name are empty.
-     * @throws std::runtime_error If the payload serializer fails to initialize.
+     * @throws floodsim::app::exception::FloodSimException If address or scenario_name are empty.
+     * @throws floodsim::app::exception::FloodSimException If the payload serializer fails to initialize.
      */
     MqttOutput(const std::string& address, const std::string& scenario_name,
         config::OutputConfig::MqttOutputConfigEntry::PayloadFormat payload_format,
@@ -64,9 +64,11 @@ public:
      * @param grid The simulation map grid.
      * @param dataset_name The name of the dataset.
      * @param start_timestamp The initial time of the simulation.
+	 * @param flood_risk_levels Vector of flood risk levels for the simulation.
      */
     void SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
-                       std::chrono::sys_seconds start_timestamp) override;
+                       std::chrono::sys_seconds start_timestamp,
+                       const std::vector<config::FloodRiskLevel>& flood_risk_levels) override;
 
     /**
      * @brief Retrieves the identifier name for this thread.
@@ -81,7 +83,7 @@ private:
      *
      * @param format The requested payload serialization format.
      * @return std::unique_ptr<PayloadSerializer> Instantiated serializer.
-     * @throws std::invalid_argument If the format is unknown.
+     * @throws floodsim::app::exception::FloodSimException If the format is unknown.
      */
     [[nodiscard]] static std::unique_ptr<PayloadSerializer> CreatePayloadSerializer(
         const config::OutputConfig::MqttOutputConfigEntry::PayloadFormat& format);

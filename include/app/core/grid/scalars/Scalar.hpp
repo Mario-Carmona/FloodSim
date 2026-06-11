@@ -12,6 +12,8 @@
 #include <string>
 #include <utility>
 
+#include "app/exception/Exception.hpp"
+
 namespace floodsim::app::core::grid::scalars {
 
 /**
@@ -130,7 +132,7 @@ void Scalar<T>::SetValue(const std::string& s) {
 		is_set_ = true;
 	}
 	else {
-		throw std::runtime_error("Scalar: Failed to parse value from string '" + s + "' for scalar '" + name_ + "'.");
+		throw floodsim::app::exception::FloodSimException("Scalar: Failed to parse value from string '" + s + "' for scalar '" + name_ + "'.");
 	}
 }
 

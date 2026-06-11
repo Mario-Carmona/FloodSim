@@ -1,0 +1,66 @@
+@startuml
+' Configuration for a clean academic style
+skinparam monochrome true
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 150
+
+actor User
+participant "main.py" as Main
+participant "pipeline\n:DataPipeline" as Pipeline
+participant "topo_bathy\n:TopoBathyGenerator" as TopoBathy
+participant "land_cover\n:LandCoverGenerator" as LandCover
+
+User -> Main : python main.py config.yaml
+activate Main
+
+Main -> Pipeline : __init__(cfg_path)
+activate Pipeline
+Pipeline --> Main : pipeline
+deactivate Pipeline
+
+Main -> Pipeline : run()
+activate Pipeline
+
+Pipeline -> Pipeline : execution_order = _get_execution_order()
+note right: e.g., ['topo_bathy', 'land_cover', ...]
+
+== 1. Base Layer Processing (Independent) ==
+Pipeline -> TopoBathy : run(dependent_layers={}, start_date, ...)
+activate TopoBathy
+
+' The run() method from base.py calls its own abstract methods
+TopoBathy -> TopoBathy : _generate(dependent_layers, ...)
+activate TopoBathy
+TopoBathy --> TopoBathy : layer_data (StaticRaster)
+deactivate TopoBathy
+
+TopoBathy -> TopoBathy : _save(output_dir, layer_data)
+TopoBathy -> TopoBathy : _visualize(output_dir, layer_data)
+
+TopoBathy --> Pipeline : layers_output['topo_bathy'] = StaticRaster
+deactivate TopoBathy
+
+== 2. Dependent Layer Processing ==
+Pipeline -> LandCover : run(dependent_layers={'topo_bathy': StaticRaster}, ...)
+activate LandCover
+
+LandCover -> LandCover : _generate(dependent_layers, ...)
+activate LandCover
+LandCover --> LandCover : layer_data (StaticRaster)
+deactivate LandCover
+
+LandCover -> LandCover : _save(output_dir, layer_data)
+LandCover -> LandCover : _visualize(output_dir, layer_data)
+
+LandCover --> Pipeline : layers_output['land_cover'] = StaticRaster
+deactivate LandCover
+
+' Execution End
+Pipeline -> Pipeline : logger.success("Data Pipeline completed successfully!")
+Pipeline --> Main : return
+deactivate Pipeline
+
+Main --> User : exit(0)
+deactivate Main
+@enduml

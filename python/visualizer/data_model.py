@@ -15,6 +15,7 @@ class SimulationGrid:
         # Store palette levels as uint8 values.
         self.grid = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.uint8)
         self.terrain_heights: np.ndarray | None = None  # float32, flat (rows*cols,)
+        self.color_palette: list[dict] | None = None  # raw `color_palette` from InitAgent_Layer, if provided
         self.water_depths_m = np.zeros((config.MAP_SIZE, config.MAP_SIZE), dtype=np.float32)
         self.has_new_data = False
         self.map_config = {
@@ -79,6 +80,10 @@ class SimulationGrid:
         data_path = event.get("data_path")
         data_filename = event.get("data_filename")
         layer_id = event.get("id")
+
+        color_palette = event.get("color_palette")
+        if color_palette is not None:
+            self.color_palette = color_palette
 
         if not data_path or not data_filename or not layer_id:
             self._logger.error(

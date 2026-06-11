@@ -27,6 +27,7 @@
 #include <omp.h>
 
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::adapters::state_updater {
 
@@ -78,7 +79,7 @@ OnnxStateUpdater::OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
         std::ifstream file((model_path / "metadata.json").c_str());
         if (!file.is_open()) {
             LOG_ERROR("Error: Cannot open metadata.json file");
-            throw std::runtime_error("Failed to open metadata.json");
+            throw floodsim::app::exception::FloodSimException("Failed to open metadata.json");
         }
 
         // Parse JSON
@@ -195,7 +196,7 @@ OnnxStateUpdater::OnnxStateUpdater(bool enable_rainfall, float dry_tolerance,
             });
     } catch (const Ort::Exception& e) {
         LOG_ERROR("ONNX Runtime initialization failed: {}", e.what());
-        throw std::runtime_error(fmt::format("OnnxStateUpdater init error: {}", e.what()));
+        throw floodsim::app::exception::FloodSimException(fmt::format("OnnxStateUpdater init error: {}", e.what()));
     } catch (const std::exception& e) {
         LOG_ERROR("Standard exception during ONNX initialization: {}", e.what());
         throw;
@@ -232,31 +233,30 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
             tensor_size *= item;
         }
 
-        core::grid::layers::ScratchpadBase* first_scratchpad = layers_scratchpad_.begin()->second.get();
+        if (use_dynamic_bounding_box) {
+            core::grid::layers::ScratchpadBase* first_scratchpad = layers_scratchpad_.begin()->second.get();
 
-        if (tensor_size > first_scratchpad->GetSize()) {
-            size_t new_size;
+            if (tensor_size > first_scratchpad->GetSize()) {
+                size_t new_size;
 
-            if (first_scratchpad->GetSize() == 0) {
+                if (first_scratchpad->GetSize() == 0) {
                 new_size = std::min(
                     static_cast<size_t>(tensor_size * 1.5f),
                     max_tensor_elements_  
 				);
-            }
-            else {
+                }
+                else {
                 new_size = std::min(
                     static_cast<size_t>(first_scratchpad->GetSize() * 1.5f),
                     max_tensor_elements_    
                 );
+                }
+
+                for (const auto& [name, scratchpad] : layers_scratchpad_) {
+                    scratchpad->Resize(new_size);
+                }
             }
 
-            for (const auto& [name, scratchpad] : layers_scratchpad_) {
-                scratchpad->Resize(new_size);
-            }
-        }
-
-
-        if (use_dynamic_bounding_box) {
             for (const auto& item : graph_info.inputs) {
                 if (!item.is_scalar) {
                     grid.GetLayer(item.id_name)->ExtractTilesData(layers_scratchpad_[item.id_name].get(), active_tiles, grid.GetCols(), grid.GetRows(),
@@ -408,7 +408,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
         try {
             std::vector<float>& water_depth = grid.GetLayer<float>(GetFluidLayer())->GetData();
             std::vector<int8_t>& fluid_movement_state = grid.GetLayer<int8_t>(GetFluidMovementStateLayer())->GetData();
-            
+
             if (IsRainfallEnabled()) {
                 const std::vector<float>& rainfall = grid.GetLayer<float>(std::string(kRainfallLayerName))->GetData();
 
@@ -428,7 +428,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
             int64_t batch_size = active_tiles.size();
 
             if (batch_size == 0) {
-                LOG_INFO("No active water detected. Skipping ONNX inference.");
+                LOG_WARN("No active water detected. Skipping ONNX inference.");
                 return;
             }
 
@@ -474,7 +474,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
                 tensor.id_name = tensor.model_name.substr(0, pos);
             }
             else {
-                throw std::runtime_error("Error: Output tensor name '" + tensor.model_name + "' is malformed (expected to contain ':out').");
+                throw floodsim::app::exception::FloodSimException("Error: Output tensor name '" + tensor.model_name + "' is malformed (expected to contain ':out').");
             }
         }
         else {
@@ -488,7 +488,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
             tensor.type = core::grid::DataType::kInt8;
         }
         else {
-            throw std::runtime_error("Error: ONNX tensor type '" + std::string(tensor_json["type"]) + "' is unsupported or missing C++ mapping.");
+            throw floodsim::app::exception::FloodSimException("Error: ONNX tensor type '" + std::string(tensor_json["type"]) + "' is unsupported or missing C++ mapping.");
         }
 
         tensor.is_scalar = (tensor_json["shape"].size() == 0);
@@ -564,7 +564,7 @@ void OnnxStateUpdater::RunModel(Ort::Session& session, core::grid::MapGrid& grid
             }
         }
 
-        throw std::invalid_argument("Unsupported data type in ConfigureTensor: " + info.id_name);
+        throw floodsim::app::exception::FloodSimException("Unsupported data type in ConfigureTensor: " + info.id_name);
     }
 
 } // namespace floodsim::app::adapters::state_updater

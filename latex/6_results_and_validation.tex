@@ -1,0 +1,253 @@
+\chapter{Results and Validation}
+\label{chapter:results_and_validation}
+
+
+\section{Technical Validation and Software Testing}
+
+To ensure the physical reliability, code correctness, and software stability of the machine learning-based state updaters, a rigorous 
+technical validation pipeline has been integrated into the project architecture. Because neural networks and data-driven models can suffer 
+from unconstrained physical hallucinations or mass conservation errors, this test suite enforces deterministic conservation laws and 
+hydrostatic invariants over the execution loop. The validation environment bridges the high-performance C++ core infrastructure with 
+automated test automation to guarantee that any exported model adheres to physical reality prior to deployment.
+
+\subsection{C++ Unit Testing Framework and Test Cases}
+
+The automated testing architecture is implemented using the Google Test (gTest) framework, utilizing parameterized test fixtures to run 
+identical physical validation suites across multiple target configurations. 
+
+The testbench features a dynamic model discovery mechanism via the \\ \texttt{DiscoverModels()} function. At runtime, the executable scans the 
+subdirectories of the folder \texttt{exported\_models} to locate exported machine learning models (such as ONNX 
+models). For each subdirectory found, the system:
+
+\begin{itemize}
+    \item Extracts and sanitizes the folder name to establish a valid Google Test identifier.
+    \item Instantiates an \texttt{OnnxUpdaterConfig} block containing the complete folder path and target tensor dimensions (set to 4).
+    \item Registers the configurations into a \texttt{ModelTestParam} vector that drives the parameterized fixture class 
+    \texttt{StateUpdaterTest}.
+\end{itemize}
+
+The execution and orchestration of these tests are fully automated via CMake and CTest presets. As defined in the project configuration, 
+the test framework relies on specific components:
+
+\begin{itemize}
+    \item \textbf{Configuration Presets}: The abstract \texttt{tests} base preset forces the cache variable \texttt{BUILD\_TESTS} to 
+    \texttt{ON} under a \texttt{Debug} compilation profile. Targeted presets like \texttt{windows-tests-all} expose comprehensive validation 
+    by setting \\ \texttt{BUILD\_ALL\_TESTS} to \texttt{ON}.
+
+    \item \textbf{Test Automation Execution}: The \texttt{windows-tests-all} test preset automates CTest execution natively. It optimizes 
+    CI/CD pipeline throughput by enabling parallel execution mapped to 4 multithreading jobs, enforcing an error action if no tests are 
+    detected, and enabling verbose failure reports via the \\ \texttt{outputOnFailure} flag.
+\end{itemize}
+
+Upon execution via the CTest orchestration framework, all discovered machine learning models successfully passed the comprehensive 
+validation suite. The test runner reported a 100\% success rate across all parameterized scenarios, confirming that the state updaters 
+meet all defined numerical and physical stability criteria with zero runtime exceptions or regressions.
+
+\subsection{Model Stability and State Invariant Verification}
+
+To evaluate the numerical stability and mass-conservation characteristics of the updaters, a specialized \texttt{GridTestBuilder} helper 
+allocates and constructs synthetic topographic and hydrographic environments within a \texttt{MapGrid} structural memory context. Every 
+discovered model is subjected to seven distinct test scenarios to verify physical and numerical state invariants:
+
+\begin{enumerate}
+    \item \textbf{Flat Hydrostatic Equilibrium (\texttt{FlatLakeRemainsAtRest})}: Tests the model against a flat $20 \times 20$ grid 
+    filled with a uniform $2.0\,\text{m}$ water column. After 100 simulation steps, the state invariant requires the final water depth 
+    to remain identical to the initial state within a strict tolerance of $1 \times 10^{-4}$ to ensure no artificial momentum is generated.
+    
+    \item \textbf{Irregular Bathymetry Hydrostatic Stability (\texttt{IrregularLakeRemainsAtRest})}: Evaluates hydrostatic balance over 
+    non-uniform terrain on a $20 \times 20$ domain. The bed is shaped via a smooth wave function 
+    ($Z_{\text{bed}} = 1.0 + 0.5 \sin(r \cdot 0.5) \cos(c \cdot 0.5)$) with a flat surface elevation at $5.0\,\text{m}$. After 100 steps, 
+    it asserts that irregular bathymetry does not induce false artificial velocities (tolerance $1 \times 10^{-4}$).
+    
+    \item \textbf{Global Mass Conservation (\texttt{MassIsConservedDuringMovement})}: Validates fluid mass tracking during high-velocity 
+    flow using a localized dam-break setup on a $30 \times 30$ grid. The total integrated fluid volume ($V = \sum h_i \Delta x^2$) is 
+    computed before and after a 20-step dynamic execution loop, enforcing a strict mass conservation tolerance of $0.5\%$.
+    
+    \item \textbf{Mass Generation and Non-Hallucination (\texttt{DryTerrainRemainsDry})}: Enforces the zero-mass boundary constraint by 
+    subjecting a completely dry $20 \times 20$ grid to 50 simulation steps. The invariant dictates that all cell depths must remain strictly 
+    below $1 \times 10^{-6}$ to guarantee the network does not spontaneously hallucinate or generate liquid volume out of dry land.
+    
+    \item \textbf{Isotropic Wave Propagation Symmetry (\texttt{WavePropagationIsSymmetric})}: Validates multi-directional spatial isotropy 
+    on a $31 \times 31$ grid by releasing a single concentrated fluid drop at the central coordinate. After 10 execution steps, the code 
+    verifies that the resulting outward wave fronts propagate symmetrically across all cardinal and diagonal axes within a tolerance of 
+    $1 \times 10^{-2}$.
+\end{enumerate}
+
+Following rigorous validation across the entire suite of physical benchmarks, the neural network state updater model described in this 
+work successfully satisfied all state invariants and passed 100\% of the stability and conservation tests without experiencing numerical 
+divergence or mass-balance failures.
+
+
+\section{Computational Performance Evaluation}
+
+To assess the feasibility of FloodSim as a real-time decision-support tool, simulation runtimes were measured over a \SI{1311}{\km\squared} 
+domain during a critical scenario involving \SI{1.5}{\hour} of accumulated precipitation. The tests were conducted in an environment with 
+Intel(R) Xeon(R) CPU @ 2.20GHz.
+
+The system demonstrated efficient processing capabilities, completing the hydrodynamic simulation of the event’s \SI{1.5} physical hours 
+in a total time of \SI{3960}{\second} ($\approx$ \SI{1.1}{\hour}). This represents a Real-Time Factor (RTF) of $1.36\times$, confirming 
+that the model is capable of running continuously faster than the physical phenomenon itself. This feature is essential for early warning 
+infrastructure, as it allows for the proactive updating and synchronization of the Digital Twin during an emergency.
+
+
+\section{Simulation Results and Model Validation}
+\label{section:simulation_results_and_model_validation}
+
+To validate the accuracy and predictive capability of the tensor-based flood simulation engine, the computational outputs were rigorously 
+compared against the official post-event flood maps published in the \textit{Plan para la Recuperación y Mejora de la Resiliencia frente a 
+las Inundaciones en el Territorio Afectado por la DANA en la Comunitat Valenciana} \cite{DEMARCACIONHIDROGRAFICADELJUCAR2025}. The validation 
+framework focuses on critical hydraulic bottlenecks along the Barranco del Poyo basin, analyzing how macro-topographic elements interact 
+with the floodwave.
+
+
+\subsection{Temporal Evolution and Floodwave Propagation}
+\label{subsection:temporal_evolution}
+
+Prior to the localized validation at critical points, it is essential to analyze the dynamic behavior of the simulation across the entire 
+domain. Figure \ref{fig:temporal_evolution_sequence} illustrates the progression of the floodwave at four representative timestamps: 
+$T+20$, $T+40$, $T+60$, and $T+90$. 
+
+This sequence captures the global hydraulic transition, starting from the initial concentration of runoff in the upper catchments and 
+following its subsequent acceleration and expansion through the central plains. This temporal overview demonstrates the stability and 
+continuity of the tensor-based transition rules as the inundated area progressively advances toward the Mediterranean coastline.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_T20.png}
+        \caption{$T+20$}
+        \label{fig:sim_t20}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_T40.png}
+        \caption{$T+40$}
+        \label{fig:sim_t40}
+    \end{subfigure}
+    
+    \vspace{10pt} % Espacio vertical entre las dos filas de imágenes
+    
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_T60.png}
+        \caption{$T+60$}
+        \label{fig:sim_t60}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_T90.png}
+        \caption{$T+90$}
+        \label{fig:sim_t90}
+    \end{subfigure}
+    \caption{Temporal progression of the simulated floodwave across the $1311\text{ km}^2$ domain at four discrete intervals ($T+20$ to $T+90$).}
+    \label{fig:temporal_evolution_sequence}
+\end{figure}
+
+
+\subsection{Critical Area Analysis: Pla de Quart}
+\label{subsection:critical_area_analysis_pla_de_quart}
+
+The first validation zone centers on the Pla de Quart area, a highly complex hydraulic sector encompassing major transport 
+infrastructure—such as the AP-7 and CV-36 highways and regional railway lines—alongside a dense network of tributary ravines that funneled 
+the discharge directly toward the municipality of Paiporta.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/real_Pla_de_Quart.png}
+        \caption{Official post-event flood delineation map \cite{DEMARCACIONHIDROGRAFICADELJUCAR2025}.}
+        \label{fig:real_pla_quart}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_Pla_de_Quart.png}
+        \caption{Tensor-based simulation output ($200\text{ m}$ resolution).}
+        \label{fig:sim_pla_quart}
+    \end{subfigure}
+    \caption{Comparative analysis of the flooded domain in the Pla de Quart sector.}
+    \label{fig:comparison_pla_quart}
+\end{figure}
+
+A comparative assessment between the empirical satellite reconstruction (Figure \ref{fig:real_pla_quart}) and the model's numerical results 
+(Figure \ref{fig:sim_pla_quart}) reveals key insights:
+
+\begin{enumerate}[label=\Alph*.]
+    \item \textbf{Confluence and Tributary Channelization}: In the lower section of both fields, the engine successfully captures the 
+    containment and directional acceleration of a massive water column (ranging between $2.0$ and $3.0\text{ m}$ in depth). This area 
+    represents the critical confluence of the Barranco del Poyo and the Barranco de Horteta, which is correctly routed through these 
+    natural channels feeding the lower basin toward Paiporta.
+    
+    \item \textbf{Topographic Insulated Zones}: Both maps display an identical unflooded "island" in the central region of the domain, 
+    bounded between the CV-36 and A-3 highways. Crucially, the model accurately simulates how this zone is delimited on its western (left) 
+    margin by the main channel of the Barranco del Poyo, which carries a massive discharge. The model correctly determines that the central 
+    island stands above the hydraulic gradient, proving that the $200\text{ m}$ mesh resolution retains enough topographic fidelity to 
+    respect localized dry boundaries.
+    
+    \item \textbf{The AP-7 and Barranco Gallego Discrepancy}: A localized divergence occurs at the western boundary, where the AP-7 highway 
+    crosses the Barranco Gallego. In the simulation, water flows freely and transversely beneath the highway infrastructure. However, the 
+    real event data reveals a major water accumulation trapped on the western side of the AP-7 (visible as a deep red/blue pool on the left 
+    of Figure \ref{fig:real_pla_quart}).
+\end{enumerate}
+
+During the actual disaster, the underpass structures of the AP-7 bridge over the Barranco Gallego became completely obstructed by massive 
+volumes of urban debris, vehicles, and uprooted vegetation. This clogging effect transformed the high-speed road embankment into an 
+involuntary, artificial dam. 
+
+Because the proposed cellular automata architecture currently operates under a static-terrain paradigm—where elevation layers and structural 
+properties remain fixed throughout the execution graph—the model cannot inherently simulate dynamic bridge failures or sediment-driven 
+blockages. Consequently, this discrepancy does not stem from a failure in the underlying hydrodynamic routing math, but rather defines a 
+clear boundary for future iterations, which will integrate coupled wood-detritus and structural destruction mechanics into the 
+TensorFlow/ONNX pipeline. Even with a static domain, the model's overall routing accuracy remains highly robust for rapid flood forecasting.
+
+
+\subsection{Critical Area Analysis: Paiporta and the Turia Channel Intersection}
+\label{subsection:critical_area_analysis_paiporta}
+
+The second validation phase analyzes the progression of the floodwave through the core urban axis of Picanya and Paiporta, as well as its 
+collision with the major artificial watercourse of the metropolitan area.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/real_Paiporta.png}
+        \caption{Official flood depth and flow pathway map \cite{DEMARCACIONHIDROGRAFICADELJUCAR2025}.}
+        \label{fig:real_paiporta}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/results/sim_Paiporta.png}
+        \caption{Tensor-based simulation output ($200\text{ m}$ resolution).}
+        \label{fig:sim_paiporta}
+    \end{subfigure}
+    \caption{Comparative analysis of the Barranco del Poyo overflow through Paiporta.}
+    \label{fig:comparison_paiporta}
+\end{figure}
+
+A detailed inspection of the designated critical sectors (Figure \ref{fig:comparison_paiporta}) demonstrates the model's capacity to 
+reproduce the macro-hydraulic dynamics observed during the catastrophe:
+
+\begin{enumerate}[label=\Alph*.]
+    \item \textbf{Urban Overflow and Channel Saturation (Sector A)}: This sector captures the passage of the Barranco del Poyo through the 
+    municipalities of Picanya and Paiporta. In the real event, the extraordinary peak discharge combined with heavy sediment and debris 
+    transport led to a massive out-of-bank flooding. Although the current iteration of the simulation engine does not explicitly model 
+    solid waste or floating debris, the numerical model successfully triggers a severe overflow in this exact sector. The sheer volume of 
+    accumulated water injected into the $200\text{ m}$ grid cells naturally overcomes the channel capacity, replicating the widespread 
+    inundation of the urban fabric.
+    
+    \item \textbf{The New Turia Channel Wall Effect (Sector B)}: As the primary floodwave travels northeast, it collides transversally 
+    with the infrastructure of the New Turia River Channel (\textit{Nuevo Cauce del Turia}). The empirical data confirms that this massive 
+    artificial structure acted as a physical dam, blocking the northward progression of the water and forcedly routing the discharge 
+    downstream along its southern margin. The simulation engine replicates this "wall effect" with high precision; the tensor graph 
+    restricts any water cell propagation across the channel, keeping the urban zones located directly to the north (such as Xirivella and 
+    Valencia city) entirely dry, matching the historical outcome.
+\end{enumerate}
+
+In conclusion, this validation point confirms that the tensor-based framework goes beyond mere statistical correlation, capturing the 
+fundamental hydrodynamic behaviors, routing pathways, and infrastructural interactions of the real flash flood event.

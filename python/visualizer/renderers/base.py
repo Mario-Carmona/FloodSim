@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
+
+from ..palette import Palette
 
 
 @dataclass(frozen=True)
@@ -12,6 +14,7 @@ class GridMeta:
     cols: int
     cell_size_m: float
     terrain_heights: np.ndarray | None  # float32, flat (rows*cols,)
+    palette: Palette = field(default_factory=Palette.default)
 
 
 @dataclass(frozen=True)

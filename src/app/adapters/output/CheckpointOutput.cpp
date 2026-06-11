@@ -17,6 +17,7 @@
 #include "app/config/Config.hpp"
 #include "app/core/grid/MapGrid.hpp"
 #include "logging/Logger.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::adapters::output {
 
@@ -26,7 +27,7 @@ CheckpointOutput::CheckpointOutput(const io::formats::file::FileStaticFormat& st
 
     if (!water_depth_writer_) {
         LOG_ERROR("Failed to create StaticWriter for water_depth");
-        throw std::runtime_error("CheckpointOutput: water_depth_writer_ is null upon creation.");
+        throw floodsim::app::exception::FloodSimException("CheckpointOutput: water_depth_writer_ is null upon creation.");
     }
 }
 
@@ -35,7 +36,7 @@ void CheckpointOutput::Run(core::snapshot::SnapshotManager& snapshot_manager,
 
     if (output_path.empty()) {
         LOG_ERROR("Provided output path is empty.");
-        throw std::invalid_argument("CheckpointOutput: output_path cannot be empty.");
+        throw floodsim::app::exception::FloodSimException("CheckpointOutput: output_path cannot be empty.");
     }
 
     std::filesystem::path checkpoint_output_path = output_path / "checkpoints";
@@ -44,8 +45,7 @@ void CheckpointOutput::Run(core::snapshot::SnapshotManager& snapshot_manager,
         std::filesystem::create_directories(checkpoint_output_path);
     }
 
-    std::chrono::system_clock::time_point last_processed_step =
-        std::chrono::system_clock::time_point::min();
+    sys_time_double last_processed_step = std::numeric_limits<sys_time_double>::lowest();
 
     while (true) {
         try {
@@ -77,14 +77,15 @@ void CheckpointOutput::Run(core::snapshot::SnapshotManager& snapshot_manager,
 }
 
 void CheckpointOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::string& /* dataset_name */,
-                                        std::chrono::sys_seconds /* start_timestamp */) {
+                                     std::chrono::sys_seconds /* start_timestamp */,
+                                     const std::vector<config::FloodRiskLevel>& /* flood_risk_levels */) {
     metadata_ = grid.GetMetadata();
 }
 
 void CheckpointOutput::SaveSnapshotAsCheckpoint(
         const core::snapshot::Snapshot& snapshot, const std::filesystem::path& checkpoint_output_path) {
 
-    std::string checkpoint_name = fmt::format("checkpoint_{:%FT%T}", snapshot.Time());
+    std::string checkpoint_name = fmt::format("checkpoint_{:%FT:%H:%M:%S}", snapshot.Time());
     // Replace colons with dashes to avoid issues on certain file systems (e.g., Windows)
     std::replace(checkpoint_name.begin(), checkpoint_name.end(), ':', '-');
 

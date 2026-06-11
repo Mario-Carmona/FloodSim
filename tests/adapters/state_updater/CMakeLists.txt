@@ -1,16 +1,16 @@
 
-# Ejecutable del test
-add_executable(danasim_state_updater_adapters_test
+# Define the test executable and its source files
+add_executable(floodsim_state_updater_adapters_test
     StateUpdaterTest.cpp
 )
 
-# Enlazamos la librería principal, GTest y GMock
-target_link_libraries(danasim_state_updater_adapters_test 
+# Link the test executable with the main adapter library, the test setup library, and GMock
+target_link_libraries(floodsim_state_updater_adapters_test 
     PRIVATE 
-        danasim_state_updater_adapters
-        danasim_test_main 
+        floodsim_state_updater_adapters
+        floodsim_test_main 
         GTest::gmock
 )
 
-# Descubrimiento automático para CTest
-gtest_discover_tests(danasim_state_updater_adapters_test DISCOVERY_MODE PRE_TEST)
+# Enable automatic test discovery for CTest
+gtest_discover_tests(floodsim_state_updater_adapters_test DISCOVERY_MODE PRE_TEST)

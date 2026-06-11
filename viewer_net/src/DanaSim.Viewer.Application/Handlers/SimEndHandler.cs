@@ -7,7 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace DanaSim.Viewer.Application.Handlers;
 
-public sealed class SimEndHandler(ILogger<SimEndHandler> logger) : IMqttEventHandler
+public sealed class SimEndHandler(
+    SimulationStatusService statusService,
+    ILogger<SimEndHandler> logger) : IMqttEventHandler
 {
     public async Task HandleAsync(
         JsonElement payload, SimulationContext context, SimulationStateMachine stateMachine,
@@ -17,6 +19,7 @@ public sealed class SimEndHandler(ILogger<SimEndHandler> logger) : IMqttEventHan
         stateMachine.Transition(SimulationPhase.Ended);
 
         await broadcaster.BroadcastSimulationEndedAsync(ct);
+        statusService.SetPhase("Ended");
 
         var totalTime = payload.TryGetProperty("sim_time_total", out var t) ? t.GetDouble() : 0;
         logger.LogInformation("Sim_End — total simulation time: {Total}s", totalTime);

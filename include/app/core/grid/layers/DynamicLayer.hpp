@@ -16,6 +16,7 @@
 
 #include "app/core/grid/layers/Layer.hpp"
 #include "app/io/readers/DynamicReader.hpp"
+#include "app/exception/Exception.hpp"
 
 namespace floodsim::app::core::grid::layers {
 
@@ -54,7 +55,7 @@ public:
      * @param main_metadata Metadata describing the global dimensions and properties.
      * @param reader Unique pointer transferring ownership of the reader instance.
      * @param current_time The initial simulation clock time.
-     * @throws std::invalid_argument If the reader is null or cannot be cast to DynamicReader.
+     * @throws floodsim::app::exception::FloodSimException If the reader is null or cannot be cast to DynamicReader.
      */
     void SetReader(const GridMetadata& main_metadata,
         std::unique_ptr<io::readers::Reader> reader,
@@ -67,8 +68,10 @@ public:
      * is updated. It handles coordinate mapping if the input has a downgrade factor.
      *
      * @param current_time The current simulation clock time.
+     * 
+	 * @return true if the layer was updated with new data, false if no update was necessary (e.g., time frame unchanged).
      */
-    void Update(std::chrono::system_clock::time_point current_time) override;
+    bool Update(std::chrono::system_clock::time_point current_time) override;
 
 protected:
     std::unique_ptr<io::readers::DynamicReader> reader_;      ///< Owns the dynamic reader instance.
@@ -90,13 +93,13 @@ void DynamicLayer<T>::SetReader(const GridMetadata& main_metadata,
     std::unique_ptr<io::readers::Reader> reader,
     std::chrono::system_clock::time_point current_time) {
     if (!reader) {
-        throw std::invalid_argument("DynamicLayer: Provided reader is null.");
+        throw floodsim::app::exception::FloodSimException("DynamicLayer: Provided reader is null.");
     }
 
     // Safely downcast the Reader to a DynamicReader BEFORE releasing ownership
     auto* dynamic_reader = dynamic_cast<io::readers::DynamicReader*>(reader.get());
     if (!dynamic_reader) {
-        throw std::invalid_argument("DynamicLayer: Reader must be of type DynamicReader.");
+        throw floodsim::app::exception::FloodSimException("DynamicLayer: Reader must be of type DynamicReader.");
     }
 
     // Safely transfer ownership now that the type is guaranteed
@@ -155,8 +158,8 @@ void DynamicLayer<T>::SetReader(const GridMetadata& main_metadata,
 }
 
 template <typename T>
-void DynamicLayer<T>::Update(std::chrono::system_clock::time_point current_time) {
-    if (!reader_) return;
+bool DynamicLayer<T>::Update(std::chrono::system_clock::time_point current_time) {
+    if (!reader_) return false;
 
     bool updated = reader_->Update(current_time);
 
@@ -179,6 +182,7 @@ void DynamicLayer<T>::Update(std::chrono::system_clock::time_point current_time)
             reader_->Read(this->data_);
         }
     }
+    return updated;
 }
 
 } // namespace floodsim::app::core::grid::layers

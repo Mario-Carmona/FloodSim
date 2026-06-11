@@ -32,6 +32,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from PIL import Image
 
 from ..csv_utils import discover_frames, load_frame, load_meta, load_terrain
+from ...palette import Palette
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -173,16 +174,29 @@ def generate_player(
     max_h: float,
     terrain_b64: str,
     frame_names: list[str],
-    state_colors: list[tuple[int, int, int]],
+    state_colors: list[tuple[int, int, int]] | None = None,
     palette_path: Path | None = None,
+    palette: Palette | None = None,
 ) -> str:
     """Render the player HTML by combining the Jinja2 template, CSS and runtime config.
 
     Only values that vary across simulation runs are injected here. Compile-time
     constants (chunk size, LOD ranges, water lift) live in ``static/js/config.js``.
+
+    Color/label data comes from a single source, in order of preference:
+      - ``palette``: a resolved Palette (the live MQTT pipeline always provides one)
+      - ``state_colors``/``palette_path``: legacy file-based path used by the offline CLI
     """
     map_w = orig_cols * cell_size_m
     map_d = orig_rows * cell_size_m
+
+    if palette is not None:
+        state_color_strings = palette.rgb_strings()
+        state_names = palette.labels()
+    else:
+        state_colors = state_colors or []
+        state_color_strings = _state_color_strings(state_colors)
+        state_names = _state_names_from_colors(palette_path, state_colors)
 
     config = {
         "pngCols":     png_cols,
@@ -192,12 +206,11 @@ def generate_player(
         "mapD":        map_d,
         "minH":        min_h,
         "maxH":        max_h,
-        "stateColors": _state_color_strings(state_colors),
+        "stateColors": state_color_strings,
         "floodFrames": frame_names,
         "terrainSrc":  f"data:image/png;base64,{terrain_b64}",
     }
 
-    state_names = _state_names_from_colors(palette_path, state_colors)
     viewpoints = _viewpoints(map_w, map_d, max_h)
 
     env = Environment(
