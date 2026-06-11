@@ -1,25 +1,25 @@
 
+# Find the Google Test package (required for testing)
 find_package(GTest CONFIG REQUIRED)
 
+# Include the GoogleTest CMake module (enables functions like gtest_discover_tests)
 include(GoogleTest)
 
-# 1. Compilamos el main.cpp en una mini-librería reutilizable
-add_library(danasim_test_main 
+# Compile mainTest.cpp and helpers into a reusable static mini-library
+add_library(floodsim_test_main 
     STATIC 
-        main_test.cpp
+        mainTest.cpp
         helpers/GridTestBuilder.cpp
 )
 
+# Link Google Test and project-specific options to our test library
+target_link_libraries(floodsim_test_main PUBLIC GTest::gtest floodsim_options)
 
-target_link_libraries(danasim_test_main PUBLIC GTest::gtest danasim_options)
-
-target_include_directories(danasim_test_main
+# Add the tests directory to the include paths
+target_include_directories(floodsim_test_main
     PUBLIC
         ${CMAKE_SOURCE_DIR}/tests
 )
 
-if(ENABLE_CORE)
-    add_subdirectory(core)
-endif()
-
+# Include the adapters subdirectory for further processing
 add_subdirectory(adapters)

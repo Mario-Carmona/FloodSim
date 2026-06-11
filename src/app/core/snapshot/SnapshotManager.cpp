@@ -65,8 +65,7 @@ void SnapshotManager::Publish(const Snapshot* snapshot, const ChangeList* change
     cv_outputs_.notify_all();
 }
 
-std::pair<DataPair, std::unique_ptr<SnapshotReadGuard>> SnapshotManager::WaitForSnapshot(
-        std::chrono::system_clock::time_point last_step) {
+std::pair<DataPair, std::unique_ptr<SnapshotReadGuard>> SnapshotManager::WaitForSnapshot(sys_time_double last_step) {
 
     std::unique_lock<std::mutex> lock(mutex_);
 

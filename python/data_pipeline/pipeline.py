@@ -59,7 +59,7 @@ class DataPipeline:
         self._add_layer(TopographyGenerator(save_layer = False))
         self._add_layer(LandCoverGenerator(save_layer = True), depends_on={"topography"})
         self._add_layer(TopoBathyGenerator(save_layer = True), depends_on={"topography", "land_cover"})
-        self._add_layer(WaterDepthGenerator(save_layer = True), depends_on={"topography", "topo_bathy"})
+        self._add_layer(WaterDepthGenerator(save_layer = True), depends_on={"topography"})
         self._add_layer(RainfallGenerator(save_layer = True), depends_on={"topography"})
 
         self.cfg_dir: Path = cfg_path.parent

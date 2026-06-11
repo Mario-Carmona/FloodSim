@@ -23,7 +23,7 @@ void MapGrid::Load(const ModelParamsInfo& params_info,
                    ports::InputPort* main_input_source,
                    const std::unordered_map<std::string, ports::InputPort*>& layers_alternative_input_source,
                    const std::unordered_map<std::string, std::string>& scalars_config,
-                   std::chrono::seconds time_step,
+                   std::chrono::duration<double> time_step,
                    std::chrono::system_clock::time_point current_time) {
 
     LOG_INFO("Loading simulation layers...");
@@ -110,8 +110,9 @@ void MapGrid::Load(const ModelParamsInfo& params_info,
 void MapGrid::UpdateDynamicLayers(std::chrono::system_clock::time_point current_time) {
     for (const auto& [name, layer] : layers_) {
         if (!layer->IsStatic()) {
-            layer->Update(current_time);
-            NormalizeUnits(name);
+            if (layer->Update(current_time)) {
+                NormalizeUnits(name);
+            }
         }
     }
 }

@@ -1,0 +1,182 @@
+\pagenumbering{roman} 
+\setcounter{page}{1} 
+\pagestyle{plain}
+
+%%%%%%%%%%%%%%%%
+%%% CREDITOS %%%
+%%%%%%%%%%%%%%%%
+\chapter*{Credits/Copyright}
+
+This page specifies the copyright ownership, licensing terms, and third-party attributions for the software application, documentation, and datasets associated with this project.
+
+\vspace{0.4cm}
+
+\subsection*{1. Software Application \& Documentation License}
+The core source code of the flood simulation environment is the intellectual property of \textbf{Mario Carmona Segovia} (\copyright~2026). It is officially licensed and distributed under the terms of the \textbf{MIT License}. 
+
+\vspace{0.25cm}
+{\centering\includegraphics[scale=0.1]{images/licences/MIT_license.png}\par}
+\vspace{0.25cm}
+
+The accompanying documentation and textual memory are subject to a \textbf{Creative Commons \\ Attribution-NonCommercial-NoDerivs 4.0 International License} (CC BY-NC-ND 4.0).
+
+\vspace{0.25cm}
+{\centering\includegraphics[scale=1]{images/licences/CC_BY-NC-ND_4_0_license.png}\par}
+\vspace{0.4cm}
+
+\subsection*{2. Collaborations \& Architectural Scope}
+This project includes a joint software integration developed in collaboration with \textbf{Marwan Aliaoui Bouazzaoui} as part of his concurrent Final Degree Project (\textit{Trabajo de Fin de Grado - TFG}). Under mutual agreement, his contribution is strictly located within the \texttt{python/visualizer} directory of the project repository. This component encompasses:
+\begin{itemize}
+    \item The MQTT telemetric data receiver script.
+    \item The entirety of the 3D Visualizer subsystem.
+\end{itemize}
+
+Conversely, the core high-performance simulation architecture, the multi-dimensional multi-layer Cellular Automata ($m:n-\text{CA}^k$) engine written in C++, the telemetry transmission layer, and the overall framework integration presented in this Master's Thesis constitute the exclusive development and intellectual contribution of the author of this work.
+
+\vspace{0.4cm}
+
+\subsection*{3. Simulation Dataset \& Geospatial Data Credits}
+The baseline dataset used for the simulation environment is a dynamically generated derived work, compiled via an automated pipeline and licensed under a \textbf{Creative Commons Attribution 4.0 International License} (CC BY 4.0). 
+
+\vspace{0.25cm}
+{\centering\includegraphics[scale=1]{images/licences/CC_BY_4_0_license.png}\par}
+\vspace{0.25cm}
+
+\noindent This dataset aggregates and processes raw information from the following public data sources:
+\begin{itemize}
+    \item \textbf{Digital Elevation Model (MDT05):} Derived work from IGN / Sistema Cartográfico Nacional (España). Licensed under CC BY 4.0 (\textit{scne.es}).
+    \item \textbf{Land Cover System (SIOSE AR):} Derived work from sioseAR 2020, provided by IGN / Sistema Cartográfico Nacional (España). Licensed under CC BY 4.0.
+    \item \textbf{Rainfall Data (SAIH):} Sourced from the \textit{Sistema Automático de Información Hidrológica} - Confederación Hidrográfica del Júcar (CHJ). Used under Ley 37/2007 (CC BY 4.0 equivalent).
+    \item \textbf{Digital Bathymetry (DTM):} Sourced from the EMODnet Bathymetry Consortium / European Union (\copyright~1995-2026). Licensed under CC BY 4.0.
+\end{itemize}
+
+\vspace{0.4cm}
+
+\subsection*{4. Third-Party Software Dependencies}
+This application is built upon several open-source libraries. Full verbatim license notices and copyright statements for these dependencies are distributed within the \texttt{THIRD-PARTY-NOTICES.md} file. 
+
+\noindent A summary of the primary third-party components is detailed below:
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Library / Dependency} & \textbf{License Type} & \textbf{Copyright Owner / Origin} \\ 
+\midrule
+\texttt{opencv4}, \texttt{openssl} & Apache 2.0 & OpenCV Foundation / OpenSSL Authors \\
+\texttt{onnxruntime} & MIT License & Microsoft Corporation \\
+\texttt{imgui}, \texttt{geographiclib} & MIT License & Omar Cornut / Charles Karney \\
+\texttt{fmt}, \texttt{spdlog}, \texttt{yaml-cpp} & MIT License & V. Zverovich / G. Melman / J. Beder \\
+\texttt{glfw3}, \texttt{zlib} & zlib License & C. Löwy / M. Geelnard / J. Gailly \\
+\texttt{libpng}, \texttt{libjpeg-turbo} & Custom BSD / IJG & PNG Reference Library / D. R. Commander \\
+\texttt{paho-mqtt} / \texttt{pp3} & EPL 2.0 / EDL 1.0 & Eclipse Foundation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+
+%%%%%%%%%%%%%
+%%% FICHA %%%
+%%%%%%%%%%%%%
+\chapter*{FINAL PROJECT SHEET}
+
+\newcommand{\mmyyyy}{\ifnum\month<10 0\fi\the\month/\the\year}
+
+\begin{table}[ht]
+	\centering{}
+	\renewcommand{\arraystretch}{2}
+	\begin{tabular}{r | l}
+		\hline
+		Title: & FloodSim: Distributed C++ Flood Simulator\\
+		\hline
+        Autor: & Mario Carmona Segovia\\
+		\hline
+        Tutor: & Pau Fonseca Casas\\
+		\hline
+        Date (mm/yyyy): & \mmyyyy\\
+		\hline
+        Program: & Master in Computational and Mathematical Engineering\\
+		\hline
+        Area: & System Simulation and Optimization\\
+		\hline
+        Language: & English\\
+		\hline
+        Key words & Cellular Automata (CA), Distributed Architecture, C++\\
+		\hline
+	\end{tabular}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%
+%%% DEDICATORY %%%
+%%%%%%%%%%%%%%%%%%%
+\chapter*{Dedicatory / Quote}
+
+\large\textit{To my family,\\
+for their unconditional love, endless patience,\\
+and unwavering support throughout this journey.\\
+This work is dedicated to you.}
+
+%%%%%%%%%%%%%%%%%%%
+%%% Acknowledgments %%%
+%%%%%%%%%%%%%%%%%%%
+\chapter*{Acknowledgments}
+
+First and foremost, I would like to express my deepest gratitude to my thesis advisor, \textbf{Pau Fonseca Casas}. His invaluable guidance, 
+profound academic insight, and unwavering support have been the cornerstone of this research throughout the entire development process. 
+His ability to provide constructive feedback and steer this complex flood simulator project toward rigorous scientific standards has not 
+only made this thesis possible but has also significantly contributed to my growth as a researcher and engineer.
+
+I am also profoundly grateful to \textbf{Professor Jaume Barceló}, Professor Emeritus at the Universitat Politècnica de Catalunya (UPC). 
+His extensive experience, deep domain knowledge, and comprehensive understanding of the areas affected by the DANA phenomenon have been 
+instrumental to the validation of this model. The critical feedback he provided, alongside crucial historical and geographical datasets of 
+the affected zones, allowed this simulation framework to transcend theoretical design and accurately capture real-world hydrodynamic 
+complexities. His willingness to share his expertise has been a true privilege.
+
+This project has also been greatly enriched by the spirit of academic collaboration and the integration of concurrent research efforts. I 
+would like to extend a special thanks to \textbf{Raul Olivar}, whose Final Degree Project (TFG) laid the computational groundwork for the 
+visual representation of these simulations. His dedication in designing and implementing the initial 3D visualization prototype, as well 
+as establishing the core MQTT telemetry infrastructure to pipe simulation results in real time, was critical during the early exploratory 
+phases of this work.
+
+Following that foundation, I am deeply indebted to \textbf{Marwan Aliaoui Bouazzaoui} for his outstanding work on the subsequent iteration 
+of the visualization suite. Through his own Final Degree Project, he successfully iterated, optimized, and expanded the initial codebase, 
+refining the system into a fully functional, \\ high-performance, and production-ready visualizer. The seamless synergy between his 
+visualization platform and my hydrodynamic engine has been vital in demonstrating the practical utility of this simulator.
+
+Finally, I want to express my ultimate appreciation to my family and loved ones. Their unconditional love, endless patience, and silent 
+sacrifices provided the emotional stability and strength required to sustain the demanding nature of this Master's program. This achievement 
+is a reflection of their enduring belief in my aspirations, and it belongs to them as much as it does to me.
+
+%%%%%%%%%%%%%%%%
+%%% SUMMARY  %%%
+%%%%%%%%%%%%%%%%
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\onehalfspacing
+
+This Final Master’s Project presents FloodSim, a distributed, high-performance flood simulation framework developed in C++ to address 
+the critical computational latency of traditional hydrodynamic forecasting models during flash flood events. Sparked by the catastrophic 
+2024 DANA crisis in Valencia, Spain, this research bridges the gap between complex physical hydraulic routing and real-time emergency 
+response infrastructure.
+
+The proposed system leverages a multi-dimensional, multilayer Cellular Automata ($m:n-\text{CA}^k$) engine to model surface water flow 
+dynamics over discretized spatial grids using continuous GIS-derived topography and roughness datasets. To prevent the architectural 
+rigidity common in scientific software, the system implements a decoupled Hexagonal Architecture that completely isolates core hydraulic 
+transition physics from data ingestion modules. Furthermore, a distributed telemetry layer powered by the MQTT publish-subscribe protocol 
+is incorporated, enabling sub-second concurrent synchronization with remote 3D visualization platforms and field sensors to construct a 
+Reactive Digital Twin.
+
+The framework was experimentally validated by reconstructing the 2024 Valencia flood across a 1,311 km$^2$ domain, focusing on the heavily 
+impacted sectors of Pla de Quart and Paiporta. The simulation successfully captured non-linear floodwave propagation and maximum inundation 
+depths within seconds, proving that discrete parallelized architectures can achieve finite-volume accuracy without the immense computational 
+overhead. Ultimately, FloodSim demonstrates the viability of distributed cellular models as practical, real-time decision-support tools 
+capable of mitigating modern socio-environmental crises and saving lives.
+
+\vspace{1.5cm}
+
+\textbf{Keywords}: Final Master Project, Cellular Automata (CA), Distributed Architecture, C++, MQTT Protocol, Digital Twin, GIS / Digital Elevation Models (DEM), Flood Simulation, Valencia DANA (2024), Disaster Management

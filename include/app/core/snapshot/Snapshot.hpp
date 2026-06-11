@@ -13,6 +13,7 @@
 
 #include "misc/Types.hpp"
 #include "app/core/grid/MapGrid.hpp"
+#include "misc/TimeUtils.hpp"
 
 namespace floodsim::app::core::snapshot {
 
@@ -35,14 +36,14 @@ public:
      * @param time The timestamp of the current simulation step.
      * @param grid The main map grid containing the simulation layers.
      */
-    void Set(std::chrono::sys_seconds time, const grid::MapGrid& grid);
+    void Set(sys_time_double time, const grid::MapGrid& grid);
 
     /**
      * @brief Retrieves the timestamp associated with this snapshot.
      *
-     * @return std::chrono::sys_seconds The simulation time.
+     * @return sys_time_double The simulation time.
      */
-    [[nodiscard]] std::chrono::sys_seconds Time() const noexcept { return time_; }
+    [[nodiscard]] sys_time_double Time() const noexcept { return time_; }
 
     /**
      * @brief Retrieves the cached water depth layer.
@@ -59,7 +60,7 @@ public:
     [[nodiscard]] const std::vector<int8_t>& FloodRisk() const noexcept { return flood_risk_; }
 
 private:
-    std::chrono::sys_seconds time_;     ///< Timestamp of the snapshot.
+    sys_time_double time_;              ///< Timestamp of the snapshot.
 
     std::vector<float> water_depth_;    ///< Cached copy of the water depth layer.
     std::vector<int8_t> flood_risk_;    ///< Cached copy of the flood risk layer.

@@ -56,7 +56,7 @@ public:
      *
      * @param snapshot_manager Reference to the manager providing simulation snapshots.
      * @param output_path The root directory where output images will be saved.
-     * @throws std::invalid_argument If the provided output_path is empty.
+     * @throws floodsim::app::exception::FloodSimException If the provided output_path is empty.
      */
     void Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& output_path) override;
 
@@ -71,7 +71,7 @@ public:
      * @param start_timestamp The initial time of the simulation.
      */
     void SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
-        std::chrono::sys_seconds start_timestamp) override;
+        std::chrono::sys_seconds start_timestamp, const std::vector<config::FloodRiskLevel>& flood_risk_levels) override;
 
     /**
      * @brief Retrieves the identifier name for this thread.

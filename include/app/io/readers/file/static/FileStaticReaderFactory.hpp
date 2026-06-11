@@ -27,7 +27,7 @@ public:
      * @param data_path Directory where the file resides.
      * @param data_filename Name of the data file.
      * @return A std::unique_ptr pointing to the created StaticReader.
-     * @throws std::runtime_error If requested format cannot be built or is unsupported.
+     * @throws floodsim::app::exception::FloodSimException If requested format cannot be built or is unsupported.
      */
     static std::unique_ptr<StaticReader> Create(
         const formats::file::FileStaticFormat& format, const std::filesystem::path& data_path,

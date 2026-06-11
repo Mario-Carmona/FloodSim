@@ -1,0 +1,1039 @@
+\chapter{Implementation}
+\label{chapter:implementation}
+
+\section{Code availability}
+
+The code developed for this project is open source and is available in the following GitHub repository: \url{https://github.com/Mario-Carmona/FloodSim}.
+
+\section{Software Stack and Development Environment}
+\label{section:software_stack_dev_environment}
+
+To ensure strict reproducibility and cross-platform deployment across Linux (Ubuntu) and Windows, the framework utilizes an automated toolchain that seamlessly bridges native C++ compilation and specialized Python subsystems.
+
+\subsection{Build Automation and Native Dependency Management}
+
+The compilation pipeline relies on \texttt{CMake} (minimum version \texttt{4.1.1}) paired with \texttt{CMakePresets.json}, adhering strictly to the \texttt{C++20} standard. The target compilers are \texttt{GCC/G++ 12} for Linux and \texttt{MSVC 2026} for Windows, utilizing \texttt{Ninja-build} as the meta-build generator to parallelize translation units.
+
+Native third-party libraries are managed via \texttt{vcpkg} in Manifest Mode. To guarantee deterministic binary compilation across arbitrary host machines, the versioning matrix is locked to an immutable Git commit baseline hash:
+\begin{center}
+    \texttt{66c037dc7fca549e5803087b9487edfe3aca0a1}
+\end{center}
+
+The core native dependencies are segmented into functional modules:
+\begin{itemize}
+    \item \textbf{Diagnostics \& Parsing}: \texttt{spdlog} and \texttt{fmt} for asynchronous logging, alongside \texttt{nlohmann-json} for manifest parsing.
+    \item \textbf{Geospatial \& Networking}: \texttt{opencv4} (with hardware compression codecs), \texttt{paho-mqttpp3} for asynchronous MQTT transport, \texttt{geographiclib}, and \texttt{magic-enum}.
+    \item \textbf{UI \& Verification}: \texttt{imgui} (leveraging \texttt{GLFW3} and \texttt{OpenGL3} backends) for the graphical interface, and Google Test (\texttt{gtest}) for unit testing.
+\end{itemize}
+
+\subsection{Python Subsystems and Automated Bootstrapping}
+
+The simulation engine interacts with two specialized Python pipelines that manage complementary stages of the digital twin lifecycle:
+\begin{itemize}
+    \item \textbf{Geospatial Data Pipeline}: Handles automated remote sensing ingestion and structural alignment. It utilizes \texttt{rasterio} and \texttt{fiona} (GDAL bindings) for DEM manipulation, \texttt{shapely} and \texttt{pyproj} for CRS coordinate transformations, and \texttt{numpy}, \texttt{scikit-image}, and \texttt{gstools} for spatial matrix calculations.
+    \item \textbf{Neural Model Pipeline}: Manages the training and inference graphs of the accelerated physical state solvers. The stack is powered by \texttt{tensorflow==2.19.0}. To safeguard cross-language pointer safety and avoid catastrophic memory misalignments when binding tensors to C++ buffers, the environment strictly enforces \texttt{numpy<2.0}. Execution parity between design and production is secured using \texttt{tf2onnx>=1.16.1} and \texttt{onnxruntime==1.23.2}.
+\end{itemize}
+
+To eliminate manual environment setup, a custom \texttt{python.cmake} script automates virtual environment bootstrapping during the CMake configuration phase. The script automatically discovers a host interpreter (Python $\ge$ 3.10), instantiates isolated virtual environments, installs requirements, and injects custom path configurations (\texttt{.pth} files) directly into \texttt{site-packages} for seamless cross-subsystem module discovery.
+
+
+\section{Core Engine and Multi-Physics Parallelization}
+
+The computational efficiency of the $m:n-CA^k$ model relies on a hybrid data-parallel and thread-parallel execution strategy. The local 
+transition rules and multi-physics equations are vectorized into a static data-flow graph using TensorFlow, which is subsequently compiled 
+into an ONNX bytecode format. The runtime execution engine, implemented in native C++, wraps this graph and utilizes OpenMP alongside the 
+ONNX Runtime execution providers to achieve multi-threaded, tile-based parallelization across CPU cores.
+
+\subsection{Tensorized Transition Rules via TensorFlow/SIMD}
+
+Traditional Cellular Automata implementations utilize nested loops to iterate over the spatial dimensions ($X \times Y$), checking the 
+neighborhood state for each cell individually. This scalar approach induces massive pointer-indirection, strided memory accesses, and 
+severely limits Single Instruction, Multiple Data (SIMD) hardware vectorization. 
+
+To overcome this limitation, this simulator discards spatial loops entirely during the physics update phase. The transition rules are 
+formulated as \textbf{tensorized stencil operations}. The spatial grid is treated as a contiguous multi-dimensional array, and neighborhood 
+lookups are executed via vectorized tensor slicing and shifts. 
+
+For the Moore neighborhood ($k=8$), the engine generates 8 distinct spatial slices from a padded representation of the global state tensors. 
+For example, the total volumetric inflow ($\sum \Delta V_{\text{in}}$) for all cells is computed simultaneously by shifting and adding the 
+directional outflow tensors ($\Delta V_{\text{out}, k}$) using native array offsets:
+
+\begin{lstlisting}[language=Python, caption=Tensorized Stencil for Inflow Accumulation]
+# Vectorized accumulation of inflows from the 8 Moore neighbors
+total_inflow = (
+    outflow_padded[0, :, 2:,   1:-1] + # North
+    outflow_padded[1, :, 0:-2, 1:-1] + # South
+    outflow_padded[2, :, 1:-1, 0:-2] + # East
+    outflow_padded[3, :, 1:-1, 2:]   + # West
+    outflow_padded[4, :, 2:,   0:-2] + # North-East
+    outflow_padded[5, :, 2:,   2:]   + # North-West
+    outflow_padded[6, :, 0:-2, 0:-2] + # South-East
+    outflow_padded[7, :, 0:-2, 2:]     # South-West
+)
+\end{lstlisting}
+
+By transforming spatial iterations into element-wise matrix arithmetic, the underlying execution graph leverages low-level compiler 
+optimizations such as loop unrolling, cache alignment, and hardware-level SIMD instructions (e.g., AVX-512). This allows millions of cells 
+to update their hydraulic potential concurrently.
+
+\subsection{Hydraulic Regime Switching in Code}
+
+Evaluating multi-physics regimes (turbulent vs. laminar) within a localized cellular space typically introduces conditional branching 
+(\texttt{if-else} statements). In parallel computing, spatial branching triggers severe performance degradation due to 
+\textbf{branch misprediction} and thread divergence, as adjacent cells might follow different physical equations.
+
+To maintain a pure mathematical stream, the multi-physics core implements a \textbf{branchless selection strategy}. Both the Turbulent 
+directional velocity ($v_{\text{turb}, k}$) and the Viscous/Laminar directional velocity ($v_{\text{lam}, k}$) are computed across the 
+entire tensor space simultaneously. The physical selection is resolved via an element-wise mathematical minimum operator:
+
+$$v_{\text{approx}, k} = \min(v_{\text{turb}, k}, v_{\text{lam}, k})$$
+
+In the execution graph, this is mapped directly to the \texttt{tf.minimum} operator. When compiled into machine code via ONNX Runtime, this 
+translates to hardware-level conditional selection instructions (such as \texttt{vminps} in x86 architectures). This completely bypasses 
+the CPU's branch prediction unit, ensuring that the execution pipeline remains fully saturated regardless of whether a cell represents a 
+turbulent mountain stream or a highly viscous mudflow in an urban basin.
+
+\subsection{Boundary Conditions: The Impermeable Wall Logic}
+
+The handling of the grid limits is essential to maintain the physical integrity and mass conservation of the simulation. In this model, 
+boundary conditions are implemented using an absolute Virtual Wall strategy through specialized tensor padding applied directly to the 
+hydraulic potential.
+
+\paragraph{A. Water Surface Elevation (WSE) Formulation}
+
+Before evaluating spatial transitions and boundary interactions, the execution core couples the static terrain and dynamic fluid columns. 
+For each cell, the total potential energy is defined by the Water Surface Elevation ($WSE$), algebraically computed as the sum of the 
+Topobathymetry ($Z_{\text{topo-bathy}}$) and the current Water Depth ($WD$):
+
+$$WSE_{i,j} = Z_{\text{topo-bathy}, i,j} + WD_{i,j}$$
+
+\paragraph{B. Insurmountable Constant Tensor Padding}
+
+To enforce a strict non-building, impermeable boundary condition (Zero-Flux Boundary) at the grid edges, the engine pads the combined $WSE$ 
+tensor utilizing a Constant Padding strategy with an insurmountable virtual height threshold ($\mathcal{H}_{\text{wall}} = 9999.0\text{ m}$):
+
+$$\text{Padding}(WSE, \text{mode='CONSTANT'}, \text{constant\_values}=\mathcal{H}_{\text{wall}})$$
+
+This formulation forces the transition logic to treat the exterior of the computational matrix as an infinitely high topographic ridge. 
+Because the intra-layer propagation engine calculates flow velocities and multi-directional routing based on positive potential energy 
+gradients ($S_k > 0$), any cell located at the absolute border of the study area will compute a heavily negative gradient toward the 
+exterior:
+
+$$S_{\text{border}} = \frac{WSE_{\text{border\_cell}} - \mathcal{H}_{\text{wall}}}{L_k} \ll 0$$
+
+Adhering to the physical constraints of the model, gradients where $S_k \le 0$ are completely ignored. Consequently, water is mathematically 
+prohibited from escaping the active matrix boundaries, successfully simulating a perfectly contained hydrologic environment.
+
+\subsection{Numerical Stability: Volumetric Mass Conservation Shields}
+
+To guarantee strict mass conservation and suppress numerical oscillations without invoking computationally expensive global spatial filters, 
+the execution graph introduces an explicit, element-wise volumetric limiting mechanism directly onto the multi-directional outflow vectors.
+
+The model must ensure that the total combined outflow from a single cell does not exceed its actual physical fluid mass in a single step, 
+which would result in negative water depths. The total available volume ($V_{\text{cell}}$) within the central cell's column is formulated 
+as:
+
+$$V_{\text{cell}} = WD_{i,j} \cdot \Delta x^2$$
+
+If the sum of all theoretical directional outflows ($\sum_{k=1}^{8} \Delta V_{\text{theor}, k}$) computed by the physics regimes exceeds 
+$V_{\text{cell}}$, the outflows must be scaled down proportionally to preserve the physical multi-directional routing ratios. 
+
+To maintain the branchless execution strategy and avoid CPU thread divergence, this optimization is achieved via an element-wise scale 
+factor ($\alpha$). The reduction factor is computed utilizing a safe, non-zero division operator (\texttt{tf.math.divide\_no\_nan}):
+
+$$\alpha = \frac{\min\left(\sum_{k=1}^{8} \Delta V_{\text{theor}, k},\, V_{\text{cell}}\right)}{\sum_{k=1}^{8} \Delta V_{\text{theor}, k}}$$
+
+\begin{lstlisting}[language=Python, caption=Tensorized Volumetric Shields and Safe Scaling]
+# Total volume contained strictly within the cell column
+V_cell = water_depth * cell_area
+
+# Total theoretical outflow attempt across all 8 Moore directions
+total_outflow_attempt = tf.reduce_sum(delta_V_theor_k, axis=0)
+
+# Branchless proportional scaling factor (alpha) to bound mass
+alpha = tf.math.divide_no_nan(
+    tf.minimum(total_outflow_attempt, V_cell), 
+    total_outflow_attempt
+)
+
+# Safe and volumetrically continuous directional outflows
+delta_V_out_k = delta_V_theor_k * alpha
+\end{lstlisting}
+
+By mapping this algebraic correction directly into \texttt{tf.math.divide\_no\_nan} and \texttt{tf.minimum}, the compiler translates the 
+safety constraints into hardware-level SIMD operations. To filter out floating-point precision noise and prevent sub-threshold numerical 
+artifacts in flat areas, a definitive epsilon floor filter is applied to the final depth:
+
+$$WD_{i,j}^{t+1} = \begin{cases} 
+0.0, & \text{if } WD_{i,j}^{t+1} < \epsilon \\ 
+WD_{i,j}^{t+1}, & \text{otherwise} 
+\end{cases}$$
+
+Where $\epsilon = 10^{-5}$ meters. This ensures complete volumetric continuity and numerical stability across highly irregular topographies 
+without breaking the saturation of the execution pipeline.
+
+\subsection{Hybrid Thread-Level Parallelism via C++ and OpenMP}
+
+While the core physics transitions are encapsulated within the tensor graph, the macro-management of the simulation space is orchestrated 
+by a multi-threaded C++ wrapper (\texttt{OnnxStateUpdater}). 
+
+To optimize performance on large river basins, the C++ engine implements a dynamic active-tile scheduling mechanism. The total grid space 
+is segmented into localized computational sub-blocks of size $T_{\text{dim}} \times T_{\text{dim}}$. Before launching the tensor graph 
+inference, the engine queries the Water Movement State layer ($E_5$) to filter out entirely static or dry tiles. A tile is flagged as active 
+if any cell within its core region or its surrounding boundary halo ($H_{\text{size}} = 1$) is in a dynamic state:
+
+$$\text{Active}_{\text{tile}} \iff \exists c_{x,y} \in \text{Tile}_{\text{core}} \cup \text{Tile}_{\text{halo}} \mid WMS_{x,y} = \text{kDynamicState}$$
+
+Active tiles are packed into a continuous batch tensor of shape $[B, T_{\text{dim}}, T_{\text{dim}}]$, where $B$ represents the dynamic 
+batch size. This tensor structure is fed directly into the ONNX Runtime session via custom I/O bindings (\texttt{Ort::IoBinding}), 
+preventing redundant tensor operations in dry areas of the river basin.
+
+The initialization phase, precipitation injection, and post-processing classification of the Flood Risk layer ($E_6$) are parallelized 
+across multiple CPU cores using OpenMP directives:
+
+\begin{lstlisting}[language=C++, caption=OpenMP Parallelization for Risk Classification and State Management]
+#pragma omp parallel for
+for (int64_t b = 0; b < static_cast<int64_t>(active_tiles.size()); ++b) {
+    const auto& tile = active_tiles[b];
+    for (int64_t core_y = 0; core_y < tile.core_height; ++core_y) {
+        int64_t global_y = tile.core_start_y + core_y;
+        int64_t global_offset = (global_y * grid.GetCols()) + tile.core_start_x;
+
+        for (int64_t i = 0; i < tile.core_width; i++) {
+            int64_t elem = global_offset + i;
+            // Real-time heuristic hazard mapping (E6 Evolution)
+            flood_risk[elem] = ClassifyRisk(water_depth[elem]);
+        }
+    }
+}
+\end{lstlisting}
+
+By combining the \textbf{Data-Level Parallelism (DLP)} of the TensorFlow-compiled ONNX graph with the 
+\textbf{Thread-Level Parallelism (TLP)} of OpenMP loop scheduling, the simulation engine establishes a highly scalable framework capable of 
+handling high-resolution GIS datasets under real-time operational constraints.
+
+
+\section{Hexagonal Architecture Layout}
+
+To enforce the conceptual boundaries established by the Hexagonal Architecture \ref{sec:hexagonal-methodology}, the physical source 
+code is strictly partitioned into isolated modules. The directory layout separates the mathematically pure simulation domain from 
+infrastructure-dependent adapters, data ingestion services, and presentation layers.
+
+
+\subsection{Implementation of Ports / Abstract Contracts}
+\label{subsec:implementation_ports}
+
+In C++, abstract ports are implemented as pure abstract classes containing pure virtual functions ($=0$) and virtual destructors. 
+This ensures compile-time decoupling, forcing infrastructure adapters to strictly adhere to the signatures required by the simulation 
+core. Based on the project requirements, three primary abstract ports were developed to manage data ingestion, state mutation, and 
+result serialization.
+
+\subsubsection{Data Ingestion Contract: InputPort}
+
+The \texttt{InputPort} interface establishes how the core requests environmental and geographical datasets without bound to specific 
+file systems or database APIs. 
+
+\subsubsection{Asynchronous Execution Contract: OutputPort}
+
+The \texttt{OutputPort} interface is fundamentally designed around performance isolation to prevent heavy I/O operations (such as 
+writing physical files to disk or streaming chunks over the network) from bottlenecking the main simulation loop.
+
+\begin{itemize}
+    \item \textbf{Thread Context Isolation}: Implementations of this port are intended to run inside 
+    their own independent thread contexts via the \texttt{Run()} method.
+    
+    \item \textbf{Thread-Safe Data Consumers}: The \texttt{Run()} method accepts a reference to a thread-safe 
+    \texttt{snapshot::SnapshotManager}. This mechanism allows the adapter implementation to continuously pull available simulation 
+    states from a concurrent queue in a non-blocking fashion until a shutdown signal is dispatched.
+\end{itemize}
+
+\subsubsection{Numerical Solver Contract: StateUpdaterPort}
+
+The \texttt{StateUpdaterPort} serves as the boundary interface for the explicit physical solver execution. It encapsulates the core 
+analytical parameters while remaining generic enough to support multiple computational backends (e.g., CPU, GPU, or cellular automata 
+matrix engines).
+
+
+\subsection{Implementation of Infrastructure Adapters}
+
+\subsubsection{Implementation of Driving Adapters: Input Infrastructure}
+
+Driving adapters (or primary adapters) are positioned at the boundary of the infrastructure layer, tasked with capturing external 
+data and delivering it to the Core through the abstract contracts described in Section~\ref{subsec:implementation_ports}. At the 
+current development stage, the data ingestion pipeline relies on a specialized file-system adapter, \texttt{FileInput}, which 
+materializes the \texttt{InputPort} interface.
+
+\paragraph{The FileInput Adapter Component}
+
+The \texttt{FileInput} class (\texttt{floodsim::app::adapters::input} namespace) maps \\ workspace directories into logical simulation layers, managing both immutable geographic constraints and time-variant datasets.
+
+The core method \texttt{GenerateReader()} overrides the abstract port contract to instantiate concrete parsers dynamically, delegating execution to specialized factories based on layer volatility.
+
+\subsubsection{Implementation of Driven Adapters: Output Infrastructure}
+\label{subsec:output_adapters_implementation}
+
+Driven adapters (or secondary adapters) are invoked by the Core to export calculation results, save state checkpoints, or stream live 
+data to remote interfaces. To prevent slow disk write cycles or network latency from blocking the explicit numerical solver, these 
+adapters implement the asynchronous thread execution model enforced by the \texttt{OutputPort} contract.
+
+\paragraph{State Persistence and Recovery: CheckpointOutput}
+
+The \texttt{CheckpointOutput} adapter targets physical storage to archive comprehensive simulation snapshots, ensuring fault tolerance 
+and reproducibility.
+
+\begin{itemize}
+    \item \textbf{I/O Framework Delegation}: Upon instantiation, the class requests a concrete binary file writer. In the execution loop, the adapter safely unwraps incoming snapshots from 
+    the concurrent queue, mapping multidimensional tensor slices (such as water depth arrays) directly onto storage.
+    
+    \item \textbf{Cross-Platform Filework Protection}: To prevent OS-specific path parsing conflicts, the method 
+    \texttt{SaveSnapshotAsCheckpoint()} captures the simulation ISO-8601 timestamp string.
+\end{itemize}
+
+\paragraph{Asynchronous Real-Time Telemetry: MqttOutput}
+
+The \texttt{MqttOutput} adapter implements a custom network protocol over an asynchronous MQTT broker client to optimize wide-area telemetric transmission.
+
+\begin{itemize}
+    \item \textbf{Bandwidth Optimization (Chunking)}: To prevent buffer overflows, the adapter partitions grid differential arrays (\texttt{core::snapshot::ChangeList}) into localized chunks rather than broadcasting monolithic tensors, regulated by structured macro parameters (\texttt{kChunkSize = 40000} cells, \texttt{kBatchSize = 10}).
+    
+    \item \textbf{Synchronization Lifecycle}: The streaming workflow follows a strict three-phase framing sequence:
+    \begin{enumerate}
+        \item Transmits a frame initialization notice (\texttt{FrameStart}).
+        \item Streams serialized chunks in sequential batches, executing brief control cycles to await remote consumption confirmation via a feedback channel (\texttt{ChunkAck}).
+        \item Dispatches a frame termination signal (\texttt{FrameEnd}) followed by a temporal synchronization payload (\texttt{FrameSync}) to coordinate remote rendering timelines.
+    \end{enumerate}
+    
+    \item \textbf{Serialization Inversion}: An abstract \texttt{PayloadSerializer} interface (defaulting to a concrete \texttt{JsonSerializer}) decouples the data format from network sockets. This strategy allows future upgrades to binary serialization engines (e.g., Protocol Buffers or FlatBuffers) without altering the underlying network pipeline.
+\end{itemize}
+
+\paragraph{Visual Analytics Canvas: ImageOutput}
+
+To satisfy immediate spatial understanding and emergency analysis, the \texttt{ImageOutput} adapter provides automated graphical 
+asset rendering directly from spatial calculations.
+
+
+\subsubsection{Implementation of Simulation Workers: State Updater Infrastructure}
+\label{subsec:state_updater_implementation}
+
+The state updater infrastructure represents the mathematical and computational core of the simulation's physical execution. In accordance 
+with Hexagonal Architecture, this module materializes the \texttt{StateUpdaterPort} contract, translating the multi-channel spatial 
+state of the domain from time-step $t$ to $t+1$. Rather than relying on traditional, slow numerical solvers, the architecture decouples 
+physics through an inference pipeline powered by the ONNX Runtime C++ framework.
+
+\paragraph{Neural Network Execution Layer: OnnxStateUpdater}
+
+The \texttt{OnnxStateUpdater} class bridges the gap between the structured application domain grids and deep learning analytical 
+tensors. It manages the lifecycles of native \texttt{Ort::Env}, \texttt{Ort::Session}, and memory management primitives.
+
+\begin{itemize}
+    \item \textbf{Structural Graph Inversion Mapping}: To achieve flexibility across different neural model versions or layouts, the 
+    class defines localized metadata descriptors: \texttt{TensorInfo} and \texttt{ModelGraphInfo}. The \texttt{ParseModelGraphInfo()} 
+    method parses an accompanying JSON structural manifest, extracting properties such as dimensions, logical identifiers 
+    (\texttt{id\_name}), explicit neural graph names (\texttt{model\_name}), and strongly-typed data specifications (e.g., 
+    \texttt{DataType::kFloat32} or \texttt{DataType::kInt8}).
+    
+    \item \textbf{Zero-Copy Direct Memory Binding}: To satisfy real-time processing constraints for large-scale digital twins, 
+    copying massive geographical grids at every time-step is strictly unacceptable. The updater solves this via the 
+    \texttt{ConfigureTensor()} method, which performs direct memory layout binding. It extracts raw underlying pointers directly 
+    from the active \texttt{MapGrid} or temporary memory scratchpads. By wrapping the pre-allocated physical C++ data array directly into an \texttt{Ort::Value} wrapper, the system establishes a 
+    zero-copy pipeline. The ONNX execution graph processes the cell elements in-place, eliminating allocation and serialization 
+    overheads completely.
+    
+    \item \textbf{Spatial Sparsity Optimization}: Computational resources are optimized by avoiding inferences over completely dry 
+    geographic sectors. The component integrates an optimization scanner, \texttt{GetActiveTiles()}, which evaluates spatial sparsity 
+    by grouping nodes into structured \texttt{Tile} vectors.
+\end{itemize}
+
+The class explicitly incorporates OpenMP (\texttt{\#include <omp.h>}) alongside internal 
+ONNX multi-threading parameters to parallelize loop iterations and pixel-level status classifications (such as classifying risk 
+profiles via water depth thresholds in \texttt{ClassifyRiskLevel()}) across multiple hardware threads simulta
+
+
+
+
+
+\section{Distributed Telemetry and Messaging Layer Implementation}
+\label{sec:distributed_telemetry_implementation}
+
+The concrete implementation of the distributed telemetry layer translates the decoupled, publish-subscribe architecture into a highly 
+robust, non-blocking C++ execution module. Operating as an outbound adapter within the hexagonal architecture of the system, this layer 
+guarantees the efficient externalization of high-velocity simulation state changes without introducing performance degradation to the core 
+numerical solver.
+
+\subsection{MQTT Client Integration and Threaded Lifecycle Management}
+\label{subsec:mqtt_client_integration}
+
+The network ingestion layer is engineered around the Eclipse Paho MQTT C++ asynchronous client library (\texttt{mqtt::async\_client}), 
+which abstracts low-level POSIX socket operations into an object-oriented, event-driven framework. The operational core of this component 
+is encapsulated within the \texttt{MqttOutput} class, which inherits from the abstract framework port \texttt{core::ports::OutputPort}. 
+
+To enforce absolute functional isolation and protect the main hydraulic simulation loop from network-induced latencies, the client runs 
+within an independent worker thread governed by its \texttt{Run} execution loop. This thread handles data transmission asynchronously 
+using a synchronized, blocking consumer pattern:
+
+Upon object 
+construction, the engine validates the required configuration parameters and establishes a network session via the \texttt{Connect()} 
+method. The session options configure a clean MQTT session (\texttt{set\_clean\_session(true)}) under the client identifier 
+\texttt{"FloodSim\_Core"}. 
+
+Before any physical data transmission occurs, the client invokes a deterministic, synchronous peer discovery routine inside the 
+\texttt{Handshake()} method. The adapter subscribes to a dedicated control path (\texttt{FloodSim/\{scenarioName\}/system \\ /handshake/pong}) 
+and publishes a structured \texttt{System\_Ping} event to the corresponding ping 
+topic. The thread then enters a timed block using \\ \texttt{client\_.\-try\_consume\_message\_for()} with a 10-second timeout 
+(\texttt{ping\_interval}). This sequence verifies network link viability and 
+consumer readiness before the main simulation thread is permitted to advance.
+
+When the simulation terminates or the object is destroyed, the class destructor guarantees a graceful tear-down. It safely publishes a 
+final terminal event (\texttt{Sim\_End}) to ensure downstream visualization engines release their allocated 
+buffers.
+
+\subsection{Serialization Architecture and JSON Payload Structural Schema}
+\label{subsec:serialization_architecture}
+
+Data representation across the distributed topology is managed by the abstract \\ \texttt{PayloadSerializer} interface, which is concretely 
+realized via the modern header-only \texttt{nlohmann::json} library within the final class \texttt{JsonSerializer}. This module isolates 
+the binary data structures of the core engine from external representation layout formats, allowing future format upgrades (such as 
+Google Protocol Buffers or FlatBuffers) without altering the telemetry adapter's orchestration logic.
+
+During the initialization phase, the \texttt{SetInitConfig()} procedure executes a multi-step metadata broadcast to structure remote 
+consumer displays. The system serializes the geometric, temporal, and hazard configurations of the simulation using distinct JSON payload 
+schemas:
+
+\begin{itemize}
+    \item \textbf{Map Grid Configuration} (\texttt{InitMap\_Config}): Captures spatial discretization attributes extracted from the 
+    \texttt{core::grid::MapGrid} instance. The resulting JSON payload records structural boundaries such as the matrix layout 
+    proportions (\texttt{size\_x}, \texttt{size\_y}), the spatial discretization step (\texttt{cell\_resolution\_m}), and the internal 
+    integration time step delta (\texttt{time\_step\_s}). It also embeds a global coordinate position point (\texttt{georeference} 
+    consisting of \texttt{lat} and \texttt{lon}) and an ISO-8601 formatted simulation start anchor (\texttt{sim\_start\_time}) utilizing 
+    the \texttt{fmt} formatting library.
+    
+    \item \textbf{Visualization Layer Metadata} (\texttt{InitAgent\_Layer}): Establishes rendering palettes for the physical data 
+    structures (e.g., the topography-bathymetry layer \texttt{"topo\_bathy"}). To bridge the gap between simulation integers and 
+    visual client rendering, an internal color conversion pipeline evaluates user-configured hazard classes via a custom hex-to-RGBA 
+    translation matrix. This function converts strings formatted as \texttt{\#RRGGBB} or \texttt{\#RRGGBBAA} into integer arrays, embedding clear categorical 
+definitions directly into the layer metadata payload (\texttt{color\_palette}).
+\end{itemize}
+
+
+\subsection{Asynchronous Broadcasting, Chunking, and Backpressure Flow Control}
+\label{subsec:broadcasting_chunking_backpressure}
+
+Transmitting monolithic high-resolution matrices causes severe network degradation and serialization overhead. To mitigate this, the engine implements a differential chunking system with active out-of-band backpressure flow control, regulated by two architectural constants:
+
+\begin{equation}
+    K_{\text{chunk}} = 40,000 \text{ cells}, \quad K_{\text{batch}} = 10 \text{ chunks}
+\end{equation}
+
+During baseline transmission (\texttt{SendInitState}), the engine filters out inactive cells, streaming only active hazard regions ($\text{flood\_risk}[i] > 0$). The total volume of modified elements is partitioned into discrete segments:
+
+\begin{equation}
+    N_{\text{total\_chunks}} = \left\lfloor \frac{\text{changes.indexes.size}() + K_{\text{chunk}} - 1}{K_{\text{chunk}}} \right\rfloor
+\end{equation}
+
+The chunking and throttling loop executes across four synchronized phases:
+
+\begin{enumerate}
+    \item \textbf{Frame Declaration}: Broadcasts a \texttt{FrameStart} boundary packet (QoS 1) containing $N_{\text{total\_chunks}}$ and $K_{\text{batch}}$ to alert downstream consumers.
+    
+    \item \textbf{Asynchronous Dispatch}: Sequentially serializes and transmits localized cell data blocks via non-blocking publish calls under the \texttt{"EYE\_SetState\_Layer"} process string, avoiding thread stalls.
+    
+    \item \textbf{Backpressure Throttling}: Every $K_{\text{batch}}$ chunks, the worker thread pauses outbound transmission and blocks until it receives an explicit out-of-band \texttt{"ChunkAck"} control message, preventing network buffer saturation.
+    
+    \item \textbf{Temporal Convergence}: Dispatches a \texttt{FrameEnd} boundary to flush rendering pipelines, followed by an \texttt{EYE\_Frame\_Sync} packet containing the ISO-8601 simulation timestamp ($t_{\text{sim}}$) to align computational and visualization nodes.
+\end{enumerate}
+
+
+
+\section{Implementation of the Data Pipeline}
+
+The conceptual data pipeline and preprocessing framework were developed using object-oriented architecture and modular design patterns to 
+ensure low coupling, robust input/output (I/O) handling, and system observability.
+
+
+\subsection{Core Software Architecture and Design Patterns}
+
+To translate the abstract data pipeline into an extensible software system, three core software engineering patterns were implemented: 
+Abstraction, Hierarchical Inheritance, and the Registry Pattern.
+
+
+\subsubsection{Base Classes and Structural Inheritance}
+
+\begin{itemize}
+    \item \textbf{DataGenerator (Abstract Base Class)}: Standardizes the lifecycle of a layer through the \texttt{run()} 
+    method. This method acts as a template, orchestrating the generate, save, and visualize steps. This ensures 
+    that every layer, regardless of its content, follows the same operational protocol.
+    \item \textbf{StaticLayerGenerator}: Specializes the base class for 2D data.
+    \item \textbf{DynamicLayerGenerator}: Handles the added complexity of the temporal dimension. 
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{chapter_4/data_generator_hierarchy}
+    \caption{Data Generator Class Hierarchy}
+    \label{fig:data_generator_hierarchy}
+\end{figure}
+
+
+\subsubsection{Data Structures and Type Safety}
+
+The implementation uses Python dataclasses (in \texttt{types.py}) to define the internal data representation. This ensures that every tensor is always coupled with its spatial metadata (affine transform, CRS, and 
+dimensions), preventing the spatial misalignment errors discussed in the methodology.
+
+
+\subsubsection{Object-Oriented Encapsulation and Abstraction}
+
+To translate the abstract data pipeline into an extensible software system, three core software engineering patterns were implemented: 
+Abstraction, Hierarchical Inheritance, and the Registry Pattern.
+
+\paragraph{A. Encapsulation and Abstraction}
+
+Every geospatial data source is instantiated as a specialized object rather than a raw array or a primitive file path. The complexities 
+of geographic coordinate transformations, varying pixel resolutions, and proprietary file structures are encapsulated within dedicated 
+class interfaces. The rest of the simulation engine interacts solely with high-level methods to extract physical properties, completely 
+isolated from low-level data extraction mechanics.
+
+\paragraph{B. Decoupling I/O via Concrete Handlers}
+
+File-system interactions are strictly separated from data-processing logic by isolating ingestion routines within dedicated I/O Handlers. 
+This design abstracts the underlying storage format. Adapting the system from local raster formats (such as IDRISI or GeoTIFF) to 
+multi-dimensional formats (such as NetCDF) or cloud-hosted spatial databases only necessitates implementing a matching I/O handler, 
+keeping the core scientific layer-generation logic untouched.
+
+
+\subsubsection{Configuration Processing and Schema Validation}
+
+The control plane is implemented via structured YAML configuration files. The configuration ingestion subsystem parses the manifest and 
+subjects it to automated schema enforcement. The system validates semantic rules (e.g., verifying that the simulation `start\_date` 
+chronologically precedes the `end\_date`) and checks for required spatial parameters. 
+
+Furthermore, the configuration parser reads a defined visualization array. If a layer identifier is present within this list, the engine 
+flags the corresponding object to automatically trigger the visualization routines post-generation, optimizing execution times by skipping 
+rendering steps for background layers.
+
+
+\subsection{Pipeline Orchestration and Extensibility}
+\label{subsec:pipeline_orchestrator}
+
+The operational execution of the data engineering framework is centralized within the \texttt{DataPipeline} class, implemented in 
+\texttt{pipeline.py}. Acting as the system's core orchestrator, its primary responsibilities revolve around runtime dependency resolution, 
+deterministic execution management, and ensuring complete inversion of control. By decoupling the data ingestion and transformation phases 
+from the underlying simulation execution logic, the architecture guarantees that the simulator remains resilient to variations in spatial 
+parameters, external schemas, or data modalities.
+
+\subsubsection{Decoupled Registration via the Registry Pattern}
+\label{subsub:registry_pattern}
+
+To achieve true modularity and prevent compile-time hardcoding of individual physical layers, the architecture relies on the 
+\textbf{Registry Pattern}. Under this paradigm, the \texttt{DataPipeline} behaves as an agnostic, centralized hub that does not maintain 
+explicit compile-time references to specialized environmental components (such as Topo-Bathy, LandCover, or Rainfall).
+
+Instead, the subsystem establishes an internal dictionary-like lookup structure during application startup. Available spatial generators, 
+derived from abstract base types, dynamically inscribe themselves into this central repository. When a simulation scenario is triggered, 
+the orchester queries this registry to dynamically instantiate only the concrete components required by the operational configuration. 
+Consequently, the core execution engine remains entirely insulated from specialized data transformations, satisfying the Open-Closed 
+Principle of software engineering.
+
+\subsubsection{Dependency Resolution and Topological Execution Flow}
+\label{subsub:topological_execution}
+
+The runtime lifecycle of the \texttt{DataPipeline} operates via a rigorous three-stage graph-theoretic sequence, mapping data flows as 
+localized transformations while preventing the leakage of global state variables:
+
+\begin{enumerate}
+    \item \textbf{Dependency Discovery}: Upon parsing the centralized YAML configuration manifest, the orchestrator triggers a discovery 
+    routine where each registered layer programmatically declares its input prerequisites. The engine uses these assertions to construct a 
+    directed adjacency list representing the computational dependency landscape.
+
+    \item \textbf{Topological Sorting}: To transform the dependency adjacency list into a valid linear execution sequence, the pipeline 
+    leverages the native \\ \texttt{graphlib.TopologicalSorter} module. This graph resolution ensures that independent baseline terrain assets, 
+    such as the Digital Elevation Model (DEM), are fully generated and locked in memory before any downstream layers requiring spatial 
+    clipping or masking (such as LandCover or Rainfall) are initialized.
+
+    \item \textbf{Decoupled Context Injection}: Data transfer between successive layers is handled without relying on mutable global states 
+    or persistent singleton instances. During the execution sweep, the orchestrator maintains a localized runtime map called the 
+    \texttt{dependent\_layers} dictionary. As each layer completes its transformation, its materialized state tensor is packed into this 
+    dictionary and explicitly injected into dependent downstream components, establishing a clean, unidirectional data boundary.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{chapter_4/data_pipeline_sequence_execution}
+    \caption[Sequence diagram of the \textit{DataPipeline} execution flow]{Sequence diagram of the \textit{DataPipeline} execution flow.}
+    \label{fig:data_pipeline_sequence_execution}
+\end{figure}
+
+\subsubsection{The Developer Extension Workflow}
+\label{subsub:developer_workflow}
+
+The real-world utility of isolating orchestration logic from operational transformations is best demonstrated by the pipeline's 
+extensibility. Incorporating a novel environmental variable (e.g., Soil Infiltration, Evapotranspiration, or Infiltration capacity) does 
+not require modifying the execution loops in \texttt{pipeline.py}. Instead, researchers adhere to a strictly structured, three-step 
+developer workflow dictated by the interfaces defined in \texttt{base.py}:
+
+\begin{enumerate}
+    \item \textbf{Component Subclassing}: The developer creates a new concrete class that inherits from either \texttt{StaticLayerGenerator} 
+    or \texttt{DynamicLayerGenerator}, depending on the temporal requirements of the new physical metric.
+
+    \item \textbf{Transformation Implementation}: The developer overrides the abstract internal execution method, \texttt{\_generate()}, 
+    to implement the specific geospatial clipping, mapping, or mathematical interpolation routines required for that variable.
+
+    \item \textbf{Automated Registration}: The new class is annotated or appended to the \\ \texttt{DataPipeline} runtime registry mapping, 
+    exposing it to the configuration parser.
+\end{enumerate}
+
+By adhering to this contract, the newly integrated physical layer automatically inherits the entire infrastructure backbone of the 
+application. Without writing additional scaffolding code, the new component gains native access to IDRISI/HIF disk serialization handlers, 
+standardized multi-sink error logging via \textsl{Loguru}, configuration schema validation, and automated post-generation diagnostic 
+plotting. This architecture minimizes boilerplate duplication and allows environmental scientists to focus exclusively on numerical and 
+physical modeling logic.
+
+
+\subsection{Input/Output Management and Data Serialization}
+\label{subsec:io_management}
+
+The Input/Output (I/O) subsystem is implemented through specialized handler classes that encapsulate the complexities of geographic file 
+formats and directory structures. By isolating these operations in \texttt{IdrisiIO} and \texttt{HierarchicalIdrisiIO}, the 
+pipeline ensures that the core generators remain agnostic to the underlying storage drivers. File-system interactions are 
+strictly separated from data-processing logic by isolating ingestion routines within dedicated I/O Handlers, abstracting the underlying 
+storage format.
+
+
+\subsubsection{Static Raster Handling (IDRISI)}
+
+For immutable 2D layers such as elevation and roughness, the implementation relies on the \texttt{IdrisiIO} class. This 
+handler manages the standard IDRISI dual-file specification:
+
+\begin{itemize}
+    \item \textbf{Metadata Serialization (.doc)}: The \_write\_doc() method programmatically generates a structured 
+    ASCII descriptor. It maps the internal SpatialContext (bounding box, CRS, cell size) to the specific fields 
+    required by the IDRISI standard, such as min. X, max. X, and posn. units.
+    \item \textbf{Data Matrix Export (.img)}: The save() method handles the conversion of NumPy arrays into 
+    ASCII-encoded raster files. It employs a dynamic formatting strategy: integer-based layers (like land-use masks) 
+    are saved with zero decimal precision (%d), while floating-point physical values (like topo-bathy) are serialized 
+    using high-precision scientific notation to prevent data loss during the I/O process.
+    \item \textbf{Directory Integrity}: The class automatically ensures the existence of target directories using 
+    pathlib, preventing runtime exceptions during the export phase of the pipeline.
+\end{itemize}
+
+
+\subsubsection{Hierarchical IDRISI Format (HIF) Disk Serialization}
+\label{subsubsec:hif_implementation}
+
+The abstract 3D data cube representation ($Time \times Y \times X$) formalized in the methodology is physically realized on disk by mapping 
+the logical tensor frames into a structured repository of standard IDRISI rasters. To manage these complex spatiotemporal datasets without 
+the processing overhead and dependency footprints of heavy binary container formats (such as HDF5 or NetCDF4), the framework introduces a 
+custom specification: the Hierarchical IDRISI Format (HIF). 
+
+By leveraging the same underlying logical rules for both static and dynamic geographic layers, the I/O subsystem minimizes reliance on 
+external data-science runtimes (like \texttt{h5py}). This architectural uniformity significantly simplifies the compilation boundaries and 
+deployment pipeline of the high-performance C++ simulation core, ensuring that text-based high-resolution simulations are not severely 
+bounded by input/output (I/O) bottlenecks.
+
+\subsubsection{Physical Storage and Descriptor Redundancy Elimination}
+\label{subsub:physical_storage_mechanics}
+
+In standard GIS software pipelines, an independent IDRISI layer demands a dual-file layout composed of a plain-text ASCII image data file 
+(\texttt{.img}) containing whitespace-separated numerical pixel values and an accompanying plain-text ASCII documentation file 
+(\texttt{.doc}) detailing grid geometry. In a long temporal sequence, duplicating geographic metadata for every individual time-step 
+introduces critical metadata parsing overhead. 
+
+The high-level data pipeline orchestrates the generation of this format through the \texttt{HierarchicalIdrisiIO} class. To eliminate 
+redundant parsing loops inside the core simulation execution, the I/O module overrides traditional conventions by decomposing the 3D domain 
+into a unified three-component hierarchy:
+
+\begin{itemize}
+    \item \textbf{Master Metadata (\texttt{.hif})}: The implementation writes a global spatial descriptor file with a custom \texttt{.hif} 
+    extension. This file mimics standard IDRISI documentation metadata but represents the global geographic and spatial context of the 
+    \textsl{entire temporal sequence}, serving as the definitive structural entry point for the simulation engine.
+    
+    \item \textbf{Temporal Attribute Manifest (\texttt{.json})}: A JSON-encoded manifest file that maps each discrete simulation 
+    time-step directly to its corresponding ISO-8601 timestamp and physical file path. This metadata abstraction decouples chronology from 
+    spatial processing.
+    
+    \item \textbf{Temporal Frame Repository}: A flat collection of standalone plain-text ASCII raster \texttt{.img} files representing 
+    individual atomic slices. During data generation, the \texttt{save()} method of the \texttt{HierarchicalIdrisiIO} class loops over the 
+    temporal dimension of the data cube, delegating the serialization of each 2D slice to a standard \texttt{IdrisiIO} handler. This ensures 
+    that every individual frame remains a valid, independent IDRISI dataset for external validation.
+\end{itemize}
+
+By decoupling the immutable spatial boundaries from the time-varying arrays, this design reduces the total number of system lookups and 
+open-close primitives by exactly 50\% across the temporal execution loop. The resulting directory layout establishes predictable pointer 
+arithmetic for downstream access, as structured in Figure~\ref{fig:hif_structure}.
+
+\begin{figure}[htbp]
+    \centering
+    \footnotesize
+    \begin{forest}
+      for tree={
+        folder,   
+        font=\ttfamily,
+        grow'=0,
+      }
+    [output/rainfall/
+      [\file{rainfall.hif}]
+      [\file{rainfall\_metadata.json}]
+      [\file{000000.img}]
+      [\file{000001.img}]
+      [\file{...}]
+    ]
+    \end{forest}
+    \caption{Hierarchical IDRISI Format (HIF) internal directory structure.}
+    \label{fig:hif_structure}
+\end{figure}
+
+\subsubsection{On-Demand File Access and High-Performance Parsing Mechanics}
+\label{subsub:on_demand_file_access}
+
+The physical execution of the \textsl{lazy loading} paradigm is handled via a synchronous file-handle mapping layer. The simulator utilizes 
+a specialized C++ metadata parser (\texttt{HifReader}) that scans the decoupled manifest to construct a high-speed 
+runtime index. 
+
+This index enables true \textsl{Temporal Seeking}, allowing the simulator to query and read only the specific physical frames required for 
+a given time-step without loading the entire multi-gigabyte dataset into system memory. When the internal simulation clock passes a 
+chronological boundary, the execution loop pauses to ingest the target frame via an optimized, low-level streaming pipeline:
+
+\begin{enumerate}
+    \item \textbf{Monolithic Memory Buffer Loading}: The targeted \texttt{.img} text asset is opened in binary mode with the file position 
+    indicator positioned at the end \\ (\texttt{std::ios::ate}). This determines the exact byte magnitude of the file instantly, allowing the 
+    engine to allocate a single, continuous \texttt{std::string} buffer and load the complete file contents into RAM via a single, unbroken 
+    disk read command.
+    
+    \item \textbf{Zero-Allocation ASCII Parsing}: Instead of executing standard tokenization wrappers or locale-dependent input streams 
+    (such as \texttt{std::stringstream}), the parsing module iterates directly through the raw character string pointer. It utilizes 
+    localized whitespace skipping and low-level character conversion primitives (\texttt{std::from\_chars}), populating the pre-allocated 
+    simulation vector directly from RAM without generating temporary string allocations or heap fragmentation.
+\end{enumerate}
+
+\subsubsection{Resolution Resampling and Spatial Synchronization}
+\label{subsub:resolution_resampling}
+
+The spatial projection logic described in the methodology is physically handled during the reader update cycle. Rather than computing 
+expensive floating-point geographic translations or spatial intersections in the core loop, the \texttt{DynamicLayer} class establishes a 
+localized index structure:
+
+\begin{lstlisting}[language=C++, caption={Resolution resampling and spatial downscaling lookups inside the layer initialization.}]
+// Map Sim(r,c) -> Input(hr, hc) using integer division (Downgrading)
+GridIndexType hr = r / downgrade_factor;
+GridIndexType hc = c / downgrade_factor;
+
+if (hr < coarse_metadata.height && hc < coarse_metadata.width) {
+    FlatVectorIndexType idx = r * main_metadata.width + c;
+    index_map_[idx] = hr * coarse_metadata.width + hc;
+    inside_map_[idx] = true;
+}
+\end{lstlisting}
+
+If the ingestion configuration reveals a downgrade factor $\gamma > 1$, the system maintains a dedicated, pre-allocated temporary 
+scratchpad (\texttt{buffer\_}) sized to match the coarse input grid dimension. The high-performance character parsing module streams the 
+text data into this scratchpad vector. 
+
+Immediately afterward, a direct cell sweep updates the main high-resolution simulation grid tensor by referencing the pre-calculated 
+coordinates stored in \texttt{index\_map\_}. This design preserves an immutable memory footprint ($O(1)$ allocation schema throughout 
+execution) and isolates update latencies strictly to predictable intervals matching the chronological step boundary.
+
+
+\subsection{Layer Generation Engines}
+
+The generation engines represent the "concrete" implementation of the research methodology. Each engine is a Python 
+class that inherits from either \texttt{StaticLayerGenerator} or \texttt{DynamicLayerGenerator}, ensuring that all physical layers provide 
+a consistent set of outputs: a standardized numerical array, spatial metadata, and an automated visualization frame.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Summary of Simulation Dataset Layers, Data Sources, and Ingestion Frameworks}
+    \label{tab:data_sources_summary}
+    \small
+    \begin{tabularx}{\textwidth}{l X X l}
+        \toprule
+        \textbf{Data Layer} & \textbf{Data Source / Institution} & \textbf{Ingestion Protocol / Method} & \textbf{License Baseline} \\
+        \midrule
+        Topography & 
+        Instituto Geográfico Nacional (IGN) / Sistema Cartográfico Nacional & 
+        WCS 2.0.1 Protocol (\texttt{GetCoverage} operation, \texttt{image/tiff} high-bit depth) & 
+        CC BY 4.0 \\
+        \addlinespace
+        Land Cover & 
+        Instituto Geográfico Nacional (IGN) - SIOSE AR (2020 Dataset) & 
+        WFS Protocol (Spatial intersection query, in-memory geometric rasterization) & 
+        CC BY 4.0 \\
+        \addlinespace
+        Bathymetry & 
+        EMODnet Bathymetry Consortium / European Union & 
+        WCS Protocol (Targeted extent clipping and reprojection mapping) & 
+        CC BY 4.0 \\
+        \addlinespace
+        Water Depth & 
+        Internal Pipeline Generation & 
+        Set to zero for initial conditions & 
+        CC BY 4.0 \\
+        \addlinespace
+        Rainfall & 
+        Confederación Hidrográfica del Júcar (CHJ) / SAIH System & 
+        Spatiotemporal filtering followed by automated Kriging interpolation & 
+        CC BY 4.0 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+
+\subsubsection{Topography Generation Engine}
+
+The \texttt{TopographyGenerator} class automates the acquisition, validation, and spatial standardization of digital elevation data, establishing the primary terrestrial surface for the simulation.
+
+\paragraph{A. Data Sourcing and WCS 2.0.1 Protocol}
+The engine queries the Web Coverage Service (WCS 2.0.1) of the Instituto Geográfico Nacional (IGN) to fetch raw numerical elevation data (MDT). It validates available spatial resolutions via a \texttt{GetCapabilities} request before issuing targeted \\ \texttt{GetCoverage} requests in high-bit-depth \texttt{image/tiff} format.
+
+\paragraph{B. Coordinate Transformation and Projection Logic}
+To ensure spatial alignment with the simulation grid, the \texttt{IgnClient} uses the \\ \texttt{pyproj.Transformer} library to reproject bounding box coordinates whenever the input configuration (\texttt{bbox\_crs}) differs from the simulation's target coordinate system (\texttt{target\_crs}, e.g., \texttt{EPSG:25830}).
+
+\paragraph{C. Payload Optimization through Spatial Tessellation}
+To bypass server-side limits on data volume, large geographic study areas are automatically partitioned into smaller tiles using a maximum threshold of 4,000 pixels per axis (\texttt{MAX\_PIXELS\_PER\_REQUEST}). The metric step size is defined as:
+
+\begin{equation}
+    \text{step\_size} = \text{MAX\_PIXELS\_PER\_REQUEST} \times \text{resolution}
+\end{equation}
+
+The client iterates through the computed grid, requesting sub-regions using standard WCS \texttt{subset} slicing syntax (\texttt{x(min, max)}, \texttt{y(min, max)}). This tiling strategy guarantees framework resilience against truncated payloads and scalability for large watersheds (Figure \ref{fig:wcs_tiling_strategy}).
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[scale=1.5, >=stealth]
+        % Draw axes
+        \draw[->, thick, gray] (-0.5, -0.5) -- (6, -0.5) node[right, black] {Easting ($X$)};
+        \draw[->, thick, gray] (-0.5, -0.5) -- (-0.5, 4) node[above, black] {Northing ($Y$)};
+
+        % Draw the main bounding box (Global Study Area)
+        \draw[thick, fill=blue!5] (0,0) rectangle (5,3);
+
+        % Draw the grid (e.g., 3 columns, 2 rows)
+        \draw[step=1.666cm, gray, dashed] (0,0) grid (5,3);
+
+        % Highlight a specific tile (e.g., middle bottom: i=1, j=0)
+        \draw[thick, fill=blue!20] (1.666, 0) rectangle (3.333, 1.5);
+
+        % Label the highlighted tile
+        \node at (2.5, 0.75) {\textbf{Tile $(i,j)$}};
+        
+        % Label local coordinates for the highlighted tile
+        \draw[<-] (1.666, 0.2) -- (1.2, 0.2) node[left, font=\scriptsize] {\texttt{x\_edges[i]}};
+        \draw[<-] (3.333, 0.2) -- (3.8, 0.2) node[right, font=\scriptsize] {\texttt{x\_edges[i+1]}};
+        \draw[<-] (2.5, 0) -- (2.5, -0.2) node[below, font=\scriptsize] {\texttt{y\_edges[j]}};
+        \draw[<-] (2.5, 1.5) -- (2.5, 1.8) node[above, font=\scriptsize] {\texttt{y\_edges[j+1]}};
+
+        % Label global corners
+        \filldraw[black] (0,0) circle (1.5pt) node[below left] {$(X_{\min}, Y_{\min})$};
+        \filldraw[black] (5,3) circle (1.5pt) node[above right] {$(X_{\max}, Y_{\max})$};
+
+        % Add descriptive callout for the WCS Request
+        \node[align=center, font=\footnotesize, draw, fill=white, rounded corners] at (2.5, -1.2) {
+            \textbf{WCS 2.0.1 \texttt{subset} parameters:}\\
+            \texttt{subset = [ "x(x\_edges[i], x\_edges[i+1])",}\\
+            \texttt{"y(y\_edges[j], y\_edges[j+1])" ]}
+        };
+    \end{tikzpicture}
+    
+    \caption[WCS 2.0.1 Spatial Tessellation Slicing]{Visual representation of the WCS spatial tessellation strategy.}
+    \label{fig:wcs_tiling_strategy}
+\end{figure}
+
+\paragraph{D. In-Memory Mosaic Assembly and Standardized Persistence}
+Downloaded sub-tile byte streams are processed directly in-memory via \\ \texttt{load\_raster\_from\_bytes}, decoding and merging them into a unified mosaic array to avoid disk I/O bottlenecks. The elevation array is cast to floating-point precision (\texttt{np.float32}) and wrapped into a standardized \texttt{StaticRaster} object along with its geospatial metadata, ensuring structural compatibility for downstream topobathymetric fusion.
+
+
+\subsubsection{Land Cover Generation Engine}
+
+The \texttt{LandCoverGenerator} class automates the ingestion, geometric filtering, and rasterization of high-resolution land use data. This categorical matrix provides the deterministic foundation for parameterizing spatially varying Manning's roughness coefficients ($n$) to avoid oversimplified uniform boundary friction.
+
+\paragraph{A. Data Sourcing and WFS Feature Ingestion}
+The engine fetches vector-based features via the Web Feature Service (WFS) provided by the Instituto Geográfico Nacional (IGN), targeting the High-Resolution Land Cover System of Spain (SIOSE AR 2020). The \texttt{IgnClient} applies a spatial bounding box filter to extract polygon geometries paired with categorical classification codes.
+
+\paragraph{B. Spatial Context Inheritance and Exact Co-Registration}
+To prevent numerical instabilities in the hydraulic flux equations due to grid mismatches, the engine enforces absolute pixel-to-pixel alignment. It extracts and inherits the immutable \texttt{SpatialContext} (dimensions, \texttt{target\_crs}, and Affine transformation matrix) of the pre-compiled \texttt{topography} layer, using it as the exact template for geometry projection.
+
+\paragraph{C. Vector-to-Raster Conversion Strategy}
+Retrieved vector shapes are rasterized in-memory using \texttt{fiona}, \texttt{shapely}, and \texttt{rasterio. \\ features.rasterize}. The engine maps polygons to integer taxonomy identifiers according to the SIOSE/CODIIGE standard. This direct conversion maps features to the pre-calculated Affine matrix, eliminating intermediate disk storage and spatial drift artifacts.
+
+\paragraph{D. Mathematical Mapping to Hydraulic Roughness (Manning's $n$)}
+The compiled categorical raster ($\mathbf{L}$) acts as the input key for a deterministic Lookup Table (LUT) function that maps qualitative land classes to quantitative physical friction coefficients ($n_M$):
+
+\begin{equation}
+    n_M(x,y) = f_{\text{rough}}\big(\mathbf{L}(x,y)\big)
+\end{equation}
+
+This parameterization enables the shallow water equation solver to compute the friction slope term ($S_f$) based on real-world sub-grid obstructions. The output layer is encapsulated as a structurally compliant \texttt{StaticRaster} object.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[scale=1.4, >=stealth]
+        % Left side: Vector Polygons (WFS)
+        \draw[thick, gray, dashed] (0,0) rectangle (3,3);
+        \node[font=\tiny, gray] at (0.8, 2.8) {WFS Vector Domain};
+        
+        % Arbitrary vector shapes
+        \draw[fill=orange!20, draw=orange!80, thick] (0.1,0.1) to[out=20, in=190] (1.4,0.2) to[out=100, in=340] (1.3,0.9) to[out=170, in=80] (0.1,0.8) -- cycle;
+        \node[font=\tiny\bfseries, color=orange!80!black] at (0.7,0.5) {Urban (c=12)};
+        
+        \draw[fill=green!20, draw=green!80, thick] (1.6,1.2) to[out=40, in=190] (2.8,1.6) to[out=80, in=280] (2.9,2.4) to[out=140, in=30] (1.9,2.3) to[out=210, in=110] cycle;
+        \node[font=\tiny\bfseries, color=green!80!black] at (2.2,1.8) {Forest (c=40)};
+
+        % Arrow with Rasterization label
+        \draw[->, ultra thick, black] (3.3, 1.5) -- (4.8, 1.5) node[above, midway, font=\scriptsize\bfseries, align=center] {Rasterize\\ \texttt{Affine} Alignment};
+
+        % Right side: Rasterized Grid
+        \begin{scope}[shift={(5.2,0)}]
+            \draw[thick, black] (0,0) rectangle (3,3);
+            \draw[step=0.5cm, gray!40, ultra thin] (0,0) grid (3,3);
+            \node[font=\tiny, black] at (0.6, 2.8) {Raster Grid ($\mathbf{L}$)};
+            
+            % Fill specific pixels to show rasterized representation
+            \foreach \x/\y in {0/0, 0/1, 1/0, 1/1, 2/0} {
+                \fill[orange!40] (\x*0.5+0.05, \y*0.5+0.05) rectangle (\x*0.5+0.45, \y*0.5+0.45);
+                \node[font=\tiny] at (\x*0.5+0.25, \y*0.5+0.25) {12};
+            }
+            \foreach \x/\y in {3/2, 3/3, 4/2, 4/3, 5/3, 5/4, 4/4} {
+                \fill[green!40] (\x*0.5+0.05, \y*0.5+0.05) rectangle (\x*0.5+0.45, \y*0.5+0.45);
+                \node[font=\tiny] at (\x*0.5+0.25, \y*0.5+0.25) {40};
+            }
+        \end{scope}
+    \end{tikzpicture}
+    
+    \caption[Vector-to-Raster Land Cover Conversion Mechanism]{Schematic of vector-to-raster compilation.}
+    \label{fig:vector_rasterization_mechanism}
+\end{figure}
+
+
+\subsubsection{Topobathymetric (Topo-Bathy) Fusion Engine}
+
+The \texttt{TopoBathyGenerator} class dynamically fuses subaerial topography with marine bathymetry, guided by categorical land cover masks, to generate a continuous, hydrologically sound elevation surface that bridges terrestrial landscapes and subaqueous environments.
+
+\paragraph{A. Multi-Source Ingestion and Layer Dependencies}
+
+The fusion engine follows a strict hierarchical execution sequence, requiring two pre-compiled antecedent layers:
+\begin{itemize}
+    \item \textbf{Topography Layer}: Baseline Digital Elevation Model (MDT) from the IGN WCS service, establishing the target spatial context.
+    \item \textbf{Land Cover Layer}: Rasterized categorical SIOSE/CODIIGE classification matrix from the IGN WFS service.
+\end{itemize}
+Once these dependencies are active, the \texttt{EmodnetClient} queries the EMODnet WCS (\texttt{emodnet:mean} layer), automatically reprojecting the target bounding box into \\ \texttt{EPSG:4326} to fetch raw bathymetric data in high-bit-depth GeoTIFF format.
+
+\paragraph{B. Spatial Co-Registration and Bilinear Resampling}
+
+To resolve the discrepancy between the coarse geographic EMODnet grid and the high-resolution metric topographic grid (e.g., \texttt{EPSG:25830}), the engine performs an in-memory spatial alignment using the \texttt{rasterio.warp.reproject} framework. The bathymetric matrix is transformed to match the precise shape, affine parameters, and CRS of the baseline topography. A \textbf{bilinear resampling} interpolation is applied during this step to ensure smooth geometric transitions along underwater slopes and eliminate artificial step-like artifacts.
+
+\paragraph{C. Categorical Masking and Topobathymetric Fusion}
+
+To eliminate interpolation errors in low-lying coastal plains, the engine utilizes the categorical classification of the Land Cover layer as a spatial truth mask. The algorithm defines a discrete set of hydrologically active water classes from the \\ SIOSE/CODIIGE taxonomy:
+
+\begin{equation}
+    \mathcal{C}_{\text{water}} = \{47, 48, 49, 50, 51, 52, 53, 54\}
+\end{equation}
+
+A boolean mask $\mathcal{M}$ evaluates whether each coordinate in the Land Cover matrix ($\mathbf{L}$) matches a water body:
+
+\begin{equation}
+    \mathcal{M}(x,y) = 
+    \begin{cases} 
+      1 & \text{if } \mathbf{L}(x,y) \in \mathcal{C}_{\text{water}} \\
+      0 & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+The unified topobathymetric elevation matrix ($\mathbf{E}_{\text{final}}$) is then constructed by overwriting the baseline topography array ($\mathbf{T}$) with reprojected bathymetric depths ($\mathbf{B}$) exclusively within the domain defined by the mask $\mathcal{M}$:
+
+\begin{equation}
+    \mathbf{E}_{\text{final}}(x,y) = 
+    \begin{cases} 
+      \mathbf{B}(x,y) & \text{if } \mathcal{M}(x,y) = 1 \\
+      \mathbf{T}(x,y) & \text{if } \mathcal{M}(x,y) = 0
+    \end{cases}
+\end{equation}
+
+This maps accurate depth metrics into riverbeds and marine basins while leaving terrestrial features completely intact.
+
+\paragraph{D. Standardized Persistence and Continuous Surface Outputs}
+
+The final compiled matrix preserves full floating-point precision (\texttt{np.float32}) and is wrapped into a standardized \texttt{StaticRaster} instance. By inheriting the exact affine transformation parameters and spatial properties of the baseline topography, the output guarantees complete compatibility with downstream components, such as friction slope solvers and simulation engine initializations.
+
+
+\subsubsection{Initial Water Depth Estimation Engine}
+
+The \texttt{WaterDepthGenerator} class establishes the initial hydraulic state ($t=0$) of the simulation by generating a uniform zero-depth field, providing a completely dry baseline prior to runtime computation.
+
+\paragraph{A. Pipeline Dependencies and Spatial Alignment}
+Execution depends strictly on the pre-compiled \textbf{Topography Layer}. Upon validation, the engine inherits its immutable \texttt{SpatialContext}, guaranteeing perfect cell alignment, identical grid dimensions, and coordinate uniformity across the global domain.
+
+\paragraph{B. Zero-Depth State Initialization}
+The engine allocates an initially dry domain by setting the standing water depth $\mathbf{W}(x,y)$ to zero for all discrete coordinates:
+
+\begin{equation}
+    \mathbf{W}(x,y) = 0.0
+\end{equation}
+
+In practice, this is achieved by allocating a zero-filled array via \texttt{np.zeros\_like}, mirroring the exact shape and data type of the underlying topography matrix.
+
+\paragraph{C. Serialization and Pipeline State Encapsulation}
+The zero-initialized matrix is encapsulated within a standardized \texttt{StaticRaster} data structure, embedding the inherited spatial metadata. This ensures strict data type consistency and provides the cellular automata routing engine with a predictable, noise-free state tensor at the start of the simulation.
+
+
+\subsubsection{Rainfall Intensity Engine}
+
+The \texttt{RainfallGenerator} class orchestrates the transformation of discrete, asynchronous meteorological observations into a continuous spatiotemporal 3D tensor ($Time \times Y \times X$), separating data acquisition, spatial interpolation, and temporal integration.
+
+\paragraph{A. System Architecture and Orchestration}
+
+The engine integrates three distinct sub-systems (Figure \ref{fig:rainfall_architecture}):
+\begin{enumerate}
+    \item \textbf{Extraction Layer} (\texttt{RainDataManager}): Aggregates raw precipitation records from multiple data sources.
+    \item \textbf{Interpolation Layer} (\texttt{KrigingInterpolator}): Generalizes point observations into continuous surfaces.
+    \item \textbf{Integration Layer}: Conforms the resulting grids into the global grid structure, ensuring CRS consistency and temporal alignment.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1.0\textwidth]{chapter_4/rainfall_architecture.pdf}
+    \caption[UML Class Diagram of the RainfallGenerator architecture]{UML Class Diagram of the RainfallGenerator architecture.}
+    \label{fig:rainfall_architecture}
+\end{figure}
+
+\paragraph{B. Multi-Source Data Acquisition}
+
+The \texttt{RainDataManager} employs a facade pattern where all data sources implement a shared \texttt{BaseFetcher} interface for station discovery, spatial filtering, and coordinate reprojection. For instance, the specialized \texttt{SAIHJucarFetcher} scrapes data from the "Confederación Hidrográfica del Júcar" by parsing HTML metadata and extracting precipitation values from PDF reports. Raw measurements are normalized into \texttt{RainDataPoint} objects representing intensity in mm/h (Figure \ref{fig:rainfall_extraction_sequence}).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\textwidth]{chapter_4/rainfall_extraction_sequence.pdf}
+    \caption[Sequence diagram of the data acquisition workflow]{Sequence diagram of the data acquisition workflow.}
+    \label{fig:rainfall_extraction_sequence}
+\end{figure}
+
+\paragraph{C. Spatial Interpolation: Ordinary Kriging (OK)}
+
+The \texttt{KrigingInterpolator} class implements Ordinary Kriging (OK) through a rigorous four-step geostatistical workflow:
+\begin{itemize}
+    \item \textbf{Spatial Alignment}: Extracts coordinates $(x_i, y_i)$ and fits them to the structured grid dimensions defined by the DEM.
+    \item \textbf{Variogram Fitting}: Computes the empirical variogram using the \texttt{gstools} library and automatically fits a theoretical model (e.g., Spherical, Gaussian, or Exponential) to derive the nugget, sill, and range.
+    \item \textbf{System Resolution}: Solves the OK system enforcing the standard unbiased condition ($\sum_{i=1}^{N} \lambda_i = 1$). The resulting matrix is vertically inverted (\texttt{np.flipud}) to align with the DEM coordinate convention.
+    \item \textbf{Non-Negative Clipping}: To eliminate non-physical mathematical artifacts in areas far from active stations, the engine applies an element-wise clipping function:
+    \begin{equation}
+        \mathbf{P}_{\text{final}}(x, y) = \max\big(0.0, \, \mathbf{P}_{\text{krige}}(x, y)\big)
+    \end{equation}
+\end{itemize}
+
+\paragraph{D. Temporal Management and Tensor Assembly}
+
+The \texttt{RainfallGenerator} sequences the interpolated 2D grids into a structured 3D temporal tensor. It performs temporal resampling to filter active stations whose measurement windows cover the active simulation timestamp. To optimize performance, a \texttt{\_downsample\_dem} utility can run the Kriging process on a coarser grid resolution without losing general topographic constraints. Periods with insufficient station coverage default safely to zero-rainfall grids to maintain data integrity.
+
+
+\subsection{Pipeline Execution Artifacts and Output Layout}
+\label{subsec:execution_results}
+
+Upon a successful lifecycle completion, the data pipeline outputs a strictly structured, deterministic directory tree. This standardized 
+filesystem layout establishes the absolute data contract required by the downstream, high-performance C++ simulation core, which expects 
+physical environmental parameters at immutable relative boundaries.
+
+The root of the execution workspace is dynamically named utilizing an execution timestamp (\texttt{output\_simulation\_YYYYMMDD/}) to 
+isolate distinct simulation scenarios. Within this root, the orchestrator segregates transient logs, static geographic boundaries, and 
+time-varying spatial tensor cubes into specialized sub-directories.
+
+Each subdirectory is configured with an automated diagnostics engine that generates a parallel \texttt{visualization/} folder. This folder 
+isolates standard graphic formats (e.g., \texttt{.png} spatial grids) generated post-processing, allowing researchers to perform instant 
+visual verification of the alignment, boundaries, and spatial integrity of the input datasets prior to triggering the main numerical engine.

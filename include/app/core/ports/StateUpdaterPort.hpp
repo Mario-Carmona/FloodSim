@@ -28,6 +28,14 @@ namespace floodsim::app::core::ports {
 class StateUpdaterPort {
 public:
     /**
+     * @brief Optimization enum tracking active kinetic nodes on the sparse grid matrix.
+     */
+    enum class WaterMovementState : int8_t {
+        kStaticState = 0,  ///< Fluid is stationary or dry. No fluxes computed.
+        kDynamicState      ///< Kinetic energy presence. Active flux processing.
+    };
+
+    /**
      * @brief Constructs a new StateUpdaterPort configuration block.
      * @param enable_rainfall Activates the meteo pluvial forcing data.
      * @param dry_tolerance Minimum water height threshold to consider a cell dry.
@@ -92,14 +100,6 @@ public:
     }
 
 protected:
-    /**
-     * @brief Optimization enum tracking active kinetic nodes on the sparse grid matrix.
-     */
-    enum class WaterMovementState : int8_t {
-        kStaticState = 0,  ///< Fluid is stationary or dry. No fluxes computed.
-        kDynamicState      ///< Kinetic energy presence. Active flux processing.
-    };
-
     /** @brief Constant string views for layer names. */
     static constexpr std::string_view kRainfallLayerName = "rainfall";
 

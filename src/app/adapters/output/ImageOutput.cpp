@@ -98,7 +98,7 @@ void ImageOutput::Run(core::snapshot::SnapshotManager& snapshot_manager, const s
         std::filesystem::create_directories(images_output_path);
     }
 
-    std::chrono::system_clock::time_point last_processed_step = std::chrono::system_clock::time_point::min();
+    sys_time_double last_processed_step = std::numeric_limits<sys_time_double>::lowest();
 
     while (true) {
         try {
@@ -128,7 +128,7 @@ void ImageOutput::Run(core::snapshot::SnapshotManager& snapshot_manager, const s
 }
 
 void ImageOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::string& /* dataset_name */,
-        std::chrono::sys_seconds /* start_timestamp */) {
+        std::chrono::sys_seconds /* start_timestamp */, const std::vector<config::FloodRiskLevel>& /* flood_risk_levels */ ) {
 
     rows_ = static_cast<int>(grid.GetRows());
     cols_ = static_cast<int>(grid.GetCols());
@@ -196,7 +196,7 @@ void ImageOutput::DrawUI(cv::Mat& canvas, const core::snapshot::Snapshot& snapsh
     int cols = canvas.cols - sidebar_width;
 
     // A. TITLE
-    std::string title = fmt::format("Time: {:%FT%T}", snapshot.Time());
+    std::string title = fmt::format("Time: {:%FT:%H:%M:%S}", snapshot.Time());
     int font_face = cv::FONT_HERSHEY_DUPLEX;
     double font_scale = base_scale * 1.2;
     cv::Size text_size = cv::getTextSize(title, font_face, font_scale, thickness, nullptr);
@@ -324,7 +324,7 @@ void ImageOutput::SaveSnapshotAsImage(const core::snapshot::Snapshot& snapshot, 
     // ---------------------------------------------------------------------
     // STEP 4: Save Image
     // ---------------------------------------------------------------------
-    std::string filename = fmt::format("Combined_{:%FT%T}.png", snapshot.Time());
+    std::string filename = fmt::format("Combined_{:%FT:%H:%M:%S}.png", snapshot.Time());
     std::replace(filename.begin(), filename.end(), ':', '-');
 
     if (cv::imwrite((images_output_path / filename).string(), final_canvas)) {

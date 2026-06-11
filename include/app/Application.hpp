@@ -59,7 +59,7 @@ public:
      *
      * @param config The global parsed configuration object.
      * @param gui_callback Optional callback to emit status logs or progress updates to an external GUI.
-     * @throw std::runtime_error If internal dependencies cannot be wired correctly.
+     * @throw floodsim::app::exception::FloodSimException If internal dependencies cannot be wired correctly.
      */
     explicit Application(const config::Config& config,
         std::function<void(int, const std::string&)> gui_callback = nullptr);

@@ -9,6 +9,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include "app/core/grid/MapGrid.hpp"
 #include "app/core/snapshot/SnapshotManager.hpp"
@@ -49,10 +50,12 @@ public:
      * @param grid Reference to the structural initial state of the grid.
      * @param dataset_name The identification name of the current dataset.
      * @param start_timestamp The initial time point of the simulation scenario.
+     * @param flood_risk_levels Vector of flood risk levels for the simulation.
      */
     virtual void SetInitConfig(const grid::MapGrid& grid,
                                const std::string& dataset_name,
-                               std::chrono::sys_seconds start_timestamp) = 0;
+                               std::chrono::sys_seconds start_timestamp,
+                               const std::vector<config::FloodRiskLevel>& flood_risk_levels) = 0;
 };
 
 } // namespace floodsim::app::core::ports

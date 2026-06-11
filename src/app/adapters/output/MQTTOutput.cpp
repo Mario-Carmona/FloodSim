@@ -142,7 +142,8 @@ void MqttOutput::Handshake() {
 }
 
 void MqttOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::string& dataset_name,
-                               std::chrono::sys_seconds start_timestamp) {
+                               std::chrono::sys_seconds start_timestamp, 
+                               const std::vector<config::FloodRiskLevel>& flood_risk_levels) {
 
     const std::string topic_init(base_topic_ + "/events");
 
@@ -151,7 +152,7 @@ void MqttOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::strin
     init_map_config_msg->set_qos(1);
     client_.publish(init_map_config_msg)->wait();
 
-    std::string init_agent_layer_payload = payload_serializer_->GenerateInitAgentLayerPayload(dataset_name, "topo_bathy");
+    std::string init_agent_layer_payload = payload_serializer_->GenerateInitAgentLayerPayload(dataset_name, "topo_bathy", flood_risk_levels);
     auto init_agent_layer_msg = mqtt::make_message(topic_init, init_agent_layer_payload);
     init_agent_layer_msg->set_qos(1);
     client_.publish(init_agent_layer_msg)->wait();
@@ -262,7 +263,7 @@ GridIndexType MqttOutput::SendInitState(const core::grid::MapGrid& grid) {
 }
 
 void MqttOutput::Run(core::snapshot::SnapshotManager& snapshot_manager, const std::filesystem::path& /* output_path */) {
-    std::chrono::system_clock::time_point last_processed_step = std::chrono::system_clock::time_point::min();
+    sys_time_double last_processed_step = std::numeric_limits<sys_time_double>::lowest();
 
     while (true) {
         try {

@@ -36,7 +36,7 @@ public:
 
     /**
      * @brief Reads floating-point data into the provided buffer.
-     * @throws std::runtime_error if not implemented by the derived class.
+     * @throws floodsim::app::exception::FloodSimException if not implemented by the derived class.
      */
     virtual void Read(std::vector<float>& /* data */) const {
         throw floodsim::app::exception::FloodSimException("Read for float not implemented in this reader");
@@ -44,7 +44,7 @@ public:
 
     /**
      * @brief Reads 8-bit integer data into the provided buffer.
-     * @throws std::runtime_error if not implemented by the derived class.
+     * @throws floodsim::app::exception::FloodSimException if not implemented by the derived class.
      */
     virtual void Read(std::vector<int8_t>& /* data */) const {
         throw floodsim::app::exception::FloodSimException("Read for int8_t not implemented in this reader");

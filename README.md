@@ -73,10 +73,11 @@ and structural metadata required for seamless native system integration.
 ### 3.1 Available Application Editions
 
 To accommodate diverse academic and operational deployment strategies, FloodSim is distributed in 
-two distinct, decoupled flavors for each supported operating system:
+two distinct, decoupled flavors for each supported operating system, alongside a dedicated companion 3D visualizer:
 
 * **Desktop Edition (FloodSim-Desktop-Full):** An all-inclusive suite containing both the headless Command Line Interface (`FloodSimCLI`) and the Graphical User Interface (`FloodSimGUI`).
 * **Server Edition (FloodSim-Server-CLI):** A streamlined package containing exclusively the high-performance Command Line Interface (`FloodSimCLI`).
+* **3D Visualizer (DanaSimViewer):** A standalone graphical utility tailored for Windows environments to post-process, view, and analyze 3D flood simulation outputs.
 
 #### Current Release Binary Catalog
 
@@ -85,13 +86,13 @@ ledger. The current stable iteration (v26.05.28) provides the following distribu
 
 | Target Operating System | Edition | Executable Targets Included | Filename |
 | :--- | :--- | :--- | :--- |
-| **Windows AMD64** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.5.28_Windows_AMD64.msi` |
-| **Windows AMD64** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.5.28_Windows_AMD64.msi` |
-| **Ubuntu 22.04 LTS** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb` |
-| **Ubuntu 22.04 LTS** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb` |
-| **Ubuntu 24.04 LTS** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.5.28_Ubuntu-24.04.4-LTS_x86_64.deb` |
-| **Ubuntu 24.04 LTS** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.5.28_Ubuntu-24.04.4-LTS_x86_64.deb` |
-
+| **Windows AMD64** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.6.11_Windows_AMD64.msi` |
+| **Windows AMD64** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.6.11_Windows_AMD64.msi` |
+| **Windows AMD64** | 2D Visualizer | `DanaSimViewer` | `DanaSimViewer-Setup-1.0.0-win64.exe` |
+| **Ubuntu 22.04 LTS** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb` |
+| **Ubuntu 22.04 LTS** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb` |
+| **Ubuntu 24.04 LTS** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.6.11_Ubuntu-24.04.4-LTS_x86_64.deb` |
+| **Ubuntu 24.04 LTS** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.6.11_Ubuntu-24.04.4-LTS_x86_64.deb` |
 ---
 
 ### 3.2 Windows Installation (.msi Package)
@@ -102,17 +103,17 @@ structure initialization and environment configuration.
 #### Step 1: Retrieval
 
 1. Navigate to the repository's [**Releases**](https://github.com/Mario-Carmona/FloodSim/releases) page.
-2. Locate the target version and download the appropriate `.msi` container asset (e.g., `FloodSim-Desktop-Full_26.5.28_Windows_AMD64.msi`).
+2. Locate the target version and download the appropriate `.msi` container asset (e.g., `FloodSim-Desktop-Full_26.6.11_Windows_AMD64.msi`).
 
 #### Step 2: Execution & Setup Wizard
 
 1. Double-click the downloaded `.msi` package to initiate the execution of the **FloodSim Setup Wizard**.
 2. **Security Warning (If applicable):** If the Windows Defender *SmartScreen* diagnostic block interrupts execution due to an unsigned academic sandbox certificate, click *More Info* and choose *Run anyway*.
 3. **End-User License Agreement:** Review the academic/open-source distribution terms, check *I accept the terms in the License Agreement*, and click *Next*.
-4. **Destination Folder:** By default, the software installs to a versioned and editioned isolation path within system space using the following format:
-   `C:\Program Files\FloodSim-[Edition]-[Variant] [Version]\`
+4. **Destination Folder:** By default, the software installs to a path within system space:
+   `C:\Program Files\FloodSim\`
    
-   (For example, deploying the Desktop variant of version 26.5.21 maps natively to: C:\Program Files\FloodSim-Desktop-Full 26.5.21\). Click *Next* to accept, or modify via the *Change...* prompt.
+   Click *Next* to accept, or modify via the *Change...* prompt.
 5. **Installation:** Click *Install*. Affirm the operating system User Account Control (UAC) prompt to grant administrative environment privileges for copying binaries.
 
 #### Step 3: Verification
@@ -137,7 +138,7 @@ Initialize a shell instance on the deployment target and leverage network fetchi
 pull down the specific `.deb` distribution file (replace the URL with your specific release tag asset link):
 
 ```bash
-wget https://github.com/Mario-Carmona/FloodSim/releases/download/v2026.05.29/FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb
+wget https://github.com/Mario-Carmona/FloodSim/releases/download/v2026.05.29/FloodSim-Desktop-Full_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb
 ```
 
 #### Step 2: Installation via Advanced Package Tool (apt)
@@ -150,7 +151,7 @@ Execute the command utilizing superuser credentials:
 
 ```bash
 sudo apt update
-sudo apt install ./FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb
+sudo apt install ./FloodSim-Desktop-Full_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb
 ```
 
 (Note: The relative path modifier `./` prefix is mandatory for `apt` to correctly infer evaluation of a 
@@ -162,7 +163,7 @@ If restricted network policies or air-gapped constraints prohibit `apt` reposito
 the package can be extracted forcefully:
 
 ```bash
-sudo dpkg -i FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb
+sudo dpkg -i FloodSim-Desktop-Full_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb
 ```
 
 If missing system libraries prevent successful deployment steps, resolve the dependency breaks immediately 
@@ -191,6 +192,23 @@ FloodSimCLI --help
 An active installation will return the standardized command line parameter engine parsing options and argument 
 list instructions.
 
+### 3.4 3D Visualizer Installation (Windows .exe)
+
+The 3D Visualizer (DanaSimViewer) is provided as an intuitive graphical application to process and view simulated geographical flood 
+maps on Windows environments.
+
+#### Step 1: Retrieval
+
+1. Navigate to the repository's [**Releases**](https://github.com/Mario-Carmona/FloodSim/releases) page.
+2. Locate the release and download the executable installer asset: `DanaSimViewer-Setup-1.0.0-win64.exe`.
+
+#### Step 2: Execution & Setup
+
+1. Double-click `DanaSimViewer-Setup-1.0.0-win64.exe` to initialize the visualizer setup utility.
+2. SmartScreen Notice: If prompted by Windows Defender, click More Info followed by Run anyway.
+3. Follow the wizard prompts to designate the preferred installation path and authorize the creation of desktop or start menu shortcuts.
+4. Click Finish once the file copying procedure completes. The visualizer can now be launched directly from your workspace shortcuts.
+
 ## 4. Quick Start
 
 This section provides a step-by-step tutorial to execute a minimal "Hello World" flood simulation sandbox. 
@@ -207,8 +225,8 @@ your Windows installation directory).
 Consequently, **there is no need to create these files manually or copy large configuration blocks**. The installer 
 natively provides the following files tailored to each operational environment:
 
-* **simulation_quickstart_windows.yaml:** Pre-configured with native Windows path resolutions and environment matrices optimized for Windows environments.
-* **simulation_quickstart_linux.yaml:** Pre-configured with standard Unix filesystem references and directory variables optimized for Linux architectures.
+* **simulation_quickstart_windows_local.yaml:** Pre-configured with native Windows path resolutions and environment matrices optimized for Windows environments.
+* **simulation_quickstart_linux_local.yaml:** Pre-configured with standard Unix filesystem references and directory variables optimized for Linux architectures.
 
 Both manifests contain identical canonical verification parameters—such as scenario metadata, localized logging 
 thresholds, state updater ONNX model pointers, and spatial grid definitions—required to run the baseline "Hello World" 
@@ -222,13 +240,13 @@ shell environment.
 #### On Windows (PowerShell):
 
 ```bash
-FloodSimCLI.exe --config 'C:\Program Files\FloodSim-Desktop-Full 26.5.30\etc\config\simulation_quickstart_windows.yaml' --output_path .
+FloodSimCLI.exe --config 'C:\Users\[User]\Documents\FloodSim\config\simulation_quickstart_windows_local.yaml' --output_path .
 ```
 
 #### On Linux (Terminal):
 
 ```bash
-FloodSimCLI --config ./simulation_quickstart.yaml --output_path .
+FloodSimCLI --config /usr/share/floodsim/config/simulation_quickstart_linux_local.yaml --output_path .
 ```
 
 ### 4.3 Interactive Execution via FloodSimGUI
@@ -236,7 +254,7 @@ FloodSimCLI --config ./simulation_quickstart.yaml --output_path .
 For setups utilizing the Desktop distribution, runtime initialization can be driven via the graphical management module.
 
 1. Launch application: Execute `FloodSimGUI` from your global desktop launcher or system terminal.
-2. Load Manifest: Click Scenario ➔ Load Existing Configuration... and navigate to selection targets to select your `simulation_quickstart_windows.yaml` or `simulation_quickstart_linux.yaml` asset.
+2. Load Manifest: Click Scenario ➔ Load Existing Configuration... and navigate to selection targets to select your `simulation_quickstart_windows_local.yaml` or `simulation_quickstart_linux_local.yaml` asset.
 3. Inspect Settings: Review parameters via the different configuration panels.
 4. Simulate: Click the Start Simulation button in the main window.
 
@@ -248,17 +266,21 @@ Once the 15-minute simulation boundary is successfully evaluated, verify your ou
 ./quickstart_valencia_demo_[timestamp]/
 ├── simulation.log
 ├── images
-│   ├── Combined_2024-10-29T01-05-00.png
-│   ├── Combined_2024-10-29T01-10-00.png
-│   └── Combined_2024-10-29T01-15-00.png
+│   ├── Combined_2024-10-29T01-00-15.png
+│   ├── Combined_2024-10-29T01-00-30.png
+│   ├── Combined_2024-10-29T01-00-45.png
+│   └── Combined_2024-10-29T01-01-00.png
 └── checkpoints/
-    ├── checkpoint_2024-10-29T01-05-00
+    ├── checkpoint_2024-10-29T01-00-15
     │   ├── water_depth.doc
     │   └── water_depth.img
-    ├── checkpoint_2024-10-29T01-10-00
+    ├── checkpoint_2024-10-29T01-00-30
+    │   ├── water_depth.doc
+    │   └── water_depth.
+    ├── checkpoint_2024-10-29T01-00-45
     │   ├── water_depth.doc
     │   └── water_depth.img
-    └── checkpoint_2024-10-29T01-15-00
+    └── checkpoint_2024-10-29T01-01-00
         ├── water_depth.doc
         └── water_depth.img
 ```
@@ -266,6 +288,29 @@ Once the 15-minute simulation boundary is successfully evaluated, verify your ou
 * **simulation.log:** A comprehensive plaintext file that captures and mirrors the exact console standard output (`stdout`) printed to the screen during runtime execution. This includes system initialization matrices, telemetry connection status, and iterative computational stepping metrics.
 * **images/:** Stores high-fidelity rasterized visualization captures (`.png`) corresponding to each temporal snapshot boundary. These assets graphically map the spatial distribution of the simulated `water_depth` layer composited directly over the underlying topographical landscape and terrain relief features.
 * **checkpoints/:** Contains versioned directory matrices that archive the raw mathematical state of the simulation at specific intervals. Each timestamped subdirectory preserves the precise cellular grid values for the `water_depth` parameter, serialized natively via the Idrisi spatial format pair—comprising the `.doc` metadata documentation file and its companion binary `.img` raster grid.
+
+### 4.5 Interactive Demo Workflow (with DanaSimViewer)
+
+To execute the fully synchronized real-time simulation demo utilizing both the C++ computational engine and the 2D visualizer, follow this step-by-step workflow:
+
+#### Step 1: Activate the MQTT Broker
+Ensure your local MQTT broker service (e.g., Mosquitto) is active and listening on your host environment. This service acts as the central telemetry pipeline required to stream live cellular state vectors from the engine to the visualizer interface.
+
+#### Step 2: Launch the Simulator Engine
+Initialize a new terminal or PowerShell instance and execute the high-performance command-line engine using the dedicated demo configuration manifest:
+
+```bash
+FloodSimCLI --config C:\Users\mcs20\Documents\FloodSim\config\demo_windows.yaml
+```
+
+#### Step 3: Initialize and Configure DanaSimViewer
+1. Launch `DanaSim Viewer` using its native desktop or Start Menu shortcut.
+2. The visualizer will automatically initialize its underlying web hosting stack and open a new controller tab within your default web browser.
+3. In the browser interface configuration form, fill in the following operational parameters:
+    - **Scenario Name:** demo
+    - **Terrain Folder:** C:\Users\[User]\Documents\FloodSim\data (Replace [User] with your local Windows username context).
+    - **Output Folder:** Set this path to any preferred directory where you wish to save simulation assets and visual run logs.
+4. Click the **Connect** button within the interface to establish the real-time MQTT handshake and begin monitoring the interactive live flood propagation.
 
 ## 5. Configuration
 
@@ -352,18 +397,44 @@ Orchestrates spatial capture frequencies and dispatch configurations.
 
 ## 6. Troubleshooting
 
-At the time of this documentation's publication, there are no known operational issues, critical bugs, or 
-system anomalies to report for the current stable release of FloodSim.
-
-The application architecture has undergone rigorous testing and validation across all targeted deployment 
-matrices—including comprehensive matrix checks, package compilation integrity testing, and automated deployment 
-pipeline validations on both Windows and Ubuntu environments.
-
 > ℹ️ **Encountered an Unlisted Issue?**
 > If you experience unexpected system behavior regarding network communication lines (e.g., local MQTT broker 
 > handshakes), localized filesystem permissions, or execution anomalies not covered in this manual, please 
 > submit a diagnostic report detailing your environment logs via the official tracking portal: 
 > [FloodSim GitHub Issues](https://github.com/Mario-Carmona/FloodSim/issues).
+
+### 6.1 Graphical Interface (GUI) Crash in Virtual Environments
+
+**Symptom:**
+When launching the graphical executable (`FloodSimGUI`) inside a Virtual Machine (e.g., VirtualBox, VMware), the application 
+immediately terminates with a terminal error similar to:
+> `[GLFW Error] (65542): WGL: The driver does not appear to support OpenGL`
+> `[Fatal Error] High-level catastrophic crash caught: Failed to allocate or create the host GLFW native window context.`
+
+**Cause:**
+By default, newly installed Virtual Machines utilize generic, software-emulated display drivers (such as the 
+*Microsoft Basic Display Adapter*). These standard drivers do not feature native hardware acceleration for modern OpenGL 
+instances, causing GLFW and Dear ImGui initialization routines to fail.
+
+**Resolution:**
+To run the interactive visual simulation environment inside a hypervisor, you must grant the guest operating system direct 
+access to your host's GPU capabilities:
+
+1. **Enable 3D Hardware Acceleration:**
+   * Power off the Virtual Machine.
+   * Open your hypervisor configuration menu (e.g., VirtualBox Manager).
+   * Navigate to **Settings** → **Display**.
+   * Check the **"Enable 3D Acceleration"** checkbox and allocate adequate video memory.
+
+2. **Install Guest Integration Utilities:**
+   * Boot into the guest operating system.
+   * Mount and install the guest tools package (e.g., **VirtualBox Guest Additions** or **VMware Tools**).
+   * Ensure that the experimental or advanced WDDM graphics drivers are selected during the installation wizard.
+   * Reboot the Virtual Machine to apply changes.
+
+3. **Alternative (Software-Only Fallback):**
+   * If your host hardware cannot provide 3D pass-through acceleration, download a precompiled software-rendering OpenGL library (such as `opengl32.dll` from the open-source **Mesa3D (llvmpipe)** project).
+   * Drop the `opengl32.dll` binary directly into the same installation folder alongside the `FloodSimGUI` executable. The application will safely launch by offloading all render pipelines to your CPU.
 
 ## 7. Developer Documentation
 
@@ -405,6 +476,50 @@ or
 cmake --workflow --preset docs-linux
 ```
 
+### 7.3 Model Validation Testing
+
+To mathematically validate the Cellular Automata (CA) transition rules and ensure structural model fidelity, the repository includes an automated validation suite. 
+
+#### Step 1: Compilation
+Execute the dedicated CMake workflow preset to compile all testing targets within the environment:
+```bash
+cmake --workflow --preset windows-tests-all
+```
+
+#### Step 2: Execution
+
+Once the compilation completes successfully, run the generated validation binary from the project root directory to verify the state updater adapters:
+
+```bash
+bin\Windows\Debug\floodsim_state_updater_adapters_test.exe
+```
+
+### 7.4 Dataset Generation Pipeline
+
+FloodSim features an integrated Python data pipeline engineered to ingest, process, and format external geographic layers into compatible cellular simulation datasets.
+
+#### Step 1: Environment and Dependency Setup
+
+Before utilizing the pipeline, initialize the localized virtual environment and install the required structural libraries using the following CMake workflow preset:
+
+```bash
+cmake --workflow --preset python-data
+```
+
+#### Step 2: Configuration Mapping
+
+The pipeline's operational boundaries and ingestion parameters are governed by a central YAML configuration manifest located at: `python\data_pipeline\config.yaml`
+
+Modify this file to define your custom region matrices, topography sources, and dataset attributes before proceeding.
+
+#### Step 3: Pipeline Execution
+
+Launch the pipeline orchestration script by invoking the localized Python interpreter generated during the setup phase:
+
+```bash
+.\build\Windows\venvs\data_pipeline_env\Scripts\python.exe .\python\data_pipeline\main.py .\python\data_pipeline\config.yaml
+```
+
 ## 8. License & Acknowledgements
 
 ### 8.1 Academic Affiliation & Context
@@ -413,7 +528,14 @@ initiative focuses on the engineering and optimization of high-performance Cellu
 paired with real-time machine learning inference engines to simulate localized flood propagation hazards 
 and deliver instantaneous telemetry streams.
 
-### 8.2 Open-Source License
+### 8.2 Collaborations & Architectural Scope
+This repository includes a joint software integration developed in collaboration with **Marwan Aliaoui Bouazzaoui** as part of his concurrent Final Degree Project (*Trabajo de Fin de Grado - TFG*). 
+
+By mutual agreement, his intellectual contribution is strictly contained within the `python/visualizer` directory. This sub-module encompasses the complete 3D Visualizer subsystem and its companion MQTT telemetric data receiver script. 
+
+Conversely, the core high-performance simulation architecture, the C++ multi-dimensional multi-layer Cellular Automata ($m:n-\text{CA}^k$) engine, the telemetry transmission pipeline, and the overall framework synchronization layer are the exclusive development and intellectual property of the author of this Master's Thesis.
+
+### 8.3 Open-Source License
 This ecosystem is distributed as open-source software under the terms of the **MIT License**. Permission 
 is hereby granted to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the software, 
 subject to the inclusion of the original copyright notice and permission conditions in all substantial distributions.
@@ -421,7 +543,7 @@ subject to the inclusion of the original copyright notice and permission conditi
 For the complete legal terms and authorship registry, please consult the standalone [LICENSE](https://mario-carmona.github.io/FloodSim/md__home_runner_work_FloodSim_FloodSim_build_Linux_docs_linux_docs_LICENSE.html) file bundled 
 within the root distribution workspace.
 
-### 8.3 Upstream Dependencies & Compliance Manifest
+### 8.4 Upstream Dependencies & Compliance Manifest
 To establish a high-efficiency computational pipeline, FloodSim integrates several standard open-source 
 libraries and external software components (such as performance-optimized logging utilities and deep 
 learning execution runtimes). 

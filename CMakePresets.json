@@ -21,7 +21,7 @@
       "inherits": [
         "common-configure-options"
       ],
-      "description": "",
+      "description": "Abstract preset to enable Python environment generation.",
       "cacheVariables": {
         "BUILD_PYTHON_ENVS": "ON"
       }
@@ -31,7 +31,7 @@
       "inherits": [
         "python-envs"
       ],
-      "description": "",
+      "description": "Configure settings for the data pipeline Python subdirectory without environment isolation.",
       "cacheVariables": {
         "PYTHON_SUBDIR_NAME": "data_pipeline",
         "ISOLATE_ENVIRONMENT": "OFF"
@@ -42,7 +42,7 @@
       "inherits": [
         "python-envs"
       ],
-      "description": "",
+      "description": "Configure settings for the machine learning models Python subdirectory with isolated environment.",
       "cacheVariables": {
         "PYTHON_SUBDIR_NAME": "models",
         "ISOLATE_ENVIRONMENT": "ON"
@@ -53,21 +53,20 @@
       "inherits": [
         "python-envs"
       ],
-      "description": "",
+      "description": "Configure settings for the visualizer Python subdirectory without environment isolation.",
       "cacheVariables": {
         "PYTHON_SUBDIR_NAME": "visualizer",
         "ISOLATE_ENVIRONMENT": "OFF"
       }
     },
     {
-      "name": "app",
+      "name": "vcpkg-base",
       "hidden": true,
       "inherits": [
         "common-configure-options"
       ],
-      "description": "Defines settings for building project executables.",
+      "description": "Base configuration for vcpkg and global C++ settings shared by app and tests.",
       "cacheVariables": {
-        "BUILD_APP": "ON",
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_CXX_STANDARD_REQUIRED": "ON",
         "CMAKE_CXX_EXTENSIONS": "OFF",
@@ -85,12 +84,23 @@
       }
     },
     {
+      "name": "app",
+      "hidden": true,
+      "inherits": [
+        "vcpkg-base"
+      ],
+      "description": "Defines settings for building project executables.",
+      "cacheVariables": {
+        "BUILD_APP": "ON"
+      }
+    },
+    {
       "name": "debug",
       "hidden": true,
       "inherits": [
         "common-configure-options"
       ],
-      "description": "",
+      "description": "Abstract preset targeting a Debug build configuration.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
@@ -101,7 +111,7 @@
       "inherits": [
         "common-configure-options"
       ],
-      "description": "",
+      "description": "Abstract preset targeting a optimized Release build configuration.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -112,7 +122,7 @@
       "inherits": [
         "common-configure-options"
       ],
-      "description": "",
+      "description": "Abstract preset targeting a Release build with Debug Information symbols.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
@@ -123,7 +133,7 @@
       "inherits": [
         "common-configure-options"
       ],
-      "description": "",
+      "description": "Abstract preset to disable Graphical User Interface (GUI) components.",
       "cacheVariables": {
         "ENABLE_GUI": "OFF"
       }
@@ -134,7 +144,7 @@
       "inherits": [
         "common-configure-options"
       ],
-      "description": "",
+      "description": "Abstract preset to enable Graphical User Interface (GUI) components.",
       "cacheVariables": {
         "ENABLE_GUI": "ON"
       }
@@ -185,32 +195,32 @@
     {
       "name": "windows-cli-only-debug",
       "inherits": [ "windows", "app", "cli", "debug" ],
-      "description": ""
+      "description": "Configure Windows CLI-only application build in Debug mode."
     },
     {
       "name": "windows-cli-only-release",
       "inherits": [ "windows", "app", "cli", "release" ],
-      "description": ""
+      "description": "Configure Windows CLI-only application build in Release mode."
     },
     {
       "name": "windows-cli-only-rel-with-deb-info",
       "inherits": [ "windows", "app", "cli", "rel-with-deb-info" ],
-      "description": ""
+      "description": "Configure Windows CLI-only application build in Release with Debug Info mode."
     },
     {
       "name": "windows-full-suite-debug",
       "inherits": [ "windows", "app", "gui", "debug" ],
-      "description": ""
+      "description": "Configure Windows full suite (GUI & CLI) build in Debug mode."
     },
     {
       "name": "windows-full-suite-release",
       "inherits": [ "windows", "app", "gui", "release" ],
-      "description": ""
+      "description": "Configure Windows full suite (GUI & CLI) build in Release mode."
     },
     {
       "name": "windows-full-suite-rel-with-deb-info",
       "inherits": [ "windows", "app", "gui", "rel-with-deb-info" ],
-      "description": ""
+      "description": "Configure Windows full suite (GUI & CLI) build in Release with Debug Info mode."
     },
     {
       "name": "linux-cli-only-debug",
@@ -238,7 +248,7 @@
         "windows-cli-only-release",
         "python-models"
       ],
-      "description": "Release build for Linux GUI"
+      "description": "Configure Windows release build optimized for CLI-only server deployment packaging."
     },
     {
       "name": "windows-pack-desktop",
@@ -246,7 +256,7 @@
         "windows-full-suite-release",
         "python-models"
       ],
-      "description": "Release build for Linux GUI"
+      "description": "Configure Windows release build optimized for full suite desktop packaging."
     },
     {
       "name": "linux-pack-server",
@@ -254,7 +264,7 @@
         "linux-cli-only-release",
         "python-models"
       ],
-      "description": "Release build for Linux GUI"
+      "description": "Configure Linux release build optimized for CLI-only server deployment packaging."
     },
     {
       "name": "linux-pack-desktop",
@@ -267,8 +277,8 @@
     {
       "name": "tests",
       "hidden": true,
-      "inherits": [ "common-configure-options", "cli", "debug" ],
-      "description": "",
+      "inherits": [ "vcpkg-base", "debug" ],
+      "description": "Abstract base preset to enable test building framework variables.",
       "cacheVariables": {
         "BUILD_TESTS": "ON"
       }
@@ -276,7 +286,7 @@
     {
       "name": "windows-tests-all",
       "inherits": [ "windows", "tests" ],
-      "description": "",
+      "description": "Configure Windows target to build all unit and integration tests.",
       "cacheVariables": {
         "BUILD_ALL_TESTS": "ON"
       }
@@ -284,7 +294,7 @@
     {
       "name": "windows-tests-state-updater",
       "inherits": [ "windows", "tests" ],
-      "description": "",
+      "description": "Configure Windows target to build state updater adapter tests specifically.",
       "cacheVariables": {
         "ENABLE_STATE_UPDATER_ADAPTERS": "ON"
       }
@@ -294,7 +304,7 @@
       "inherits": [
         "windows-full-suite-release"
       ],
-      "description": "",
+      "description": "Configure Windows target to enable documentation generation via Doxygen.",
       "cacheVariables": {
         "BUILD_DOCS": "ON"
       }
@@ -304,7 +314,7 @@
       "inherits": [
         "linux-full-suite-release"
       ],
-      "description": "",
+      "description": "Configure Linux target to enable documentation generation via Doxygen.",
       "cacheVariables": {
         "BUILD_DOCS": "ON"
       }
@@ -314,113 +324,128 @@
     {
       "name": "windows-cli-only-debug",
       "configurePreset": "windows-cli-only-debug",
-      "description": "",
+      "description": "Build Windows CLI-only application in Debug mode.",
       "configuration": "Debug"
     },
     {
       "name": "windows-cli-only-release",
       "configurePreset": "windows-cli-only-release",
-      "description": "",
+      "description": "Build Windows CLI-only application in Release mode.",
       "configuration": "Release"
     },
     {
       "name": "windows-cli-only-rel-with-deb-info",
       "configurePreset": "windows-cli-only-rel-with-deb-info",
-      "description": "",
+      "description": "Build Windows CLI-only application in Release with Debug Info mode.",
       "configuration": "RelWithDebInfo"
     },
     {
       "name": "windows-full-suite-debug",
       "configurePreset": "windows-full-suite-debug",
-      "description": "",
+      "description": "Build Windows full suite (GUI & CLI) in Debug mode.",
       "configuration": "Debug"
     },
     {
       "name": "windows-full-suite-release",
       "configurePreset": "windows-full-suite-release",
-      "description": "",
+      "description": "Build Windows full suite (GUI & CLI) in Release mode.",
       "configuration": "Release"
     },
     {
       "name": "windows-full-suite-rel-with-deb-info",
       "configurePreset": "windows-full-suite-rel-with-deb-info",
-      "description": "",
+      "description": "Build Windows full suite (GUI & CLI) in Release with Debug Info mode.",
       "configuration": "RelWithDebInfo"
     },
     {
       "name": "linux-cli-only-debug",
       "configurePreset": "linux-cli-only-debug",
+      "description": "Build Linux CLI-only application in Debug mode.",
       "configuration": "Debug"
     },
     {
       "name": "linux-cli-only-release",
       "configurePreset": "linux-cli-only-release",
+      "description": "Build Linux CLI-only application in Release mode.",
       "configuration": "Release"
     },
     {
       "name": "linux-full-suite-debug",
       "configurePreset": "linux-full-suite-debug",
+      "description": "Build Linux full suite (GUI & CLI) in Debug mode.",
       "configuration": "Debug"
     },
     {
       "name": "linux-full-suite-release",
       "configurePreset": "linux-full-suite-release",
+      "description": "Build Linux full suite (GUI & CLI) in Release mode.",
       "configuration": "Release"
     },
     {
       "name": "windows-pack-server",
       "configurePreset": "windows-pack-server",
+      "description": "Build Windows server production binaries in Release configuration.",
       "configuration": "Release"
     },
     {
       "name": "windows-pack-desktop",
       "configurePreset": "windows-pack-desktop",
+      "description": "Build Windows desktop full suite binaries in Release configuration.",
       "configuration": "Release"
     },
     {
       "name": "linux-pack-server",
       "configurePreset": "linux-pack-server",
+      "description": "Build Linux server production binaries in Release configuration.",
       "configuration": "Release"
     },
     {
       "name": "linux-pack-desktop",
       "configurePreset": "linux-pack-desktop",
+      "description": "Build Linux desktop full suite binaries in Release configuration.",
       "configuration": "Release"
     },
     {
       "name": "windows-tests-all",
       "configurePreset": "windows-tests-all",
+      "description": "Build all registered test targets on Windows.",
       "configuration": "Debug"
     },
     {
       "name": "windows-tests-state-updater",
       "configurePreset": "windows-tests-state-updater",
+      "description": "Build state updater unit tests target on Windows.",
       "configuration": "Debug"
     },
     {
       "name": "python-models",
       "configurePreset": "python-models",
+      "description": "Build and bundle the Python machine learning models target module.",
       "configuration": "Release"
     },
     {
       "name": "python-data",
       "configurePreset": "python-data",
+      "description": "Build and bundle the Python data processing pipeline target module.",
       "configuration": "Release"
     },
     {
       "name": "python-visualizer",
       "configurePreset": "python-visualizer",
+      "description": "Build and bundle the Python visualization interface target module.",
       "configuration": "Release"
     },
     {
       "name": "docs-windows",
       "configurePreset": "docs-windows",
+      "description": "Compile technical documentation on Windows platforms.",
       "configuration": "Release",
       "targets": [ "docs" ]
     },
     {
       "name": "docs-linux",
       "configurePreset": "docs-linux",
+      "description": "Compile technical documentation on Linux platforms.",
       "configuration": "Release",
       "targets": [ "docs" ]
     }
@@ -429,6 +454,7 @@
     {
       "name": "common-package-options",
       "hidden": true,
+      "description": "Base CPack settings specifying output destination directory.",
       "variables": {
         "CPACK_PACKAGE_DIRECTORY": "${sourceDir}/installer"
       }
@@ -437,6 +463,7 @@
       "name": "server",
       "hidden": true,
       "inherits": [ "common-package-options" ],
+      "description": "Abstract package configuration restricting content strictly to the Command Line Interface.",
       "variables": {
         "CPACK_COMPONENTS_ALL": "CLI"
       }
@@ -445,6 +472,7 @@
       "name": "desktop",
       "hidden": true,
       "inherits": [ "common-package-options" ],
+      "description": "Abstract package configuration bundling both CLI and GUI application components.",
       "variables": {
         "CPACK_COMPONENTS_ALL": "CLI;GUI"
       }
@@ -453,30 +481,35 @@
       "name": "windows-pack-server",
       "displayName": "Installer - CLI Only",
       "inherits": [ "server" ],
+      "description": "Generate Windows installation packages containing only the server/CLI binaries.",
       "configurePreset": "windows-pack-server"
     },
     {
       "name": "windows-pack-desktop",
       "displayName": "Installer - GUI & CLI",
       "inherits": [ "desktop" ],
+      "description": "Generate Windows installer containing full suite desktop application packages.",
       "configurePreset": "windows-pack-desktop"
     },
     {
       "name": "linux-pack-server",
       "displayName": "Installer - CLI Only",
       "inherits": [ "server" ],
+      "description": "Generate Linux installation packages containing only the server/CLI binaries.",
       "configurePreset": "linux-pack-server"
     },
     {
       "name": "linux-pack-desktop",
       "displayName": "Installer - GUI & CLI",
       "inherits": [ "desktop" ],
+      "description": "Generate Linux installer containing full suite desktop application packages.",
       "configurePreset": "linux-pack-desktop"
     }
   ],
   "workflowPresets": [
     {
       "name": "windows-cli-only-debug",
+      "description": "Full workflow to configure and build Windows CLI application in Debug mode.",
       "steps": [
         {
           "type": "configure",
@@ -490,6 +523,7 @@
     },
     {
       "name": "windows-cli-only-release",
+      "description": "Full workflow to configure and build Windows CLI application in Release mode.",
       "steps": [
         {
           "type": "configure",
@@ -503,6 +537,7 @@
     },
     {
       "name": "windows-cli-only-rel-with-deb-info",
+      "description": "Full workflow to configure and build Windows CLI application in RelWithDebInfo mode.",
       "steps": [
         {
           "type": "configure",
@@ -516,6 +551,7 @@
     },
     {
       "name": "windows-full-suite-debug",
+      "description": "Full workflow to configure and build Windows GUI & CLI tools in Debug mode.",
       "steps": [
         {
           "type": "configure",
@@ -529,6 +565,7 @@
     },
     {
       "name": "windows-full-suite-release",
+      "description": "Full workflow to configure and build Windows GUI & CLI tools in Release mode.",
       "steps": [
         {
           "type": "configure",
@@ -542,6 +579,7 @@
     },
     {
       "name": "windows-full-suite-rel-with-deb-info",
+      "description": "Full workflow to configure and build Windows GUI & CLI tools in RelWithDebInfo mode.",
       "steps": [
         {
           "type": "configure",
@@ -555,6 +593,7 @@
     },
     {
       "name": "linux-cli-only-debug",
+      "description": "Full workflow to configure and build Linux CLI application in Debug mode.",
       "steps": [
         {
           "type": "configure",
@@ -568,6 +607,7 @@
     },
     {
       "name": "linux-cli-only-release",
+      "description": "Full workflow to configure and build Linux CLI application in Release mode.",
       "steps": [
         {
           "type": "configure",
@@ -581,6 +621,7 @@
     },
     {
       "name": "linux-full-suite-debug",
+      "description": "Full workflow to configure and build Linux GUI & CLI tools in Debug mode.",
       "steps": [
         {
           "type": "configure",
@@ -594,6 +635,7 @@
     },
     {
       "name": "linux-full-suite-release",
+      "description": "Full workflow to configure and build Linux GUI & CLI tools in Release mode.",
       "steps": [
         {
           "type": "configure",
@@ -607,6 +649,7 @@
     },
     {
       "name": "windows-pack-server",
+      "description": "Complete continuous pipeline to build and package Windows CLI server installers.",
       "steps": [
         {
           "type": "configure",
@@ -624,6 +667,7 @@
     },
     {
       "name": "windows-pack-desktop",
+      "description": "Complete continuous pipeline to build and package Windows full suite desktop installers.",
       "steps": [
         {
           "type": "configure",
@@ -641,6 +685,7 @@
     },
     {
       "name": "linux-pack-server",
+      "description": "Complete continuous pipeline to build and package Linux CLI server installers.",
       "steps": [
         {
           "type": "configure",
@@ -658,6 +703,7 @@
     },
     {
       "name": "linux-pack-desktop",
+      "description": "Complete continuous pipeline to build and package Linux full suite desktop installers.",
       "steps": [
         {
           "type": "configure",
@@ -675,6 +721,7 @@
     },
     {
       "name": "windows-tests-all",
+      "description": "Workflow to configure and build all automated software tests on Windows.",
       "steps": [
         {
           "type": "configure",
@@ -688,6 +735,7 @@
     },
     {
       "name": "windows-tests-state-updater",
+      "description": "Workflow to configure and build targeted state updater validation tests on Windows.",
       "steps": [
         {
           "type": "configure",
@@ -701,6 +749,7 @@
     },
     {
       "name": "python-models",
+      "description": "Workflow to compile and bundle the standalone machine learning model subsystem.",
       "steps": [
         {
           "type": "configure",
@@ -714,6 +763,7 @@
     },
     {
       "name": "python-data",
+      "description": "Workflow to compile and bundle the auxiliary data pipelines helper script packages.",
       "steps": [
         {
           "type": "configure",
@@ -727,6 +777,7 @@
     },
     {
       "name": "python-visualizer",
+      "description": "Workflow to compile and bundle the python visualizer graphics tool library context.",
       "steps": [
         {
           "type": "configure",
@@ -740,6 +791,7 @@
     },
     {
       "name": "docs-windows",
+      "description": "Workflow sequence to run the specialized documentation compilation target on Windows.",
       "steps": [
         {
           "type": "configure",
@@ -753,6 +805,7 @@
     },
     {
       "name": "docs-linux",
+      "description": "Workflow sequence to run the specialized documentation compilation target on Linux.",
       "steps": [
         {
           "type": "configure",
@@ -769,7 +822,8 @@
     {
       "name": "windows-tests-all",
       "displayName": "Test Windows Debug",
-      "configurePreset": "windows-tests-all", 
+      "configurePreset": "windows-tests-all",
+      "description": "Executes all compiled Windows Google Tests natively via CTest under 4 multithreading jobs.",
       "configuration": "Debug",
       "output": {
         "outputOnFailure": true,
