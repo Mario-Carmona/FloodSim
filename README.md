@@ -73,10 +73,11 @@ and structural metadata required for seamless native system integration.
 ### 3.1 Available Application Editions
 
 To accommodate diverse academic and operational deployment strategies, FloodSim is distributed in 
-two distinct, decoupled flavors for each supported operating system:
+two distinct, decoupled flavors for each supported operating system, alongside a dedicated companion 3D visualizer:
 
 * **Desktop Edition (FloodSim-Desktop-Full):** An all-inclusive suite containing both the headless Command Line Interface (`FloodSimCLI`) and the Graphical User Interface (`FloodSimGUI`).
 * **Server Edition (FloodSim-Server-CLI):** A streamlined package containing exclusively the high-performance Command Line Interface (`FloodSimCLI`).
+* **3D Visualizer (DanaSimViewer):** A standalone graphical utility tailored for Windows environments to post-process, view, and analyze 3D flood simulation outputs.
 
 #### Current Release Binary Catalog
 
@@ -85,13 +86,13 @@ ledger. The current stable iteration (v26.05.28) provides the following distribu
 
 | Target Operating System | Edition | Executable Targets Included | Filename |
 | :--- | :--- | :--- | :--- |
-| **Windows AMD64** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.5.28_Windows_AMD64.msi` |
-| **Windows AMD64** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.5.28_Windows_AMD64.msi` |
-| **Ubuntu 22.04 LTS** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb` |
-| **Ubuntu 22.04 LTS** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb` |
-| **Ubuntu 24.04 LTS** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.5.28_Ubuntu-24.04.4-LTS_x86_64.deb` |
-| **Ubuntu 24.04 LTS** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.5.28_Ubuntu-24.04.4-LTS_x86_64.deb` |
-
+| **Windows AMD64** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.6.11_Windows_AMD64.msi` |
+| **Windows AMD64** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.6.11_Windows_AMD64.msi` |
+| **Windows AMD64** | 2D Visualizer | `DanaSimViewer` | `DanaSimViewer-Setup-1.0.0-win64.exe` |
+| **Ubuntu 22.04 LTS** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb` |
+| **Ubuntu 22.04 LTS** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb` |
+| **Ubuntu 24.04 LTS** | Desktop | `FloodSimCLI`, `FloodSimGUI` | `FloodSim-Desktop-Full_26.6.11_Ubuntu-24.04.4-LTS_x86_64.deb` |
+| **Ubuntu 24.04 LTS** | Server | `FloodSimCLI` | `FloodSim-Server-CLI_26.6.11_Ubuntu-24.04.4-LTS_x86_64.deb` |
 ---
 
 ### 3.2 Windows Installation (.msi Package)
@@ -102,7 +103,7 @@ structure initialization and environment configuration.
 #### Step 1: Retrieval
 
 1. Navigate to the repository's [**Releases**](https://github.com/Mario-Carmona/FloodSim/releases) page.
-2. Locate the target version and download the appropriate `.msi` container asset (e.g., `FloodSim-Desktop-Full_26.5.28_Windows_AMD64.msi`).
+2. Locate the target version and download the appropriate `.msi` container asset (e.g., `FloodSim-Desktop-Full_26.6.11_Windows_AMD64.msi`).
 
 #### Step 2: Execution & Setup Wizard
 
@@ -137,7 +138,7 @@ Initialize a shell instance on the deployment target and leverage network fetchi
 pull down the specific `.deb` distribution file (replace the URL with your specific release tag asset link):
 
 ```bash
-wget https://github.com/Mario-Carmona/FloodSim/releases/download/v2026.05.29/FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb
+wget https://github.com/Mario-Carmona/FloodSim/releases/download/v2026.05.29/FloodSim-Desktop-Full_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb
 ```
 
 #### Step 2: Installation via Advanced Package Tool (apt)
@@ -150,7 +151,7 @@ Execute the command utilizing superuser credentials:
 
 ```bash
 sudo apt update
-sudo apt install ./FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb
+sudo apt install ./FloodSim-Desktop-Full_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb
 ```
 
 (Note: The relative path modifier `./` prefix is mandatory for `apt` to correctly infer evaluation of a 
@@ -162,7 +163,7 @@ If restricted network policies or air-gapped constraints prohibit `apt` reposito
 the package can be extracted forcefully:
 
 ```bash
-sudo dpkg -i FloodSim-Desktop-Full_26.5.28_Ubuntu-22.04.5-LTS_x86_64.deb
+sudo dpkg -i FloodSim-Desktop-Full_26.6.11_Ubuntu-22.04.5-LTS_x86_64.deb
 ```
 
 If missing system libraries prevent successful deployment steps, resolve the dependency breaks immediately 
@@ -190,6 +191,23 @@ FloodSimCLI --help
 
 An active installation will return the standardized command line parameter engine parsing options and argument 
 list instructions.
+
+### 3.4 3D Visualizer Installation (Windows .exe)
+
+The 3D Visualizer (DanaSimViewer) is provided as an intuitive graphical application to process and view simulated geographical flood 
+maps on Windows environments.
+
+#### Step 1: Retrieval
+
+1. Navigate to the repository's [**Releases**](https://github.com/Mario-Carmona/FloodSim/releases) page.
+2. Locate the release and download the executable installer asset: `DanaSimViewer-Setup-1.0.0-win64.exe`.
+
+#### Step 2: Execution & Setup
+
+1. Double-click `DanaSimViewer-Setup-1.0.0-win64.exe` to initialize the visualizer setup utility.
+2. SmartScreen Notice: If prompted by Windows Defender, click More Info followed by Run anyway.
+3. Follow the wizard prompts to designate the preferred installation path and authorize the creation of desktop or start menu shortcuts.
+4. Click Finish once the file copying procedure completes. The visualizer can now be launched directly from your workspace shortcuts.
 
 ## 4. Quick Start
 
@@ -270,6 +288,29 @@ Once the 15-minute simulation boundary is successfully evaluated, verify your ou
 * **simulation.log:** A comprehensive plaintext file that captures and mirrors the exact console standard output (`stdout`) printed to the screen during runtime execution. This includes system initialization matrices, telemetry connection status, and iterative computational stepping metrics.
 * **images/:** Stores high-fidelity rasterized visualization captures (`.png`) corresponding to each temporal snapshot boundary. These assets graphically map the spatial distribution of the simulated `water_depth` layer composited directly over the underlying topographical landscape and terrain relief features.
 * **checkpoints/:** Contains versioned directory matrices that archive the raw mathematical state of the simulation at specific intervals. Each timestamped subdirectory preserves the precise cellular grid values for the `water_depth` parameter, serialized natively via the Idrisi spatial format pair—comprising the `.doc` metadata documentation file and its companion binary `.img` raster grid.
+
+### 4.5 Interactive Demo Workflow (with DanaSimViewer)
+
+To execute the fully synchronized real-time simulation demo utilizing both the C++ computational engine and the 2D visualizer, follow this step-by-step workflow:
+
+#### Step 1: Activate the MQTT Broker
+Ensure your local MQTT broker service (e.g., Mosquitto) is active and listening on your host environment. This service acts as the central telemetry pipeline required to stream live cellular state vectors from the engine to the visualizer interface.
+
+#### Step 2: Launch the Simulator Engine
+Initialize a new terminal or PowerShell instance and execute the high-performance command-line engine using the dedicated demo configuration manifest:
+
+```bash
+FloodSimCLI --config C:\Users\mcs20\Documents\FloodSim\config\demo_windows.yaml
+```
+
+#### Step 3: Initialize and Configure DanaSimViewer
+1. Launch `DanaSim Viewer` using its native desktop or Start Menu shortcut.
+2. The visualizer will automatically initialize its underlying web hosting stack and open a new controller tab within your default web browser.
+3. In the browser interface configuration form, fill in the following operational parameters:
+    - **Scenario Name:** demo
+    - **Terrain Folder:** C:\Users\[User]\Documents\FloodSim\data (Replace [User] with your local Windows username context).
+    - **Output Folder:** Set this path to any preferred directory where you wish to save simulation assets and visual run logs.
+4. Click the **Connect** button within the interface to establish the real-time MQTT handshake and begin monitoring the interactive live flood propagation.
 
 ## 5. Configuration
 
