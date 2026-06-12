@@ -2,7 +2,7 @@
 // Runtime values (grid dimensions, palette, frame list) live in runtime.js.
 
 /** Side length in metres of each chunk in the LOD grid. */
-export const CHUNK_M = 2500.0;
+export const CHUNK_M = 1000.0;
 
 /** x_ite LOD `range` attribute — distance breakpoints in metres. */
 export const LOD_RANGES = "3000,10000,30000";

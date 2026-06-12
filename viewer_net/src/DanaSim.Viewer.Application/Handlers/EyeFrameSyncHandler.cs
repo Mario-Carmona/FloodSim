@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using DanaSim.Viewer.Application.Dtos;
 using DanaSim.Viewer.Application.Services;
@@ -17,14 +18,21 @@ public sealed class EyeFrameSyncHandler(ILogger<EyeFrameSyncHandler> logger) : I
             return;
 
         var dto = payload.Deserialize<EyeFrameSyncDto>() ?? new EyeFrameSyncDto();
+
+        var buildSw = Stopwatch.StartNew();
         var frameData = context.Grid.BuildFrameData(dto.SimulationTime);
+        buildSw.Stop();
+
         context.Grid.ConsumeData();
         context.StepIndex++;
 
+        var broadcastSw = Stopwatch.StartNew();
         await broadcaster.BroadcastFrameUpdateAsync(frameData, context.StepIndex, ct);
+        broadcastSw.Stop();
 
         logger.LogInformation(
-            "EYE_Frame_Sync — step {Step}, sim_time={Time}, {Changed} changed cells",
-            context.StepIndex, dto.SimulationTime, context.LastFrameChanges.Count);
+            "[PERF] EYE_Frame_Sync — step {Step}, sim_time={Time}, {Changed} changed cells, buildFrame={BuildMs}ms, broadcast={BroadcastMs}ms",
+            context.StepIndex, dto.SimulationTime, context.LastFrameChanges.Count,
+            buildSw.ElapsedMilliseconds, broadcastSw.ElapsedMilliseconds);
     }
 }

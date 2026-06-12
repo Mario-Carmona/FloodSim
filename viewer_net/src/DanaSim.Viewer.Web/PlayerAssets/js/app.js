@@ -34,17 +34,24 @@ function initialLayerOpts() {
 }
 
 (async () => {
+  const tBoot0 = performance.now();
   try {
     setLoading("Step 1/3: Decoding terrain PNG…");
+    const t1 = performance.now();
     await loadTerrain();
+    const terrainMs = performance.now() - t1;
 
     setLoading("Step 2/3: Fetching flood data…");
+    const t2 = performance.now();
     const initFlood = FLOOD_FRAMES.length > 0
       ? await fetchFloodPx(FLOOD_FRAMES[0])
       : null;
+    const floodMs = performance.now() - t2;
 
     setLoading("Step 3/3: Building 3D scene…");
+    const t3 = performance.now();
     await buildScene(initFlood, initialLayerOpts(), setLoading);
+    const sceneMs = performance.now() - t3;
 
     $loading.style.display = "none";
 
@@ -54,6 +61,11 @@ function initialLayerOpts() {
     initLegend();
     initMinimap();
     startLivePolling();
+
+    console.log(
+      `[PERF] boot sequence: total=${(performance.now() - tBoot0).toFixed(0)}ms ` +
+      `(terrain=${terrainMs.toFixed(0)}ms, firstFlood=${floodMs.toFixed(0)}ms, ` +
+      `buildScene=${sceneMs.toFixed(0)}ms)`);
   } catch (err) {
     setLoading("Error: " + err.message);
     console.error("Scene init failed:", err);

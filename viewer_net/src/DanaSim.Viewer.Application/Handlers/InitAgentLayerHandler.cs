@@ -23,7 +23,7 @@ public sealed class InitAgentLayerHandler(
         if (dto.ColorPalette is { Count: > 0 } paletteEntries)
         {
             context.ColorPalette = new ColorPalette(paletteEntries.Select(e =>
-                new ColorPaletteEntry(e.Value, e.Label, e.Hex, e.Rgba)));
+                new ColorPaletteEntry(e.Value, e.Label, e.Hex, e.Rgba.Select(c => (byte)c).ToArray())));
             logger.LogInformation(
                 "Color palette received from InitAgent_Layer '{Id}' ({Count} levels)",
                 dto.Id, context.ColorPalette.Entries.Count);

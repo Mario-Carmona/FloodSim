@@ -11,14 +11,14 @@ public sealed class MqttControlPublisher(
     IOptions<MqttOptions> options,
     ILogger<MqttControlPublisher> logger) : IControlPublisher
 {
-    private readonly string _scenario = options.Value.Scenario;
+    private readonly MqttOptions _opts = options.Value;
 
     public Task PublishChunkAckAsync(CancellationToken ct = default) =>
-        PublishAsync(MqttTopics.ControlEvents(_scenario), """{"process":"ChunkAck"}""", ct);
+        PublishAsync(MqttTopics.ControlEvents(_opts.Scenario), """{"process":"ChunkAck"}""", ct);
 
     public Task PublishPongAsync(CancellationToken ct = default) =>
         PublishAsync(
-            MqttTopics.PongOut(_scenario),
+            MqttTopics.PongOut(_opts.Scenario),
             """{"process":"System_Pong","source":"DanaSim_NetViewer"}""",
             ct);
 
