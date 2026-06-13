@@ -12,6 +12,7 @@
     <div class="top-bar-left">
       <button class="panel-toggle active" data-toggle="config">&#9881; Config</button>
       <button class="panel-toggle active" data-toggle="status">&#9679; Status</button>
+      <button class="panel-toggle active" data-toggle="runs">&#128193; Runs</button>
       <button class="panel-toggle active" data-toggle="logs">&#8801; Logs</button>
     </div>
     <span class="top-bar-title">DanaSim Viewer</span>
@@ -83,6 +84,17 @@
       </div>
     </section>
 
+    <section class="panel-section" data-panel="runs">
+      <div class="panel-heading">Past Runs</div>
+      <div class="panel-body">
+        <div class="btn-row">
+          <button id="runsRefreshBtn" class="btn-sm">Refresh</button>
+          <button id="runsLiveBtn" class="btn-sm">Back to live</button>
+        </div>
+        <div class="runs-list" id="runsList"></div>
+      </div>
+    </section>
+
   </aside>
 
   <main class="viewer">
@@ -112,6 +124,7 @@ window.__DASHBOARD__ = {
   statusUrl:     "/api/status",
   configUrl:     "/api/config",
   logsUrl:       "/api/logs",
+  runsUrl:       "/api/runs",
   connectUrl:    "/api/control/connect",
   disconnectUrl: "/api/control/disconnect",
 };

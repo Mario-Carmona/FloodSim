@@ -1,8 +1,13 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DanaSim.Viewer.Application.Services;
 using DanaSim.Viewer.Domain.Ports;
 using DanaSim.Viewer.Infrastructure.Config;
+using DanaSim.Viewer.Infrastructure.FileOutput;
 using DanaSim.Viewer.Web.Logging;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace DanaSim.Viewer.Web.Controllers;
 
@@ -12,7 +17,9 @@ public sealed class ApiController(
     InMemoryLogSink logSink,
     SimulationStatusService statusService,
     UserConfigService userConfigService,
-    ISimulationController simulationController) : ControllerBase
+    ISimulationController simulationController,
+    IOptions<FileOutputOptions> fileOutputOptions,
+    IWebHostEnvironment env) : ControllerBase
 {
     /// <summary>GET /api/status — live connection and simulation state.</summary>
     [HttpGet("status")]
@@ -85,4 +92,57 @@ public sealed class ApiController(
         var (lastIndex, entries) = logSink.Since(after);
         return Ok(new { lastIndex, entries });
     }
+
+    /// <summary>GET /api/runs — past simulation runs found under the output directory.</summary>
+    [HttpGet("runs")]
+    public IActionResult GetRuns()
+    {
+        var outputDir = fileOutputOptions.Value.OutputDir;
+        if (!System.IO.Path.IsPathRooted(outputDir))
+            outputDir = System.IO.Path.Combine(env.ContentRootPath, outputDir);
+
+        if (!Directory.Exists(outputDir))
+            return Ok(Array.Empty<object>());
+
+        var runs = Directory.EnumerateDirectories(outputDir)
+            .Where(dir => System.IO.File.Exists(System.IO.Path.Combine(dir, "player.html")))
+            .Select(dir =>
+            {
+                var name = System.IO.Path.GetFileName(dir);
+                var (frameCount, live) = ReadManifest(System.IO.Path.Combine(dir, "flood", "manifest.json"));
+                return new
+                {
+                    name,
+                    playerUrl = $"/sim-outputs/{name}/player.html",
+                    lastModified = Directory.GetLastWriteTimeUtc(dir),
+                    frameCount,
+                    live,
+                };
+            })
+            .OrderByDescending(r => r.lastModified)
+            .ToArray();
+
+        return Ok(runs);
+    }
+
+    private static (int? frameCount, bool live) ReadManifest(string manifestPath)
+    {
+        if (!System.IO.File.Exists(manifestPath))
+            return (null, false);
+
+        try
+        {
+            using var stream = System.IO.File.OpenRead(manifestPath);
+            var manifest = JsonSerializer.Deserialize<ManifestDto>(stream);
+            return (manifest?.Frames?.Length, manifest?.Live ?? false);
+        }
+        catch
+        {
+            return (null, false);
+        }
+    }
+
+    private sealed record ManifestDto(
+        [property: JsonPropertyName("frames")] string[]? Frames,
+        [property: JsonPropertyName("live")] bool Live);
 }
