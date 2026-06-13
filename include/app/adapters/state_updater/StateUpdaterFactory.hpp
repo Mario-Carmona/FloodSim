@@ -30,7 +30,7 @@ public:
      *
      * @param config The variant holding the specific configuration for the updater.
      * @return std::unique_ptr<StateUpdaterPort> The initialized state updater strategy.
-     * @throws std::runtime_error If the specific updater configuration is invalid (e.g., missing model file).
+     * @throws floodsim::app::exception::FloodSimException If the specific updater configuration is invalid (e.g., missing model file).
      */
     [[nodiscard]] static std::unique_ptr<core::ports::StateUpdaterPort> Create(
         const config::StateUpdaterConfig& config);

@@ -11,9 +11,12 @@ if(BUILD_APP)
     set(ENABLE_CORE ON)
 endif()
 
+if(BUILD_TESTS)
+    set(ENABLE_CORE ON)
+endif()
+
 if(BUILD_ALL_TESTS)
     set(ENABLE_STATE_UPDATER_ADAPTERS ON)
-    set(ENABLE_CORE ON)
 endif()
 
 # ------------------------------------------------------------
@@ -23,6 +26,10 @@ set(VCPKG_MANIFEST_FEATURES "")
 
 if(ENABLE_INPUT_ADAPTERS)
     list(APPEND VCPKG_MANIFEST_FEATURES "input-adapters")
+endif()
+
+if(ENABLE_STATE_UPDATER_ADAPTERS)
+    list(APPEND VCPKG_MANIFEST_FEATURES "state-updater-adapters")
 endif()
 
 if(ENABLE_OUTPUT_ADAPTERS)
@@ -140,6 +147,8 @@ if(BUILD_PYTHON_ENVS)
             DESTINATION ${PYTHON_SCRIPTS_DEST_PATH}
             COMPONENT Unspecified
             PATTERN "CMakeLists.txt" EXCLUDE
+            PATTERN "tests" EXCLUDE
+            PATTERN "visualizer" EXCLUDE
     )
 endif()
 
@@ -252,6 +261,9 @@ if(BUILD_APP)
     # ------------------------------------------------------------
     if(WIN32)
         set(CPACK_GENERATOR "WIX")
+
+        # Set the installation directory name
+        set(CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_NAME}")
 
         # Map system runtime dependencies (msvcp140, etc.) to target component pools
         set(CPACK_SYSTEM_LIBRARIES_ID "Unspecified")

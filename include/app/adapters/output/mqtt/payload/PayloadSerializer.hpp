@@ -20,6 +20,7 @@
 #include "app/core/grid/MapGrid.hpp"
 #include "app/core/snapshot/ChangeList.hpp"
 #include "app/core/snapshot/Snapshot.hpp"
+#include "misc/TimeUtils.hpp"
 
 namespace floodsim::app::adapters::output {
 
@@ -67,10 +68,11 @@ public:
      *
      * @param dataset_name The name of the dataset.
      * @param layer_name The name of the specific layer to serialize (e.g., "topo_bathy").
+     * @param flood_risk_levels Vector of flood risk levels for the simulation.
      * @return std::string The serialized agent layer payload.
      */
     virtual std::string GenerateInitAgentLayerPayload(const std::string& dataset_name,
-        const std::string& layer_name) const = 0;
+        const std::string& layer_name, const std::vector<config::FloodRiskLevel>& flood_risk_levels) const = 0;
 
     /**
      * @brief Generates the End-Of-File (EOF) marker payload for the initialization agents.
@@ -138,7 +140,7 @@ public:
      * @param time The timestamp of the completed frame.
      * @return std::string The serialized frame sync payload.
      */
-    virtual std::string GenerateFrameSyncPayload(std::chrono::sys_seconds time) const = 0;
+    virtual std::string GenerateFrameSyncPayload(sys_time_double time) const = 0;
 
     /**
      * @brief Generates the termination payload indicating the simulation has ended.

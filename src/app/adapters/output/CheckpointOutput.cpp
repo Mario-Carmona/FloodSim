@@ -45,8 +45,7 @@ void CheckpointOutput::Run(core::snapshot::SnapshotManager& snapshot_manager,
         std::filesystem::create_directories(checkpoint_output_path);
     }
 
-    std::chrono::system_clock::time_point last_processed_step =
-        std::chrono::system_clock::time_point::min();
+    sys_time_double last_processed_step = std::numeric_limits<sys_time_double>::lowest();
 
     while (true) {
         try {
@@ -78,14 +77,15 @@ void CheckpointOutput::Run(core::snapshot::SnapshotManager& snapshot_manager,
 }
 
 void CheckpointOutput::SetInitConfig(const core::grid::MapGrid& grid, const std::string& /* dataset_name */,
-                                        std::chrono::sys_seconds /* start_timestamp */) {
+                                     std::chrono::sys_seconds /* start_timestamp */,
+                                     const std::vector<config::FloodRiskLevel>& /* flood_risk_levels */) {
     metadata_ = grid.GetMetadata();
 }
 
 void CheckpointOutput::SaveSnapshotAsCheckpoint(
         const core::snapshot::Snapshot& snapshot, const std::filesystem::path& checkpoint_output_path) {
 
-    std::string checkpoint_name = fmt::format("checkpoint_{:%FT%T}", snapshot.Time());
+    std::string checkpoint_name = fmt::format("checkpoint_{:%FT:%H:%M:%S}", snapshot.Time());
     // Replace colons with dashes to avoid issues on certain file systems (e.g., Windows)
     std::replace(checkpoint_name.begin(), checkpoint_name.end(), ':', '-');
 

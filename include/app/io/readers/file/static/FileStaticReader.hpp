@@ -26,7 +26,7 @@ public:
      * @param data_filename File name of the dataset.
      * @param format The format descriptor to check against.
      * @return True if the file matches the layout requirements of the format, false otherwise.
-     * @throws std::runtime_error If an unsupported file format is supplied.
+     * @throws floodsim::app::exception::FloodSimException If an unsupported file format is supplied.
      */
     static bool IsStaticLayer(const std::filesystem::path& data_path,
                               const std::string& data_filename,

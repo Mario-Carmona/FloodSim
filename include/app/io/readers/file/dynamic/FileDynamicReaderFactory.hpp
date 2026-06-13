@@ -27,7 +27,7 @@ public:
      * @param data_path Directory where the file resides.
      * @param data_filename Name of the data file.
      * @return A std::unique_ptr pointing to the created DynamicReader.
-     * @throws std::runtime_error If the requested format is unsupported or fails to build.
+     * @throws floodsim::app::exception::FloodSimException If the requested format is unsupported or fails to build.
      */
     static std::unique_ptr<DynamicReader> Create(
         const formats::file::FileDynamicFormat& format, const std::filesystem::path& data_path,

@@ -36,8 +36,8 @@ public:
      * @param config The output configuration section containing the list of desired outputs.
      * @param scenario_name The name of the current simulation scenario.
      * @return std::vector<std::unique_ptr<OutputPort>> A vector of initialized output adapters.
-     * @throws std::invalid_argument If the scenario_name is empty.
-     * @throws std::runtime_error If an unknown output configuration type is encountered.
+     * @throws floodsim::app::exception::FloodSimException If the scenario_name is empty.
+     * @throws floodsim::app::exception::FloodSimException If an unknown output configuration type is encountered.
      */
     static std::vector<std::unique_ptr<core::ports::OutputPort>> CreateOutputs(
         const config::OutputConfig& config, const std::string& scenario_name);

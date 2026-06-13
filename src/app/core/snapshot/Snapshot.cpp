@@ -13,7 +13,7 @@
 
 namespace floodsim::app::core::snapshot {
 
-void Snapshot::Set(std::chrono::sys_seconds time, const grid::MapGrid& grid) {
+void Snapshot::Set(sys_time_double time, const grid::MapGrid& grid) {
     time_ = time;
 
     const auto& water_depth_grid = grid.GetLayer<float>("water_depth")->GetData();

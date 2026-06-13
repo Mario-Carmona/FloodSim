@@ -4,6 +4,16 @@
   "version": "1.0.0",
   "dependencies": [
     {
+      "name": "magic-enum",
+      "default-features": false,
+      "features": []
+    },
+    {
+      "name": "yaml-cpp",
+      "default-features": false,
+      "features": []
+    },
+    {
       "name": "fmt",
       "default-features": false,
       "features": []
@@ -22,6 +32,16 @@
   "features": {
     "input-adapters": {
       "description": "Input adapters",
+      "dependencies": [
+        {
+          "name": "nlohmann-json",
+          "default-features": false,
+          "features": []
+        }
+      ]
+    },
+    "state-updater-adapters": {
+      "description": "State updater adapters",
       "dependencies": [
         {
           "name": "nlohmann-json",
@@ -53,16 +73,6 @@
     "app-core": {
       "description": "Core",
       "dependencies": [
-        {
-          "name": "yaml-cpp",
-          "default-features": false,
-          "features": []
-        },
-        {
-          "name": "magic-enum",
-          "default-features": false,
-          "features": []
-        },
         {
           "name": "geographiclib",
           "default-features": false,

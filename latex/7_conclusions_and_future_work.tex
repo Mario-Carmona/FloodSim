@@ -1,0 +1,67 @@
+\chapter{Conclusions and Future Work}
+\label{chapter:conclusions_and_future_work}
+
+
+This thesis presented a tensor-based flood simulation engine designed to balance execution speed and hydrodynamic consistency. This final 
+chapter summarizes the primary insights derived from the validation phase and outlines the strategic roadmap toward upgrading the model 
+into a full-scale, real-time alerting platform.
+
+
+\section{Concluding Remarks}
+\label{section:concluding_remarks}
+
+Despite its mathematical simplicity and the utilization of a coarse $200\text{ m}$ spatial resolution grid, the proposed model successfully 
+reproduces the primary floodwave propagation pathways, channel overflows, and macro-structural interactions observed during the catastrophic 
+DANA 2024 event. 
+
+The engine demonstrated high fidelity in tracking the violent confluence of the Barranco del Poyo and Barranco de Horteta, simulating the 
+severe urban flooding across Picanya and Paiporta, and accurately resolving the "wall effect" imposed by the New Turia River Channel. These 
+results prove that the core cellular automata transition rules, implemented over highly parallelized TensorFlow/ONNX graphs, are robust 
+enough to capture real-world disaster dynamics without relying on computationally expensive full shallow-water equation solvers.
+
+\section{Implementation Bottlenecks: The Fixed Time-Step Limit}
+\label{section:implementation_bottlenecks}
+
+The most critical challenge encountered during the implementation was the strict mathematical formulation of a \textbf{fixed temporal step 
+($\Delta t$)}. To prevent numerical explosion and satisfy the Courant-Friedrichs-Lewy (CFL) condition across the entire domain, $\Delta t$ 
+must be hardcoded for the absolute worst-case scenario. 
+
+This design requires predicting the combined maximum terrain slope ($S_{\text{max}}$) and maximum water depth ($WD_{\text{max}}$) across the 
+entire timeline to derive the peak physical velocity. Consequently, the engine enforces a uniform $\Delta t = 0.15\text{ s}$, which is 
+orders of magnitude smaller than what is actually required for more than $90\%$ of the active simulation cells and duration. 
+
+This rigid constraint serves as the primary barrier preventing validation at higher spatial resolutions (such as the IGN $25\text{ m}$ or 
+$5\text{ m}$ grids). Scaling down the cell size ($\Delta x$) while keeping a globally minimized fixed $\Delta t$ exponentially increases the 
+required iteration count, causing the computational execution to scale inefficiently.
+
+
+\section{Future Lines of Work}
+\label{section:future_lines_of_work}
+
+To bypass these current limitations and maximize accuracy without sacrificing computational throughput, future research will target four 
+main technical upgrades:
+
+\begin{itemize}
+    \item \textbf{Dynamic Adaptive Time-Step ($\Delta t$)}: Transitioning from a fixed configuration to a dynamically updated $\Delta t$ 
+    calculated at runtime based on the instantaneous maximum velocity of the graph. This will drastically reduce the total iteration count 
+    during the initialization and receding phases of the flood.
+    
+    \item \textbf{Directional Dynamic Neighborhoods}: Implementing an adaptive cellular automata stencil where the active neighborhood 
+    boundaries expand or contract dynamically based on directional flow velocities. Cells with stagnant or low-speed water layers will 
+    compute fewer adjacent states, freeing GPU memory bandwidth.
+    
+    \item \textbf{Coupled Morphodynamics and Debris Tracking}: Upgrading the static-terrain paradigm to a dynamic environment capable of 
+    simulating terrain erosion, infrastructure failure, and object transport. This layer would have successfully predicted the debris 
+    clogging at the Barranco Gallego bridge beneath the AP-7 highway.
+    
+    \item \textbf{NVIDIA CUDA-Based GPU Acceleration}: Migrating the core execution engine from the current CPU pipeline to a 
+    high-performance GPU environment. This will involve deploying the ONNX Runtime CUDA/TensorRT provider for deep learning layers and 
+    writing custom CUDA kernels to parallelize the Cellular Automata ($m:n-CA^k$) transition rules. Complemented by asynchronous 
+    memory management via CUDA streams, this architectural shift will unlock faster-than-real-time simulations capable of running 
+    concurrent, multi-scenario ensemble forecasting.
+\end{itemize}
+
+By deploying these adaptive algorithms alongside a dedicated GPU acceleration pipeline, the computational engine will be capable of 
+ingesting high-resolution micro-topography ($5\text{ m}$ grids) while maintaining ultra-fast execution speeds. This optimization 
+represents the definitive bridge toward the ultimate goal of this research: a fully operational, real-time \textbf{Digital Twin} for predictive 
+civil protection and early flood alerting.

@@ -265,7 +265,7 @@ Config ConfigLoader::Load(const std::filesystem::path& config_path) {
             const auto node = RequireNode(root, "simulation");
 
             config.simulation.start_timestamp = ParseTimestampString(Extract<std::string>(node, "start_timestamp"));
-            config.simulation.time_step = ParseDurationString(Extract<std::string>(node, "time_step"));
+            config.simulation.time_step = ParseFractionalDurationString(Extract<std::string>(node, "time_step"));
             config.simulation.duration = ParseDurationString(Extract<std::string>(node, "duration"));
 
             {
