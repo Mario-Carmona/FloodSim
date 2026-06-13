@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=FloodSim
+Version=26.6.9
+Exec=FloodSimGUI
+Icon=floodsim
+Terminal=false
+Categories=Science;Education;
+StartupWMClass=FloodSimGUI

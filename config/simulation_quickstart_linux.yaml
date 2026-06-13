@@ -1,7 +1,7 @@
 scenario:
-  output_dir: /usr/share/floodsim/outputs
+  output_dir: /home/marwan/Documentos/vs/FloodSim/outputs
   name: quickstart_valencia_demo
-  append_start_timestamp: true
+  append_start_timestamp: false
 
 logging:
   level: Info
@@ -13,7 +13,7 @@ input:
   file:
     static_format: Idrisi
     dynamic_format: Hif
-    dataset_folder: /usr/share/floodsim/data
+    dataset_folder: /home/marwan/Documentos/vs/FloodSim/data
     dataset_name: data_29_10_2024
   scalars:
     fluid_density: 1000.0
@@ -23,9 +23,12 @@ output:
   snapshot:
     every_n_steps: 300
   outputs:
-    - type: Image
-    - type: Checkpoint
-      static_format: Idrisi
+    - type: Mqtt
+      protocol: mqtt://
+      host: 127.0.0.1
+      port: 1883
+      format: Json
+      send_initial_state: false
 
 state_updater:
   enable_rainfall: true
@@ -52,7 +55,7 @@ state_updater:
         color_hex: 4B0082FF
   updater:
     type: Onnx
-    model_path: /usr/share/floodsim/exported_models/first_model_cpu
+    model_path: /home/marwan/Documentos/vs/FloodSim/exported_models/first_model_cpu
     tensor_dim: 16
 
 simulation:
