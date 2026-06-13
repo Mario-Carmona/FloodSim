@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using DanaSim.Viewer.Application.Services;
@@ -68,6 +69,8 @@ public sealed class FileBasedBroadcaster(
 
     public async Task BroadcastInitialStateAsync(GridMeta meta, FrameData frame, CancellationToken ct)
     {
+        var total = Stopwatch.StartNew();
+
         _meta = meta;
         _frameNames.Clear();
         _scenarioDir = Path.Combine(_outputBaseDir, _scenario);
@@ -75,20 +78,32 @@ public sealed class FileBasedBroadcaster(
         Directory.CreateDirectory(_scenarioDir);
         Directory.CreateDirectory(_floodDir);
 
+        var encodeSw = Stopwatch.StartNew();
         var (terrainPng, minH, maxH) = EncodeTerrain(meta);
+        encodeSw.Stop();
         _minH = minH;
         _maxH = maxH;
 
         var (stateColors, stateLabels) = ResolvePalette(meta.Palette);
 
+        var htmlSw = Stopwatch.StartNew();
         var playerHtml = GeneratePlayerHtml(meta, minH, maxH,
             Convert.ToBase64String(terrainPng), stateColors, stateLabels, [], _scenario);
-        await File.WriteAllTextAsync(Path.Combine(_scenarioDir, "player.html"), playerHtml, ct);
+        htmlSw.Stop();
 
+        var writeSw = Stopwatch.StartNew();
+        await File.WriteAllTextAsync(Path.Combine(_scenarioDir, "player.html"), playerHtml, ct);
         await WriteManifestAsync(live: true, ct);
+        writeSw.Stop();
 
         statusService.Reset(_scenario);
         statusService.SetPhase("Running");
+
+        total.Stop();
+        logger.LogInformation(
+            "[PERF] BroadcastInitialState: total={TotalMs}ms (terrainEncode={EncodeMs}ms [{PngKb:F1} KB], html={HtmlMs}ms, writes={WriteMs}ms) — heights {MinH:F1}–{MaxH:F1} m, {N} states",
+            total.ElapsedMilliseconds, encodeSw.ElapsedMilliseconds, terrainPng.Length / 1024.0,
+            htmlSw.ElapsedMilliseconds, writeSw.ElapsedMilliseconds, minH, maxH, stateColors.Length);
 
         logger.LogInformation(
             "FileBasedBroadcaster: output ready at '{Dir}' (heights {MinH:F1}–{MaxH:F1} m, {N} states)",
@@ -99,19 +114,33 @@ public sealed class FileBasedBroadcaster(
     {
         if (_meta is null) return;
 
+        var total = Stopwatch.StartNew();
+
         var stepName = $"step_{stepIndex:D5}";
+
+        var encodeSw = Stopwatch.StartNew();
         var floodPng = EncodeFlood(frame.PaletteGrid, _meta.Rows, _meta.Cols);
+        encodeSw.Stop();
+
+        var writeSw = Stopwatch.StartNew();
         await File.WriteAllBytesAsync(Path.Combine(_floodDir, $"{stepName}.png"), floodPng, ct);
 
         _frameNames.Add(stepName);
         await WriteManifestAsync(live: true, ct);
+        writeSw.Stop();
 
         var playerUrl = $"/sim-outputs/{_scenario}/player.html";
         statusService.RecordFrame(frame.SimulationTime, playerUrl);
 
+        var hubSw = Stopwatch.StartNew();
         await hub.Clients.Group(_scenario).SendAsync("FrameReady", stepName, ct);
+        hubSw.Stop();
 
-        logger.LogDebug("Flood PNG saved: {Step} ({Kb:F1} KB)", stepName, floodPng.Length / 1024.0);
+        total.Stop();
+        logger.LogInformation(
+            "[PERF] BroadcastFrameUpdate {Step}: total={TotalMs}ms (encode={EncodeMs}ms, write={WriteMs}ms, hub={HubMs}ms) — {Kb:F1} KB",
+            stepName, total.ElapsedMilliseconds, encodeSw.ElapsedMilliseconds, writeSw.ElapsedMilliseconds,
+            hubSw.ElapsedMilliseconds, floodPng.Length / 1024.0);
     }
 
     public async Task BroadcastSimulationEndedAsync(CancellationToken ct)

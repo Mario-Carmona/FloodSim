@@ -167,18 +167,35 @@ export function shapeHTML(def, cellM, geom) {
 }
 
 /**
- * Wrap a chunk's LOD shapes in the Transform/LOD markup x_ite consumes.
+ * Wrap a chunk's LOD shapes in the `<LOD>` markup x_ite consumes. Callers
+ * are responsible for appending the `<WorldInfo info="fuera_de_rango"/>`
+ * out-of-range marker to ``lodShapesHtml`` beforehand.
  *
  * @param {number} cxi
  * @param {number} czi
- * @param {string} lodShapesHtml  pre-built LOD ``<Shape>`` elements
+ * @param {string} lodShapesHtml  pre-built LOD ``<Shape>`` elements (+ WorldInfo)
  * @returns {string}
  */
-export function chunkMarkup(cxi, czi, lodShapesHtml) {
-  const { tx, tz, aw, ad } = _chunkBounds(cxi, czi);
-  return `<Transform translation="${tx} 0 ${tz}">
-    <LOD range="${LOD_RANGES}" center="${(aw / 2).toFixed(1)} 0 ${(ad / 2).toFixed(1)}">
+export function lodWrapperHTML(cxi, czi, lodShapesHtml) {
+  const { aw, ad } = _chunkBounds(cxi, czi);
+  return `<LOD range="${LOD_RANGES}" center="${(aw / 2).toFixed(1)} 0 ${(ad / 2).toFixed(1)}">
       ${lodShapesHtml}
-    </LOD>
+    </LOD>`;
+}
+
+/**
+ * Wrap a chunk's content in the translated, identifiable Transform x_ite
+ * consumes. ``innerHtml`` may be a single `<Shape>` (initial coarse build)
+ * or the output of ``lodWrapperHTML`` (full multi-LOD set).
+ *
+ * @param {number} cxi
+ * @param {number} czi
+ * @param {string} innerHtml
+ * @returns {string}
+ */
+export function chunkMarkup(cxi, czi, innerHtml) {
+  const { tx, tz } = _chunkBounds(cxi, czi);
+  return `<Transform DEF="Chunk_${cxi}_${czi}" translation="${tx} 0 ${tz}">
+    ${innerHtml}
   </Transform>`;
 }

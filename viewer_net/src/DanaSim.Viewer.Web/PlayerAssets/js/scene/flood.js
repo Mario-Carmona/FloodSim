@@ -13,18 +13,35 @@ let _floodCtx = null;
  * @returns {Promise<Uint8ClampedArray | null>}
  */
 export async function fetchFloodPx(frameName) {
+  const t0 = performance.now();
   try {
+    const tFetch0 = performance.now();
     const resp = await fetch(`flood/${frameName}.png`);
     if (!resp.ok) return null;
-    const bitmap = await createImageBitmap(await resp.blob());
+    const blob = await resp.blob();
+    const fetchMs = performance.now() - tFetch0;
+
+    const tDecode0 = performance.now();
+    const bitmap = await createImageBitmap(blob);
+    const decodeMs = performance.now() - tDecode0;
+
     if (!_floodCanvas) {
       _floodCanvas = document.createElement("canvas");
       _floodCanvas.width = PNG_COLS;
       _floodCanvas.height = PNG_ROWS;
       _floodCtx = _floodCanvas.getContext("2d");
     }
+    const tDraw0 = performance.now();
     _floodCtx.drawImage(bitmap, 0, 0);
-    return _floodCtx.getImageData(0, 0, PNG_COLS, PNG_ROWS).data;
+    const px = _floodCtx.getImageData(0, 0, PNG_COLS, PNG_ROWS).data;
+    const drawMs = performance.now() - tDraw0;
+
+    console.log(
+      `[PERF] fetchFloodPx ${frameName}: total=${(performance.now() - t0).toFixed(0)}ms ` +
+      `(fetch=${fetchMs.toFixed(0)}ms [${(blob.size / 1024).toFixed(1)} KB], ` +
+      `decode=${decodeMs.toFixed(0)}ms, draw=${drawMs.toFixed(0)}ms)`);
+
+    return px;
   } catch (e) {
     return null;
   }

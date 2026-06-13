@@ -89,6 +89,49 @@ public class SimulationAppServiceTests
     }
 
     [Fact]
+    public async Task InitAgentLayer_ColorPaletteFlowsToInitialBroadcast()
+    {
+        var service = BuildService();
+
+        await service.HandleEventAsync("""{"process":"System_Ping"}""");
+        await service.HandleEventAsync("""
+            {"process":"InitMap_Config",
+             "map":{"size_x":4,"size_y":4,"cell_resolution_m":50.0},
+             "metadata":{"sim_start_time":"2024-10-29T10:00:00","time_step_s":1.0},
+             "georeference":{"lat":39.3,"lon":-0.7}}
+            """);
+        await service.HandleEventAsync("""
+            {"process":"InitAgent_Layer",
+             "id":"terrain",
+             "data_path":"topo_bathy",
+             "data_filename":"topo_bathy",
+             "color_palette":[
+               {"value":0,"label":"Dry","hex":"#9E8050","rgba":[158,128,80,255]},
+               {"value":1,"label":"Shallow","hex":"#99E6FF","rgba":[153,230,255,255]}
+             ]}
+            """);
+        await service.HandleEventAsync("""{"process":"InitAgent_EOF"}""");
+        await service.HandleEventAsync("""{"process":"FrameStart","total_chunks":0,"chunks_per_batch":10}""");
+        await service.HandleEventAsync("""{"process":"FrameEnd"}""");
+        await service.HandleEventAsync("""{"process":"Init_EOF","total_chunks_sent":0}""");
+
+        _broadcaster.Verify(b => b.BroadcastInitialStateAsync(
+            It.Is<GridMeta>(meta =>
+                meta.Palette != null &&
+                meta.Palette.Entries.Count == 2 &&
+                meta.Palette.Entries[0].Value == 0 &&
+                meta.Palette.Entries[0].Label == "Dry" &&
+                meta.Palette.Entries[0].Hex == "#9E8050" &&
+                meta.Palette.Entries[0].Rgba.SequenceEqual(new byte[] { 158, 128, 80, 255 }) &&
+                meta.Palette.Entries[1].Value == 1 &&
+                meta.Palette.Entries[1].Label == "Shallow" &&
+                meta.Palette.Entries[1].Hex == "#99E6FF" &&
+                meta.Palette.Entries[1].Rgba.SequenceEqual(new byte[] { 153, 230, 255, 255 })),
+            It.IsAny<FrameData>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Backpressure_ChunkAckPublishedEveryBatch()
     {
         var service = BuildService();

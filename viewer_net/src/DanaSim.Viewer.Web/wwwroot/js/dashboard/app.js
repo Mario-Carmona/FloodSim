@@ -3,6 +3,7 @@ import { initConfig }              from './config.js';
 import { initStatus, updateStatus } from './status.js';
 import { initLogs,   appendLogs }  from './logs.js';
 import { initViewer, updateViewer } from './viewer.js';
+import { initRuns }                from './runs.js';
 
 const CFG = window.__DASHBOARD__;
 
@@ -11,6 +12,7 @@ initConfig();
 initStatus();
 initLogs();
 initViewer();
+initRuns();
 
 // Status + viewer — poll every second
 setInterval(async () => {

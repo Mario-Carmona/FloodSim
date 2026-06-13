@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DanaSim.Viewer.Application.Ports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -57,12 +58,21 @@ public sealed class IdrisiTerrainDataReader(
 
         try
         {
-            var (rows, cols) = await ReadDocMetadataAsync(docPath, ct);
-            var heights = await ReadImgDataAsync(imgPath, rows * cols, ct);
+            var total = Stopwatch.StartNew();
 
+            var docSw = Stopwatch.StartNew();
+            var (rows, cols) = await ReadDocMetadataAsync(docPath, ct);
+            docSw.Stop();
+
+            var imgSw = Stopwatch.StartNew();
+            var heights = await ReadImgDataAsync(imgPath, rows * cols, ct);
+            imgSw.Stop();
+
+            total.Stop();
             logger.LogInformation(
-                "Loaded terrain '{File}' — {Rows}x{Cols} ({Total} cells)",
-                dataFilename, rows, cols, heights.Length);
+                "[PERF] Loaded terrain '{File}' — {Rows}x{Cols} ({Total} cells) in {TotalMs}ms (doc={DocMs}ms, img={ImgMs}ms)",
+                dataFilename, rows, cols, heights.Length,
+                total.ElapsedMilliseconds, docSw.ElapsedMilliseconds, imgSw.ElapsedMilliseconds);
 
             return heights;
         }

@@ -47,6 +47,11 @@ compile_commands.json
 # PragmaDev
 lock.info
 
+# MQTT emulator build artifacts
+/python/visualizer/tools/emulator_package/build/
+/python/visualizer/tools/emulator_package/windows_build/
+/python/visualizer/tools/emulator_package/dist/
+
 # Python export models
 /exported_models
 

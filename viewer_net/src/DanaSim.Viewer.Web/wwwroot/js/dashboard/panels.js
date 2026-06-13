@@ -36,7 +36,7 @@ function toggle(name) {
 
 export function initPanels() {
   const state = loadState();
-  ['config', 'status', 'logs'].forEach(name => {
+  ['config', 'status', 'runs', 'logs'].forEach(name => {
     applyCollapse(name, state[name] === false);
   });
 
@@ -46,7 +46,7 @@ export function initPanels() {
 
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
-    const map = { c: 'config', s: 'status', l: 'logs' };
+    const map = { c: 'config', s: 'status', r: 'runs', l: 'logs' };
     const name = map[e.key.toLowerCase()];
     if (name) { toggle(name); return; }
     if (e.key.toLowerCase() === 'f')
