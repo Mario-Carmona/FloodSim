@@ -520,6 +520,191 @@ Launch the pipeline orchestration script by invoking the localized Python interp
 .\build\Windows\venvs\data_pipeline_env\Scripts\python.exe .\python\data_pipeline\main.py .\python\data_pipeline\config.yaml
 ```
 
+### 7.5 Model Swapping and State Updater Configuration
+
+FloodSim allows developers and researchers to dynamically swap the computational model used to update the simulation state. The execution engine natively relies on the exported model metadata to automatically resolve spatial dataset dependencies and the required physical scalar variables.
+
+#### 7.5.1 Model Exportation Pipeline
+To compile, package, and format models into the native framework required by the simulation engine, use the automated CMake workflow preset. The foundational models must be defined within the `python/models/versions` directory. Execute the following command to run the exportation pipeline:
+
+```bash
+cmake --workflow --preset python-models
+```
+
+Each exported model includes a `metadata.json` manifest. This file explicitly dictates the precise input and output layers, as well as the specialized parameters needed for both the `preprocess` and `step` routines of the state updater engine.
+
+#### 7.5.2 Data Layer Resolution (Directory Structure)
+
+The simulation engine automatically scans the input dataset directory to bind spatial data targets. The target data folder must contain a subfolder for each required layer, named exactly as specified in the model's metadata manifest:
+
+```JSON
+{
+    "model_name": "first_model_cpu",
+    "fluid_layer": "water_depth",
+    "fluid_movement_state_layer": "water_movement_state",
+    "preprocess": {
+        "inputs": [
+            {
+                "name": "land_cover",
+                "type": "INT8",
+                "shape": [
+                    "unk__11",
+                    "unk__12"
+                ]
+            }
+        ],
+        "outputs": [
+            {
+                "name": "roughness:out",
+                "type": "FLOAT",
+                "shape": [
+                    "unk__13",
+                    "unk__14"
+                ]
+            },
+            {
+                "name": "water_movement_state:out",
+                "type": "INT8",
+                "shape": [
+                    "unk__15",
+                    "unk__16"
+                ]
+            }
+        ]
+    },
+    "step": {
+        "inputs": [
+            {
+                "name": "delta_x",
+                "type": "FLOAT",
+                "shape": []
+            },
+            {
+                "name": "delta_t",
+                "type": "FLOAT",
+                "shape": []
+            },
+            {
+                "name": "fluid_density",
+                "type": "FLOAT",
+                "shape": []
+            },
+            {
+                "name": "fluid_viscosity",
+                "type": "FLOAT",
+                "shape": []
+            },
+            {
+                "name": "water_depth",
+                "type": "FLOAT",
+                "shape": [
+                    "unk__225",
+                    "unk__226",
+                    "unk__227"
+                ]
+            },
+            {
+                "name": "water_movement_state",
+                "type": "INT8",
+                "shape": [
+                    "unk__228",
+                    "unk__229",
+                    "unk__230"
+                ]
+            },
+            {
+                "name": "topo_bathy",
+                "type": "FLOAT",
+                "shape": [
+                    "unk__231",
+                    "unk__232",
+                    "unk__233"
+                ]
+            },
+            {
+                "name": "roughness",
+                "type": "FLOAT",
+                "shape": [
+                    "unk__234",
+                    "unk__235",
+                    "unk__236"
+                ]
+            }
+        ],
+        "outputs": [
+            {
+                "name": "water_depth:out",
+                "type": "FLOAT",
+                "shape": [
+                    "unk__237",
+                    "unk__238",
+                    "unk__239"
+                ]
+            },
+            {
+                "name": "water_movement_state:out",
+                "type": "INT8",
+                "shape": [
+                    "unk__240",
+                    "unk__241",
+                    "unk__242"
+                ]
+            }
+        ]
+    }
+}
+```
+
+To determine which layer folders are strictly mandatory within your empirical dataset, the simulator evaluates the following logical rule:
+
+$$\text{Required Layers} = (\text{Preprocess Inputs}) + (\text{Step Inputs}) - (\text{Preprocess Outputs})$$
+
+Based on the provided metadata for the `first_model_cpu` configuration, the structural resolution operates as follows:
+
+* `land_cover`: Defined as an input layer for the `preprocess` block. It requires a dedicated subfolder in the dataset directory.
+
+* `topo_bathy`: Defined as an input layer for the `step` computational block. It requires a dedicated subfolder in the dataset directory.
+
+* `water_depth`: Defined as an input layer for the `step` computational block. It requires a dedicated subfolder in the dataset directory.
+
+* `roughness`: Generated as an output of `preprocess` and used as an input in `step`. It is handled dynamically in-memory, meaning no physical directory is required.
+
+* `water_movement_state`: Generated as an output of `preprocess` and used as an input in `step`. It is handled dynamically in-memory, meaning no physical directory is required.
+
+Consequently, for this specific metadata template, the input dataset directory structure must exclusively reflect the required physical layers:
+
+```Plaintext
+Directory: data\data_29_10_2024_200m
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        23/06/2026     10:29                land_cover
+d-----        23/06/2026     10:29                rainfall
+d-----        23/06/2026     10:29                topo_bathy
+d-----        23/06/2026     10:29                water_depth
+```
+
+#### 7.5.3 Scalar Variables and Model Path Specification
+
+Scalar parameters specified as inputs within the `step` routine block of the `metadata.json` (such as `fluid_density` and `fluid_viscosity`) do not represent spatial multi-dimensional grids. Therefore, they must be supplied explicitly through the `input.scalars` section of the simulator's YAML deployment manifest.
+
+To activate a new operational model, update your YAML configuration file by ensuring the `input.scalars` block satisfies the model's mathematical dependencies, and point the `model_path` variable to the directory containing your newly exported ONNX model assets.
+
+```YAML
+input:
+  # ... [file mapping configuration omitted] ...
+  scalars:
+    fluid_density: 1000.0
+    fluid_viscosity: 0.001
+
+state_updater:
+  # ... [flood risk boundaries omitted] ...
+  updater:
+    type: Onnx
+    model_path: /usr/share/floodsim/exported_models/first_model_cpu
+    tensor_dim: 16
+```
+
 ## 8. License & Acknowledgements
 
 ### 8.1 Academic Affiliation & Context
