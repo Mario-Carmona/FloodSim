@@ -552,3 +552,20 @@ To ensure complete legal compliance and attribution transparency, the tracking o
 is automated. The project's CMake build toolchain is configured to dynamically scan, aggregate, and 
 compile the third-party licensing signatures during the build and packaging phase. This creates an 
 up-to-date compliance record named [THIRD-PARTY-NOTICES.md](https://mario-carmona.github.io/FloodSim/md__home_runner_work_FloodSim_FloodSim_build_Linux_docs_linux_docs_THIRD_PARTY_NOTICES.html).
+
+## 9. Citation
+
+If you utilize FloodSim in your research, academic work, or derive technological applications from its core Cellular Automata engine, please cite the foundational Master's Thesis associated with this repository:
+
+> **Carmona Segovia, M.** (2026). *FloodSim: Distributed C++ Flood Simulator*. Universitat Oberta de Catalunya (UOC). https://hdl.handle.net/10609/155498
+
+**BibTeX:**
+```bibtex
+@mastersthesis{carmona2026floodsim,
+  author       = {Carmona Segovia, Mario},
+  title        = {FloodSim: Distributed C++ Flood Simulator},
+  school       = {Universitat Oberta de Catalunya (UOC)},
+  year         = {2026},
+  url          = {[https://hdl.handle.net/10609/155498](https://hdl.handle.net/10609/155498)}
+}
+```
