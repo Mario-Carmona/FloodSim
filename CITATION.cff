@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software or reference its architecture, please cite it as below."
+authors:
+  - family-names: "Carmona Segovia"
+    given-names: "Mario"
+title: "FloodSim: Distributed C++ Flood Simulator"
+url: "https://github.com/Mario-Carmona/FloodSim"
+preferred-citation:
+  type: thesis
+  thesis-type: "Master's Thesis"
+  authors:
+    - family-names: "Carmona Segovia"
+      given-names: "Mario"
+  title: "FloodSim: Distributed C++ Flood Simulator"
+  institution:
+    name: "Universitat Oberta de Catalunya (UOC)"
+  year: 2026
+  url: "https://hdl.handle.net/10609/155498"
