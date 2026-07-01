@@ -445,7 +445,114 @@ the low-level processing structures, a comprehensive codebase architecture refer
 📘 API Reference Access
 For deep technical details and C++ API references, please consult the [Doxygen Documentation](https://mario-carmona.github.io/FloodSim/annotated.html).
 
-### 7.1 Scope of Technical Documentation
+### 7.1 Algorithmic Execution Flow and Implementation
+
+To clarify the operational logic of the [Ecuación] flood model and separate high-level computational optimizations from localized 
+multi-physics cell interactions, the system execution is structured into two decoupled procedural layers. Algorithm 1 details the 
+global orchestration loop running within the high-performance C++ backend environment, which manages real-time boundary data injection 
+and implements dynamic bounding box tiling to parallelize execution over active sub-domains. Concurrently, Algorithm 2 formalizes the 
+mathematical transition core compiled into a static tensorial computational graph, resolving neighborhood hydraulic gradients and finite 
+volumetric routing safely without incurring mass conservation anomalies.
+
+#### Algorithm 1: Global Simulation Loop and Domain Optimization (C++ Orchestrator)
+
+```Plaintext
+Input: Spatiotemporal parameters (Δx, Δt, T_final), Static Layers (H, Land Cover)  
+Output: Updated Spatiotemporal Flood State Layers (WD, S_mov)  
+
+1: Instantiate OnnxStateUpdater with core configuration profiles  
+2: Initialize MapGrid and allocate memory tensors for static and dynamic layers  
+3: Precompute Manning's roughness layer (n) from Land Cover via Lookup Table (LUT)  
+4: Set current simulation time t ← 0  
+
+5: while t < T_final do  
+6:     // Step 1: Inter-layer Meteorological Boundary Condition Injection  
+7:     if IsRainfallEnabled() then  
+8:         #pragma omp parallel for private(i, j)  
+9:         for each cell (i, j) in global_grid do  
+10:            WD[i, j] ← WD[i, j] + (Rainfall[i, j] * Δt)  
+11:            if WD[i, j] ≥ DryTolerance then  
+12:                S_mov[i, j] ← 1 // Force cell wake-up mechanically due to meteo influx  
+13:            end if  
+14:        end for  
+15:    end if  
+
+16:    // Step 2: Dynamic Bounding Box Sub-domain Segmentation (Tiling)  
+17:    Segment global grid into discrete 2D block matrices (Tiles) of size tensor_dim  
+18:    Initialize ActiveTilesList ← ∅  
+19:    for each Tile in global_grid do  
+20:        if any cell (i, j) within Tile has S_mov[i, j] == 1 then  
+21:            Append Tile reference to ActiveTilesList  
+22:        end if  
+23:    end for  
+
+24:    // Step 3: High-Performance Vectorized Inference over Active Region  
+25:    #pragma omp parallel for shared(ActiveTilesList)  
+26:    for each Tile in ActiveTilesList do  
+27:        Extract tile subtensors (WD_tile, S_mov_tile, H_tile, n_tile) including halo padding boundaries  
+28:        Execute static ONNX engine execution: [WD_next_tile, S_mov_next_tile] ← StepModel(inputs)  
+29:        Commit inner region of WD_next_tile and S_mov_next_tile back to the global master grid  
+30:    end for  
+
+31:    // Step 4: Master State Synchronization and Telemetry Publishing  
+32:    Synchronize global master layers: WD ← WD_next, S_mov ← S_mov_next  
+33:    Publish incremental spatiotemporal delta maps via MQTT broker to the async 3D X3D viewer  
+34:    t ← t + Δt  
+35: end while
+```
+
+#### Algorithm 2: Vectorized m:n-CA^k Transition Core (Tensor-Graph Evolution)
+
+```Plaintext
+Input: Local neighborhood tensor slices (Δx, Δt, ρ, μ, WD, S_mov, H, n)  
+Output: Evaluated state tensors for the next iteration (WD_next, S_mov_next)  
+
+1: WSE ← H + WD // Calculate current Water Surface Elevation layer  
+2: WSE_padded ← Apply wall-constraint symmetric tensor padding onto WSE boundaries  
+
+3: // Phase 1: Directional Hydraulic Gradient Assembly  
+4: for each neighborhood orientation index k ∈ [1, 8] within Moore Neighborhood do  
+5:     ΔWSE_k ← max(WSE - WSE_neighbor[k], 0.0) // Filter for gravity-driven downward flows only  
+6:     L_k ← (k is cardinal direction) ? Δx : (Δx * √2)  
+7:     s_k ← ΔWSE_k / L_k // Resolve structural energy slope vector  
+8:     s_k ← s_k * cast_to_float(S_mov) // Clamp gradients to zero if source cell is marked static  
+9: end for  
+
+10: // Phase 2: Coupled Multi-physics Volumetric Flux Estimation  
+11: Cell_Area ← Δx * Δx  
+12: Cross_Section_Area ← WD * Δx  
+13: V_cell ← WD * Cell_Area // Total water mass volume physically bound within the cell  
+
+14: for each neighborhood orientation index k ∈ [1, 8] do  
+15:     v_theor_k ← (1.0 / n) * (WD^(2/3)) * √(s_k)  
+16:     V_theor_out_k[k] ← v_theor_k * Cross_Section_Area * Δt // Directional outbound volume  
+17: end for  
+
+18: V_out_attempt ← Sum_Over_Directions(V_theor_out_k)  
+
+19: // Phase 3: Absolute Mass Conservation Enforcement  
+20: α ← (V_out_attempt > 0) ? min(V_out_attempt, V_cell) / V_out_attempt : 1.0  
+21: V_out_final_k ← V_theor_out_k * α  
+22: V_out_total ← Sum_Over_Directions(V_out_final_k)  
+
+23: // Phase 4: Multiple Flow Direction (MFD) Gathering & Integral Update  
+24: V_in_total ← Shift_And_Gather_Incoming_Fluxes(V_out_final_k) // Symmetric tensor shift inversion  
+25: WD_next ← WD - (V_out_total / Cell_Area) + (V_in_total / Cell_Area) // Strict mass balance  
+
+26: // Phase 5: Numerical Conditioning and State Mask Tagging  
+27: WD_next ← (WD_next < 1e-5) ? 0.0 : WD_next // Eliminate float32 arithmetic epsilon noise  
+28: Is_Moving ← (V_out_total > 1e-5) or (V_in_total > 1e-5)  
+29: S_mov_next ← Is_Moving ? 1 : 0  
+
+30: return [WD_next, S_mov_next]
+```
+
+By decoupling the framework execution into an external high-performance runtime iterator (Algorithm 1) and a centralized, 
+physics-consistent spatial transition cell graph operator (Algorithm 2), the framework breaks the extreme latency bottleneck typical 
+of standard 2D shallow water equation solvers. This software-hardware co-design guarantees that execution times remain substantially 
+under the real-time threshold, fulfilling the performance directives required by a reactive Digital Twin for flood emergency situations.
+
+### 7.2 Scope of Technical Documentation
 The Doxygen-generated documentation is compiled directly from the source header files and inline code 
 annotations. It provides full transparency into the software's internal object-oriented design, including:
 
@@ -453,7 +560,7 @@ annotations. It provides full transparency into the software's internal object-o
 * **Input/Output Pipelines:** Exhaustive specifications for spatial parsing utilities (e.g., Idrisi .img/.doc raster processors) and runtime networking modules.
 * **Telemetry Interfaces:** Abstract base classes and implementation patterns for pluggable output streams, including JSON serialization structures and MQTT publication protocols.
 
-### 7.2 Regenerating Documentation From Source
+### 7.3 Regenerating Documentation From Source
 If you are modifying the source code or working within a local development environment, you can recompile 
 the interactive documentation site dynamically.
 
@@ -476,7 +583,7 @@ or
 cmake --workflow --preset docs-linux
 ```
 
-### 7.3 Model Validation Testing
+### 7.4 Model Validation Testing
 
 To mathematically validate the Cellular Automata (CA) transition rules and ensure structural model fidelity, the repository includes an automated validation suite. 
 
@@ -494,7 +601,7 @@ Once the compilation completes successfully, run the generated validation binary
 bin\Windows\Debug\floodsim_state_updater_adapters_test.exe
 ```
 
-### 7.4 Dataset Generation Pipeline
+### 7.5 Dataset Generation Pipeline
 
 FloodSim features an integrated Python data pipeline engineered to ingest, process, and format external geographic layers into compatible cellular simulation datasets.
 
@@ -520,11 +627,28 @@ Launch the pipeline orchestration script by invoking the localized Python interp
 .\build\Windows\venvs\data_pipeline_env\Scripts\python.exe .\python\data_pipeline\main.py .\python\data_pipeline\config.yaml
 ```
 
-### 7.5 Model Swapping and State Updater Configuration
+### 7.6 Updating vcpkg Dependencies
+
+If you need to update the version of `vcpkg` used in the project, you must perform the following steps to ensure dependency 
+resolution remains consistent:
+
+* Update the `builtin-baseline` in `vcpkg.json`: 
+
+Navigate to the `vcpkg` directory and retrieve the current commit hash by executing the following commands:
+
+```bash
+cd external/vcpkg
+git rev-parse HEAD
+```
+
+The output generated by this last command provides the exact hash value that needs to be placed inside the `builtin-baseline` field 
+of your `vcpkg.json` manifest.
+
+### 7.7 Model Swapping and State Updater Configuration
 
 FloodSim allows developers and researchers to dynamically swap the computational model used to update the simulation state. The execution engine natively relies on the exported model metadata to automatically resolve spatial dataset dependencies and the required physical scalar variables.
 
-#### 7.5.1 Model Exportation Pipeline
+#### 7.7.1 Model Exportation Pipeline
 To compile, package, and format models into the native framework required by the simulation engine, use the automated CMake workflow preset. The foundational models must be defined within the `python/models/versions` directory. Execute the following command to run the exportation pipeline:
 
 ```bash
@@ -533,7 +657,7 @@ cmake --workflow --preset python-models
 
 Each exported model includes a `metadata.json` manifest. This file explicitly dictates the precise input and output layers, as well as the specialized parameters needed for both the `preprocess` and `step` routines of the state updater engine.
 
-#### 7.5.2 Data Layer Resolution (Directory Structure)
+#### 7.7.2 Data Layer Resolution (Directory Structure)
 
 The simulation engine automatically scans the input dataset directory to bind spatial data targets. The target data folder must contain a subfolder for each required layer, named exactly as specified in the model's metadata manifest:
 
@@ -684,7 +808,7 @@ d-----        23/06/2026     10:29                topo_bathy
 d-----        23/06/2026     10:29                water_depth
 ```
 
-#### 7.5.3 Scalar Variables and Model Path Specification
+#### 7.7.3 Scalar Variables and Model Path Specification
 
 Scalar parameters specified as inputs within the `step` routine block of the `metadata.json` (such as `fluid_density` and `fluid_viscosity`) do not represent spatial multi-dimensional grids. Therefore, they must be supplied explicitly through the `input.scalars` section of the simulator's YAML deployment manifest.
 
