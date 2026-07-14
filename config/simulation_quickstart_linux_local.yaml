@@ -14,7 +14,7 @@ input:
     static_format: Idrisi
     dynamic_format: Hif
     dataset_folder: /usr/share/floodsim/data
-    dataset_name: data_29_10_2024
+    dataset_name: data_29_10_2024_200m
   scalars:
     fluid_density: 1000.0
     fluid_viscosity: 0.001
@@ -87,7 +87,7 @@ state_updater:
 
 simulation:
   start_timestamp: 2024-10-29T01:00:00
-  time_step: 00:00:00.25
+  time_step: 00:00:00.15
   duration: 00:01:00
   view_box: 
     use_full_grid: true
